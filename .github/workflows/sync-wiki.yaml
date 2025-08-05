@@ -1,0 +1,63 @@
+name: Sync Wiki Pages to Main Repository
+
+on:
+  gollum:
+  workflow_dispatch:
+
+jobs:
+  sync-wiki-to-repo:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main repository
+        uses: actions/checkout@v4
+
+      - name: Clone wiki repository
+        run: git clone https://github.com/${{ github.repository }}.wiki.git wiki-files
+
+      - name: Get latest wiki commit message
+        id: get_commit_message
+        run: |
+          cd wiki-files
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "commit_message<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Sync wiki content to files
+        run: |
+          SOURCE_DIR="wiki-files"
+          DEST_DIR="glossaries"
+          mkdir -p $DEST_DIR
+          
+          for file in "$SOURCE_DIR"/*; do
+            if [ ! -f "$file" ] || [[ $(basename "$file") == _* ]]; then
+              continue
+            fi
+            
+            FILENAME_WITH_EXT=$(basename "$file")
+            BASENAME_WITH_HYPHENS="${FILENAME_WITH_EXT%.*}"
+
+            BASENAME_WITH_SPACES="${BASENAME_WITH_HYPHENS//-/ }"
+
+            # 通过名称判断是否为主页
+            if [[ "$BASENAME_WITH_SPACES" == "Home" ]]; then
+              echo "Skipping user manual page: $FILENAME_WITH_EXT"
+              continue
+            fi
+
+            NEW_FILENAME="$DEST_DIR/$BASENAME_WITH_SPACES.txt"
+            
+            cp "$file" "$NEW_FILENAME"
+            echo "Synced '$NEW_FILENAME'"
+          done
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: ${{ steps.get_commit_message.outputs.commit_message }}
+          file_pattern: "glossaries/*.txt"
+          commit_user_name: "GitHub Actions Bot"
+          commit_user_email: "actions@github.com"
+          commit_author: "github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
