@@ -1,8 +1,9 @@
-作者：V-Lipset
-版本：1.0.0
-更新时间：2025-08-03
+维护者：V-Lipset
+版本号：1.0.1
+更新时间：2025-08-05
 
 词条
+
 // Poppin'Party
 Toyama：户山
 Kasumi：香澄
@@ -158,6 +159,9 @@ Asuka：明日香
 Tsukishima：月岛
 Marina：麻里奈
 
-Tsukinomori Girls' Academy：月之森女子学园
-Hanasakigawa Girls' High School：羽丘女子学园
-Haneoka Girls' High School：花咲川女子学园
+// 地点
+Tsukinomori：月之森
+Hanasakigawa：花咲川
+Haneoka：羽丘
+Girls' Academy：女子学园
+Girls' School：女子学园
