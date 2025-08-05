@@ -1,7 +1,7 @@
 /**
  name         AO3 汉化插件 - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.3.0-2025-08-03
+ version      1.3.1-2025-08-06
  description  AO3 汉化插件的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -22,7 +22,7 @@ const I18N = {
             'works_show': ['.stats .hits', '.stats .kudos'],
         },
         ignoreSelectorPage: {
-            '*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', '[data-translated-by-custom-function]'],
+            '*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', '.freeforms', '[data-translated-by-custom-function]'],
             'works_show': ['.dropdown.actions-menu ul', '.userstuff'],
             'admin_posts_show': ['.userstuff'],
             'tag_sets_index': ['h2.heading', 'dl.stats'],
@@ -58,7 +58,7 @@ const I18N = {
                 'About': '关于', 'About Us': '关于我们', 'News': '新的动态', 'FAQ': '常见问题', 'Wrangling Guidelines': '整理指南', 'Donate or Volunteer': '捐赠/成为志愿者',
                 'Recent Works': '最近作品',
                 'Recent Bookmarks': '最近书签','Collections:': '合集:',
-                'Bookmarker\'s Tags:': '书签创建者的标签：', 'Bookmarker\'s Collections:': '书签创建者的合集：','Completed': '已完成',
+                'Bookmarker\'s Tags:': '书签创建者的标签：', 'Bookmarker\'s Collections:': '书签创建者的合集：','Completed': '已完结',
                 'Bookmark Tags:': '书签标签：', 'Complete Work': '已完结', 'Work in Progress': '连载中', 'Public Bookmark': '公开书签',
                 'Most Popular': '最常用','Tag Sets': '标签集',
                 'Warnings': '预警',
@@ -608,12 +608,12 @@ const I18N = {
                 ['dd.expandable dl.range dt label', /^To$/s, '到'],
                 ['label[for^="include_work_search_category_ids_"] span:last-of-type', /^(Other)(\s*\(\d+\))$/s, '其她$2'],
                 ['label[for^="include_bookmark_search_category_ids_"] span:last-of-type', /^(Other)(\s*\(\d+\))$/s, '其她$2'],
-                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s*of\s*([0-9,]+)\s*Bookmarks by\s*(.+)\s*$/s, '$4 的 $3 条书签中的第 $1 - $2 条'],
-                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+)\s*$/s, '$4 的 $3 篇作品中的第 $1 - $2 篇'],
-                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4 的 $3 篇已创建书签作品中的第 $1 - $2 篇'],
+                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s*of\s*([0-9,]+)\s*Bookmarks by\s*(.+)\s*$/s, '$4：$3 条书签，第 $1 - $2 条'],
+                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+)\s*$/s, '$4：$3 篇作品，第 $1 - $2 篇'],
+                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4：$3 篇已创建书签作品，第 $1 - $2 篇'],
                 ['h2.heading', /^\s*Gifts for\s+(.+)\s*$/s, '$1 收到的赠文'],
                 ['h2.heading', /^\s*(.+)'s Collections\s*$/s, '$1 的合集'],
-                ['h5.byline.heading', /^\s*Bookmarked by\s*(<a .*?<\/a>)/s, '由 $1 创建书签'],
+                ['h5.byline.heading', /^\s*Bookmarked by\s*(<a .*?<\/a>)/s, '创建者：$1'],
                 ['li', /^\s*Part (<strong>\d+<\/strong>) of (<a .*?<\/a>)/, '$2 第 $1 部分'],
                 ['h2.heading', /^New bookmark for (<a href="\/works\/\d+">.*?<\/a>)/, '为 $1 创建新书签'],
                 ['h5.heading a', /^(\d+)\s+works?$/s, '$1 篇作品'],
@@ -3069,7 +3069,7 @@ function translateSymbolsKeyModal() {
         const warnDefs = sections[2].querySelectorAll('dl > dd');
         if (sections[2].querySelector('h4')) sections[2].querySelector('h4').textContent = '内容预警';
         if (warnDefs.length === 4) {
-            warnDefs[0].innerHTML = '作者选择不标注预警，或 Archive 预警<em>可能</em>适用，但作者未具体说明。';
+            warnDefs[0].innerHTML = '作者选择不标注预警，或 Archive 预警<em>可能 </em>适用，但作者未具体说明。';
             warnDefs[1].innerHTML = '至少包含以下预警之一：暴力场景描写、主要角色死亡、强暴/<acronym title="非自愿性行为">非自愿性行为</acronym>、未成年性爱。具体预警请参阅 Archive 预警标签。';
             warnDefs[2].innerHTML = '该作品未标注任何 Archive 预警。请注意，作者可能在“附加标签”（类型、预警、其她信息）部分提供了有关作品的其她信息。';
             warnDefs[3].innerHTML = '这是外部作品；请查看该作品本身以获知预警。';
@@ -5239,6 +5239,7 @@ function translateSearchResultsHeader() {
         'rec': '推荐',
         'with notes': '含注释',
         'complete': '已完结',
+		'Complete': '已完结',
         'in progress': '连载中',
         'incomplete': '连载中',
         'no crossovers': '排除跨圈作品',
@@ -5335,50 +5336,79 @@ function translateFlashMessages() {
  * 翻译点赞区域
  */
 function translateKudosSection() {
-    const kudosDiv = document.getElementById('kudos');
-    if (!kudosDiv || kudosDiv.dataset.kudosObserverAttached === 'true') {
-        return;
-    }
-    const translateParagraphContent = (pElement) => {
-        let html = pElement.innerHTML;
-        const originalHtml = html;
-        html = html.replace(
-            /(<a[^>]*>)([\d,]+)\s+more\s+users(<\/a>)/g,
-            '$1 $2 位用户$3'
-        );
-        html = html.replace(
-            /as well as\s+([\d,]+)\s+guests\s+left kudos on this work!/g,
-            '，以及 $1 位访客点赞了此作品！'
-        );
-        html = html.replace(
-            /left kudos on this work!/g,
-            '点赞了此作品！'
-        );
-        html = html.replace(
-            /,\s*and\s*(<a [^>]+>.*?<\/a>)/g,
-            '，和 $1'
-        );
-        html = html.replace(
-            /(<span id="kudos_more_connector">), and (<\/span>)/g,
-            '$1，和 $2'
-        );
-        if (html !== originalHtml) {
-            pElement.innerHTML = html;
-        }
-    };
-    const observer = new MutationObserver(() => {
-        const currentP = kudosDiv.querySelector('p.kudos');
-        if (currentP) {
-            translateParagraphContent(currentP);
-        }
-    });
-    observer.observe(kudosDiv, {
-        childList: true,
-        subtree: true
-    });
-    kudosDiv.dataset.kudosObserverAttached = 'true';
-    const initialP = kudosDiv.querySelector('p.kudos');
-    if (initialP) {
-        translateParagraphContent(initialP);
-    }
+	const kudosDiv = document.getElementById('kudos');
+	if (!kudosDiv || kudosDiv.dataset.kudosObserverAttached === 'true') {
+		return;
+	}
+	const translateParagraphContent = (pElement) => {
+		let html = pElement.innerHTML;
+		const originalHtml = html;
+
+		html = html.replace(
+			/(<a[^>]*>)([\d,]+)\s+more\s+users(<\/a>)/g,
+			'$1$2 位用户$3'
+		);
+		html = html.replace(
+			/\s*as well as\s+([\d,]+)\s+guest(s)?\s+left kudos on this work!/g,
+			' ，以及 $1 位访客点赞了此作品！'
+		);
+		html = html.replace(
+			/^([\d,]+)\s+guest(s)?\s+left kudos on this work!/g,
+			'$1 位访客点赞了此作品！'
+		);
+		html = html.replace(
+			/left kudos on this work!/g,
+			'点赞了此作品！'
+		);
+		html = html.replace(
+			/,\s*and\s*(<a [^>]+>.*?<\/a>)/g,
+			'，和 $1'
+		);
+		html = html.replace(
+			/(<span id="kudos_more_connector">), and (<\/span>)/g,
+			'$1，和 $2'
+		);
+
+		if (html !== originalHtml) {
+			pElement.innerHTML = html;
+		}
+	};
+	const observer = new MutationObserver(() => {
+		const currentP = kudosDiv.querySelector('p.kudos');
+		if (currentP) {
+			translateParagraphContent(currentP);
+		}
+	});
+	observer.observe(kudosDiv, {
+		childList: true,
+		subtree: true
+	});
+	kudosDiv.dataset.kudosObserverAttached = 'true';
+	const initialP = kudosDiv.querySelector('p.kudos');
+	if (initialP) {
+		translateParagraphContent(initialP);
+	}
+}
+
+/**
+ * 翻译标题中的标签
+ */
+function translateHeadingTags() {
+	const headingTags = document.querySelectorAll('h2.heading a.tag');
+	if (headingTags.length === 0) return;
+	const fullDictionary = {
+		...pageConfig.staticDict,
+		...pageConfig.globalFlexibleDict,
+		...pageConfig.pageFlexibleDict
+	};
+	headingTags.forEach(tagElement => {
+		if (tagElement.hasAttribute('data-translated-by-custom-function')) {
+			return;
+		}
+		const originalText = tagElement.textContent.trim();
+		if (fullDictionary[originalText]) {
+			tagElement.textContent = fullDictionary[originalText];
+		} 
+		tagElement.setAttribute('data-translated-by-custom-function', 'true');
+	});
 }
