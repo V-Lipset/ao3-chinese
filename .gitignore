@@ -2,9 +2,9 @@
 .DS_Store
 Thumbs.db
 
+# 配置文件
+package.json
+package-lock.json
+
 # 临时文件
 temp/
-
-# 构建、拆分、更新版本号
-build-version.sh
-split-version.sh
