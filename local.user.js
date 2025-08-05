@@ -2,7 +2,7 @@
 // @name         AO3 汉化插件
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.3.0-2025-08-03
+// @version      1.3.1-2025-08-06
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
@@ -11,11 +11,11 @@
 // @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js
 // @updateURL    https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js
 // @connect      raw.githubusercontent.com
+// @connect      api.together.xyz
+// @connect      www.codegeneration.ai
 // @connect      open.bigmodel.cn
 // @connect      api.deepseek.com
 // @connect      generativelanguage.googleapis.com
-// @connect      api.together.xyz
-// @connect      www.codegeneration.ai
 // @run-at       document-start
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
@@ -141,12 +141,15 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                getRequestData: (paragraphs, glossary) => createRequestData( 
-                    'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
-                    sharedSystemPrompt,
-                    paragraphs,
-                    glossary
-                ),
+                getRequestData: (paragraphs, glossary) => {
+                    const model = GM_getValue('together_ai_model', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8');
+                    return createRequestData(
+                        model,
+                        sharedSystemPrompt,
+                        paragraphs,
+                        glossary
+                    );
+                },
                 responseIdentifier: 'choices[0].message.content',
             },
             chatglm_official: {
@@ -231,7 +234,7 @@
 	            'works_show': ['.stats .hits', '.stats .kudos'],
 	        },
 	        ignoreSelectorPage: {
-	            '*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', '[data-translated-by-custom-function]'],
+	            '*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', '.freeforms', '[data-translated-by-custom-function]'],
 	            'works_show': ['.dropdown.actions-menu ul', '.userstuff'],
 	            'admin_posts_show': ['.userstuff'],
 	            'tag_sets_index': ['h2.heading', 'dl.stats'],
@@ -267,7 +270,7 @@
 	                'About': '关于', 'About Us': '关于我们', 'News': '新的动态', 'FAQ': '常见问题', 'Wrangling Guidelines': '整理指南', 'Donate or Volunteer': '捐赠/成为志愿者',
 	                'Recent Works': '最近作品',
 	                'Recent Bookmarks': '最近书签','Collections:': '合集:',
-	                'Bookmarker\'s Tags:': '书签创建者的标签：', 'Bookmarker\'s Collections:': '书签创建者的合集：','Completed': '已完成',
+	                'Bookmarker\'s Tags:': '书签创建者的标签：', 'Bookmarker\'s Collections:': '书签创建者的合集：','Completed': '已完结',
 	                'Bookmark Tags:': '书签标签：', 'Complete Work': '已完结', 'Work in Progress': '连载中', 'Public Bookmark': '公开书签',
 	                'Most Popular': '最常用','Tag Sets': '标签集',
 	                'Warnings': '预警',
@@ -817,12 +820,12 @@
 	                ['dd.expandable dl.range dt label', /^To$/s, '到'],
 	                ['label[for^="include_work_search_category_ids_"] span:last-of-type', /^(Other)(\s*\(\d+\))$/s, '其她$2'],
 	                ['label[for^="include_bookmark_search_category_ids_"] span:last-of-type', /^(Other)(\s*\(\d+\))$/s, '其她$2'],
-	                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s*of\s*([0-9,]+)\s*Bookmarks by\s*(.+)\s*$/s, '$4 的 $3 条书签中的第 $1 - $2 条'],
-	                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+)\s*$/s, '$4 的 $3 篇作品中的第 $1 - $2 篇'],
-	                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4 的 $3 篇已创建书签作品中的第 $1 - $2 篇'],
+	                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s*of\s*([0-9,]+)\s*Bookmarks by\s*(.+)\s*$/s, '$4：$3 条书签，第 $1 - $2 条'],
+	                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+)\s*$/s, '$4：$3 篇作品，第 $1 - $2 篇'],
+	                ['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4：$3 篇已创建书签作品，第 $1 - $2 篇'],
 	                ['h2.heading', /^\s*Gifts for\s+(.+)\s*$/s, '$1 收到的赠文'],
 	                ['h2.heading', /^\s*(.+)'s Collections\s*$/s, '$1 的合集'],
-	                ['h5.byline.heading', /^\s*Bookmarked by\s*(<a .*?<\/a>)/s, '由 $1 创建书签'],
+	                ['h5.byline.heading', /^\s*Bookmarked by\s*(<a .*?<\/a>)/s, '创建者：$1'],
 	                ['li', /^\s*Part (<strong>\d+<\/strong>) of (<a .*?<\/a>)/, '$2 第 $1 部分'],
 	                ['h2.heading', /^New bookmark for (<a href="\/works\/\d+">.*?<\/a>)/, '为 $1 创建新书签'],
 	                ['h5.heading a', /^(\d+)\s+works?$/s, '$1 篇作品'],
@@ -3278,7 +3281,7 @@
 	        const warnDefs = sections[2].querySelectorAll('dl > dd');
 	        if (sections[2].querySelector('h4')) sections[2].querySelector('h4').textContent = '内容预警';
 	        if (warnDefs.length === 4) {
-	            warnDefs[0].innerHTML = '作者选择不标注预警，或 Archive 预警<em>可能</em>适用，但作者未具体说明。';
+	            warnDefs[0].innerHTML = '作者选择不标注预警，或 Archive 预警<em>可能 </em>适用，但作者未具体说明。';
 	            warnDefs[1].innerHTML = '至少包含以下预警之一：暴力场景描写、主要角色死亡、强暴/<acronym title="非自愿性行为">非自愿性行为</acronym>、未成年性爱。具体预警请参阅 Archive 预警标签。';
 	            warnDefs[2].innerHTML = '该作品未标注任何 Archive 预警。请注意，作者可能在“附加标签”（类型、预警、其她信息）部分提供了有关作品的其她信息。';
 	            warnDefs[3].innerHTML = '这是外部作品；请查看该作品本身以获知预警。';
@@ -5448,6 +5451,7 @@
 	        'rec': '推荐',
 	        'with notes': '含注释',
 	        'complete': '已完结',
+			'Complete': '已完结',
 	        'in progress': '连载中',
 	        'incomplete': '连载中',
 	        'no crossovers': '排除跨圈作品',
@@ -5544,52 +5548,81 @@
 	 * 翻译点赞区域
 	 */
 	function translateKudosSection() {
-	    const kudosDiv = document.getElementById('kudos');
-	    if (!kudosDiv || kudosDiv.dataset.kudosObserverAttached === 'true') {
-	        return;
-	    }
-	    const translateParagraphContent = (pElement) => {
-	        let html = pElement.innerHTML;
-	        const originalHtml = html;
-	        html = html.replace(
-	            /(<a[^>]*>)([\d,]+)\s+more\s+users(<\/a>)/g,
-	            '$1 $2 位用户$3'
-	        );
-	        html = html.replace(
-	            /as well as\s+([\d,]+)\s+guests\s+left kudos on this work!/g,
-	            '，以及 $1 位访客点赞了此作品！'
-	        );
-	        html = html.replace(
-	            /left kudos on this work!/g,
-	            '点赞了此作品！'
-	        );
-	        html = html.replace(
-	            /,\s*and\s*(<a [^>]+>.*?<\/a>)/g,
-	            '，和 $1'
-	        );
-	        html = html.replace(
-	            /(<span id="kudos_more_connector">), and (<\/span>)/g,
-	            '$1，和 $2'
-	        );
-	        if (html !== originalHtml) {
-	            pElement.innerHTML = html;
-	        }
-	    };
-	    const observer = new MutationObserver(() => {
-	        const currentP = kudosDiv.querySelector('p.kudos');
-	        if (currentP) {
-	            translateParagraphContent(currentP);
-	        }
-	    });
-	    observer.observe(kudosDiv, {
-	        childList: true,
-	        subtree: true
-	    });
-	    kudosDiv.dataset.kudosObserverAttached = 'true';
-	    const initialP = kudosDiv.querySelector('p.kudos');
-	    if (initialP) {
-	        translateParagraphContent(initialP);
-	    }
+		const kudosDiv = document.getElementById('kudos');
+		if (!kudosDiv || kudosDiv.dataset.kudosObserverAttached === 'true') {
+			return;
+		}
+		const translateParagraphContent = (pElement) => {
+			let html = pElement.innerHTML;
+			const originalHtml = html;
+
+			html = html.replace(
+				/(<a[^>]*>)([\d,]+)\s+more\s+users(<\/a>)/g,
+				'$1$2 位用户$3'
+			);
+			html = html.replace(
+				/\s*as well as\s+([\d,]+)\s+guest(s)?\s+left kudos on this work!/g,
+				' ，以及 $1 位访客点赞了此作品！'
+			);
+			html = html.replace(
+				/^([\d,]+)\s+guest(s)?\s+left kudos on this work!/g,
+				'$1 位访客点赞了此作品！'
+			);
+			html = html.replace(
+				/left kudos on this work!/g,
+				'点赞了此作品！'
+			);
+			html = html.replace(
+				/,\s*and\s*(<a [^>]+>.*?<\/a>)/g,
+				'，和 $1'
+			);
+			html = html.replace(
+				/(<span id="kudos_more_connector">), and (<\/span>)/g,
+				'$1，和 $2'
+			);
+
+			if (html !== originalHtml) {
+				pElement.innerHTML = html;
+			}
+		};
+		const observer = new MutationObserver(() => {
+			const currentP = kudosDiv.querySelector('p.kudos');
+			if (currentP) {
+				translateParagraphContent(currentP);
+			}
+		});
+		observer.observe(kudosDiv, {
+			childList: true,
+			subtree: true
+		});
+		kudosDiv.dataset.kudosObserverAttached = 'true';
+		const initialP = kudosDiv.querySelector('p.kudos');
+		if (initialP) {
+			translateParagraphContent(initialP);
+		}
+	}
+
+	/**
+	 * 翻译标题中的标签
+	 */
+	function translateHeadingTags() {
+		const headingTags = document.querySelectorAll('h2.heading a.tag');
+		if (headingTags.length === 0) return;
+		const fullDictionary = {
+			...pageConfig.staticDict,
+			...pageConfig.globalFlexibleDict,
+			...pageConfig.pageFlexibleDict
+		};
+		headingTags.forEach(tagElement => {
+			if (tagElement.hasAttribute('data-translated-by-custom-function')) {
+				return;
+			}
+			const originalText = tagElement.textContent.trim();
+			if (fullDictionary[originalText]) {
+				tagElement.textContent = fullDictionary[originalText];
+			} 
+			tagElement.setAttribute('data-translated-by-custom-function', 'true');
+		});
 	}
 
     let pageConfig = {};
@@ -5597,7 +5630,7 @@
     /**
      * 更新页面设置
      */
-    function updatePageConfig(currentPageChangeTrigger) {
+    function updatePageConfig() {
         const newType = detectPageType();
         if (newType && newType !== pageConfig.currentPageType) {
             pageConfig = buildPageConfig(newType);
@@ -5959,14 +5992,12 @@
 
     /**
      * transElement 函数：翻译指定元素的文本内容或属性。
-     * @param {Element|DOMStringMap|Node} el - 需要翻译的元素或元素的数据集
-     * @param {string} field - 需要翻译的属性名称或文本内容字段
      */
     function transElement(el, field) {
         if (!el || !el[field]) return false;
         const text = el[field];
         if (typeof text !== 'string' || !text.trim()) return false;
-        const translatedText = transText(text);
+        const translatedText = transText(text, el);
         if (translatedText && translatedText !== text) {
             try {
                 el[field] = translatedText;
@@ -5977,17 +6008,17 @@
 
     /**
      * transText 函数：翻译文本内容。
-     * @param {string} text - 需要翻译的文本内容
-     * @returns {string|false} 翻译后的文本内容
      */
-    function transText(text) {
+    function transText(text, el) {
         if (!text || typeof text !== 'string') return false;
         const originalText = text;
         let translatedText = text;
+
         const applyFlexibleDict = (targetText, dict) => {
             if (!dict) return targetText;
             const keys = Object.keys(dict);
             if (keys.length === 0) return targetText;
+            
             const regexParts = keys.map(key => {
                 const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 if (/^[\w\s]+$/.test(key)) {
@@ -5997,15 +6028,28 @@
                 }
             });
             const flexibleRegex = new RegExp(`(${regexParts.join('|')})`, 'g');
+
+            if (el && el.nodeType === Node.TEXT_NODE && el.parentElement && el.parentElement.matches('h2.heading a.tag')) {
+                const fullTagText = el.parentElement.textContent.trim();
+                if (dict[fullTagText]) {
+                    return targetText.replace(fullTagText, dict[fullTagText]);
+                } else {
+                    return targetText;
+                }
+            }
+
             return targetText.replace(flexibleRegex, (matched) => dict[matched] || matched);
         };
+
         translatedText = applyFlexibleDict(translatedText, pageConfig.pageFlexibleDict);
         translatedText = applyFlexibleDict(translatedText, pageConfig.globalFlexibleDict);
+
         const staticDict = pageConfig.staticDict || {};
         const trimmedText = translatedText.trim();
         if (staticDict[trimmedText]) {
             translatedText = translatedText.replace(trimmedText, staticDict[trimmedText]);
         }
+
         if (FeatureSet.enable_RegExp && pageConfig.regexpRules) {
             for (const rule of pageConfig.regexpRules) {
                 if (!Array.isArray(rule) || rule.length !== 2) continue;
@@ -6048,65 +6092,10 @@
     }
 
     /**
-     * chunkTextparagraphs 函数：实现文本分块。
-     */
-    function chunkText(paragraphs) {
-        const chunks = [];
-        let currentChunk = [];
-        let currentCharCount = 0;
-
-        for (const p of paragraphs) {
-            const pLength = p.textContent.length;
-            if (pLength === 0) continue;
-
-            if (
-                currentChunk.length > 0 &&
-                (currentCharCount + pLength > CONFIG.CHUNK_SIZE || currentChunk.length >= CONFIG.PARAGRAPH_LIMIT)
-            ) {
-                chunks.push(currentChunk);
-                currentChunk = [];
-                currentCharCount = 0;
-            }
-
-            currentChunk.push(p);
-            currentCharCount += pLength;
-        }
-
-        if (currentChunk.length > 0) {
-            chunks.push(currentChunk);
-        }
-        return chunks;
-    }
-
-    /**
      * sleepms 函数：延时。
      */
     function sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    /**
-     * 翻译并显示单个段落
-     */
-    async function translateAndDisplayParagraph(pElement) {
-        if (pElement.dataset.translated === 'true') return;
-        pElement.dataset.translated = 'true';
-
-        const originalText = pElement.textContent.trim();
-        if (!originalText) return;
-
-        try {
-            const translatedText = await requestRemoteTranslation(originalText);
-            if (translatedText && !translatedText.startsWith('翻译失败')) {
-                const translationNode = document.createElement('p');
-                translationNode.className = 'translated-by-ao3-script';
-                translationNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
-                translationNode.textContent = translatedText;
-                pElement.after(translationNode);
-            }
-        } catch (e) {
-            console.error('Paragraph translation failed:', e);
-        }
     }
 
     /**
@@ -6233,7 +6222,7 @@
      * @param {Array<HTMLElement>} paragraphs - 需要翻译的段落元素数组
      * @param {object} [options] - 包含重试配置的对象
      */
-    async function translateParagraphs(paragraphs, { retryCount = 0, maxRetries = 1 } = {}) {
+    async function translateParagraphs(paragraphs, { retryCount = 0, maxRetries = 2 } = {}) {
         const results = new Map();
         if (paragraphs.length === 0) return results;
 
@@ -6247,7 +6236,7 @@
         }
 
         try {
-            const combinedTranslation = await requestRemoteTranslation(paragraphsToSend);
+            const combinedTranslation = await requestRemoteTranslation(paragraphsToSend, { retryCount, maxRetries });
             
             let translatedParts = [];
             const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
@@ -6259,32 +6248,41 @@
             if (translatedParts.length !== paragraphs.length && combinedTranslation.includes('\n')) {
                 const potentialParts = combinedTranslation.split('\n').filter(p => p.trim().length > 0);
                 if (potentialParts.length === paragraphs.length) {
+                    console.warn('主解析策略失败，启用换行符分割策略。');
                     translatedParts = potentialParts.map(p => p.replace(/^\d+\.\s*/, '').trim());
                 }
             }
-            
-            if (translatedParts.length !== paragraphs.length) {
-                console.error('AI 返回的分段数量与请求的数量不匹配。', {
-                    expected: paragraphs.length,
-                    got: translatedParts.length,
-                    response: combinedTranslation
-                });
-                throw new Error('AI 响应格式不一致，分段数量不匹配');
-            }
 
-            paragraphs.forEach((p, index) => {
-                const cleanedHtml = AdvancedTranslationCleaner.clean(translatedParts[index] || p.innerHTML);
-                results.set(p, { status: 'success', content: cleanedHtml });
-            });
-            
-            return results;
+            if (translatedParts.length === paragraphs.length) {
+                paragraphs.forEach((p, index) => {
+                    const cleanedHtml = AdvancedTranslationCleaner.clean(translatedParts[index] || p.innerHTML);
+                    results.set(p, { status: 'success', content: cleanedHtml });
+                });
+                return results;
+            } else {
+                if (retryCount < 1) {
+                    console.warn('分段数量不匹配，正在自动重试...');
+                    await sleep(1000);
+                    return await translateParagraphs(paragraphs, { retryCount: retryCount + 1, maxRetries });
+                } else {
+                    console.warn('重试后分段数量仍不匹配，将作为整块文本处理（降级方案）。', {
+                        expected: paragraphs.length,
+                        got: translatedParts.length,
+                        response: combinedTranslation
+                    });
+                    const blockTranslation = AdvancedTranslationCleaner.clean(combinedTranslation);
+                    results.set('__BLOCK_TRANSLATION__', { status: 'success_fallback', content: blockTranslation });
+                    return results;
+                }
+            }
 
         } catch (e) {
             console.error(`翻译失败 (尝试 ${retryCount + 1}/${maxRetries + 1}):`, e.message);
 
             if (retryCount < maxRetries) {
-                console.log(`将在 1 秒后重试...`);
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                const delay = Math.pow(2, retryCount) * 1000 + Math.random() * 500;
+                console.log(`将在 ${Math.round(delay/1000)} 秒后重试...`);
+                await sleep(delay);
                 return await translateParagraphs(paragraphs, { retryCount: retryCount + 1, maxRetries });
             } else {
                 console.error("所有重试均失败，翻译终止。");
@@ -6298,7 +6296,7 @@
     }
     
     /**
-     * 翻译引擎（可清除译文）。
+     * 翻译引擎（可清除译文）
      * @param {HTMLElement} containerElement - 容器元素
      * @param {function} onComplete - 全部翻译完成后的回调
      */
@@ -6325,24 +6323,40 @@
             return;
         }
 
+        units.forEach(unit => unit.dataset.translationState = 'translating');
+
         const translationResults = await translateParagraphs(units);
 
-        units.forEach(unit => {
-            const result = translationResults.get(unit);
-            if (result) {
-                const transNode = document.createElement('div');
-                if (result.status === 'success') {
-                    transNode.className = 'translated-by-ao3-script';
+        if (translationResults.has('__BLOCK_TRANSLATION__')) {
+            const result = translationResults.get('__BLOCK_TRANSLATION__');
+            const transNode = document.createElement('div');
+            transNode.className = 'translated-by-ao3-script';
+            transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
+            transNode.innerHTML = `<p>${result.content.replace(/\n/g, '<br>')}</p>`;
+            containerElement.after(transNode);
+            units.forEach(unit => unit.dataset.translationState = 'translated');
+        } else {
+            units.forEach(unit => {
+                const result = translationResults.get(unit);
+                if (result) {
+                    const transNode = document.createElement('div');
+                    const tagName = unit.tagName.toLowerCase();
+                    if (result.status === 'success') {
+                        transNode.className = 'translated-by-ao3-script';
+                        transNode.innerHTML = `<${tagName}>${result.content}</${tagName}>`;
+                        unit.dataset.translationState = 'translated';
+                    } else {
+                        transNode.className = 'translated-by-ao3-script-error';
+                        transNode.innerHTML = `<${tagName}>${result.content}</${tagName}>`;
+                        unit.dataset.translationState = 'error';
+                    }
                     transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
-                    transNode.innerHTML = `<${unit.tagName.toLowerCase()}>${result.content}</${unit.tagName.toLowerCase()}>`;
+                    unit.after(transNode);
                 } else {
-                    transNode.className = 'translated-by-ao3-script-error';
-                    transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
-                    transNode.innerHTML = `<${unit.tagName.toLowerCase()}>${result.content}</${unit.tagName.toLowerCase()}>`;
+                    unit.dataset.translationState = 'error';
                 }
-                unit.after(transNode);
-            }
-        });
+            });
+        }
 
         onComplete?.();
     }
@@ -6352,49 +6366,37 @@
      * @param {HTMLElement} containerElement - 容器元素
      */
     function runTranslationEngineWithObserver(containerElement) {
-
         const elementState = new WeakMap();
 
         function preProcessAndGetUnits(container) {
             const elementsToProcess = container.querySelectorAll('p, blockquote');
-            
             const elementsToModify = [];
             elementsToProcess.forEach(el => {
                 if (elementState.has(el)) return;
-                const hasBrSeparators = (el.innerHTML.match(/(?:<br\s*\/?>\s*){2,}/i));
-                if (hasBrSeparators) {
+                if ((el.innerHTML.match(/(?:<br\s*\/?>\s*){2,}/i))) {
                     elementsToModify.push(el);
                 }
                 elementState.set(el, { preprocessed: true });
             });
-
             elementsToModify.forEach(el => {
                 (unsafeWindow.consola || console).info("检测到段落内含<br>分隔，正在进行预处理...");
                 const separatorRegex = /(?:\s*<br\s*\/?>\s*){2,}/ig;
                 const fragmentsHTML = el.innerHTML.split(separatorRegex);
-                
-                const newElements = fragmentsHTML
-                    .map(fragment => fragment.trim())
-                    .filter(fragment => fragment)
-                    .map(fragment => {
-                        const newP = document.createElement(el.tagName);
-                        newP.innerHTML = fragment;
-                        elementState.set(newP, { preprocessed: true });
-                        return newP;
-                    });
-
+                const newElements = fragmentsHTML.map(f => f.trim()).filter(Boolean).map(fragment => {
+                    const newP = document.createElement(el.tagName);
+                    newP.innerHTML = fragment;
+                    elementState.set(newP, { preprocessed: true });
+                    return newP;
+                });
                 if (newElements.length > 1) {
                     el.after(...newElements);
                     el.remove();
                 }
             });
-
             const translatableSelectors = 'p, blockquote, li, h1, h2, h3, h4, h5, h6, hr';
             let allUnits = Array.from(container.querySelectorAll(translatableSelectors));
-            
             const skippableHeaders = ['Summary', 'Notes', 'Work Text', 'Chapter Text'];
             allUnits = allUnits.filter(p => !skippableHeaders.includes(p.textContent.trim()));
-
             return allUnits.filter(unit => {
                 let parent = unit.parentElement;
                 while (parent && parent !== container) {
@@ -6412,7 +6414,7 @@
         const processQueue = async (observer) => {
             if (isProcessing || translationQueue.size === 0) return;
             isProcessing = true;
-            
+
             let chunkSize = CONFIG.CHUNK_SIZE;
             let paragraphLimit = CONFIG.PARAGRAPH_LIMIT;
             const engine = GM_getValue('transEngine');
@@ -6430,59 +6432,80 @@
 
             const processChunk = async (chunk) => {
                 if (chunk.length === 0) return;
-                chunk.forEach(p => elementState.set(p, { ...elementState.get(p), status: 'translating' }));
+                chunk.forEach(p => {
+                    elementState.set(p, { ...elementState.get(p), status: 'translating' });
+                    p.dataset.translationState = 'translating';
+                });
                 const translationResults = await translateParagraphs(chunk);
+                const currentMode = GM_getValue('translation_display_mode', 'bilingual');
+
+                if (translationResults.has('__BLOCK_TRANSLATION__')) {
+                    const result = translationResults.get('__BLOCK_TRANSLATION__');
+                    const transNode = document.createElement('div');
+                    transNode.className = 'translated-by-ao3-script';
+                    transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
+                    transNode.innerHTML = `<p>${result.content.replace(/\n/g, '<br>')}</p>`;
+
+                    const lastParagraphInChunk = chunk[chunk.length - 1];
+                    lastParagraphInChunk.after(transNode);
+
+                    chunk.forEach(p => {
+                        elementState.set(p, { ...elementState.get(p), status: 'translated' });
+                        p.dataset.translationState = 'translated';
+                        if (currentMode === 'translation_only') {
+                            p.style.display = 'none';
+                        }
+                        if (observer) observer.unobserve(p);
+                    });
+                    return;
+                }
 
                 for (const p of chunk) {
                     const existingElement = p.nextElementSibling;
                     if (existingElement && (existingElement.classList.contains('translated-by-ao3-script') || existingElement.classList.contains('translated-by-ao3-script-error'))) {
                         existingElement.remove();
                     }
+
                     const result = translationResults.get(p);
                     if (result && result.content) {
                         const transNode = document.createElement('div');
+                        const tagName = p.tagName.toLowerCase();
+                        transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
+
                         if (result.status === 'success') {
                             transNode.className = 'translated-by-ao3-script';
-                            transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
-                            transNode.innerHTML = `<${p.tagName.toLowerCase()}>${result.content}</${p.tagName.toLowerCase()}>`;
+                            transNode.innerHTML = `<${tagName}>${result.content}</${tagName}>`;
                             p.after(transNode);
-                            const currentMode = GM_getValue('translation_display_mode', 'bilingual');
                             if (currentMode === 'translation_only') p.style.display = 'none';
 
                             elementState.set(p, { ...elementState.get(p), status: 'translated' });
                             p.dataset.translationState = 'translated';
-
                             if (observer) observer.unobserve(p);
                         } else {
                             transNode.className = 'translated-by-ao3-script-error';
-                            transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
-                            
-                            const errorParagraph = document.createElement(p.tagName.toLowerCase());
-                            errorParagraph.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
+                            const errorParagraph = document.createElement(tagName);
                             errorParagraph.textContent = `翻译失败：${result.content.replace('翻译失败：', '')}`;
-                            
                             transNode.appendChild(errorParagraph);
                             p.after(transNode);
-                            elementState.delete(p);
+                            elementState.set(p, { ...elementState.get(p), status: 'error' });
+                            p.dataset.translationState = 'error';
                         }
                     } else {
-                        elementState.delete(p);
+                        elementState.set(p, { ...elementState.get(p), status: 'error' });
+                        p.dataset.translationState = 'error';
                     }
                 }
             };
 
             let currentChunk = [];
             for (const p of unitsToProcess) {
-                const isTextSeparator = /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(p.textContent);
-                const isHtmlSeparator = p.tagName === 'HR';
+                const isSeparator = p.tagName === 'HR' || /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(p.textContent);
 
-                if (isTextSeparator || isHtmlSeparator) {
+                if (isSeparator) {
                     await processChunk(currentChunk);
                     currentChunk = [];
-
                     elementState.set(p, { ...elementState.get(p), status: 'translated' });
                     p.dataset.translationState = 'translated';
-
                     if (observer) observer.unobserve(p);
                 } else if (p.textContent.trim().length > 0 || p.querySelector('img')) {
                     currentChunk.push(p);
@@ -6493,7 +6516,6 @@
                 } else {
                     elementState.set(p, { ...elementState.get(p), status: 'translated' });
                     p.dataset.translationState = 'translated';
-
                     if (observer) observer.unobserve(p);
                 }
             }
@@ -6506,78 +6528,35 @@
                 setTimeout(() => processQueue(observer), 250);
             }
         };
-        
+
         const observer = new IntersectionObserver((entries, obs) => {
             let addedToQueue = false;
             entries.forEach(entry => {
                 const state = elementState.get(entry.target);
                 if (entry.isIntersecting && (!state || !state.status)) {
                     elementState.set(entry.target, { ...state, status: 'queued' });
+                    entry.target.dataset.translationState = 'queued';
                     translationQueue.add(entry.target);
                     addedToQueue = true;
                 }
             });
             if (addedToQueue) processQueue(obs);
         }, { rootMargin: '0px 0px 500px 0px' });
-
         const isInViewport = (el) => {
             const rect = el.getBoundingClientRect();
-            return ( rect.top < window.innerHeight && rect.bottom >= 0 );
+            return (rect.top < window.innerHeight && rect.bottom >= 0);
         };
-
-        const visibleUnits = allUnits.filter(unit => isInViewport(unit) && !elementState.get(unit)?.status);
-        const offscreenUnits = allUnits.filter(unit => !isInViewport(unit) && !elementState.get(unit)?.status);
-        
-        if (visibleUnits.length > 0) {
-            visibleUnits.forEach(u => {
-                elementState.set(u, { ...elementState.get(u), status: 'queued' });
-                translationQueue.add(u);
-            });
+        allUnits.forEach(unit => {
+            if (isInViewport(unit) && !elementState.get(unit)?.status) {
+                elementState.set(unit, { status: 'queued' });
+                unit.dataset.translationState = 'queued';
+                translationQueue.add(unit);
+            } else {
+                observer.observe(unit);
+            }
+        });
+        if (translationQueue.size > 0) {
             processQueue(observer);
-        }
-
-        if (offscreenUnits.length > 0) {
-            offscreenUnits.forEach(unit => observer.observe(unit));
-        }
-    }
-
-    /**
-     * 针对非标准排版进行预处理，将其转换为标准的 <p> 标签结构。
-     * @param {HTMLElement} container - 需要进行预处理的容器元素
-     */
-    function preProcessContentForIrregularLayouts(container) {
-        const directParagraphs = container.querySelectorAll(':scope > p');
-        const directChildren = container.children;
-
-        if (directParagraphs.length > 1 || directChildren.length > 5) {
-            return;
-        }
-
-        let contentHTML = container.innerHTML;
-
-        if (directParagraphs.length === 1) {
-            contentHTML = directParagraphs[0].innerHTML;
-        } else if (directChildren.length === 1 && (directChildren[0].tagName === 'DIV' || directChildren[0].tagName === 'SPAN')) {
-            contentHTML = directChildren[0].innerHTML;
-        }
-
-        const separatorRegex = /(?:\s*<br\s*\/?>\s*){1,}/i;
-        const fragments = contentHTML.split(separatorRegex);
-
-        if (fragments.length <= 1) {
-            return;
-        }
-
-        console.log("AO3 汉化插件：检测到非标准文章排版，正在进行自动预处理...");
-
-        const newHTML = fragments
-            .map(fragment => fragment.trim())
-            .filter(fragment => fragment.length > 0)
-            .map(fragment => `<p>${fragment}</p>`)
-            .join('');
-
-        if (newHTML) {
-            container.innerHTML = newHTML;
         }
     }
 
@@ -6599,9 +6578,6 @@
             return undefined;
         }, obj);
     }
-
-    // 用于缓存 Together AI 的 API Key
-    let togetherApiKey = null;
 
     /**
      * 获取并缓存 Together AI 的 API Key
@@ -6929,7 +6905,7 @@
 	    const result = { terms: {} };
 	    const lines = text.split('\n');
 
-	    const metadataRegex = /^\s*(author|version|last_updated|作者|版本|更新时间)\s*[:：]\s*(.*?)\s*[,，]?\s*$/;
+	    const metadataRegex = /^\s*(maintainer|version|last_updated|维护者|版本号|更新时间)\s*[:：]\s*(.*?)\s*[,，]?\s*$/;
 	    const termsMarkerRegex = /^\s*(?:terms|词条)\s*[:：]?\s*$/i;
 	    let termsStartIndex = -1;
 
@@ -6947,8 +6923,8 @@
 	            let value = metadataMatch[2].trim();
 
                 const keyMap = {
-                    '作者': 'author',
-                    '版本': 'version',
+                    '维护者': 'maintainer',
+                    '版本号': 'version',
                     '更新时间': 'last_updated'
                 };
                 const mappedKey = keyMap[key] || key;
@@ -7012,7 +6988,7 @@
      * 从 GitHub 导入在线术语表文件
      */
     function importOnlineGlossary() {
-        const exampleUrl = 'https://raw.githubusercontent.com/YourUsername/YourRepo/main/glossaryName.txt';
+        const exampleUrl = 'https://raw.githubusercontent.com/YourUsername/YourRepo/main/glossary.txt';
         const url = prompt(
             '请输入 Github 术语表文件链接。\n\n示例\n' + exampleUrl,
             ''
@@ -7036,21 +7012,24 @@
                     notifyAndLog(`下载 “${glossaryName}” 失败！\n服务器返回状态码: ${response.status}`, '导入错误', 'error');
                     return;
                 }
+
+                const normalizedContent = normalizeContentToPlainText(response.responseText);
+
                 try {
                     let onlineData;
                     try {
-                        onlineData = parseCustomGlossaryFormat(response.responseText);
+                        onlineData = parseCustomGlossaryFormat(normalizedContent);
                         console.log(`“${glossaryName}” 已通过自定义格式成功解析。`);
                     } catch (customError) {
                         console.warn(`自定义格式解析失败，回退至标准 JSON 解析器。原因: ${customError.message}`);
-                        onlineData = sanitizeAndParseJson(response.responseText);
+                        onlineData = sanitizeAndParseJson(normalizedContent);
                         console.log(`“${glossaryName}” 已通过标准 JSON 格式成功解析。`);
                     }
 
                     if (!onlineData.version || typeof onlineData.terms !== 'object' || onlineData.terms === null) {
                         throw new Error('文件内容不规范，缺少 "version" 或 "terms" 字段。');
                     }
-                    
+
                     const onlineTerms = onlineData.terms;
                     const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
                     allImportedGlossaries[url] = onlineTerms;
@@ -7058,6 +7037,7 @@
                     
                     const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
                     metadata[url] = { 
+                        name: glossaryName,
                         author: onlineData.author || '未知', 
                         version: onlineData.version, 
                         last_imported: new Date().toISOString() 
@@ -7066,7 +7046,7 @@
 
                     const importedCount = Object.keys(onlineTerms).length;
                     const authorName = onlineData.author || '未知';
-                    notifyAndLog(`已成功导入 “${glossaryName}” 术语表。\n作者：${authorName}，版本号：${onlineData.version}。共 ${importedCount} 个词条。`, '导入成功');
+                    notifyAndLog(`已成功导入 “${glossaryName}” 术语表。\n维护者：${authorName}，版本号：${onlineData.version}。共 ${importedCount} 个词条。`, '导入成功');
 
                 } catch (e) {
                     console.error(`处理 “${glossaryName}” 时发生严重错误:`, e);
@@ -7083,42 +7063,43 @@
     /**
      * 管理已导入的在线术语表
      */
-    function manageImportedGlossaries() {
-        const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-        const urls = Object.keys(metadata);
-        if (urls.length === 0) {
-            alert('您尚未导入任何在线术语表。');
-            return;
-        }
-        const urlListText = urls.map((url, index) => {
-            const glossaryName = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
-            const author = metadata[url].author || '未知';
-            const version = metadata[url].version;
-            return `${index + 1}. ${glossaryName}（v${version}，${author}）`;
-        }).join('\n');
-        const choice = prompt(
-            '若您想要移除某个术语表，请输入对应编号（仅输入数字）。注意，此操作彻底移除该在线术语表及其所有词条。\n\n' + urlListText,
-            ''
-        );
-        if (!choice || !choice.trim()) { return; }
-        const index = parseInt(choice, 10) - 1;
-        if (isNaN(index) || index < 0 || index >= urls.length) {
-            alert('输入无效，请输入列表中的正确编号。');
-            return;
-        }
-        const urlToRemove = urls[index];
-        const glossaryNameToRemove = decodeURIComponent(urlToRemove.split('/').pop().replace(/\.[^/.]+$/, ''));
-        if (!confirm(`您确定要移除 “${glossaryNameToRemove}” 这个术语表吗？`)) {
-            return;
-        }
-        notifyAndLog(`正在移除 “${glossaryNameToRemove}”...`, '请稍候');
-        delete metadata[urlToRemove];
-        GM_setValue(GLOSSARY_METADATA_KEY, metadata);
-        const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-        delete allImportedGlossaries[urlToRemove];
-        GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
-        notifyAndLog(`已成功移除 “${glossaryNameToRemove}” 术语表。`, '操作完成');
-    }
+	function manageImportedGlossaries() {
+		const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+		const urls = Object.keys(metadata);
+		if (urls.length === 0) {
+			alert('您尚未导入任何在线术语表。');
+			return;
+		}
+		const urlListText = urls.map((url, index) => {
+			const glossaryName = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
+			const author = metadata[url].author || '未知';
+			const version = metadata[url].version;
+			return `${index + 1}. ${glossaryName}\n    版本：v${version}，维护者：${author}`;
+		}).join('\n');
+
+		const choice = prompt(
+			'若您想要移除某个术语表，请输入对应编号（仅输入数字）。注意，此操作彻底移除该在线术语表及其所有词条。\n\n' + urlListText,
+			''
+		);
+		if (!choice || !choice.trim()) { return; }
+		const index = parseInt(choice, 10) - 1;
+		if (isNaN(index) || index < 0 || index >= urls.length) {
+			alert('输入无效，请输入列表中的正确编号。');
+			return;
+		}
+		const urlToRemove = urls[index];
+		const glossaryNameToRemove = decodeURIComponent(urlToRemove.split('/').pop().replace(/\.[^/.]+$/, ''));
+		if (!confirm(`您确定要移除 “${glossaryNameToRemove}” 这个术语表吗？`)) {
+			return;
+		}
+		notifyAndLog(`正在移除 “${glossaryNameToRemove}”...`, '请稍候');
+		delete metadata[urlToRemove];
+		GM_setValue(GLOSSARY_METADATA_KEY, metadata);
+		const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
+		delete allImportedGlossaries[urlToRemove];
+		GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
+		notifyAndLog(`已成功移除 “${glossaryNameToRemove}” 术语表。`, '操作完成');
+	}
 
     /**
      * 清空所有术语表
@@ -7170,14 +7151,14 @@
                 const onlineVersion = onlineData.version;
                 if (onlineVersion && compareVersions(onlineVersion, localVersion) > 0) {
                     const authorName = onlineData.author || '未知';
-                    console.log(`发现 “${glossaryName}” 的新版本: ${onlineVersion} (本地为 ${localVersion})`);
+                    console.log(`发现 “${glossaryName}” 的新版本: v${onlineVersion} (本地为 v${localVersion})`);
                     allImportedGlossaries[url] = onlineData.terms || {};
                     metadata[url].author = authorName;
                     metadata[url].version = onlineVersion;
                     metadata[url].last_updated = new Date().toISOString();
                     updatedCount++;
                     if (!isManual) {
-                        notifyAndLog(`“${glossaryName}” 术语表已自动更新到 v${onlineVersion}！\n作者：${authorName}`, '更新成功');
+                        notifyAndLog(`“${glossaryName}” 术语表已自动更新到 v${onlineVersion}！\n维护者：${authorName}`, '更新成功');
                     }
                 }
             } catch (e) {
@@ -7258,52 +7239,37 @@
     }
 
     /**
-     * 翻译文本清理函数
+     * 翻译文本处理函数
      */
     const AdvancedTranslationCleaner = new (class {
         constructor() {
             this.metaKeywords = [
-                '原文', '输出', '译文', '翻译', '说明', '遵守', '润色', '语境', '保留', '符合', '指令',
-                'Translation', 'Original text', 'Output', 'Note', 'Stage', 'Strategy', 'Polish', 'Retain', 'Glossary', 'Adherence'
+                '原文', '输出', '说明', '遵守', '润色', '语境', '保留', '符合', '指令',
+                'Original text', 'Output', 'Note', 'Stage', 'Strategy', 'Polish', 'Retain', 'Glossary', 'Adherence'
             ];
             this.junkLineRegex = new RegExp(`^\\s*(\\d+\\.\\s*)?(${this.metaKeywords.join('|')})[:：\\s]`, 'i');
             this.lineNumbersRegex = /^\d+\.\s*/;
         }
-
         clean(text) {
             if (!text || typeof text !== 'string') {
                 return '';
             }
-
             const lines = text.split('\n');
             const cleanedLines = lines.filter(line => !this.junkLineRegex.test(line));
             let cleanedText = cleanedLines.join('\n');
             cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
-
             cleanedText = cleanedText.replace(/[\s\u3000]+/g, ' ');
-
             cleanedText = cleanedText.replace(/([\u4e00-\u9fa5])([a-zA-Z0-9])/g, '$1 $2');
             cleanedText = cleanedText.replace(/([a-zA-Z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
-
+            cleanedText = cleanedText.replace(/([a-zA-Z0-9])([\u3000-\u303F\uff01-\uff5e])/g, '$1 $2');
             cleanedText = cleanedText.replace(/(?<=[\u4e00-\u9fa5])\s(?=[\u4e00-\u9fa5])/g, '');
             cleanedText = cleanedText.replace(/(?<=[\u4e00-\u9fa5])\s(?=<)/g, '');
             cleanedText = cleanedText.replace(/(?<=>)\s(?=[\u4e00-\u9fa5])/g, '');
-
-            cleanedText = cleanedText.replace(/\s+(?=[\u3000-\u303F\uff01-\uff5e])/g, '');
+            cleanedText = cleanedText.replace(/(?<=[\u4e00-\u9fa5])\s+(?=[\u3000-\u303F\uff01-\uff5e])/g, '');
             cleanedText = cleanedText.replace(/(?<=[\u3000-\u303F\uff01-\uff5e])\s+(?=[\u4e00-\u9fa5])/g, '');
-
             return cleanedText.trim();
         }
     })();
-
-    /**
-     * 翻译后处理函数
-     * @param {string} text - 从 AI 返回的单段译文
-     * @returns {string} - 清理后的译文
-     */
-    function postprocessTranslationCleanup(text) {
-        return AdvancedTranslationCleaner.clean(text);
-    }
 
     /**
      * 通用函数：对页面上所有“分类”复选框区域进行重新排序。
@@ -7436,8 +7402,10 @@
 
                 const currentEngineId = GM_getValue('transEngine', 'together_ai');
                 const engineNameMap = {
-                    'together_ai': 'Llama',
-                    'chatglm_official': 'ChatGLM', 'deepseek_ai': 'DeepSeek', 'google_ai': 'Google AI'
+                    'together_ai': 'Together AI',
+                    'chatglm_official': 'ChatGLM', 
+                    'deepseek_ai': 'DeepSeek', 
+                    'google_ai': 'Google AI'
                 };
                 const engineMasterOrder = ['together_ai', 'chatglm_official', 'deepseek_ai', 'google_ai'];
                 const currentServiceIndex = engineMasterOrder.indexOf(currentEngineId);
@@ -7449,7 +7417,27 @@
                     renderMenuCommands();
                 });
 
-                if (currentEngineId === 'deepseek_ai') {
+                if (currentEngineId === 'together_ai') {
+                    const modelMapping = {
+                        'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8': 'Llama 4 Maverick',
+                        'Qwen/Qwen2.5-72B-Instruct-Turbo': 'Qwen 2.5 72B',
+                        'deepseek-ai/DeepSeek-V3': 'DeepSeek V3'
+                    };
+                    const modelOrder = Object.keys(modelMapping);
+
+                    const currentModelId = GM_getValue('together_ai_model', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8');
+                    const currentModelIndex = modelOrder.indexOf(currentModelId);
+                    const nextModelIndex = (currentModelIndex + 1) % modelOrder.length;
+                    const nextModelId = modelOrder[nextModelIndex];
+                    
+                    const currentModelName = modelMapping[currentModelId] || '未知模型';
+
+                    register(`⇄ 使用模型：${currentModelName}`, () => {
+                        GM_setValue('together_ai_model', nextModelId);
+                        notifyAndLog(`Together AI 模型已切换为: ${modelMapping[nextModelId]}`);
+                        renderMenuCommands();
+                    });
+                } else if (currentEngineId === 'deepseek_ai') {
                     const modelMapping = { 'deepseek-chat': 'DeepSeek V3', 'deepseek-reasoner': 'DeepSeek R1' };
                     const modelOrder = Object.keys(modelMapping);
                     const currentModelId = GM_getValue('deepseek_model', 'deepseek-chat');
@@ -7549,6 +7537,24 @@
                 }
             }
         });
+    }
+
+    /**
+     * 将 HTML 内容转换为纯文本格式
+     */
+    function normalizeContentToPlainText(content) {
+        if (/<[a-z][\s\S]*>/i.test(content)) {
+            let plainText = content;
+            plainText = plainText.replace(/<br\s*\/?>/gi, '\n');
+            plainText = plainText.replace(/<\/p>/gi, '\n');
+            plainText = plainText.replace(/<[^>]+>/g, '');
+            plainText = plainText.split('\n')
+                               .map(line => line.trim())
+                               .join('\n')
+                               .replace(/\n{3,}/g, '\n\n');
+            return plainText.trim();
+        }
+        return content;
     }
 
     /**
@@ -7746,8 +7752,8 @@
 
         // 通用的后处理器和格式化函数
         handleTrailingPunctuation(rootElement);
-        translateFirstLoginBanner();
         translateSymbolsKeyModal(rootElement);
+		translateFirstLoginBanner();
         translateBookmarkSymbolsKeyModal();
         translateRatingHelpModal();
         translateCategoriesHelp();
@@ -7808,6 +7814,7 @@
         translateTagSetsHeading();
         translateFoundResultsHeading();
         translateTOSPrompt();
+		translateHeadingTags();
         // 统一寻找并重新格式化所有日期容器
         const dateSelectors = [
             '.header.module .meta span.published',
