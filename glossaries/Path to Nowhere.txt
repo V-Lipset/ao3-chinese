@@ -1,9 +1,10 @@
 维护者：V-Lipset
-版本号：1.0.0
-更新时间：2025-08-02
+版本号：1.0.1
+更新时间：2025-08-08
 
 词条
 
+// 角色
 Chief：局长
 000：000
 Adela：阿黛拉
@@ -123,14 +124,28 @@ Thistle：蓟
 Uni：尤尼
 Vanilla：瓦尼菈
 Vautour Bleu：蓝鹫
+Vautour：蓝鹫
 Victoria：维多利亚
 Weather Forecast：天气预报
 Wendy：温蒂
 Wolverine：狼獾
 Wuhuanzi：无患子
+Xu：煦
 Yanyan：烟烟
 Yao：曜
 Yingying：萦萦
 Yugu：玉骨
 Zephyr：泽斐尔
 Zoya：卓娅
+
+// 组织和地点
+Dis City：狄斯城
+Quinn：奎恩
+Eastern：东洲
+Paradeisos：上庭
+
+
+// 概念
+Sinner：禁闭者
+Sun Crow：金乌
+Shackles：枷锁

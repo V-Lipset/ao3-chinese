@@ -1,7 +1,7 @@
 /**
  name         AO3 汉化插件 - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.3.1-2025-08-06
+ version      1.0.0-2025-08-08
  description  AO3 汉化插件的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -2090,9 +2090,8 @@ const I18N = {
                 ['h3.title', /<a (.*?)>Chapter (\d+)<\/a>/s, '<a $1>第 $2 章</a>'],
                 ['h4.heading.byline', /^\s*(<span>.+?<\/span>)\s*<span class="role">\s*\(Guest\)\s*<\/span>\s*<span class="parent">\s*on Chapter (\d+)\s*<\/span>[\s\S]*?$/, '$1（访客）于 第 $2 章'],
                 ['h4.heading.byline', /^\s*(<a\s+href="\/users\/.+?">.+?<\/a>)\s*<span class="parent">\s*on Chapter (\d+)\s*<\/span>[\s\S]*?$/, '$1 于 第 $2 章'],
-                ['p.jump', /\(See the end of the work for (<a href="[^"]*#work_endnotes">)notes(<\/a>)\.\)/, '（在作品结尾查看$1注释$2。）'],
-                ['p.jump', /\(See the end of the work for (<a.*?>)more notes(<\/a>)\.\)/, '（在作品结尾查看$1更多注释$2。）'],
-                ['div.chapter div.notes > p', /\(See the end of the chapter for\s*(<a.*?>)notes(<\/a>)\.\)/, '（在本章结尾查看$1注释$2。）'],
+                    ['p.jump', /\(See the end of the work for (<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在作品结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
+                    ['div.chapter div.notes > p', /\(See the end of the chapter for\s*(<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在本章结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
                 ['p.jump', /\(See the end of the work for (<a href="[^"]*#children">)other works inspired by this one(<\/a>)\.\)/, '（在作品结尾查看$1相关衍生作品$2。）'],
                 ['h4.heading', /(\s*<span class="byline">.*?<\/span>\s*)save a bookmark!/s, '$1保存书签！'],
                 [

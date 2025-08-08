@@ -1,15 +1,15 @@
 // ==UserScript==
-// @name         AO3 汉化插件
+// @name         AO3 中文化插件
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.3.1-2025-08-06
+// @version      1.0.0-custom-2025-08-08
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
-// @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/assets/icon.png
+// @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/assets/icon.png
 // @supportURL   https://github.com/V-Lipset/ao3-chinese/issues
-// @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js
-// @updateURL    https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js
+// @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.custom.user.js
+// @updateURL    https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.custom.user.js
 // @connect      raw.githubusercontent.com
 // @connect      api.together.xyz
 // @connect      www.codegeneration.ai
@@ -2312,9 +2312,8 @@
 	                ['h3.title', /<a (.*?)>Chapter (\d+)<\/a>/s, '<a $1>第 $2 章</a>'],
 	                ['h4.heading.byline', /^\s*(<span>.+?<\/span>)\s*<span class="role">\s*\(Guest\)\s*<\/span>\s*<span class="parent">\s*on Chapter (\d+)\s*<\/span>[\s\S]*?$/, '$1（访客）于 第 $2 章'],
 	                ['h4.heading.byline', /^\s*(<a\s+href="\/users\/.+?">.+?<\/a>)\s*<span class="parent">\s*on Chapter (\d+)\s*<\/span>[\s\S]*?$/, '$1 于 第 $2 章'],
-	                ['p.jump', /\(See the end of the work for (<a href="[^"]*#work_endnotes">)notes(<\/a>)\.\)/, '（在作品结尾查看$1注释$2。）'],
-	                ['p.jump', /\(See the end of the work for (<a.*?>)more notes(<\/a>)\.\)/, '（在作品结尾查看$1更多注释$2。）'],
-	                ['div.chapter div.notes > p', /\(See the end of the chapter for\s*(<a.*?>)notes(<\/a>)\.\)/, '（在本章结尾查看$1注释$2。）'],
+                    ['p.jump', /\(See the end of the work for (<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在作品结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
+                    ['div.chapter div.notes > p', /\(See the end of the chapter for\s*(<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在本章结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
 	                ['p.jump', /\(See the end of the work for (<a href="[^"]*#children">)other works inspired by this one(<\/a>)\.\)/, '（在作品结尾查看$1相关衍生作品$2。）'],
 	                ['h4.heading', /(\s*<span class="byline">.*?<\/span>\s*)save a bookmark!/s, '$1保存书签！'],
 	                [
@@ -6267,7 +6266,8 @@
 
             paragraphs.forEach((p, index) => {
                 const cleanedHtml = AdvancedTranslationCleaner.clean(translatedParts[index] || p.innerHTML);
-                results.set(p, { status: 'success', content: cleanedHtml });
+                const finalHtml = applyPostTranslationReplacements(cleanedHtml);
+                results.set(p, { status: 'success', content: finalHtml });
             });
             
             return results;
@@ -6376,7 +6376,7 @@
             const elementsToModify = [];
             elementsToProcess.forEach(el => {
                 if (elementState.has(el)) return;
-                const hasBrSeparators = (el.innerHTML.match(/(?:<br\s*\/?>\s*){2,}/i));
+                const hasBrSeparators = (el.innerHTML.match(/(?:<br\s*\/?>\s*)+/i));
                 if (hasBrSeparators) {
                     elementsToModify.push(el);
                 }
@@ -6384,7 +6384,7 @@
             });
 
             elementsToModify.forEach(el => {
-                const separatorRegex = /(?:\s*<br\s*\/?>\s*){2,}/ig;
+                const separatorRegex = /(?:\s*<br\s*\/?>\s*)+/ig;
                 const fragmentsHTML = el.innerHTML.split(separatorRegex);
                 
                 const newElements = fragmentsHTML
@@ -6801,10 +6801,10 @@
      * 设置用户自己的 ChatGLM API Key
      */
     function setupZhipuAIKey() {
-        const currentKey = GM_getValue('zhipu_ai_api_key', '');
+        const currentKey = GM_getValue('zhipu_api_key', '');
         const newKey = prompt('请输入您的 Zhipu AI API Key：', currentKey);
         if (newKey !== null) {
-            GM_setValue('zhipu_ai_api_key', newKey.trim());
+            GM_setValue('zhipu_api_key', newKey.trim());
             notifyAndLog(newKey.trim() ? 'Zhipu AI API Key 已保存！' : 'Zhipu AI API Key 已清除！');
         }
     }
@@ -6849,17 +6849,18 @@
      * 设置用户自己的 Groq AI API Key
      */
     function setupGroqAIKey() {
-        const currentKey = GM_getValue('groq_ai_api_key', '');
+        const currentKey = GM_getValue('groq_api_key', '');
         const newKey = prompt('请输入您的 Groq AI API Key：', currentKey);
         if (newKey !== null) {
-            GM_setValue('groq_ai_api_key', newKey.trim());
+            GM_setValue('groq_api_key', newKey.trim());
             notifyAndLog(newKey.trim() ? 'Groq AI API Key 已保存！' : 'Groq AI API Key 已清除！');
         }
     }
 
-    const LOCAL_GLOSSARY_KEY = 'ao3_local_glossary';// 用于存储用户手动创建的术语
-    const IMPORTED_GLOSSARY_KEY = 'ao3_imported_glossary';// 用于存储所有在线导入的术语
-    const GLOSSARY_METADATA_KEY = 'ao3_glossary_metadata';// 用于储存导入的术语表的信息
+    const LOCAL_GLOSSARY_KEY = 'ao3_local_glossary'; // 用于存储用户手动创建的术语
+    const IMPORTED_GLOSSARY_KEY = 'ao3_imported_glossary'; // 用于存储所有在线导入的术语
+    const GLOSSARY_METADATA_KEY = 'ao3_glossary_metadata'; // 用于储存导入的术语表的信息
+    const LOCAL_REPLACEMENT_KEY = 'ao3_post_translation_replacements'; // 用于存储译文后处理规则
 
     /**
      * 管理用户手动设置的本地术语表
@@ -6905,6 +6906,74 @@
         } catch (e) {
             alert('保存失败！解析时发生未知错误，请检查您的输入。\n\n错误信息: ' + e.message);
         }
+    }
+
+    /**
+     * 管理译文后处理替换规则
+     */
+    function managePostTranslationReplacements() {
+        const currentRules = GM_getValue(LOCAL_REPLACEMENT_KEY, {});
+        const rulesForDisplay = Object.entries(currentRules)
+            .map(([key, value]) => `${key}：${value}`)
+            .join('，');
+
+        const userInput = prompt(
+            '请按 “原文：替换文” 格式编辑您的替换规则，规则间用逗号分隔。\n此功能将在 AI 翻译完成后，对译文进行全局替换。',
+            rulesForDisplay
+        );
+
+        if (userInput === null || userInput.trim() === rulesForDisplay.trim()) {
+            notifyAndLog('后处理替换规则未更改。');
+            return;
+        }
+
+        try {
+            const newRules = {};
+            if (userInput.trim() === '') {
+                GM_setValue(LOCAL_REPLACEMENT_KEY, {});
+                notifyAndLog('后处理替换规则已清空。');
+                return;
+            }
+            const entries = userInput.split(/[，,]/);
+            for (const entry of entries) {
+                if (entry.trim() === '') continue;
+                const parts = entry.split(/[：:]/, 2);
+                if (parts.length === 2) {
+                    const key = parts[0].trim();
+                    const value = parts[1].trim();
+                    if (key) { // 允许替换为空字符串
+                        newRules[key] = value;
+                    } else {
+                        console.warn(`跳过无效的替换规则: "${entry}"`);
+                    }
+                } else {
+                    console.warn(`跳过格式不正确的替换规则: "${entry}"`);
+                }
+            }
+            GM_setValue(LOCAL_REPLACEMENT_KEY, newRules);
+            notifyAndLog('后处理替换规则已成功更新！');
+        } catch (e) {
+            alert('保存失败！解析时发生未知错误，请检查您的输入。\n\n错误信息: ' + e.message);
+        }
+    }
+
+    /**
+     * 应用译文后处理替换规则
+     * @param {string} text - 经过翻译和基础清理的文本
+     * @returns {string} - 应用替换规则后的最终文本
+     */
+    function applyPostTranslationReplacements(text) {
+        const rules = GM_getValue(LOCAL_REPLACEMENT_KEY, {});
+        if (Object.keys(rules).length === 0) {
+            return text;
+        }
+        let processedText = text;
+        for (const [original, replacement] of Object.entries(rules)) {
+            const escapedOriginal = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escapedOriginal, 'g');
+            processedText = processedText.replace(regex, replacement);
+        }
+        return processedText;
     }
 
 	/**
@@ -7043,15 +7112,15 @@
                     
                     const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
                     metadata[url] = { 
-                        author: onlineData.author || '未知', 
-                        version: onlineData.version, 
+                        maintainer: onlineData.maintainer || '未知',
+                        version: onlineData.version,
                         last_imported: new Date().toISOString() 
                     };
                     GM_setValue(GLOSSARY_METADATA_KEY, metadata);
 
                     const importedCount = Object.keys(onlineTerms).length;
-                    const authorName = onlineData.author || '未知';
-                    notifyAndLog(`已成功导入 “${glossaryName}” 术语表。\n版本号：${onlineData.version}，维护者：${authorName}。共 ${importedCount} 个词条。`, '导入成功');
+                    const maintainerName = onlineData.maintainer || '未知';
+                    notifyAndLog(`已成功导入 “${glossaryName}” 术语表。\n版本号：${onlineData.version}，维护者：${maintainerName}。共 ${importedCount} 个词条。`, '导入成功');
 
                 } catch (e) {
                     console.error(`处理 “${glossaryName}” 时发生严重错误:`, e);
@@ -7077,9 +7146,9 @@
         }
         const urlListText = urls.map((url, index) => {
             const glossaryName = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
-            const author = metadata[url].author || '未知';
+            const maintainer = metadata[url].maintainer || '未知';
             const version = metadata[url].version;
-            return `${index + 1}. ${glossaryName}\n    版本：v${version}，维护者：${author}`;
+            return `${index + 1}. ${glossaryName}\n    版本：v${version}，维护者：${maintainer}`;
         }).join('\n');
         const choice = prompt(
             '若您想要移除某个术语表，请输入对应编号（仅输入数字）。注意，此操作彻底移除该在线术语表及其所有词条。\n\n' + urlListText,
@@ -7154,15 +7223,15 @@
                 const localVersion = metadata[url].version;
                 const onlineVersion = onlineData.version;
                 if (onlineVersion && compareVersions(onlineVersion, localVersion) > 0) {
-                    const authorName = onlineData.author || '未知';
+                    const maintainerName = onlineData.maintainer || '未知';
                     console.log(`发现 “${glossaryName}” 的新版本: v${onlineVersion} (本地为 v${localVersion})`);
                     allImportedGlossaries[url] = onlineData.terms || {};
-                    metadata[url].author = authorName;
+                    metadata[url].maintainer = maintainerName;
                     metadata[url].version = onlineVersion;
                     metadata[url].last_updated = new Date().toISOString();
                     updatedCount++;
                     if (!isManual) {
-                        notifyAndLog(`“${glossaryName}” 术语表已自动更新到 v${onlineVersion}！\n维护者：${authorName}`, '更新成功');
+                        notifyAndLog(`“${glossaryName}” 术语表已自动更新到 v${onlineVersion}！\n维护者：${maintainerName}`, '更新成功');
                     }
                 }
             } catch (e) {
@@ -7253,28 +7322,28 @@
             ];
             this.junkLineRegex = new RegExp(`^\\s*(\\d+\\.\\s*)?(${this.metaKeywords.join('|')})[:：\\s]`, 'i');
             this.lineNumbersRegex = /^\d+\.\s*/;
+            this.aiNoteRegex = /\s*（注：[\s\S]*?）\s*/g;
         }
         clean(text) {
             if (!text || typeof text !== 'string') {
                 return '';
             }
-            const lines = text.split('\n');
-            const cleanedLines = lines.filter(line => !this.junkLineRegex.test(line));
-            let cleanedText = cleanedLines.join('\n');
+            let cleanedText = text.split('\n').filter(line => !this.junkLineRegex.test(line)).join('\n');
+            cleanedText = cleanedText.replace(this.aiNoteRegex, '');
             cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
-            cleanedText = cleanedText.replace(/[\s\u3000]+/g, ' ');
+            cleanedText = cleanedText.replace(/(<(em|strong)[^>]*>)([\s\S]*?)(<\/\2>)/g, (_match, openTag, _tagName, content, closeTag) => {
+                return openTag + content.trim() + closeTag;
+            });
+            cleanedText = cleanedText.replace(/\s+(?=<em|<strong)/g, '');
+            cleanedText = cleanedText.replace(/(<\/em>|<\/strong>)\s+/g, '$1');
+            cleanedText = cleanedText.replace(/([a-zA-Z0-9])(<em|<strong)/g, '$1 $2');
+            cleanedText = cleanedText.replace(/(<\/em>|<\/strong>)([a-zA-Z0-9])/g, '$1 $2');
             cleanedText = cleanedText.replace(/([\u4e00-\u9fa5])([a-zA-Z0-9])/g, '$1 $2');
             cleanedText = cleanedText.replace(/([a-zA-Z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
-            cleanedText = cleanedText.replace(/([a-zA-Z0-9])([\u3000-\u303F\uff01-\uff5e])/g, '$1 $2');
-            cleanedText = cleanedText.replace(/(?<=[\u4e00-\u9fa5])\s(?=[\u4e00-\u9fa5])/g, '');
-            cleanedText = cleanedText.replace(/(?<=[\u4e00-\u9fa5])\s(?=<)/g, '');
-            cleanedText = cleanedText.replace(/(?<=>)\s(?=[\u4e00-\u9fa5])/g, '');
-            cleanedText = cleanedText.replace(/(?<=[\u4e00-\u9fa5])\s+(?=[\u3000-\u303F\uff01-\uff5e])/g, '');
-            cleanedText = cleanedText.replace(/(?<=[\u3000-\u303F\uff01-\uff5e])\s+(?=[\u4e00-\u9fa5])/g, '');
+            cleanedText = cleanedText.replace(/\s+/g, ' ');
             return cleanedText.trim();
         }
     })();
-
 
     /**
      * 通用函数：对页面上所有“分类”复选框区域进行重新排序。
@@ -7464,13 +7533,13 @@
                     });
                 } else if (currentEngineId === 'groq_ai') {
                     const modelMapping = {
+						'moonshotai/kimi-k2-instruct': 'Kimi K2',
                         'meta-llama/llama-4-maverick-17b-128e-instruct': 'Llama 4',
-                        'moonshotai/kimi-k2-instruct': 'Kimi K2',
                         'deepseek-r1-distill-llama-70b': 'DeepSeek 70B',
                         'openai/gpt-oss-120b': 'GPT-OSS 120B'
                     };
                     const modelOrder = Object.keys(modelMapping);
-                    const currentModelId = GM_getValue('groq_model', 'meta-llama/llama-4-maverick-17b-128e-instruct');
+                    const currentModelId = GM_getValue('groq_model', 'moonshotai/kimi-k2-instruct');
                     const currentModelIndex = modelOrder.indexOf(currentModelId);
                     const nextModelIndex = (currentModelIndex + 1) % modelOrder.length;
                     const nextModelId = modelOrder[nextModelIndex];
@@ -7527,6 +7596,7 @@
             });
 
             register('设置本地术语表', manageGlossary);
+            register('译文后处理替换', managePostTranslationReplacements);
             register('导入在线术语表', importOnlineGlossary);
             register('管理已有术语表', manageImportedGlossaries);
             register('清空所有术语表', clearAllGlossaries);
@@ -7660,13 +7730,23 @@
             }
         })();
         (function() {
-            const oldApiKey = GM_getValue('chatglm_api_key', null);
-            if (oldApiKey) {
-                console.log('AO3 汉化插件：检测到旧版 ChatGLM API Key，正在迁移至 Zhipu AI...');
-                GM_setValue('zhipu_ai_api_key', oldApiKey);
+            const oldChatglmKey = GM_getValue('chatglm_api_key', null);
+            if (oldChatglmKey) {
+                console.log('AO3 汉化插件：检测到旧版 API Key 数据，正在迁移至新版...');
+                GM_setValue('zhipu_api_key', oldChatglmKey);
                 GM_deleteValue('chatglm_api_key');
                 console.log('AO3 汉化插件：API Key 迁移成功！');
                 GM_notification('您的 ChatGLM API Key 已成功迁移为 Zhipu AI API Key！', 'AO3 汉化插件');
+            } 
+            else {
+                const oldZhipuAiKey = GM_getValue('zhipu_ai_api_key', null);
+                if (oldZhipuAiKey) {
+                    console.log('AO3 汉化插件：检测到旧版 API Key 数据，正在迁移至新版...');
+                    GM_setValue('zhipu_api_key', oldZhipuAiKey);
+                    GM_deleteValue('zhipu_ai_api_key');
+                    console.log('AO3 汉化插件：API Key 迁移成功！');
+                    GM_notification('您的 Zhipu AI API Key 已成功更新至最新标准！', 'AO3 汉化插件');
+                }
             }
         })();
         checkForGlossaryUpdates(false);
