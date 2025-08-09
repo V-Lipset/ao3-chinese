@@ -2,14 +2,14 @@
 // @name         AO3 中文化插件
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.0.0-custom-2025-08-08
+// @version      1.0.1-custom-2025-08-08
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
 // @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/assets/icon.png
 // @supportURL   https://github.com/V-Lipset/ao3-chinese/issues
-// @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.custom.user.js
-// @updateURL    https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.custom.user.js
+// @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.user.js
+// @updateURL    https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.user.js
 // @connect      raw.githubusercontent.com
 // @connect      api.together.xyz
 // @connect      www.codegeneration.ai
@@ -29,6 +29,7 @@
 
 (function (window, document, undefined) {
     'use strict';
+	let isFirstTranslationChunk = true;
 
     /****************** 全局配置区 ******************/
     const FeatureSet = {
@@ -108,17 +109,35 @@
             attributeFilter: ['value', 'placeholder', 'aria-label', 'data-confirm', 'title']
         },
 
-        CHUNK_SIZE: 1200,
-        PARAGRAPH_LIMIT: 5,
+        // 首次翻译分块
+		CHUNK_SIZE: 1600,
+        PARAGRAPH_LIMIT: 8,
 
+		// 后续翻译分块
+		SUBSEQUENT_CHUNK_SIZE: 2400,
+        SUBSEQUENT_PARAGRAPH_LIMIT: 12,
+
+        // 特殊模型分块
         MODEL_SPECIFIC_LIMITS: {
             'gemini-2.5-pro': {
-                CHUNK_SIZE: 3000,
-                PARAGRAPH_LIMIT: 10,
+                first: {
+                    CHUNK_SIZE: 2400,
+                    PARAGRAPH_LIMIT: 12,
+                },
+                subsequent: {
+                    CHUNK_SIZE: 4000,
+                    PARAGRAPH_LIMIT: 20,
+                }
             },
             'deepseek-reasoner': {
-                CHUNK_SIZE: 3000,
-                PARAGRAPH_LIMIT: 10,
+                first: {
+                    CHUNK_SIZE: 2400,
+                    PARAGRAPH_LIMIT: 12,
+                },
+                subsequent: {
+                    CHUNK_SIZE: 4000,
+                    PARAGRAPH_LIMIT: 20,
+                }
             }
         },
 
@@ -6426,17 +6445,26 @@
         const processQueue = async (observer) => {
             if (isProcessing || translationQueue.size === 0) return;
             isProcessing = true;
-            
-            let chunkSize = CONFIG.CHUNK_SIZE;
-            let paragraphLimit = CONFIG.PARAGRAPH_LIMIT;
+
+            const isFirstRun = isFirstTranslationChunk;
+            const chunkStateKey = isFirstRun ? 'first' : 'subsequent';
+
+            let chunkSize = isFirstRun ? CONFIG.CHUNK_SIZE : CONFIG.SUBSEQUENT_CHUNK_SIZE;
+            let paragraphLimit = isFirstRun ? CONFIG.PARAGRAPH_LIMIT : CONFIG.SUBSEQUENT_PARAGRAPH_LIMIT;
+
             const engine = GM_getValue('transEngine');
             let modelId = '';
             if (engine === 'google_ai') modelId = GM_getValue('google_ai_model');
             else if (engine === 'deepseek_ai') modelId = GM_getValue('deepseek_model');
-            if (modelId && CONFIG.MODEL_SPECIFIC_LIMITS[modelId]) {
-                const limits = CONFIG.MODEL_SPECIFIC_LIMITS[modelId];
-                chunkSize = limits.CHUNK_SIZE;
-                paragraphLimit = limits.PARAGRAPH_LIMIT;
+
+            if (modelId && CONFIG.MODEL_SPECIFIC_LIMITS[modelId] && CONFIG.MODEL_SPECIFIC_LIMITS[modelId][chunkStateKey]) {
+                const specificLimits = CONFIG.MODEL_SPECIFIC_LIMITS[modelId][chunkStateKey];
+                chunkSize = specificLimits.CHUNK_SIZE;
+                paragraphLimit = specificLimits.PARAGRAPH_LIMIT;
+            }
+
+            if (isFirstRun) {
+                isFirstTranslationChunk = false;
             }
 
             const unitsToProcess = [...translationQueue];
@@ -6534,7 +6562,7 @@
                 }
             });
             if (addedToQueue) processQueue(obs);
-        }, { rootMargin: '0px 0px 500px 0px' });
+        }, { rootMargin: '0px 0px 1200px 0px' });
 
         const isInViewport = (el) => {
             const rect = el.getBoundingClientRect();
@@ -6967,14 +6995,16 @@
         if (Object.keys(rules).length === 0) {
             return text;
         }
-        let processedText = text;
-        for (const [original, replacement] of Object.entries(rules)) {
-            const escapedOriginal = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(escapedOriginal, 'g');
-            processedText = processedText.replace(regex, replacement);
-        }
-        return processedText;
-    }
+		const sortedRules = Object.entries(rules);
+		sortedRules.sort((a, b) => b[0].length - a[0].length);
+		let processedText = text;
+		for (const [original, replacement] of sortedRules) {
+			const escapedOriginal = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			const regex = new RegExp(escapedOriginal, 'g');
+			processedText = processedText.replace(regex, replacement);
+		}
+		return processedText;
+	}
 
 	/**
 	 * 解析自定义的、非 JSON 格式的术语表文本
