@@ -7366,11 +7366,16 @@
             });
             cleanedText = cleanedText.replace(/\s+(?=<em|<strong)/g, '');
             cleanedText = cleanedText.replace(/(<\/em>|<\/strong>)\s+/g, '$1');
-            cleanedText = cleanedText.replace(/([a-zA-Z0-9])(<em|<strong)/g, '$1 $2');
-            cleanedText = cleanedText.replace(/(<\/em>|<\/strong>)([a-zA-Z0-9])/g, '$1 $2');
+
             cleanedText = cleanedText.replace(/([\u4e00-\u9fa5])([a-zA-Z0-9])/g, '$1 $2');
             cleanedText = cleanedText.replace(/([a-zA-Z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+
+            const CJK_CHARS_AND_PUNCTUATION = '[\u4e00-\u9fa5，。？！：；“”‘’、《》【】（）]';
+            const REMOVE_SPACE_REGEX = new RegExp(`(?<=${CJK_CHARS_AND_PUNCTUATION})\\s+(?=${CJK_CHARS_AND_PUNCTUATION})`, 'g');
+            cleanedText = cleanedText.replace(REMOVE_SPACE_REGEX, '');
+
             cleanedText = cleanedText.replace(/\s+/g, ' ');
+            
             return cleanedText.trim();
         }
     })();
