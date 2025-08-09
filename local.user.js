@@ -2,7 +2,7 @@
 // @name         AO3 中文化插件
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.0.1-custom-2025-08-08
+// @version      1.0.2-custom-2025-08-09
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
