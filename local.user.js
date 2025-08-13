@@ -2,10 +2,11 @@
 // @name         AO3 中文化插件
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.0.2-custom-2025-08-09
+// @version      1.0.3-custom-2025-08-14
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
+// @match        https://xn--iao3-lw4b.ws/*
 // @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/assets/icon.png
 // @supportURL   https://github.com/V-Lipset/ao3-chinese/issues
 // @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.user.js
@@ -29,7 +30,7 @@
 
 (function (window, document, undefined) {
     'use strict';
-	let isFirstTranslationChunk = true;
+    let isFirstTranslationChunk = true;
 
     /****************** 全局配置区 ******************/
     const FeatureSet = {
@@ -125,8 +126,8 @@
                     PARAGRAPH_LIMIT: 12,
                 },
                 subsequent: {
-                    CHUNK_SIZE: 4000,
-                    PARAGRAPH_LIMIT: 20,
+                    CHUNK_SIZE: 3000,
+                    PARAGRAPH_LIMIT: 15,
                 }
             },
             'deepseek-reasoner': {
@@ -135,8 +136,8 @@
                     PARAGRAPH_LIMIT: 12,
                 },
                 subsequent: {
-                    CHUNK_SIZE: 4000,
-                    PARAGRAPH_LIMIT: 20,
+                    CHUNK_SIZE: 3000,
+                    PARAGRAPH_LIMIT: 15,
                 }
             }
         },
@@ -464,6 +465,7 @@
 	                'Series Subscriptions': '系列订阅',
 	                'User Subscriptions': '用户订阅',
 	                'Work Subscriptions': '作品订阅',
+                    'Unsubscribe': '取消订阅',
 	                'Delete All Subscriptions': '删除所有订阅',
 	                'Sign-ups': '报名挑战',
 	                'Assignments': '任务中心',
@@ -629,24 +631,62 @@
 	                'Collapse Booksmarks List': '收起书签列表',
 	
 	                // 作品
-	                'Series': '系列',
-	                'Language:': '语言:',
-	                'Words:': '字数:',
-	                'Chapters:': '章节:',
-	                'Comments:': '评论:',
-	                'Kudos:': '点赞:',
-	                'Bookmarks:': '书签:',
-	                'Hits:': '点击:',
+                    'Rating:': '分级:',
+                    'Archive Warning:': 'Archive 预警:',
+					'Archive Warnings:': 'Archive 预警:',
+                    'Archive Warning': 'Archive 预警',
+	                'Archive Warnings': 'Archive 预警',
+                    'Category:': '分类:',
+                    'Categories:': '分类:',
+                    'Fandom:': '同人圈:',
+					'Fandoms:': '同人圈:',
+                    'Relationship:': '关系:',
+                    'Relationships:': '关系:',
+                    'Character:': '角色:',
+                    'Characters:': '角色:',
+					'Additional Tag:': '附加标签:',
+                    'Additional Tags:': '附加标签:',
+                    'Language:': '语言:',
+                    'Series': '系列',
+                    'Series:': '系列:',
+                    'Stats:': '统计:',
+                    'Published:': '发布于:',
+                    'Completed:': '完结于:',
+                    'Updated:': '更新于:',
+                    'Words:': '字数:',
+                    'Chapters:': '章节:',
+                    'Comments:': '评论:',
+                    'Kudos:': '点赞:',
+                    'Bookmarks:': '书签:',
+                    'Hits:': '点击:',
+                    'Complete?': '已完结？',
+                    'Word Count:': '字数:',
+                    'Date Updated:': '更新日期:',
 	                'Post': '发布',
 	                'New Work': '新作品',
+                    'Edit Work': '编辑作品',
 	                'Import Work': '导入作品',
+                    'From Draft': '从草稿',
 	                'Edit': '编辑',
+                    'Edit Tags': '编辑标签',
+                    'Add Chapter': '添加章节',
+                    'Post Draft': '发布草稿',
+                    'Delete Draft': '删除草稿',
+                    'Post Chapter': '发布章节',
+                    'Edit Chapter': '编辑章节',
+                    'Delete Chapter': '删除章节',
+                    'Manage Chapters': '管理章节',
+                    'Drag chapters to change their order.': '拖动章节以更改顺序。',
+                    'Enter new chapter numbers.': '输入新的章节编号。',
+                    'Update Positions': '更新顺序',
 	                'Update': '更新',
 	                'Delete': '删除',
 	                'Cancel': '取消',
 	                'Save': '保存',
 	                'Saved': '已保存',
 	                'Submit': '提交',
+                    'Orphan Work': '匿名化作品',
+                    'Orphan Works': '匿名化作品',
 	                'Filters': '筛选器',
 	                'Sort By': '排序方式',
 	                'Random': '随机',
@@ -664,9 +704,6 @@
 	                'kudos': ' 个赞',
 	                'bookmark': ' 条书签',
 	                'comment': ' 条评论',
-	                'Published:': '发布于:',
-	                'Completed:': '完结于:',
-	                'Updated:': '更新于:',
 	                '← Previous': '← 上一页',
 	                'Next →': '下一页 →',
 	                'All fields are required. Your email address will not be published.': '所有字段均为必填。您的电子邮箱地址不会被公开。',
@@ -678,6 +715,9 @@
 	                'Show Creator\'s Style': '显示创作者样式',
 	                'top level comment': '主评论',
 	                'Share Work': '分享作品',
+                    'Restore From Last Unposted Draft?': '从上次未发布的草稿恢复？',
+                    'Delete Work': '删除作品',
+                    'Save As Draft': '存为草稿',
 	
 	                // 合集
 	                'Collections in the Archive of Our Own': ' AO3 中的合集',
@@ -759,7 +799,6 @@
 	                'Series Updated:': '系列更新于:',
 	                'Description:': '描述:',
 	                'Notes:': '注释:',
-	                'Stats:': '统计:',
 	                'Works:': '作品:',
 	                'Complete:': '完结:',
 	
@@ -819,6 +858,19 @@
 	                'You are already signed in.': '您已登录。',
 	                'There are no works or bookmarks under this name yet.': '此名称下尚无作品或书签。',
 	                'Sorry, you don\'t have permission to access the page you were trying to reach. Please log in.': '抱歉，您无权访问目标页面。请先登录。',
+                    'Are you sure you want to delete this draft?': '您确定要删除此草稿吗？',
+                    'Work was successfully updated.': '作品已成功更新。',
+                    'The work was not updated.': '作品没有更新。',
+                    'Your changes have not been saved. Please post your work or save as draft if you want to keep them.': '您的更改尚未保存。如果您想保留，请发布作品或将其保存为草稿。',
+                    'Work was successfully posted. It should appear in work listings within the next few minutes.': '作品已成功发布。它将在接下来的几分钟内出现在作品列表中。',
+                    'Are you sure you want to delete this work? This will destroy all comments and kudos on this work as well and CANNOT BE UNDONE!': '您确定要删除这篇作品吗？此操作将一并删除该作品收到的所有评论和点赞，且无法撤销！',
+                    'Chapter has been posted!': '章节已成功发布！',
+                    'Chapter was successfully updated.': '章节已成功更新。',
+                    'Are you sure?': '你确定吗？',
+                    'The chapter was successfully deleted.': '已成功删除此章节。',
+                    'Chapter order has been successfully updated.': '章节顺序已成功更新。',
+                    'This is a draft chapter in a posted work. It will be kept unless the work is deleted.': '这是已发布作品中的一篇草稿章节。除非作品被删除，否则该草稿将一直保留。',
+                    'This chapter is a draft and hasn\'t been posted yet!': '本章节为草稿，尚未发布！',
 	            },
 	            'innerHTML_regexp': [
 	
@@ -1045,6 +1097,51 @@
 	                    /^\s*You have muted some users on the Archive\.\s*Some items may not be shown, and any counts may be inaccurate\.\s*You can mute or unmute users on\s*<a href="(\/users\/[^\/]+\/muted\/users)">your Muted Users page<\/a>\s*[.。]?\s*$/s,
 	                    '您已在 Archive 上静音了部分用户。部分内容可能因此不予显示，相关计数也可能并不准确。您可在 <a href="$1">已静音用户</a> 页面静音或取消静音用户。'
 	                ],
+                    [
+                        'p.caution.notice',
+                        /^\s*This draft will be <strong>scheduled for deletion<\/strong> on\s*(<abbr class="day".*?<\/span>)\s*\.\s*$/s,
+                        '此草稿将于 <span>$1</span> <strong>预定删除</strong>。'
+                    ],
+                    [
+                        'p:has(a[href="/content"]):has(a[href="/tos_faq#content_faq"])',
+                        /All\s+works\s+you\s+post\s+on\s+AO3\s+must\s+comply\s+with\s+our\s+<a\s+href="\/content"[^>]*>(?:Content Policy|内容政策)<\/a>\.\s*For\s+more\s+information,\s+please\s+refer\s+to\s+our\s+<a\s+href="\/tos_faq#content_faq"[^>]*>(?:Terms of Service FAQ|服务条款常见问题)<\/a>[\.。]?/s,
+                        '您在 AO3 发布的所有作品均必须遵守我们的 <a href="/content">内容政策</a> 。更多信息请参阅我们的 <a href="/tos_faq#content_faq">服务条款常见问题</a> 。'
+                    ],
+                    [
+                        'p.notice',
+                        /^\s*This work is a draft and has not been posted\. The draft will be <strong>scheduled for deletion<\/strong> on\s*(<abbr class="day".*?<\/span>)\s*\.\s*$/s,
+                        '此作品是尚未发布的草稿。将于 <span>$1</span> <strong>预定删除</strong>。'
+                    ],
+                    [
+                        'p.notice',
+                        /^\s*Sorry, this work doesn't allow comments\.\s*$/s,
+                        '抱歉，此作品不允许评论。'
+                    ],
+                    [
+                        'h4.heading.byline',
+                        /^\s*Chapter by (<a\s+rel="author".*?<\/a>)\s*$/s,
+                        '章节作者：$1'
+                    ],
+                    [
+                        'div.flash.notice',
+                        /^Draft was successfully created\. It will be <strong>scheduled for deletion<\/strong>\s+on\s+(.*)\.$/s,
+                        '草稿已成功创建。它将于 $1 <strong>预定删除</strong>。'
+                    ],
+                    [
+                        'p',
+                        /^\s*This tag belongs to the Character Category\.\s*$/,
+                        '此标签属于“角色”分类。'
+                    ],
+                    [
+                        'p',
+                        /^\s*This tag has not been marked common and can't be filtered on \(yet\)\.\s*$/,
+                        '此标签尚未被标记为常用，（目前）无法用于筛选。'
+                    ],
+                    [
+                        'h3.heading',
+                        /^\s*Works which have used it as a tag:\s*$/,
+                        '使用此标签的作品：'
+                    ]
 	            ],
 	            'regexp': [
 	
@@ -1089,6 +1186,7 @@
 	
 	                [/^([\d,]+)\s+Bookmarks?$/, '$1 条书签'],
 	                [/The creator's summary is added automatically\.\s*Plain text with limited HTML/s, '创作者的简介会自动添加。纯文本，支持有限 HTML'],
+                    [/^Your work (.*) was deleted\.$/, '您的作品 “$1” 已被删除。'],
 	            ],
 	            'selector': [
 	                ['#tos_prompt button[name=commit]', '我同意并已阅读服务条款'],
@@ -1098,6 +1196,7 @@
 	                ['.post.comment .submit input[type=submit]', '评论'],
 	                ['form#new_comment .actions input[name=commit]', '评论'],
 	                ['#kudo_submit', '点赞'],
+                    [/^Chapter (\d+)$/, '第 $1 章'],
 	            ]
 	        },
 	
@@ -1207,6 +1306,14 @@
 	            'regexp': [],
 	            'selector': []
 	        },
+            'works_edit': {
+	            'static': {
+                    'Edit Work': '编辑作品',
+                    'Add Chapter': '添加章节',
+                    'Edit Chapter:': '编辑章节:',
+                },
+                'regexp': [], 'selector': [], 'innerHTML_regexp': []
+	        },
 	        'works_new': {
 	            'static': {
 	                'Post New Work': '发布新作品',
@@ -1248,6 +1355,13 @@
 	                'Preview': '预览',
 	                'Brevity is the soul of wit, but your content does have to be at least 10 characters long.': '简洁乃智慧之魂，但您的内容长度必须至少 10 个字符。',
 	                'Sorry! We couldn\'t save this work because:': '抱歉！我们无法保存此作品，因为：', 'Language cannot be blank.': '语言不能为空。', 'Please fill in at least one fandom.': '请至少填写一个同人圈。', 'Please select at least one warning.': '请至少选择一个预警。',
+                    'For a work in the Archive, only the URL is required.': '对于 Archive 站内的作品，仅需填写 URL。',
+                    'This is a translation': '这是一个译本',
+                    'Choose one of your existing series:': '选择一个您已有的系列：',
+                    'Please select': '请选择',
+                    'Or create and use a new one:': '或创建并使用一个新系列：',
+                    'Chapter Title:': '章节标题：',
+                    'Set publication date': '设置发布日期',
 	            },
 	            'innerHTML_regexp': [
 	                ['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
@@ -1260,7 +1374,8 @@
 	            ],
 	            'regexp': [],
 	            'selector': [
-	                ['dt.permissions.comments', '谁可以评论此作品']
+	                ['dt.permissions.comments', '谁可以评论此作品'],
+                    ['#chapters-options label[for="work_wip_length"]', '第 1 章 / 共']
 	            ]
 	        },
 	        'works_import': {
@@ -1326,12 +1441,89 @@
 	                ['dt.permissions.comments', '谁可以评论此作品']
 	            ]
 	        },
-	        'works_show_multiple': {
-	            'static': {
-	                'Edit Multiple Works': '编辑多个作品',
-	                'You have no works or drafts to edit.': '您没有可编辑的作品或草稿。'
-	            }
-	        },
+            'chapters_new': {
+                'static': {
+                    'Post New Chapter': '发布新章节',
+                    'Name, Order and Date': '名称、顺序和日期',
+                    'Chapter Title': '章节标题',
+                    'Chapter Number': '章节编号',
+                    'Chapter Publication Date': '章节发布日期',
+                    'Chapter Preface': '章节前言',
+                    'Chapter Summary': '章节简介',
+                    'Chapter Notes': '章节注释',
+                    'End Notes': '尾注', // 补上这个之前遗漏的词条
+                    'Chapter Text*': '章节正文*',
+                    'Post Chapter': '发布章节',
+                    'Warning: Unchecking this box will delete the existing beginning note.': '警告：取消勾选此框将删除已有的开头注释。',
+                    'Warning: Unchecking this box will delete the existing end note.': '警告：取消勾选此框将删除已有的结尾注释。'
+                },
+                'selector': [
+                    ['label[for="chapter_wip_length"]', '共']
+                ]
+            },
+            'works_edit_tags': {
+                'static': {
+                    'Post Work': '发布作品',
+                    'Update': '更新'
+                },
+                'innerHTML_regexp': [
+                    [
+                        'h2.heading',
+                        /^\s*Edit Work Tags for (.*)\s*$/s,
+                        '编辑作品标签：$1 '
+                    ]
+                ],
+                'selector': []
+            },
+            'chapters_edit': {
+                'static': {}
+            },
+            'orphans_new': {
+                'static': {
+                    'Take my pseud off as well': '同时移除我的笔名',
+                    'Leave a copy of my pseud on': '保留我的笔名副本',
+                    'Read More About The Orphaning Process': '阅读更多关于匿名流程的信息',
+                    'Yes, I\'m sure': '是的，我确定'
+                },
+                'innerHTML_regexp': [
+                    [
+                        'p.caution.notice',
+                        /Orphaning will\s*<strong>permanently<\/strong>\s*remove all identifying data from the following work\(s\), their chapters, associated series, and any feedback replies you may have left on them\./s,
+                        '匿名化操作将<strong>永久</strong>移除以下作品、其章节、关联系列以及您可能留下的任何反馈回复中的所有身份识别信息。'
+                    ],
+                    [
+                        'p.caution.notice',
+                        /Orphaning a work removes it from your account and re-attaches it to the specially created orphan_account\. Please note that this is\s*<strong>permanent and irreversible\.<\/strong>\s*You are giving up control over the work,\s*<strong>including the ability to edit or delete it\.<\/strong>/s,
+                        '匿名化作品会将其从您的账户中移除，并重新关联至专门创建的 orphan_account（匿名帐户）。请注意，此操作是<strong>永久且不可逆的。</strong>您将放弃对该作品的控制权，<strong>包括编辑或删除它的能力。</strong>'
+                    ],
+                    [
+                        'p.caution.notice',
+                        /Are you\s*<strong>really<\/strong>\s*sure you want to do this\?/s,
+                        '您<strong>真的</strong>确定要这样做吗？'
+                    ]
+                ],
+                'selector': []
+            },
+            'works_show_multiple': {
+                'static': {
+                    'Edit Multiple Works': '编辑多个作品',
+                    'You have no works or drafts to edit.': '您没有可编辑的作品或草稿。',
+                    'All': '全选',
+                    'None': '取消勾选',
+                    'Actions': '操作',
+                    'Orphan': '匿名化'
+                },
+                'innerHTML_regexp': [
+                    [
+                        'fieldset.fandom.listbox > legend',
+                        /^Select (.*) works$/s,
+                        '选择 $1 的作品'
+                    ]
+                ],
+                'regexp': [
+                    [/\(Draft\)$/, '（草稿）']
+                ]
+            },
 	        'users_invitations': {
 	            'flexible': {
 	                'Unsent': '未发送',
@@ -1635,18 +1827,7 @@
 	        },
 	
 	        'works_index': {
-	            'static': {
-	                'Fandom:': '同人圈:',
-	                'Rating:': '分级:',
-	                'Archive Warning:': 'Archive 预警:',
-	                'Category:': '分类:',
-	                'Complete?': '已完结？',
-	                'Word Count:': '字数:',
-	                'Date Updated:': '更新日期:',
-	                'Relationship:': '关系:',
-	                'Character:': '角色:',
-	                'Additional Tags:': '其她标签:',
-	            },
+	            'static': {},
 	            'innerHTML_regexp': [],
 	            'regexp': [],
 	            'selector': []
@@ -2269,8 +2450,6 @@
 	        },
 	        'works_chapters_show': {
 	            'static': {
-	                'Archive Warning': 'Archive 预警',
-	                'Archive Warnings': 'Archive 预警',
 	                'Chapter by Chapter': '逐章阅读',
 	                'Mark for Later': '稍后阅读',
 	                'Mark as Read': '标记为已读',
@@ -2304,17 +2483,6 @@
 	                'Works inspired by this one:': '衍生作品：',
 	            },
 	            'innerHTML_regexp': [
-	                ['dt.rating.tags', /^(\s*)Rating:(\s*)$/, '$1分级:$2'],
-	                ['dt.category.tags', /^(\s*)Category:(\s*)$/, '$1类别:$2'],
-	                ['dt.category.tags', /^(\s*)Categories:(\s*)$/s, '$1类别:$2'],
-	                ['dt.fandom.tags', /^(\s*)Fandoms?:(\s*)$/, '$1同人圈:$2'],
-	                ['dt.series', /^(\s*)Series:(\s*)$/s, '$1系列:$2'],
-	                ['dt.relationship.tags', /^(\s*)Relationships?:(\s*)$/, '$1关系:$2'],
-	                ['dt.character.tags', /^(\s*)Characters?:(\s*)$/, '$1角色:$2'],
-	                ['dt.freeform.tags', /^(\s*)Additional Tags?:(\s*)$/s, '$1附加标签:$2'],
-	                ['dt.stats', /^(\s*)Stats:(\s*)$/, '$1统计:$2'],
-	                ['div.summary > h3.heading', /^(\s*)Summary:(\s*)$/, '$1简介：$2'],
-	                ['div.notes > h3.heading', /^(\s*)Notes:(\s*)$/, '$1注释：$2'],
 	                [
 	                    'div.flash.notice',
 	                    /^\s*This work was added to your <a href="([^"]*)">Marked for Later list<\/a>\.\s*$/s,
@@ -5165,7 +5333,32 @@
 	        closeButton.textContent = '关闭';
 	    }
 	}
-	
+    /**
+     * 专门用于翻译“章节标题”帮助弹窗。
+     */
+    function translateChapterTitleHelpModal() {
+        const container = document.querySelector('#modal div.content.userstuff');
+        const footer = container?.nextElementSibling;
+        const footerTitle = footer?.querySelector('span.title');
+
+        if (!footerTitle || footerTitle.textContent !== 'Chapter title') {
+            return;
+        }
+
+        if (container) {
+            container.innerHTML = `
+                <h4>章节标题</h4>
+                <p>您可以为章节添加标题，但这不是必填项。</p>
+            `;
+            container.setAttribute('data-translated-by-custom-function', 'true');
+        }
+
+        footerTitle.textContent = '章节标题';
+        const closeButton = footer.querySelector('a.modal-closer');
+        if (closeButton) {
+            closeButton.textContent = '关闭';
+        }
+    }
 	/**
 	 * 专用翻译函数：翻译“关于 OTW”页面
 	 */
@@ -5301,19 +5494,15 @@
 	    promptDiv.setAttribute('data-translated-by-custom-function', 'true');
 	}
 	
-	/**
-	 * 各种value按钮
-	 */
-	function translateActionButtons() {
-	    const postButton = document.querySelector('input[name="post_button"]');
-	    if (postButton) {
-	        if (postButton.value === 'Post') {
-	            postButton.value = '发布';
-	        }
-	        if (postButton.getAttribute('data-disable-with') === 'Please wait...') {
-	            postButton.setAttribute('data-disable-with', '请稍等…');
-	        }
-	    }
+    /**
+     * 翻译各种操作按钮
+     */
+    function translateActionButtons() {
+        // Please wait 状态按钮
+        const buttonsToTranslateDisableText = document.querySelectorAll('[data-disable-with="Please wait..."]');
+        buttonsToTranslateDisableText.forEach(button => {
+            button.setAttribute('data-disable-with', '请稍等…');
+        });
 	    // 订阅/取消订阅按钮
 	    const subscribeButton = document.querySelector('input[name="commit"][value="Subscribe"]');
 	    if (subscribeButton) {
@@ -5334,25 +5523,24 @@
 	    if (unfavoriteTagButton) {
 	        unfavoriteTagButton.value = '取消收藏';
 	    }
-	
-	    const ajaxForms = document.querySelectorAll('form.ajax-create-destroy');
-	    ajaxForms.forEach(form => {
-	        // 订阅功能
-	        if (form.getAttribute('data-create-value') === 'Subscribe') {
-	            form.setAttribute('data-create-value', '订阅');
-	        }
-	        if (form.getAttribute('data-destroy-value') === 'Unsubscribe') {
-	            form.setAttribute('data-destroy-value', '取消订阅');
-	        }
-	        // 收藏标签功能
-	        if (form.getAttribute('data-create-value') === 'Favorite Tag') {
-	            form.setAttribute('data-create-value', '收藏标签');
-	        }
-	        if (form.getAttribute('data-destroy-value') === 'Unfavorite Tag') {
-	            form.setAttribute('data-destroy-value', '取消收藏');
-	        }
-	    });
-	}
+        const ajaxForms = document.querySelectorAll('form.ajax-create-destroy');
+        ajaxForms.forEach(form => {
+            // 订阅功能
+            if (form.getAttribute('data-create-value') === 'Subscribe') {
+                form.setAttribute('data-create-value', '订阅');
+            }
+            if (form.getAttribute('data-destroy-value') === 'Unsubscribe') {
+                form.setAttribute('data-destroy-value', '取消订阅');
+            }
+            // 收藏标签功能
+            if (form.getAttribute('data-create-value') === 'Favorite Tag') {
+                form.setAttribute('data-create-value', '收藏标签');
+            }
+            if (form.getAttribute('data-destroy-value') === 'Unfavorite Tag') {
+                form.setAttribute('data-destroy-value', '取消收藏');
+            }
+        });
+    }
 	
 	/**
 	 * 专用于翻译排序按钮（↑ Date, ↓ Fandom）
@@ -5584,30 +5772,14 @@
 		const translateParagraphContent = (pElement) => {
 			let html = pElement.innerHTML;
 			const originalHtml = html;
-			html = html.replace(
-				/(<a[^>]*>)([\d,]+)\s+more\s+users(<\/a>)/g,
-				'$1$2 位用户$3'
-			);
-			html = html.replace(
-				/\s*as well as\s+([\d,]+)\s+guest(s)?\s+left kudos on this work!/g,
-				' ，以及 $1 位访客点赞了此作品！'
-			);
-			html = html.replace(
-				/^([\d,]+)\s+guest(s)?\s+left kudos on this work!/g,
-				'$1 位访客点赞了此作品！'
-			);
-			html = html.replace(
-				/left kudos on this work!/g,
-				'点赞了此作品！'
-			);
-			html = html.replace(
-				/,\s*and\s*(<a [^>]+>.*?<\/a>)/g,
-				'，和 $1'
-			);
-			html = html.replace(
-				/(<span id="kudos_more_connector">), and (<\/span>)/g,
-				'$1，和 $2'
-			);
+            html = html.replace(/(<a[^>]*>)([\d,]+)\s+more\s+users(<\/a>)/g, '$1$2 位用户$3');
+            html = html.replace(/([\d,]+)\s+guest(s)?/g, '$1 位访客');
+            html = html.replace(/\s+as well as\s+/g, '，以及 ');
+            html = html.replace(/(<span id="kudos_more_connector">), and (<\/span>)/g, '$1，和 $2');
+            html = html.replace(/\s+and\s+/g, ' 和 ');
+            html = html.replace(/, /g, '，');
+            html = html.replace(/\s+left kudos on this work!/g, '点赞了此作品！');
+
 			if (html !== originalHtml) {
 				pElement.innerHTML = html;
 			}
@@ -5648,28 +5820,48 @@
      */
     function buildPageConfig(pageType = pageConfig.currentPageType) {
         const baseStatic = I18N[CONFIG.LANG]?.public?.static || {};
+        const baseRegexp = I18N[CONFIG.LANG]?.public?.regexp || [];
+        const baseSelector = I18N[CONFIG.LANG]?.public?.selector || [];
+        const baseInnerHTMLRegexp = I18N[CONFIG.LANG]?.public?.innerHTML_regexp || [];
+        const globalFlexible = (pageType === 'admin_posts_show') ? {} : (I18N[CONFIG.LANG]?.flexible || {});
 
         const usersCommonStatic = (pageType.startsWith('users_') || pageType === 'profile' || pageType === 'dashboard')
             ? I18N[CONFIG.LANG]?.users_common?.static || {}
             : {};
 
         const pageStatic = I18N[CONFIG.LANG]?.[pageType]?.static || {};
-
-        const mergedStatic = { ...baseStatic, ...usersCommonStatic, ...pageStatic };
-
-        const baseRegexp = I18N[CONFIG.LANG]?.public?.regexp || [];
         const pageRegexp = I18N[CONFIG.LANG]?.[pageType]?.regexp || [];
-        const baseSelector = I18N[CONFIG.LANG]?.public?.selector || [];
         const pageSelector = I18N[CONFIG.LANG]?.[pageType]?.selector || [];
-        const baseInnerHTMLRegexp = I18N[CONFIG.LANG]?.public?.innerHTML_regexp || [];
         const pageInnerHTMLRegexp = I18N[CONFIG.LANG]?.[pageType]?.innerHTML_regexp || [];
+        let pageFlexible = (pageType === 'admin_posts_show') ? {} : (I18N[CONFIG.LANG]?.[pageType]?.flexible || {});
 
-        const globalFlexible = (pageType === 'admin_posts_show') ? {} : (I18N[CONFIG.LANG]?.flexible || {});
-        const pageFlexible = (pageType === 'admin_posts_show') ? {} : (I18N[CONFIG.LANG]?.[pageType]?.flexible || {});
+        const parentPageMap = {
+            'works_edit': 'works_new',
+            'works_edit_tags': 'works_new',
+            'chapters_new': 'works_new',
+            'chapters_edit': 'chapters_new'
+        };
 
-        const mergedRegexp = [...pageRegexp, ...baseRegexp];
-        const mergedSelector = [...pageSelector, ...baseSelector];
-        const mergedInnerHTMLRegexp = [...pageInnerHTMLRegexp, ...baseInnerHTMLRegexp];
+        const parentPageType = parentPageMap[pageType];
+        let extraStatic = {}, extraRegexp = [], extraSelector = [], extraInnerHTMLRegexp = [], extraFlexible = {};
+
+        if (parentPageType) {
+            const parentConfig = I18N[CONFIG.LANG]?.[parentPageType];
+            if (parentConfig) {
+                const parentFullConfig = buildPageConfig(parentPageType);
+                extraStatic = parentFullConfig.staticDict;
+                extraRegexp = parentFullConfig.regexpRules;
+                extraSelector = parentFullConfig.tranSelectors;
+                extraInnerHTMLRegexp = parentFullConfig.innerHTMLRules;
+                extraFlexible = { ...parentFullConfig.globalFlexibleDict, ...parentFullConfig.pageFlexibleDict };
+            }
+        }
+
+        const mergedStatic = { ...baseStatic, ...usersCommonStatic, ...extraStatic, ...pageStatic };
+        const mergedRegexp = [...pageRegexp, ...extraRegexp, ...baseRegexp];
+        const mergedSelector = [...pageSelector, ...extraSelector, ...baseSelector];
+        const mergedInnerHTMLRegexp = [...pageInnerHTMLRegexp, ...extraInnerHTMLRegexp, ...baseInnerHTMLRegexp];
+        const mergedPageFlexible = { ...extraFlexible, ...pageFlexible };
 
         return {
             currentPageType: pageType,
@@ -5677,7 +5869,7 @@
             regexpRules: mergedRegexp,
             innerHTMLRules: mergedInnerHTMLRegexp,
             globalFlexibleDict: globalFlexible,
-            pageFlexibleDict: pageFlexible,
+            pageFlexibleDict: mergedPageFlexible,
             ignoreMutationSelectors: [
                 ...(I18N.conf.ignoreMutationSelectorPage['*'] || []),
                 ...(I18N.conf.ignoreMutationSelectorPage[pageType] || [])
@@ -5693,7 +5885,7 @@
 
     /**
      * traverseNode 函数：遍历指定的节点，并对节点进行翻译。
-     * @param {Node} node - 需要遍历的节点。
+     * @param {Node} rootNode - 需要遍历的节点。
      */
     function traverseNode(rootNode) {
 
@@ -5748,6 +5940,9 @@
                     transElement(node.dataset, 'disableWith');
                     break;
                 case 'A':
+                    transElement(node, 'title');
+                    transElement(node.dataset, 'confirm');
+                    break;
                 case 'SPAN':
                 case 'DIV':
                 case 'P':
@@ -5904,6 +6099,19 @@
                     if (pathname === '/works/search') return 'works_search';
                     if (p2 === 'new' && search.includes('import=true')) return 'works_import';
                     if (p2 && /^\d+$/.test(p2)) {
+                        if (p3 === 'chapters' && p4 === 'new') {
+                            return 'chapters_new';
+                        }
+                        if (p3 === 'chapters' && p4 && /^\d+$/.test(p4) && p5 === 'edit') {
+                            return 'chapters_edit';
+                        }
+                        if (p3 === 'edit_tags') {
+                        return 'works_edit_tags';
+                        }
+                        const heading = document.querySelector('h2.heading');
+                            if (heading && heading.textContent.trim() === 'Edit Work') {
+                                return 'works_edit';
+                            }
                     if ((p3 === 'chapters' && p4) || (!p3 || p3 === 'navigate')) {
                         return 'works_chapters_show';
                     }
@@ -5923,6 +6131,8 @@
                     if (p2 && /^\d+$/.test(p2)) return 'series_show';
                     if (!p2) return 'series_index';
                     break;
+                case 'orphans':
+                    return 'orphans_new';
                 case 'collections':
                     if (p2 === 'new') {
                         return 'collections_new';
@@ -6245,82 +6455,145 @@
     }
 
     /**
-     * 翻译函数：接收段落数组，返回翻译结果映射。
-     * @param {Array<HTMLElement>} paragraphs - 需要翻译的段落元素数组
-     * @param {object} [options] - 包含重试配置的对象
+     * 翻译函数：遵循四级优先级
      */
     async function translateParagraphs(paragraphs, { retryCount = 0, maxRetries = 3 } = {}) {
-        const results = new Map();
-        if (paragraphs.length === 0) return results;
-
-        let paragraphsToSend;
-        try {
-            const glossary = GM_getValue('ao3_translation_glossary', {});
-            paragraphsToSend = getGlossaryProcessedParagraphs(paragraphs, glossary);
-        } catch (e) {
-            console.error("应用术语表时出错:", e);
-            paragraphsToSend = paragraphs;
+        if (!paragraphs || paragraphs.length === 0) {
+            return new Map();
         }
 
+        const indexedParagraphs = paragraphs.map((p, index) => ({
+            original: p,
+            index: index,
+            isSeparator: p.tagName === 'HR' || /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(p.textContent),
+            content: p.innerHTML
+        }));
+
+        const contentToTranslate = indexedParagraphs.filter(p => !p.isSeparator);
+        const paragraphsForAI = contentToTranslate.map(p => p.original);
+
+        if (paragraphsForAI.length === 0) {
+            const results = new Map();
+            indexedParagraphs.forEach(p => {
+                results.set(p.original, { status: 'success', content: p.content });
+            });
+            return results;
+        }
+
+        const localForbidden = GM_getValue(LOCAL_FORBIDDEN_TERMS_KEY, []);
+        localForbidden.sort((a, b) => b.length - a.length);
+        const placeholders = new Map();
+        let placeholderIndex = 0;
+        
+        const paragraphsWithPlaceholders = paragraphsForAI.map(p => {
+            const clone = p.cloneNode(true);
+            if (localForbidden.length > 0) {
+                const treeWalker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
+                let currentNode;
+                while (currentNode = treeWalker.nextNode()) {
+                    let text = currentNode.nodeValue;
+                    for (const term of localForbidden) {
+                        const escapedTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                        const regex = new RegExp(`\\b(${escapedTerm}(?:'s|s|es)?)\\b`, 'gi');
+                        text = text.replace(regex, (matched) => {
+                            if (matched.toLowerCase().startsWith(term.toLowerCase())) {
+                                const placeholder = `__FT_${placeholderIndex}__`;
+                                placeholders.set(placeholder, matched);
+                                placeholderIndex++;
+                                return placeholder;
+                            }
+                            return matched;
+                        });
+                    }
+                    currentNode.nodeValue = text;
+                }
+            }
+            return clone;
+        });
+
         try {
-            const combinedTranslation = await requestRemoteTranslation(paragraphsToSend);
-            
+            const processedParagraphs = await getGlossaryProcessedParagraphs(paragraphsWithPlaceholders);
+            const combinedTranslation = await requestRemoteTranslation(processedParagraphs);
+
+            let restoredTranslation = combinedTranslation;
+            if (placeholders.size > 0) {
+                for (const [placeholder, originalTerm] of placeholders) {
+                    const placeholderRegex = new RegExp(placeholder, 'g');
+                    let replacement = originalTerm;
+                    if (originalTerm.toLowerCase().endsWith("'s")) {
+                        const baseTerm = originalTerm.slice(0, -2);
+                        replacement = `${baseTerm}的`;
+                    }
+                    restoredTranslation = restoredTranslation.replace(placeholderRegex, replacement);
+                }
+            }
+
             let translatedParts = [];
             const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
             let match;
-            while ((match = regex.exec(combinedTranslation)) !== null) {
+            while ((match = regex.exec(restoredTranslation)) !== null) {
                 translatedParts.push(match[1].trim());
             }
 
-            if (translatedParts.length !== paragraphs.length && combinedTranslation.includes('\n')) {
-                const potentialParts = combinedTranslation.split('\n').filter(p => p.trim().length > 0);
-                if (potentialParts.length === paragraphs.length) {
+            if (translatedParts.length !== paragraphsForAI.length && restoredTranslation.includes('\n')) {
+                const potentialParts = restoredTranslation.split('\n').filter(p => p.trim().length > 0);
+                if (potentialParts.length === paragraphsForAI.length) {
                     translatedParts = potentialParts.map(p => p.replace(/^\d+\.\s*/, '').trim());
                 }
             }
-            
-            if (translatedParts.length !== paragraphs.length) {
+
+            if (translatedParts.length !== paragraphsForAI.length) {
                 throw new Error('AI 响应格式不一致，分段数量不匹配');
             }
 
-            paragraphs.forEach((p, index) => {
-                const cleanedHtml = AdvancedTranslationCleaner.clean(translatedParts[index] || p.innerHTML);
-                const finalHtml = applyPostTranslationReplacements(cleanedHtml);
-                results.set(p, { status: 'success', content: finalHtml });
+            contentToTranslate.forEach((p, i) => {
+                const cleanedHtml = AdvancedTranslationCleaner.clean(translatedParts[i] || p.content);
+                p.translatedContent = applyPostTranslationReplacements(cleanedHtml);
+            });
+
+            const finalResults = new Map();
+            indexedParagraphs.forEach(p => {
+                if (p.isSeparator) {
+                    finalResults.set(p.original, { status: 'success', content: p.content });
+                } else {
+                    finalResults.set(p.original, { status: 'success', content: p.translatedContent });
+                }
             });
             
-            return results;
+            return finalResults;
 
         } catch (e) {
             console.error(`翻译失败 (尝试 ${retryCount + 1}/${maxRetries + 1}):`, e.message);
 
             if (retryCount < maxRetries) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
                 return await translateParagraphs(paragraphs, { retryCount: retryCount + 1, maxRetries });
-            } else {
-                if (e.message.includes('分段数量不匹配')) {
-                    console.warn("批量翻译失败，切换到逐段翻译模式...");
-                    const fallbackResults = new Map();
-                    for (const p of paragraphs) {
-                        const singleResultMap = await translateParagraphs([p], { maxRetries: 1 });
-                        const singleResult = singleResultMap.get(p);
-                        if (singleResult && singleResult.status === 'success') {
-                            fallbackResults.set(p, singleResult);
-                        } else {
-                            const errorMessage = (singleResult && singleResult.content) ? singleResult.content : '未知错误';
-                            console.error(`逐段翻译失败: ${errorMessage}`);
-                            fallbackResults.set(p, { status: 'error', content: null });
-                        }
+            }
+            
+            if (e.message.includes('分段数量不匹配')) {
+                console.warn("批量翻译失败，自动切换到逐段翻译模式...");
+                const fallbackResults = new Map();
+                for (const p of paragraphs) {
+                    const singleResultMap = await translateParagraphs([p], { maxRetries: 0 });
+                    const singleResult = singleResultMap.get(p);
+                    
+                    if (singleResult && singleResult.status === 'success') {
+                        fallbackResults.set(p, singleResult);
+                    } else {
+                        const errorMessage = (singleResult && singleResult.content) ? singleResult.content : '未知错误';
+                        console.error(`逐段翻译失败: ${errorMessage}`);
+                        fallbackResults.set(p, { status: 'error', content: errorMessage });
                     }
-                    return fallbackResults;
-                } else {
-                    console.error("所有重试均失败，翻译终止。");
-                    const finalErrorMessage = `翻译失败：${e.message}`;
-                    paragraphs.forEach(p => {
-                        results.set(p, { status: 'error', content: finalErrorMessage });
-                    });
-                    return results;
                 }
+                return fallbackResults;
+            } else {
+                console.error("所有重试均失败，翻译终止。");
+                const results = new Map();
+                const finalErrorMessage = `翻译失败：${e.message}`;
+                paragraphs.forEach(p => {
+                    results.set(p, { status: 'error', content: finalErrorMessage });
+                });
+                return results;
             }
         }
     }
@@ -6379,6 +6652,25 @@
         });
 
         if (onComplete) onComplete();
+    }
+
+    /**
+     * 辅助函数：获取当前选择的 AI 服务的具体模型ID
+     */
+    function getCurrentModelId() {
+        const engine = GM_getValue('transEngine', 'together_ai');
+        switch (engine) {
+            case 'google_ai':
+                return GM_getValue('google_ai_model', 'gemini-2.5-pro');
+            case 'deepseek_ai':
+                return GM_getValue('deepseek_model', 'deepseek-chat');
+            case 'together_ai':
+                return GM_getValue('together_model', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8');
+            case 'groq_ai':
+                return GM_getValue('groq_model', 'meta-llama/llama-4-maverick-17b-128e-instruct');
+            default:
+                return '';
+        }
     }
 
     /**
@@ -6441,114 +6733,115 @@
         const allUnits = preProcessAndGetUnits(containerElement);
         let isProcessing = false;
         const translationQueue = new Set();
+        let scheduleTimeout = null;
+        let flushTimeout = null;
 
-        const processQueue = async (observer) => {
+        const isInViewport = (el) => {
+            const rect = el.getBoundingClientRect();
+            return ( rect.top < window.innerHeight && rect.bottom >= 0 );
+        };
+
+        const processQueue = async (observer, forceFlush = false) => {
             if (isProcessing || translationQueue.size === 0) return;
-            isProcessing = true;
+            
+            clearTimeout(flushTimeout);
 
-            const isFirstRun = isFirstTranslationChunk;
-            const chunkStateKey = isFirstRun ? 'first' : 'subsequent';
+            const allQueuedUnits = [...translationQueue];
+            if (allQueuedUnits.length === 0) return;
 
-            let chunkSize = isFirstRun ? CONFIG.CHUNK_SIZE : CONFIG.SUBSEQUENT_CHUNK_SIZE;
-            let paragraphLimit = isFirstRun ? CONFIG.PARAGRAPH_LIMIT : CONFIG.SUBSEQUENT_PARAGRAPH_LIMIT;
+            const visibleInQueue = allQueuedUnits.filter(isInViewport);
+            const offscreenInQueue = allQueuedUnits.filter(p => !visibleInQueue.includes(p));
+            const prioritizedUnits = [...visibleInQueue, ...offscreenInQueue];
 
-            const engine = GM_getValue('transEngine');
-            let modelId = '';
-            if (engine === 'google_ai') modelId = GM_getValue('google_ai_model');
-            else if (engine === 'deepseek_ai') modelId = GM_getValue('deepseek_model');
+            const runType = isFirstTranslationChunk ? 'first' : 'subsequent';
 
-            if (modelId && CONFIG.MODEL_SPECIFIC_LIMITS[modelId] && CONFIG.MODEL_SPECIFIC_LIMITS[modelId][chunkStateKey]) {
-                const specificLimits = CONFIG.MODEL_SPECIFIC_LIMITS[modelId][chunkStateKey];
-                chunkSize = specificLimits.CHUNK_SIZE;
-                paragraphLimit = specificLimits.PARAGRAPH_LIMIT;
+            const modelId = getCurrentModelId();
+
+            let paragraphLimit = isFirstTranslationChunk ? CONFIG.PARAGRAPH_LIMIT : CONFIG.SUBSEQUENT_PARAGRAPH_LIMIT;
+            let chunkSize = isFirstTranslationChunk ? CONFIG.CHUNK_SIZE : CONFIG.SUBSEQUENT_CHUNK_SIZE;
+
+            const modelLimits = getNestedProperty(CONFIG.MODEL_SPECIFIC_LIMITS, `${modelId}.${runType}`);
+            if (modelLimits) {
+                paragraphLimit = modelLimits.PARAGRAPH_LIMIT;
+                chunkSize = modelLimits.CHUNK_SIZE;
             }
 
-            if (isFirstRun) {
-                isFirstTranslationChunk = false;
-            }
+            let currentChars = 0;
+            let chunkToSend = [];
 
-            const unitsToProcess = [...translationQueue];
-            translationQueue.clear();
-
-            const processChunk = async (chunk) => {
-                if (chunk.length === 0) return;
-                chunk.forEach(p => elementState.set(p, { ...elementState.get(p), status: 'translating' }));
-                const translationResults = await translateParagraphs(chunk);
-
-                for (const p of chunk) {
-                    const existingElement = p.nextElementSibling;
-                    if (existingElement && (existingElement.classList.contains('translated-by-ao3-script') || existingElement.classList.contains('translated-by-ao3-script-error'))) {
-                        existingElement.remove();
-                    }
-                    const result = translationResults.get(p);
-                    if (result && result.content) {
-                        const transNode = document.createElement('div');
-                        if (result.status === 'success') {
-                            transNode.className = 'translated-by-ao3-script';
-                            transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
-                            transNode.innerHTML = `<${p.tagName.toLowerCase()}>${result.content}</${p.tagName.toLowerCase()}>`;
-                            p.after(transNode);
-                            const currentMode = GM_getValue('translation_display_mode', 'bilingual');
-                            if (currentMode === 'translation_only') p.style.display = 'none';
-
-                            elementState.set(p, { ...elementState.get(p), status: 'translated' });
-                            p.dataset.translationState = 'translated';
-
-                            if (observer) observer.unobserve(p);
-                        } else {
-                            transNode.className = 'translated-by-ao3-script-error';
-                            transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
-                            
-                            const errorParagraph = document.createElement(p.tagName.toLowerCase());
-                            errorParagraph.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
-                            errorParagraph.textContent = `翻译失败：${result.content.replace('翻译失败：', '')}`;
-                            
-                            transNode.appendChild(errorParagraph);
-                            p.after(transNode);
-                            elementState.delete(p);
-                        }
-                    } else if (result && result.status === 'error' && result.content === null) {
-                        elementState.delete(p);
-                    } else {
-                        elementState.delete(p);
-                    }
+            for (const unit of prioritizedUnits) {
+                const isSeparator = unit.tagName === 'HR' || /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(unit.textContent);
+                if (isSeparator) {
+                    if (chunkToSend.length > 0) break;
+                    chunkToSend.push(unit);
+                    break;
                 }
-            };
-
-            let currentChunk = [];
-            for (const p of unitsToProcess) {
-                const isTextSeparator = /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(p.textContent);
-                const isHtmlSeparator = p.tagName === 'HR';
-
-                if (isTextSeparator || isHtmlSeparator) {
-                    await processChunk(currentChunk);
-                    currentChunk = [];
-
-                    elementState.set(p, { ...elementState.get(p), status: 'translated' });
-                    p.dataset.translationState = 'translated';
-
-                    if (observer) observer.unobserve(p);
-                } else if (p.textContent.trim().length > 0 || p.querySelector('img')) {
-                    currentChunk.push(p);
-                    if (currentChunk.reduce((acc, el) => acc + el.textContent.length, 0) >= chunkSize || currentChunk.length >= paragraphLimit) {
-                        await processChunk(currentChunk);
-                        currentChunk = [];
-                    }
-                } else {
-                    elementState.set(p, { ...elementState.get(p), status: 'translated' });
-                    p.dataset.translationState = 'translated';
-
-                    if (observer) observer.unobserve(p);
+                chunkToSend.push(unit);
+                currentChars += unit.textContent.length;
+                if (chunkToSend.length >= paragraphLimit || currentChars >= chunkSize) {
+                    break;
                 }
             }
-            if (currentChunk.length > 0) {
-                await processChunk(currentChunk);
+
+            const isChunkBigEnough = chunkToSend.length >= paragraphLimit || currentChars >= chunkSize;
+            const isChunkSeparator = chunkToSend.length > 0 && (chunkToSend[0].tagName === 'HR' || /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(chunkToSend[0].textContent));
+
+            if (!isChunkBigEnough && !isChunkSeparator && !forceFlush) {
+                if (translationQueue.size > 0) {
+                    flushTimeout = setTimeout(() => scheduleProcessing(observer, true), 2000);
+                }
+                return;
             }
             
-            isProcessing = false;
-            if (translationQueue.size > 0) {
-                setTimeout(() => processQueue(observer), 250);
+            if (chunkToSend.length === 0) return;
+
+            isProcessing = true;
+            if (isFirstTranslationChunk) isFirstTranslationChunk = false;
+            chunkToSend.forEach(p => translationQueue.delete(p));
+
+            const paragraphsToTranslate = chunkToSend.filter(p => p.tagName !== 'HR' && p.textContent.trim().length > 0);
+            const translationResults = paragraphsToTranslate.length > 0 ? await translateParagraphs(paragraphsToTranslate) : new Map();
+
+            for (const p of chunkToSend) {
+                if (p.tagName === 'HR' || p.textContent.trim().length === 0 || /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(p.textContent)) {
+                    elementState.set(p, { ...elementState.get(p), status: 'translated' });
+                    p.dataset.translationState = 'translated';
+                    if (observer) observer.unobserve(p);
+                    continue;
+                }
+                const result = translationResults.get(p);
+                if (result) {
+                    const transNode = document.createElement('div');
+                    if (result.status === 'success') {
+                        transNode.className = 'translated-by-ao3-script';
+                        transNode.innerHTML = `<${p.tagName.toLowerCase()}>${result.content}</${p.tagName.toLowerCase()}>`;
+                        const currentMode = GM_getValue('translation_display_mode', 'bilingual');
+                        if (currentMode === 'translation_only') p.style.display = 'none';
+                        elementState.set(p, { ...elementState.get(p), status: 'translated' });
+                        p.dataset.translationState = 'translated';
+                        if (observer) observer.unobserve(p);
+                    } else {
+                        transNode.className = 'translated-by-ao3-script-error';
+                        transNode.innerHTML = `<${p.tagName.toLowerCase()}>翻译失败：${result.content.replace('翻译失败：', '')}</${p.tagName.toLowerCase()}>`;
+                        elementState.delete(p);
+                    }
+                    transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
+                    p.after(transNode);
+                } else {
+                    elementState.delete(p);
+                }
             }
+
+            isProcessing = false;
+
+            if (translationQueue.size > 0) {
+                scheduleProcessing(observer, false);
+            }
+        };
+
+        const scheduleProcessing = (observer, force = false) => {
+            clearTimeout(scheduleTimeout);
+            scheduleTimeout = setTimeout(() => processQueue(observer, force), 300);
         };
         
         const observer = new IntersectionObserver((entries, obs) => {
@@ -6561,28 +6854,17 @@
                     addedToQueue = true;
                 }
             });
-            if (addedToQueue) processQueue(obs);
-        }, { rootMargin: '0px 0px 1200px 0px' });
 
-        const isInViewport = (el) => {
-            const rect = el.getBoundingClientRect();
-            return ( rect.top < window.innerHeight && rect.bottom >= 0 );
-        };
+            if (addedToQueue) {
+                scheduleProcessing(obs, false);
+            }
+        }, { rootMargin: '400px 0px 1000px 0px' });
 
-        const visibleUnits = allUnits.filter(unit => isInViewport(unit) && !elementState.get(unit)?.status);
-        const offscreenUnits = allUnits.filter(unit => !isInViewport(unit) && !elementState.get(unit)?.status);
-        
-        if (visibleUnits.length > 0) {
-            visibleUnits.forEach(u => {
-                elementState.set(u, { ...elementState.get(u), status: 'queued' });
-                translationQueue.add(u);
-            });
-            processQueue(observer);
-        }
-
-        if (offscreenUnits.length > 0) {
-            offscreenUnits.forEach(unit => observer.observe(unit));
-        }
+        allUnits.forEach(unit => {
+            if (!elementState.get(unit)?.status) {
+                observer.observe(unit);
+            }
+        });
     }
 
     /**
@@ -6659,6 +6941,131 @@
     }
 
     /**
+     * 处理 Google AI 的 API 请求，包含 Key 轮询机制
+     */
+    async function _handleGoogleAiRequest(engineConfig, paragraphs) {
+        const keys = GM_getValue('google_ai_keys_array', []);
+        if (keys.length === 0) {
+            throw new Error('请先在菜单中设置至少一个 Google AI API Key');
+        }
+
+        let keyIndex = GM_getValue('google_ai_key_index', 0) % keys.length;
+        const modelId = getCurrentModelId();
+
+        for (let i = 0; i < keys.length; i++) {
+            const currentKey = keys[keyIndex];
+            console.log(`正在尝试使用 Google AI API Key #${keyIndex + 1}...`);
+            
+            const final_url = engineConfig.url_api.replace('{model}', modelId) + `?key=${currentKey}`;
+            const requestData = engineConfig.getRequestData(paragraphs);
+
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    GM_xmlhttpRequest({
+                        method: engineConfig.method, url: final_url, headers: engineConfig.headers,
+                        data: JSON.stringify(requestData), responseType: 'json', timeout: 45000,
+                        onload: (res) => {
+                            let responseData = res.response;
+                            if (typeof responseData === 'string') try { responseData = JSON.parse(responseData); } catch(e) {}
+
+                            const candidate = getNestedProperty(responseData, 'candidates[0]');
+                            if (res.status !== 200 || !candidate) {
+                                console.debug("Google AI 异常响应详情：", { requestPayload: requestData, response: responseData, status: res.status });
+                            }
+
+                            if (res.status === 200) {
+                                if (!candidate) return reject({ type: 'empty_response', message: `Key #${keyIndex + 1} 失败：API 返回了无效的内容` });
+                                const finishReason = candidate.finishReason;
+                                if (['SAFETY', 'RECITATION', 'PROHIBITED_CONTENT'].includes(finishReason)) return reject({ type: 'content_error', message: `因含有敏感内容，请求被 Google AI 安全策略阻止` });
+                                const content = getNestedProperty(candidate, 'content.parts[0].text');
+                                if (!content) return reject({ type: 'empty_response', message: `Key #${keyIndex + 1} 失败：API 返回了空内容 (FinishReason: ${finishReason})` });
+                                return resolve(responseData);
+                            }
+
+                            const errorMessage = getNestedProperty(responseData, 'error.message') || res.statusText || '未知错误';
+                            if (res.status === 400 && errorMessage.toLowerCase().includes('api_key_invalid')) return reject({ type: 'key_invalid', message: `Key #${keyIndex + 1} 无效` });
+                            if (res.status === 429) return reject({ type: 'rate_limit', message: `Key #${keyIndex + 1} 遇到错误（代码：429）：${errorMessage}` });
+                            if (res.status === 503) return reject({ type: 'server_overloaded', message: `Key #${keyIndex + 1} 遇到错误（代码：503）：${errorMessage}` });
+                            return reject({ type: 'api_error', message: `Key #${keyIndex + 1} 遇到错误（代码：${res.status}）：${errorMessage}` });
+                        },
+                        onerror: () => reject({ type: 'network', message: `Key #${keyIndex + 1} 网络错误` }),
+                        ontimeout: () => reject({ type: 'network', message: `Key #${keyIndex + 1} 请求超时` })
+                    });
+                });
+                
+                const translatedText = getNestedProperty(result, engineConfig.responseIdentifier);
+                GM_setValue('google_ai_key_index', (keyIndex + 1) % keys.length);
+                return translatedText;
+
+            } catch (error) {
+                console.warn(error.message);
+                if (error.type === 'key_invalid' || error.type === 'quota_exceeded') {
+                    keyIndex = (keyIndex + 1) % keys.length;
+                    GM_setValue('google_ai_key_index', keyIndex);
+                    if (i === keys.length - 1) {
+                        throw new Error('所有 Google AI API Key 均已失效或用尽额度');
+                    }
+                } else {
+                    throw error;
+                }
+            }
+        }
+    }
+
+    /**
+     * 处理标准 Bearer Token 认证的 API 请求
+     */
+    async function _handleStandardApiRequest(engineConfig, paragraphs) {
+        const { name, url_api, method, responseIdentifier, getRequestData } = engineConfig;
+        const engineName = GM_getValue('transEngine');
+
+        let headers = { ...engineConfig.headers };
+        if (engineName === 'together_ai') {
+            headers['Authorization'] = `Bearer ${await getTogetherApiKey()}`;
+        } else {
+            const apiKey = GM_getValue(`${engineName.split('_')[0]}_api_key`);
+            if (!apiKey) throw new Error(`请先在菜单中设置 ${name} API Key`);
+            headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+
+        const requestData = getRequestData(paragraphs);
+        
+        const res = await new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method, url: url_api, headers, data: JSON.stringify(requestData),
+                responseType: 'json', timeout: 45000,
+                onload: resolve,
+                onerror: () => reject(new Error('网络请求错误')),
+                ontimeout: () => reject(new Error('请求超时'))
+            });
+        });
+        
+        if (res.status !== 200) {
+            let errorMessage = res.statusText;
+            let responseData = res.response;
+            if (typeof responseData === 'string') try { responseData = JSON.parse(responseData); } catch (e) {}
+            
+            if (engineName === 'zhipu_ai' && getNestedProperty(responseData, 'error.code') === '1301') {
+                throw new Error('因含有敏感内容，请求被 Zhipu AI 安全策略阻止');
+            }
+            
+            if (responseData && typeof responseData === 'object' && responseData.error) {
+                errorMessage = responseData.error.message || JSON.stringify(responseData.error);
+            }
+
+            console.debug(`${name} 异常响应详情：`, { requestPayload: requestData, response: res.response, status: res.status });
+            if (res.status === 503 || res.status === 429 || res.status >= 500) {
+                const error = new Error(`（代码：${res.status}）：${errorMessage}`);
+                error.type = 'server_overloaded';
+                throw error;
+            }
+            throw new Error(`（代码：${res.status}）：${errorMessage}`);
+        }
+        
+        return getNestedProperty(res.response, responseIdentifier);
+    }
+
+    /**
      * 远程翻译请求函数
      */
     async function requestRemoteTranslation(paragraphs, { retryCount = 0, maxRetries = 5 } = {}) {
@@ -6668,142 +7075,20 @@
             throw new Error(`服务 ${engineName} 未配置`);
         }
 
-        let translatedText;
-
         try {
+            let translatedText;
             if (engineName === 'google_ai') {
-                const keys = GM_getValue('google_ai_keys_array', []);
-                if (keys.length === 0) {
-                    throw new Error('请先在菜单中设置至少一个 Google AI API Key');
-                }
-
-                let keyIndex = GM_getValue('google_ai_key_index', 0) % keys.length;
-
-                for (let i = 0; i < keys.length; i++) {
-                    const currentKey = keys[keyIndex];
-                    let keyHasFailedPermanently = false;
-                    console.log(`正在尝试使用 Google AI API Key #${keyIndex + 1}...`);
-                    
-                    const modelId = GM_getValue('google_ai_model', 'gemini-2.5-pro');
-                    const final_url = engineConfig.url_api.replace('{model}', modelId) + `?key=${currentKey}`;
-                    const requestData = engineConfig.getRequestData(paragraphs);
-
-                    try {
-                        const result = await new Promise((resolve, reject) => {
-                            GM_xmlhttpRequest({
-                                method: engineConfig.method, url: final_url, headers: engineConfig.headers,
-                                data: JSON.stringify(requestData), responseType: 'json', timeout: 45000,
-                                onload: (res) => {
-                                    let responseData = res.response;
-                                    if (typeof responseData === 'string') try { responseData = JSON.parse(responseData); } catch(e) {}
-
-                                    const candidate = getNestedProperty(responseData, 'candidates[0]');
-                                    if (res.status !== 200 || !candidate) {
-                                        console.debug("Google AI 异常响应详情：", { requestPayload: requestData, response: responseData, status: res.status });
-                                    }
-
-                                    if (res.status === 200) {
-                                        if (!candidate) {
-                                            return reject({ type: 'empty_response', message: `Key #${keyIndex + 1} 失败：API 返回了无效的内容` });
-                                        }
-                                        const finishReason = candidate.finishReason;
-                                        if (finishReason === 'SAFETY' || finishReason === 'RECITATION' || finishReason === 'PROHIBITED_CONTENT') {
-                                            return reject({ type: 'content_error', message: `因含有敏感内容，请求被 Google AI 安全策略阻止` });
-                                        }
-                                        const content = getNestedProperty(candidate, 'content.parts[0].text');
-                                        if (!content) {
-                                            return reject({ type: 'empty_response', message: `Key #${keyIndex + 1} 失败：API 返回了空内容 (FinishReason: ${finishReason})` });
-                                        }
-                                        return resolve(responseData);
-                                    }
-
-                                    const errorMessage = getNestedProperty(responseData, 'error.message') || res.statusText || '未知错误';
-                                    if (res.status === 400 && errorMessage.toLowerCase().includes('api_key_invalid')) {
-                                        return reject({ type: 'key_invalid', message: `Key #${keyIndex + 1} 无效` });
-                                    } else if (res.status === 429) {
-                                        return reject({ type: 'rate_limit', message: `Key #${keyIndex + 1} 遇到错误（代码：429）：${errorMessage}` });
-                                    } else if (res.status === 503) {
-                                        return reject({ type: 'server_overloaded', message: `Key #${keyIndex + 1} 遇到错误（代码：503）：${errorMessage}` });
-                                    }
-                                    return reject({ type: 'api_error', message: `Key #${keyIndex + 1} 遇到错误（代码：${res.status}）：${errorMessage}` });
-                                },
-                                onerror: () => reject({ type: 'network', message: `Key #${keyIndex + 1} 网络错误` }),
-                                ontimeout: () => reject({ type: 'network', message: `Key #${keyIndex + 1} 请求超时` })
-                            });
-                        });
-                        
-                        translatedText = getNestedProperty(result, engineConfig.responseIdentifier);
-                        const nextKeyIndex = (keyIndex + 1) % keys.length;
-                        GM_setValue('google_ai_key_index', nextKeyIndex);
-                        break;
-
-                    } catch (error) {
-                        console.warn(error.message);
-                        if (error.type === 'key_invalid' || error.type === 'quota_exceeded') {
-                            keyHasFailedPermanently = true;
-                            keyIndex = (keyIndex + 1) % keys.length;
-                            GM_setValue('google_ai_key_index', keyIndex);
-                        } else if (['server_overloaded', 'rate_limit', 'network', 'timeout'].includes(error.type)) {
-                            throw error;
-                        } else {
-                            throw new Error(error.message || 'Google AI 请求失败');
-                        }
-                    }
-                    if (i === keys.length - 1 && keyHasFailedPermanently) {
-                         throw new Error('所有 Google AI API Key 均已失效或用尽额度');
-                    }
-                }
-
+                translatedText = await _handleGoogleAiRequest(engineConfig, paragraphs);
             } else {
-                const { url_api, method, responseIdentifier } = engineConfig;
-                let headers = { ...engineConfig.headers };
-
-                if (engineName === 'together_ai') {
-                    headers['Authorization'] = `Bearer ${await getTogetherApiKey()}`;
-                } else {
-                    const apiKey = GM_getValue(`${engineName.split('_')[0]}_api_key`);
-                    if (!apiKey) throw new Error(`请先在菜单中设置 ${engineConfig.name} API Key`);
-                    headers['Authorization'] = `Bearer ${apiKey}`;
-                }
-
-                const requestData = engineConfig.getRequestData(paragraphs);
-                
-                const res = await new Promise((resolve, reject) => {
-                    GM_xmlhttpRequest({
-                        method, url: url_api, headers, data: JSON.stringify(requestData),
-                        responseType: 'json', timeout: 45000,
-                        onload: resolve,
-                        onerror: () => reject(new Error('网络请求错误')),
-                        ontimeout: () => reject(new Error('请求超时'))
-                    });
-                });
-                
-                if (res.status !== 200) {
-                    let errorMessage = res.statusText;
-                    let responseData = res.response;
-                    if (typeof responseData === 'string') try { responseData = JSON.parse(responseData); } catch (e) {}
-                    
-                    if (engineName === 'zhipu_ai' && getNestedProperty(responseData, 'error.code') === '1301') {
-                        throw new Error('因含有敏感内容，请求被 Zhipu AI 安全策略阻止');
-                    }
-                    
-                    if (responseData && typeof responseData === 'object' && responseData.error) {
-                        errorMessage = responseData.error.message || JSON.stringify(responseData.error);
-                    }
-
-                    console.debug(`${engineConfig.name} 异常响应详情：`, { requestPayload: requestData, response: res.response, status: res.status });
-                    if (res.status === 503 || res.status === 429 || res.status >= 500) {
-                        const error = new Error(`（代码：${res.status}）：${errorMessage}`);
-                        error.type = 'server_overloaded';
-                        throw error;
-                    }
-                    throw new Error(`（代码：${res.status}）：${errorMessage}`);
-                }
-                
-                let rawResult = getNestedProperty(res.response, responseIdentifier);
-
-                translatedText = rawResult;
+                translatedText = await _handleStandardApiRequest(engineConfig, paragraphs);
             }
+            
+            if (typeof translatedText !== 'string' || !translatedText.trim()) {
+                throw new Error('API 未返回有效文本');
+            }
+            
+            return translatedText;
+
         } catch (error) {
             const isRetriable = ['server_overloaded', 'rate_limit', 'network', 'timeout'].includes(error.type) ||
                                 error.message.includes('超时') || 
@@ -6817,12 +7102,6 @@
             }
             throw error;
         }
-        
-        if (typeof translatedText !== 'string' || !translatedText.trim()) {
-            throw new Error('API 未返回有效文本');
-        }
-        
-        return translatedText;
     }
 
     /**
@@ -6886,6 +7165,7 @@
     }
 
     const LOCAL_GLOSSARY_KEY = 'ao3_local_glossary'; // 用于存储用户手动创建的术语
+    const LOCAL_FORBIDDEN_TERMS_KEY = 'ao3_local_forbidden_terms'; // 用于存储用户手动创建的禁翻词条
     const IMPORTED_GLOSSARY_KEY = 'ao3_imported_glossary'; // 用于存储所有在线导入的术语
     const GLOSSARY_METADATA_KEY = 'ao3_glossary_metadata'; // 用于储存导入的术语表的信息
     const LOCAL_REPLACEMENT_KEY = 'ao3_post_translation_replacements'; // 用于存储译文后处理规则
@@ -6895,45 +7175,92 @@
      */
     function manageGlossary() {
         const currentGlossary = GM_getValue(LOCAL_GLOSSARY_KEY, {});
+        
         const glossaryForDisplay = Object.entries(currentGlossary)
-            .map(([key, value]) => `${key}：${value}`)
+            .map(([key, value]) => `${key.includes(' ') ? `${key} = ${value}` : `${key}：${value}`}`)
             .join('，');
+
         const userInput = prompt(
-            '请按 “原文：译文” 格式编辑您的本地术语表，词条间用逗号分隔。\n若本地术语表与导入的在线术语表发生冲突，将以本地术语表的翻译词条为准。\n\n示例\nWakaba：若叶，Mutsumi：睦，Tsukinomori Girls\' Academy：月之森女子学园',
+            '请按 “原文：译文” 格式编辑您的本地术语表，词条间用逗号分隔。\n' +
+            '本地词条将优先于所有在线术语表规则，且默认区分大小写。\n\n' +
+            '示例\n' +
+            'Wakaba：若叶，Mutsumi：睦，Tsukinomori Girls\' Academy：月之森女子学园',
             glossaryForDisplay
         );
+
         if (userInput === null || userInput.trim() === glossaryForDisplay.trim()) {
             notifyAndLog('本地术语表未更改。');
             return;
         }
-        try {
-            const newGlossary = {};
-            if (userInput.trim() === '') {
-                GM_setValue(LOCAL_GLOSSARY_KEY, {});
-                notifyAndLog('本地术语表已清空。');
-                return;
-            }
-            const entries = userInput.split(/[，,]/);
-            for (const entry of entries) {
-                if (entry.trim() === '') continue;
-                const parts = entry.split(/[：:]/, 2);
-                if (parts.length === 2) {
-                    const key = parts[0].trim();
-                    const value = parts[1].trim();
-                    if (key && value) {
-                        newGlossary[key] = value;
-                    } else {
-                         console.warn(`跳过无效的术语表条目: "${entry}"`);
-                    }
-                } else {
-                    console.warn(`跳过格式不正确的术语表条目: "${entry}"`);
+
+        const newGlossary = {};
+        const invalidEntries = [];
+
+        if (userInput.trim() === '') {
+            GM_setValue(LOCAL_GLOSSARY_KEY, {});
+            notifyAndLog('本地翻译术语表已清空。');
+            return;
+        }
+
+        const entries = userInput.split(/[，,]/);
+        for (const entry of entries) {
+            const trimmedEntry = entry.trim();
+            if (trimmedEntry === '') continue;
+            
+            let key = '', value = '';
+            const multiPartParts = trimmedEntry.split('=', 2);
+            if (multiPartParts.length === 2) {
+                key = multiPartParts[0].trim();
+                value = multiPartParts[1].trim();
+            } else {
+                const singleParts = trimmedEntry.split(/[:：]/, 2);
+                if (singleParts.length === 2) {
+                    key = singleParts[0].trim();
+                    value = singleParts[1].trim();
                 }
             }
-            GM_setValue(LOCAL_GLOSSARY_KEY, newGlossary);
-            notifyAndLog('本地术语表已成功更新！');
-        } catch (e) {
-            alert('保存失败！解析时发生未知错误，请检查您的输入。\n\n错误信息: ' + e.message);
+
+            if (key && value) {
+                newGlossary[key] = value;
+            } else {
+                invalidEntries.push(trimmedEntry);
+            }
         }
+
+        if (invalidEntries.length > 0) {
+            alert(
+                '检测到以下词条格式不正确，已被忽略：\n\n' +
+                invalidEntries.join('\n') +
+                '\n\n请确保每个词条都使用中文冒号“：”或英文冒号“:”分隔，多词术语建议使用等号“=”分隔。'
+            );
+        }
+
+        GM_setValue(LOCAL_GLOSSARY_KEY, newGlossary);
+        notifyAndLog('本地翻译术语表已成功更新！');
+    }
+
+    /**
+     * 管理用户手动设置的本地禁翻术语表
+     */
+    function manageForbiddenTerms() {
+        const currentTerms = GM_getValue(LOCAL_FORBIDDEN_TERMS_KEY, []);
+        const termsForDisplay = currentTerms.join('，');
+        const userInput = prompt(
+            '请输入您不希望被AI翻译的词条，用英文逗号或中文逗号分隔。\n这些词条在翻译时会保持原文。\n\n示例\nMBCC, DisCoin, Hypercube, Shalom',
+            termsForDisplay
+        );
+        if (userInput === null || userInput.trim() === termsForDisplay.trim()) {
+            notifyAndLog('禁翻术语表未更改。');
+            return;
+        }
+        if (userInput.trim() === '') {
+            GM_setValue(LOCAL_FORBIDDEN_TERMS_KEY, []);
+            notifyAndLog('禁翻术语表已清空。');
+            return;
+        }
+        const newTerms = userInput.split(/[，,]/).map(term => term.trim()).filter(term => term);
+        GM_setValue(LOCAL_FORBIDDEN_TERMS_KEY, newTerms);
+        notifyAndLog('禁翻术语表已成功更新！');
     }
 
     /**
@@ -6995,100 +7322,137 @@
         if (Object.keys(rules).length === 0) {
             return text;
         }
-		const sortedRules = Object.entries(rules);
-		sortedRules.sort((a, b) => b[0].length - a[0].length);
-		let processedText = text;
-		for (const [original, replacement] of sortedRules) {
-			const escapedOriginal = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-			const regex = new RegExp(escapedOriginal, 'g');
-			processedText = processedText.replace(regex, replacement);
-		}
-		return processedText;
-	}
+        let processedText = text;
+        for (const [original, replacement] of Object.entries(rules)) {
+            const escapedOriginal = original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escapedOriginal, 'g');
+            processedText = processedText.replace(regex, replacement);
+        }
+        return processedText;
+    }
 
 	/**
 	 * 解析自定义的、非 JSON 格式的术语表文本
 	 */
-	function parseCustomGlossaryFormat(text) {
-	    const result = { terms: {} };
-	    const lines = text.split('\n');
+    function parseCustomGlossaryFormat(text) {
+        const result = {
+            metadata: {},
+            terms: {},
+            generalTerms: {},
+            multiPartTerms: {},
+            multiPartGeneralTerms: {},
+            forbiddenTerms: []
+        };
+        const lines = text.split('\n');
 
-	    const metadataRegex = /^\s*(maintainer|version|last_updated|维护者|版本号|更新时间)\s*[:：]\s*(.*?)\s*[,，]?\s*$/;
-	    const termsMarkerRegex = /^\s*(?:terms|词条)\s*[:：]?\s*$/i;
-	    let termsStartIndex = -1;
+        const sectionHeaders = {
+            TERMS: ['terms', '词条'],
+            GENERAL_TERMS: ['general terms', '通用词条'],
+            FORBIDDEN_TERMS: ['forbidden terms', '禁翻词条']
+        };
 
-	    for (let i = 0; i < lines.length; i++) {
-	        const line = lines[i];
+        const sections = [];
+        let metadataLines = [];
 
-	        if (termsMarkerRegex.test(line.trim())) {
-	            termsStartIndex = i;
-	            break;
-	        }
+        let inMetadata = true;
+        for (let i = 0; i < lines.length; i++) {
+            const trimmedLine = lines[i].trim().toLowerCase().replace(/[:：\s]*$/, '');
+            let isHeader = false;
+            for (const key in sectionHeaders) {
+                if (sectionHeaders[key].includes(trimmedLine)) {
+                    sections.push({ type: key, start: i + 1 });
+                    isHeader = true;
+                    inMetadata = false;
+                    break;
+                }
+            }
+            if (inMetadata && !isHeader) {
+                metadataLines.push(lines[i]);
+            }
+        }
 
-	        const metadataMatch = line.match(metadataRegex);
-	        if (metadataMatch) {
-	            let key = metadataMatch[1].trim();
-	            let value = metadataMatch[2].trim();
+        const metadataRegex = /^\s*(maintainer|version|last_updated|维护者|版本号|更新时间)\s*[:：]\s*(.*?)\s*[,，]?\s*$/;
+        for (const line of metadataLines) {
+            const metadataMatch = line.match(metadataRegex);
+            if (metadataMatch) {
+                let key = metadataMatch[1].trim();
+                let value = metadataMatch[2].trim();
+                const keyMap = { '维护者': 'maintainer', '版本号': 'version', '更新时间': 'last_updated' };
+                result.metadata[keyMap[key] || key] = value;
+            }
+        }
 
-                const keyMap = {
-                    '维护者': 'maintainer',
-                    '版本号': 'version',
-                    '更新时间': 'last_updated'
-                };
-                const mappedKey = keyMap[key] || key;
+        const processLine = (line, target, multiPartTarget) => {
+            const trimmedLine = line.trim();
+            if (!trimmedLine || trimmedLine.startsWith('//')) return;
+            
+            const multiPartParts = line.split('=', 2);
+            if (multiPartParts.length === 2) {
+                const key = multiPartParts[0].trim();
+                const value = multiPartParts[1].trim().replace(/[,，]$/, '');
+                if (key && value) multiPartTarget[key] = value;
+                return;
+            }
+            
+            const singleParts = line.split(/[:：]/, 2);
+            if (singleParts.length === 2) {
+                const key = singleParts[0].trim();
+                const value = singleParts[1].trim().replace(/[,，]$/, '');
+                if (key && value) target[key] = value;
+            }
+        };
 
-	            if (mappedKey === 'last_updated') {
-	                const dateObject = new Date(value);
-	                if (!isNaN(dateObject.getTime())) {
-	                    value = dateObject.toISOString();
-	                }
-	            }
-	            result[mappedKey] = value;
-	        }
-	    }
+        for (let i = 0; i < sections.length; i++) {
+            const section = sections[i];
+            const end = (i + 1 < sections.length) ? sections[i + 1].start - 1 : lines.length;
+            const sectionLines = lines.slice(section.start, end);
 
-	    if (termsStartIndex === -1) {
-	        throw new Error('未找到 "terms:" 或 "词条:" 标记，无法解析术语列表。');
-	    }
+            for (const line of sectionLines) {
+                switch (section.type) {
+                    case 'TERMS':
+                        processLine(line, result.terms, result.multiPartTerms);
+                        break;
+                    case 'GENERAL_TERMS':
+                        processLine(line, result.generalTerms, result.multiPartGeneralTerms);
+                        break;
+                    case 'FORBIDDEN_TERMS':
+                        const term = line.trim().replace(/[,，]$/, '');
+                        if (term && !term.startsWith('//')) result.forbiddenTerms.push(term);
+                        break;
+                }
+            }
+        }
 
-	    const termsLines = lines.slice(termsStartIndex + 1);
-	    
-	    for (const line of termsLines) {
-	        if (!line.trim() || line.trim().startsWith('//')) continue;
-
-	        const parts = line.split(/[:：]/);
-	        if (parts.length >= 2) {
-	            const key = parts[0].trim();
-	            const value = parts.slice(1).join(':').trim().replace(/[,，]$/, '');
-	            if (key && value) {
-	                result.terms[key] = value;
-	            }
-	        }
-	    }
-
-	    if (Object.keys(result.terms).length === 0) {
-	        throw new Error('术语列表为空或解析失败。');
-	    }
-
-	    return result;
-	}
+        if (!result.metadata.version) {
+            throw new Error('文件格式错误：必须在文件头部包含 "版本号" 或 "version" 字段。');
+        }
+        if (Object.keys(result.terms).length === 0 && Object.keys(result.generalTerms).length === 0 && Object.keys(result.multiPartTerms).length === 0 && Object.keys(result.multiPartGeneralTerms).length === 0 && result.forbiddenTerms.length === 0) {
+            throw new Error('文件格式错误：必须包含 "词条"、"通用词条" 或 "禁翻词条" 部分，且至少有一个有效词条。');
+        }
+        
+        return result;
+    }
 
     /**
-     * 处理并解析不规范的 JSON 字符串
+     * 净化并解析不符合规范的 JSON 字符串
      */
     function sanitizeAndParseJson(jsonString) {
-        if (!jsonString || typeof jsonString !== 'string') {
-            throw new Error('输入内容无效，必须为非空字符串。');
+        if (typeof jsonString !== 'string') {
+            throw new TypeError('输入内容无效，必须为字符串。');
         }
-        let sanitizedString = jsonString.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '');
-        sanitizedString = sanitizedString.replace(/,\s*([}\]])/g, '$1');
+        const trimmedString = jsonString.trim();
+        if (trimmedString === '') {
+            throw new Error('输入内容无效，不能为空字符串。');
+        }
+        const sanitizedString = trimmedString
+            .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '')
+            .replace(/,\s*([}\]])/g, '$1');
         try {
-            const parsedObject = JSON.parse(sanitizedString);
-            return parsedObject;
-        } catch (e) {
-            console.error("JSON 净化后解析失败:", e);
+            return JSON.parse(sanitizedString);
+        } catch (error) {
+            console.error("JSON 净化后解析失败:", error);
             console.error("净化后的内容:", sanitizedString);
-            throw new Error(`JSON 格式严重错误，自动修复失败: ${e.message}`);
+            throw new Error(`JSON 格式严重错误，自动净化未能修复此问题: ${error.message}`);
         }
     }
 
@@ -7126,35 +7490,50 @@
                         onlineData = parseCustomGlossaryFormat(response.responseText);
                         console.log(`“${glossaryName}” 已通过自定义格式成功解析。`);
                     } catch (customError) {
-                        console.warn(`自定义格式解析失败，回退至标准 JSON 解析器。原因: ${customError.message}`);
-                        onlineData = sanitizeAndParseJson(response.responseText);
-                        console.log(`“${glossaryName}” 已通过标准 JSON 格式成功解析。`);
+                        console.warn(`自定义格式解析失败，将回退至标准 JSON 解析器。原因: ${customError.message}`);
+                        const jsonData = sanitizeAndParseJson(response.responseText);
+                        if (!jsonData.version || typeof jsonData.terms !== 'object') {
+                            throw new Error('JSON 格式不规范，缺少 "version" 或 "terms" 字段。');
+                        }
+                        onlineData = {
+                            metadata: {
+                                maintainer: jsonData.maintainer || '未知',
+                                version: jsonData.version,
+                                last_updated: jsonData.last_updated || new Date().toISOString()
+                            },
+                            terms: jsonData.terms,
+                            generalTerms: {},
+                            multiPartTerms: {},
+                            multiPartGeneralTerms: {},
+                            forbiddenTerms: []
+                        };
+                        console.log(`“${glossaryName}” 已通过 JSON 格式成功解析。`);
                     }
 
-                    if (!onlineData.version || typeof onlineData.terms !== 'object' || onlineData.terms === null) {
-                        throw new Error('文件内容不规范，缺少 "version" 或 "terms" 字段。');
-                    }
-                    
-                    const onlineTerms = onlineData.terms;
                     const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-                    allImportedGlossaries[url] = onlineTerms;
+                    allImportedGlossaries[url] = {
+                        terms: onlineData.terms,
+                        generalTerms: onlineData.generalTerms,
+                        multiPartTerms: onlineData.multiPartTerms,
+                        multiPartGeneralTerms: onlineData.multiPartGeneralTerms,
+                        forbiddenTerms: onlineData.forbiddenTerms
+                    };
                     GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
                     
                     const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
                     metadata[url] = { 
-                        maintainer: onlineData.maintainer || '未知',
-                        version: onlineData.version,
+                        ...onlineData.metadata,
                         last_imported: new Date().toISOString() 
                     };
                     GM_setValue(GLOSSARY_METADATA_KEY, metadata);
 
-                    const importedCount = Object.keys(onlineTerms).length;
-                    const maintainerName = onlineData.maintainer || '未知';
-                    notifyAndLog(`已成功导入 “${glossaryName}” 术语表。\n版本号：${onlineData.version}，维护者：${maintainerName}。共 ${importedCount} 个词条。`, '导入成功');
+                    const importedCount = Object.keys(onlineData.terms).length + Object.keys(onlineData.generalTerms).length + Object.keys(onlineData.multiPartTerms).length + Object.keys(onlineData.multiPartGeneralTerms).length;
+                    const maintainerName = onlineData.metadata.maintainer || '未知';
+                    notifyAndLog(`已成功导入 “${glossaryName}” 术语表。\n版本号：${onlineData.metadata.version}，维护者：${maintainerName}。共 ${importedCount} 个词条。`, '导入成功');
 
                 } catch (e) {
                     console.error(`处理 “${glossaryName}” 时发生严重错误:`, e);
-                    notifyAndLog(`导入 “${glossaryName}” 失败：${e.message}\n请检查文件格式是否符合要求。`, '处理错误', 'error');
+                    notifyAndLog(`导入 “${glossaryName}” 失败：${e.message}\n请检查文件格式是否符合自定义格式或标准 JSON 格式。`, '处理错误', 'error');
                 }
             },
             onerror: function(error) {
@@ -7210,116 +7589,252 @@
     function clearAllGlossaries() {
         if (confirm('您确定要清空所有术语表吗？\n此操作将删除您手动添加的本地词条及所有在线导入术语表，且无法撤销。')) {
             GM_setValue(LOCAL_GLOSSARY_KEY, {});
+            GM_setValue(LOCAL_FORBIDDEN_TERMS_KEY, []); // 确保本地禁翻也被清空
             GM_setValue(IMPORTED_GLOSSARY_KEY, {});
             GM_setValue(GLOSSARY_METADATA_KEY, {});
             notifyAndLog('所有术语表已被成功清空。', '操作完成');
         }
     }
 
-    /**
-     * 检查并更新所有已导入的在线术语表
-     */
-    async function checkForGlossaryUpdates(isManual = false) {
+	/**
+	 * 检查并更新所有已导入的在线术语表
+	 */
+    async function checkForGlossaryUpdates() {
         const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
         const urls = Object.keys(metadata);
-        if (isManual && urls.length === 0) {
-            return { updated: 0, failed: 0, total: 0 };
+        const LOG_PREFIX = '[术语表更新]';
+
+        if (urls.length === 0) {
+            return;
         }
-        if (urls.length === 0) { return; }
-        if (!isManual) {
-            console.log('AO3 汉化插件：正在后台检查术语表更新...');
-        }
+        
+        console.log(`${LOG_PREFIX} 开始后台检查 ${urls.length} 个在线术语表...`);
+
         let updatedCount = 0;
         let failedCount = 0;
         const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
+
         for (const url of urls) {
             const glossaryName = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
+            
+            console.log(`${LOG_PREFIX} 正在处理: “${glossaryName}”`);
+
             try {
                 const response = await new Promise((resolve, reject) => {
                     const urlWithCacheBust = url + '?t=' + new Date().getTime();
                     GM_xmlhttpRequest({ method: 'GET', url: urlWithCacheBust, onload: resolve, onerror: reject });
                 });
+
                 if (response.status !== 200) {
                     throw new Error(`服务器返回状态码: ${response.status}`);
                 }
 
-                let onlineData;
-                try {
-                    onlineData = parseCustomGlossaryFormat(response.responseText);
-                } catch (customError) {
-                    onlineData = sanitizeAndParseJson(response.responseText);
-                }
-                
+                const onlineData = parseCustomGlossaryFormat(response.responseText);
                 const localVersion = metadata[url].version;
-                const onlineVersion = onlineData.version;
+                const onlineVersion = onlineData.metadata.version;
+
                 if (onlineVersion && compareVersions(onlineVersion, localVersion) > 0) {
-                    const maintainerName = onlineData.maintainer || '未知';
-                    console.log(`发现 “${glossaryName}” 的新版本: v${onlineVersion} (本地为 v${localVersion})`);
-                    allImportedGlossaries[url] = onlineData.terms || {};
-                    metadata[url].maintainer = maintainerName;
-                    metadata[url].version = onlineVersion;
-                    metadata[url].last_updated = new Date().toISOString();
+                    console.log(`${LOG_PREFIX} 更新发现: “${glossaryName}” v${localVersion} -> v${onlineVersion}`);
+
+                    allImportedGlossaries[url] = {
+                        terms: onlineData.terms,
+                        generalTerms: onlineData.generalTerms,
+                        multiPartTerms: onlineData.multiPartTerms,
+                        multiPartGeneralTerms: onlineData.multiPartGeneralTerms,
+                        forbiddenTerms: onlineData.forbiddenTerms
+                    };
+                    metadata[url] = { ...onlineData.metadata, last_updated: new Date().toISOString() };
+                    
                     updatedCount++;
-                    if (!isManual) {
-                        notifyAndLog(`“${glossaryName}” 术语表已自动更新到 v${onlineVersion}！\n维护者：${maintainerName}`, '更新成功');
-                    }
+                
+                } else {
+                    console.log(`${LOG_PREFIX} 已是最新: “${glossaryName}” (v${localVersion})`);
                 }
             } catch (e) {
                 failedCount++;
-                console.error(`检查 “${glossaryName}” 更新时发生错误:`, e);
+                console.error(`${LOG_PREFIX} 检查失败: “${glossaryName}”。错误: ${e.message}`);
             }
         }
+
         if (updatedCount > 0) {
             GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
             GM_setValue(GLOSSARY_METADATA_KEY, metadata);
         }
-        if (isManual) {
-            return { updated: updatedCount, failed: failedCount, total: urls.length };
-        } else {
-            console.log(`AO3 汉化插件：后台术语表检查完成。共检查 ${urls.length} 个，更新 ${updatedCount} 个，失败 ${failedCount} 个。`);
-        }
+
+        const summaryMessage = `后台检查完成！总计 ${urls.length} 个，更新 ${updatedCount} 个，失败 ${failedCount} 个。`;
+        console.log(`${LOG_PREFIX} ${summaryMessage}`);
     }
 
     /**
-     * 合并本地与在线术语表
+     * 获取数组元素的所有排列组合
      */
-    function getGlossaryProcessedParagraphs(paragraphs) {
+    function getPermutations(arr) {
+        if (arr.length <= 1) return [arr];
+        const result = [];
+        for (let i = 0; i < arr.length; i++) {
+            const current = arr[i];
+            const remaining = [...arr.slice(0, i), ...arr.slice(i + 1)];
+            const permsOfRemaining = getPermutations(remaining);
+            for (const perm of permsOfRemaining) {
+                result.push([current, ...perm]);
+            }
+        }
+        return result;
+    }
+
+	/**
+	 * 术语表处理函数
+	 */
+    async function getGlossaryProcessedParagraphs(paragraphs) {
         const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-        let combinedImportedTerms = {};
-        for (const url in allImportedGlossaries) {
-            Object.assign(combinedImportedTerms, allImportedGlossaries[url]);
-        }
         const localGlossary = GM_getValue(LOCAL_GLOSSARY_KEY, {});
-        const finalGlossary = { ...combinedImportedTerms, ...localGlossary };
+        
+        const combined = {
+            localTerms: {},
+            importedForbidden: [],
+            importedTerms: {}, 
+            importedGeneralTerms: {},
+            importedMultiPartTerms: {}, 
+            importedMultiPartGeneralTerms: {}
+        };
+        
+        Object.assign(combined.localTerms, localGlossary);
 
-        if (Object.keys(finalGlossary).length === 0) {
-            return paragraphs;
+        for (const url in allImportedGlossaries) {
+            const data = allImportedGlossaries[url];
+            if (data) {
+                combined.importedForbidden.push(...(data.forbiddenTerms || []));
+                Object.assign(combined.importedTerms, data.terms || {});
+                Object.assign(combined.importedGeneralTerms, data.generalTerms || {});
+                Object.assign(combined.importedMultiPartTerms, data.multiPartTerms || {});
+                Object.assign(combined.importedMultiPartGeneralTerms, data.multiPartGeneralTerms || {});
+            }
         }
 
-        const sortedKeys = Object.keys(finalGlossary).sort((a, b) => b.length - a.length);
+        const replacementMap = new Map();
+
+        const processTerms = (terms, isGeneral, targetMap) => {
+            for (const term in terms) {
+                const termKey = term.toLowerCase();
+                if (!targetMap.has(termKey)) {
+                    const translation = terms[term];
+                    targetMap.set(termKey, { base: translation, poss: translation + '的', original: term, isGeneral });
+                }
+            }
+        };
+
+        const processMultiPartTerms = (terms, isGeneral, targetMap) => {
+            for (const term in terms) {
+                const translation = terms[term];
+                const termParts = term.split(' ').filter(p => p);
+                const translationParts = translation.split(/\s+/).filter(p => p);
+
+                if (termParts.length > 1 && termParts.length === translationParts.length) {
+                    const fullTranslation = translationParts.join('');
+                    const translationWithDe = fullTranslation + '的';
+                    
+                    const termPermutations = getPermutations(termParts);
+                    for (const perm of termPermutations) {
+                        const permKey = perm.join(' ').toLowerCase();
+                        if (!targetMap.has(permKey)) {
+                            targetMap.set(permKey, { base: fullTranslation, poss: translationWithDe, original: perm.join(' '), isGeneral });
+                        }
+                    }
+
+                    for (let i = 0; i < termParts.length; i++) {
+                        const partTermKey = termParts[i].toLowerCase();
+                        if (!targetMap.has(partTermKey)) {
+                            const partTranslation = translationParts[i];
+                            targetMap.set(partTermKey, { base: partTranslation, poss: partTranslation + '的', original: termParts[i], isGeneral });
+                        }
+                    }
+                }
+            }
+        };
+
+        processMultiPartTerms(combined.localTerms, false, replacementMap);
+        processTerms(combined.localTerms, false, replacementMap);
+        
+        const onlineForbiddenTerms = combined.importedForbidden.filter(term => !replacementMap.has(term.toLowerCase()));
+
+        processMultiPartTerms(combined.importedMultiPartGeneralTerms, true, replacementMap);
+        processMultiPartTerms(combined.importedMultiPartTerms, false, replacementMap);
+        processTerms(combined.importedGeneralTerms, true, replacementMap);
+        processTerms(combined.importedTerms, false, replacementMap);
+
+        const originalKeys = [...replacementMap.keys()];
+        const vowels = 'aeiou';
+
+        for (const termKey of originalKeys) {
+            const data = replacementMap.get(termKey);
+            const originalTerm = data.original;
+
+            if (originalTerm.includes(' ')) {
+                continue;
+            }
+
+            let pluralForm;
+            
+            if (originalTerm.length > 1 && originalTerm.endsWith('y') && !vowels.includes(originalTerm.charAt(originalTerm.length - 2).toLowerCase())) {
+                pluralForm = originalTerm.slice(0, -1) + 'ies';
+            } else if (/[sxz]$/i.test(originalTerm) || /(ch|sh)$/i.test(originalTerm)) {
+                pluralForm = originalTerm + 'es';
+            } else if (!originalTerm.endsWith('s')) {
+                pluralForm = originalTerm + 's';
+            }
+
+            if (pluralForm) {
+                const pluralKey = pluralForm.toLowerCase();
+                if (!replacementMap.has(pluralKey)) {
+                    replacementMap.set(pluralKey, {
+                        ...data,
+                        original: pluralForm
+                    });
+                }
+            }
+        }
+
+        const sortedRoots = Array.from(replacementMap.keys()).sort((a, b) => b.length - a.length);
+        const sortedForbiddenRoots = onlineForbiddenTerms.sort((a, b) => b.length - a.length);
 
         return paragraphs.map(p => {
             const clone = p.cloneNode(true);
-            const treeWalker = document.createTreeWalker(
-                clone,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-
+            const treeWalker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
             let currentNode;
             while (currentNode = treeWalker.nextNode()) {
-                let processedText = currentNode.nodeValue;
-                for (const key of sortedKeys) {
-                    const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                let text = currentNode.nodeValue;
 
-                    const regex = new RegExp(`(?<!\\w)${escapedKey}(?!\\w)`, 'g');
-                    
-                    processedText = processedText.replace(regex, finalGlossary[key]);
+                if (sortedForbiddenRoots.length > 0) {
+                    for (const term of sortedForbiddenRoots) {
+                        const escapedTerm = term.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                        const regex = new RegExp(`\\b(${escapedTerm}(?:s|es)?)\\b`, 'g');
+                        text = text.replace(regex, (matched) => `__KEEP_${matched}__`);
+                    }
                 }
-                currentNode.nodeValue = processedText;
+
+                if (sortedRoots.length > 0) {
+                    const regexPattern = sortedRoots.map(root => {
+                        const data = replacementMap.get(root);
+                        const escapedRoot = data.original.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                        return `(${escapedRoot})`;
+                    }).join('|');
+                    const finalRegex = new RegExp(`\\b(${regexPattern})((?:'s|s|es)?)\\b`, 'g');
+
+                    text = text.replace(finalRegex, (match, term, suffix) => {
+                        const lowerTerm = term.toLowerCase().replace(/[\s-]+/g, ' ');
+                        const data = replacementMap.get(lowerTerm);
+                        if (data) {
+                            if (!data.isGeneral && data.original !== term) return match;
+                            return suffix ? data.poss : data.base;
+                        }
+                        return match;
+                    });
+                }
+                
+                text = text.replace(/__KEEP_(.*?)__/g, '$1');
+
+                currentNode.nodeValue = text;
             }
-            
             return clone;
         });
     }
@@ -7341,44 +7856,43 @@
         return 0;
     }
 
-    /**
-     * 翻译文本处理函数
-     */
-    const AdvancedTranslationCleaner = new (class {
-        constructor() {
-            this.metaKeywords = [
-                '原文', '输出', '说明', '遵守', '润色', '语境', '保留', '符合', '指令',
-                'Original text', 'Output', 'Note', 'Stage', 'Strategy', 'Polish', 'Retain', 'Glossary', 'Adherence'
-            ];
-            this.junkLineRegex = new RegExp(`^\\s*(\\d+\\.\\s*)?(${this.metaKeywords.join('|')})[:：\\s]`, 'i');
-            this.lineNumbersRegex = /^\d+\.\s*/;
-            this.aiNoteRegex = /\s*（注：[\s\S]*?）\s*/g;
-        }
-        clean(text) {
-            if (!text || typeof text !== 'string') {
-                return '';
-            }
-            let cleanedText = text.split('\n').filter(line => !this.junkLineRegex.test(line)).join('\n');
-            cleanedText = cleanedText.replace(this.aiNoteRegex, '');
-            cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
-            cleanedText = cleanedText.replace(/(<(em|strong)[^>]*>)([\s\S]*?)(<\/\2>)/g, (_match, openTag, _tagName, content, closeTag) => {
-                return openTag + content.trim() + closeTag;
-            });
-            cleanedText = cleanedText.replace(/\s+(?=<em|<strong)/g, '');
-            cleanedText = cleanedText.replace(/(<\/em>|<\/strong>)\s+/g, '$1');
-
-            cleanedText = cleanedText.replace(/([\u4e00-\u9fa5])([a-zA-Z0-9])/g, '$1 $2');
-            cleanedText = cleanedText.replace(/([a-zA-Z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
-
-            const CJK_CHARS_AND_PUNCTUATION = '[\u4e00-\u9fa5，。？！：；“”‘’、《》【】（）]';
-            const REMOVE_SPACE_REGEX = new RegExp(`(?<=${CJK_CHARS_AND_PUNCTUATION})\\s+(?=${CJK_CHARS_AND_PUNCTUATION})`, 'g');
-            cleanedText = cleanedText.replace(REMOVE_SPACE_REGEX, '');
-
-            cleanedText = cleanedText.replace(/\s+/g, ' ');
-            
-            return cleanedText.trim();
-        }
-    })();
+	/**
+	 * 翻译文本处理函数
+	 */
+	const AdvancedTranslationCleaner = new (class {
+		constructor() {
+			this.metaKeywords = [
+				'原文', '输出', '说明', '遵守', '润色', '语境', '保留', '符合', '指令',
+				'Original text', 'Output', 'Note', 'Stage', 'Strategy', 'Polish', 'Retain', 'Glossary', 'Adherence'
+			];
+			this.junkLineRegex = new RegExp(`^\\s*(\\d+\\.\\s*)?(${this.metaKeywords.join('|')})[:：\\s]`, 'i');
+			this.lineNumbersRegex = /^\d+\.\s*/;
+			this.aiGenericExplanationRegex = /\s*\uff08[\u4e00-\u9fa5]{1,10}\uff1a[^\uff08\uff09]*?\uff09\s*/g;
+		}
+		clean(text) {
+			if (!text || typeof text !== 'string') {
+				return '';
+			}
+			let cleanedText = text.split('\n').filter(line => !this.junkLineRegex.test(line)).join('\n');
+			cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
+            cleanedText = cleanedText.replace(this.aiGenericExplanationRegex, '');
+			cleanedText = cleanedText.replace(/(<(em|strong)[^>]*>)([\s\S]*?)(<\/\2>)/g, (_match, openTag, _tagName, content, closeTag) => {
+				return openTag + content.trim() + closeTag;
+			});
+			cleanedText = cleanedText.replace(/([\u4e00-\u9fa5])\s+(<(em|strong))/g, '$1$2');
+			cleanedText = cleanedText.replace(/(<\/(em|strong)>)\s+([\u4e00-\u9fa5])/g, '$1$3');
+			cleanedText = cleanedText.replace(/(<\/[a-z0-9]+>)\s+(<(em|strong))/g, '$1$2');
+			cleanedText = cleanedText.replace(/(<\/(em|strong)>)\s+(<[a-z0-9]+[^>]*>)/g, '$1$2');
+			cleanedText = cleanedText.replace(/([\u4e00-\u9fa5])([a-zA-Z0-9])/g, '$1 $2');
+			cleanedText = cleanedText.replace(/([a-zA-Z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
+			cleanedText = cleanedText.replace(/\s+(?=<em|<strong)/g, '');
+			cleanedText = cleanedText.replace(/(?<=<\/em>|<\/strong>)\s+/g, '');
+			cleanedText = cleanedText.replace(/([a-zA-Z0-9])(<(em|strong))/g, '$1 $2');
+			cleanedText = cleanedText.replace(/(<\/(em|strong)>)([a-zA-Z0-9])/g, '$1 $2');
+			cleanedText = cleanedText.replace(/\s+/g, ' ');
+			return cleanedText.trim();
+		}
+	})();
 
     /**
      * 通用函数：对页面上所有“分类”复选框区域进行重新排序。
@@ -7473,6 +7987,53 @@
             menuCommandIds.push(GM_registerMenuCommand(text, callback));
         };
 
+        const engineMenuConfig = {
+            'together_ai': {
+                displayName: 'Together AI',
+                modelGmKey: 'together_model',
+                modelMapping: {
+                    'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8': 'Llama 4',
+                    'deepseek-ai/DeepSeek-V3': 'DeepSeek V3'
+                },
+                apiKeySetupFunction: null
+            },
+            'zhipu_ai': {
+                displayName: 'Zhipu AI',
+                modelGmKey: null,
+                apiKeySetupFunction: setupZhipuAIKey
+            },
+            'deepseek_ai': {
+                displayName: 'DeepSeek',
+                modelGmKey: 'deepseek_model',
+                modelMapping: {
+                    'deepseek-chat': 'DeepSeek V3',
+                    'deepseek-reasoner': 'DeepSeek R1'
+                },
+                apiKeySetupFunction: setupDeepSeekKey
+            },
+            'google_ai': {
+                displayName: 'Google AI',
+                modelGmKey: 'google_ai_model',
+                modelMapping: {
+                    'gemini-2.5-pro': 'Gemini 2.5 Pro',
+                    'gemini-2.5-flash': 'Gemini 2.5 Flash',
+                    'gemini-2.5-flash-lite': 'Gemini 2.5 Flash-Lite'
+                },
+                apiKeySetupFunction: setupGoogleAiKeys
+            },
+            'groq_ai': {
+                displayName: 'Groq AI',
+                modelGmKey: 'groq_model',
+                modelMapping: {
+                    'meta-llama/llama-4-maverick-17b-128e-instruct': 'Llama 4',
+                    'moonshotai/kimi-k2-instruct': 'Kimi K2',
+                    'deepseek-r1-distill-llama-70b': 'DeepSeek 70B',
+                    'openai/gpt-oss-120b': 'GPT-OSS 120B'
+                },
+                apiKeySetupFunction: setupGroqAIKey
+            }
+        };
+
         const isAiTranslationEnabled = GM_getValue('enable_transDesc', false);
 
         if (currentMenuView === 'main') {
@@ -7510,89 +8071,27 @@
                 });
 
                 const currentEngineId = GM_getValue('transEngine', 'together_ai');
-                const engineDisplayNameMap = {
-                    'together_ai': 'Together AI',
-                    'zhipu_ai': 'Zhipu AI',
-                    'deepseek_ai': 'DeepSeek',
-                    'google_ai': 'Google AI',
-                    'groq_ai': 'Groq AI'
-                };
-                
-                register(`⇄ 翻译服务：${engineDisplayNameMap[currentEngineId]}`, () => {
+                const currentEngineConfig = engineMenuConfig[currentEngineId];
+                register(`⇄ 翻译服务：${currentEngineConfig.displayName}`, () => {
                     currentMenuView = 'select_service';
                     renderMenuCommands();
                 });
 
-                if (currentEngineId === 'together_ai') {
-                    const modelMapping = {
-                        'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8': 'Llama 4',
-                        'deepseek-ai/DeepSeek-V3': 'DeepSeek V3'
-                    };
-                    const modelOrder = Object.keys(modelMapping);
-                    const currentModelId = GM_getValue('together_model', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8');
+                if (currentEngineConfig.modelGmKey && currentEngineConfig.modelMapping) {
+                    const modelOrder = Object.keys(currentEngineConfig.modelMapping);
+                    const currentModelId = GM_getValue(currentEngineConfig.modelGmKey, modelOrder[0]);
                     const currentModelIndex = modelOrder.indexOf(currentModelId);
                     const nextModelIndex = (currentModelIndex + 1) % modelOrder.length;
                     const nextModelId = modelOrder[nextModelIndex];
-                    register(`⇄ 使用模型：${modelMapping[currentModelId]}`, () => {
-                        GM_setValue('together_model', nextModelId);
-                        notifyAndLog(`Together AI 模型已切换为: ${modelMapping[nextModelId]}`);
-                        renderMenuCommands();
-                    });
-                } else if (currentEngineId === 'deepseek_ai') {
-                    const modelMapping = { 'deepseek-chat': 'DeepSeek V3', 'deepseek-reasoner': 'DeepSeek R1' };
-                    const modelOrder = Object.keys(modelMapping);
-                    const currentModelId = GM_getValue('deepseek_model', 'deepseek-chat');
-                    const currentModelIndex = modelOrder.indexOf(currentModelId);
-                    const nextModelIndex = (currentModelIndex + 1) % modelOrder.length;
-                    const nextModelId = modelOrder[nextModelIndex];
-                    register(`⇄ 使用模型：${modelMapping[currentModelId]}`, () => {
-                        GM_setValue('deepseek_model', nextModelId);
-                        notifyAndLog(`DeepSeek 模型已切换为: ${modelMapping[nextModelId]}`);
-                        renderMenuCommands();
-                    });
-                } else if (currentEngineId === 'google_ai') {
-                    const modelMapping = {
-                        'gemini-2.5-pro': 'Gemini 2.5 Pro',
-                        'gemini-2.5-flash': 'Gemini 2.5 Flash',
-                        'gemini-2.5-flash-lite': 'Gemini 2.5 Flash-Lite'
-                    };
-                    const modelOrder = Object.keys(modelMapping);
-                    const currentModelId = GM_getValue('google_ai_model', 'gemini-2.5-pro');
-                    const currentModelIndex = modelOrder.indexOf(currentModelId);
-                    const nextModelIndex = (currentModelIndex + 1) % modelOrder.length;
-                    const nextModelId = modelOrder[nextModelIndex];
-                    register(`⇄ 使用模型：${modelMapping[currentModelId]}`, () => {
-                        GM_setValue('google_ai_model', nextModelId);
-                        notifyAndLog(`Google AI 模型已切换为: ${modelMapping[nextModelId]}`);
-                        renderMenuCommands();
-                    });
-                } else if (currentEngineId === 'groq_ai') {
-                    const modelMapping = {
-						'moonshotai/kimi-k2-instruct': 'Kimi K2',
-                        'meta-llama/llama-4-maverick-17b-128e-instruct': 'Llama 4',
-                        'deepseek-r1-distill-llama-70b': 'DeepSeek 70B',
-                        'openai/gpt-oss-120b': 'GPT-OSS 120B'
-                    };
-                    const modelOrder = Object.keys(modelMapping);
-                    const currentModelId = GM_getValue('groq_model', 'moonshotai/kimi-k2-instruct');
-                    const currentModelIndex = modelOrder.indexOf(currentModelId);
-                    const nextModelIndex = (currentModelIndex + 1) % modelOrder.length;
-                    const nextModelId = modelOrder[nextModelIndex];
-                    register(`⇄ 使用模型：${modelMapping[currentModelId]}`, () => {
-                        GM_setValue('groq_model', nextModelId);
-                        notifyAndLog(`Groq AI 模型已切换为: ${modelMapping[nextModelId]}`);
+                    register(`⇄ 使用模型：${currentEngineConfig.modelMapping[currentModelId]}`, () => {
+                        GM_setValue(currentEngineConfig.modelGmKey, nextModelId);
+                        notifyAndLog(`${currentEngineConfig.displayName} 模型已切换为: ${currentEngineConfig.modelMapping[nextModelId]}`);
                         renderMenuCommands();
                     });
                 }
 
-                if (currentEngineId === 'zhipu_ai') {
-                    register('▶ 设置 Zhipu AI API Key', setupZhipuAIKey);
-                } else if (currentEngineId === 'deepseek_ai') {
-                    register('▶ 设置 DeepSeek API Key', setupDeepSeekKey);
-                } else if (currentEngineId === 'google_ai') {
-                    register('▶ 设置 Google AI API Key', setupGoogleAiKeys);
-                } else if (currentEngineId === 'groq_ai') {
-                    register('▶ 设置 Groq AI API Key', setupGroqAIKey);
+                if (currentEngineConfig.apiKeySetupFunction) {
+                    register(`▶ 设置 ${currentEngineConfig.displayName} API Key`, currentEngineConfig.apiKeySetupFunction);
                 }
             }
         }
@@ -7602,35 +8101,26 @@
                 renderMenuCommands();
             });
 
-            const engineDisplayNameMap = {
-                'together_ai': 'Together AI',
-                'zhipu_ai': 'Zhipu AI',
-                'deepseek_ai': 'DeepSeek',
-                'google_ai': 'Google AI',
-                'groq_ai': 'Groq AI'
-            };
-            const engineMasterOrder = ['together_ai', 'zhipu_ai', 'deepseek_ai', 'google_ai', 'groq_ai'];
             const currentEngineId = GM_getValue('transEngine', 'together_ai');
-
-            engineMasterOrder
-                .filter(engineId => engineId !== currentEngineId)
-                .forEach(engineId => {
-                    const displayName = engineDisplayNameMap[engineId];
+            Object.keys(engineMenuConfig).forEach(engineId => {
+                if (engineId !== currentEngineId) {
+                    const { displayName } = engineMenuConfig[engineId];
                     register(`⇄ 切换至：${displayName}`, () => {
                         GM_setValue('transEngine', engineId);
                         currentMenuView = 'main';
                         notifyAndLog(`翻译服务已切换为: ${displayName}`);
                         renderMenuCommands();
                     });
-                });
+                }
+            });
         }
         else if (currentMenuView === 'glossary') {
             register('←返回到主菜单', () => {
                 currentMenuView = 'main';
                 renderMenuCommands();
             });
-
             register('设置本地术语表', manageGlossary);
+            register('设置禁翻术语表', manageForbiddenTerms);
             register('译文后处理替换', managePostTranslationReplacements);
             register('导入在线术语表', importOnlineGlossary);
             register('管理已有术语表', manageImportedGlossaries);
@@ -7935,6 +8425,7 @@
         translateTagFiltersExcludeTags();
         translateBookmarkFiltersIncludeTags();
         translateWorkSearchTips();
+        translateChapterTitleHelpModal();
         translateActionButtons();
         translateSortButtons();
         translateBookmarkFiltersExcludeTags();
@@ -7974,6 +8465,8 @@
             '.comment .edited.datetime',
             'dd.datetime',
             'p:has(> span.datetime)',
+            'p.caution.notice > span:has(abbr.day)',
+            'p.notice > span:has(abbr.day)',
         ];
         rootElement.querySelectorAll(dateSelectors.join(', '))
             .forEach(reformatDateInElement);
