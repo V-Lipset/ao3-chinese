@@ -2,7 +2,7 @@
 // @name         AO3 中文化插件
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.0.3-custom-2025-08-14
+// @version      1.0.4-custom-2025-08-14
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
@@ -264,7 +264,7 @@
 	            'works_show': ['.stats .hits', '.stats .kudos'],
 	        },
 	        ignoreSelectorPage: {
-	            '*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', '.freeforms', '[data-translated-by-custom-function]'],
+	            '*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', 'dd.freeform.tags', '[data-translated-by-custom-function]'],
 	            'works_show': ['.dropdown.actions-menu ul', '.userstuff'],
 				'works_chapters_show': ['.userstuff'],
 	            'admin_posts_show': ['.userstuff'],
@@ -694,6 +694,7 @@
 	                'Date Updated': '更新日期',
 	                'Word Count': '字数统计',
 	                'Summary': '简介',
+					'Summary:': '简介:',
 	                'Notes': '注释',
 	                'Work Text': '作品正文',
 	                'Chapter Index': '章节索引',
@@ -781,7 +782,7 @@
 	                'Add to collections': '添加到合集',
 	                'Private bookmark': '私人书签',
 	                'Create': '创建',
-	                'Bookmark was successfully deleted.': '书签已成功删除',
+	                'Bookmark was successfully deleted.': '书签已成功删除。',
 	                'Add Bookmark to collections': '将书签添加到合集',
 	                'Collection name(s):': '合集名称：',
 	                'collection name': '合集名称',
@@ -790,6 +791,7 @@
 	                'Bookmark was successfully updated.': '书签已成功更新。',
 	                'Share Bookmark': '分享书签',
 	                'Close': '关闭',
+					'Show': '展示',
 	                'Bookmark Collections:': '书签合集:',
 	
 	                // 系列
@@ -871,6 +873,7 @@
                     'Chapter order has been successfully updated.': '章节顺序已成功更新。',
                     'This is a draft chapter in a posted work. It will be kept unless the work is deleted.': '这是已发布作品中的一篇草稿章节。除非作品被删除，否则该草稿将一直保留。',
                     'This chapter is a draft and hasn\'t been posted yet!': '本章节为草稿，尚未发布！',
+					'Are you sure you want to delete this bookmark?': '您确定要删除此书签吗？',
 	            },
 	            'innerHTML_regexp': [
 	
@@ -1141,7 +1144,22 @@
                         'h3.heading',
                         /^\s*Works which have used it as a tag:\s*$/,
                         '使用此标签的作品：'
-                    ]
+                    ],
+					[
+						'div.flash.error',
+						/^We couldn't add your submission to the following collections: (.*?) does not exist\.$/s,
+						'我们无法将您的提交添加到以下合集：$1 不存在。'
+					],
+					[
+						'h2.heading',
+						/^\s*Editing bookmark for (<a href="\/works\/\d+">.*?<\/a>)\s*$/s,
+						'编辑书签：$1'
+					],
+					[
+						'div.flash.notice',
+						/^\s*Bookmark was successfully updated\.\s+Added to collection\(s\):\s*(.*?)\.\s*$/s,
+						'书签已成功更新。已添加到合集：$1。'
+					]
 	            ],
 	            'regexp': [
 	
@@ -1566,7 +1584,6 @@
 	                'Plain text with limited HTML': '纯文本，支持有限 HTML',
 	                'Update': '更新',
 	                'Editing pseud': '编辑笔名',
-	                'Show': '展示',
 	                'Back To Pseuds': '返回笔名列表',
 	                'Name': '名称',
 	                'Make this name default': '将此笔名设为默认',
@@ -2323,7 +2340,6 @@
 	                'Categories': '分类',
 	                'Relationships': '关系',
 	                'Characters': '角色',
-	                'Notes': '注释',
 	                'Your tags': '您的标签',
 	                'Add to collections': '添加到合集',
 	                'Private bookmark': '私人书签',
@@ -7246,7 +7262,7 @@
         const currentTerms = GM_getValue(LOCAL_FORBIDDEN_TERMS_KEY, []);
         const termsForDisplay = currentTerms.join('，');
         const userInput = prompt(
-            '请输入您不希望被AI翻译的词条，用英文逗号或中文逗号分隔。\n这些词条在翻译时会保持原文。\n\n示例\nMBCC, DisCoin, Hypercube, Shalom',
+            '请输入您不希望被 AI 翻译的内容，词条间用逗号分隔。\n这些词条在翻译时会保持原文。\n\n示例\nEDGE, HUSH',
             termsForDisplay
         );
         if (userInput === null || userInput.trim() === termsForDisplay.trim()) {
