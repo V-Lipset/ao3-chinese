@@ -9,7 +9,7 @@
 // @match        https://xn--iao3-lw4b.ws/*
 // @icon         https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@custom/local.user.js
 // @supportURL   https://github.com/V-Lipset/ao3-chinese/issues
-// @downloadURL  https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@custom/local.user.js
+// @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js
 // @updateURL    https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@custom/local.user.js
 // @connect      raw.githubusercontent.com
 // @connect      api.together.xyz
