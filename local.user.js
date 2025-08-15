@@ -2,15 +2,15 @@
 // @name         AO3 中文化插件
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.0.4-custom-2025-08-14
+// @version      1.0.5-custom-2025-08-15
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
 // @match        https://xn--iao3-lw4b.ws/*
-// @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/assets/icon.png
+// @icon         https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@custom/local.user.js
 // @supportURL   https://github.com/V-Lipset/ao3-chinese/issues
-// @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.user.js
-// @updateURL    https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.user.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@custom/local.user.js
+// @updateURL    https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@custom/local.user.js
 // @connect      raw.githubusercontent.com
 // @connect      api.together.xyz
 // @connect      www.codegeneration.ai
@@ -5349,6 +5349,7 @@
 	        closeButton.textContent = '关闭';
 	    }
 	}
+
     /**
      * 专门用于翻译“章节标题”帮助弹窗。
      */
@@ -5375,6 +5376,7 @@
             closeButton.textContent = '关闭';
         }
     }
+
 	/**
 	 * 专用翻译函数：翻译“关于 OTW”页面
 	 */
@@ -7450,7 +7452,7 @@
     }
 
     /**
-     * 净化并解析不符合规范的 JSON 字符串
+     * 处理并解析不规范的 JSON 字符串
      */
     function sanitizeAndParseJson(jsonString) {
         if (typeof jsonString !== 'string') {
@@ -7605,7 +7607,7 @@
     function clearAllGlossaries() {
         if (confirm('您确定要清空所有术语表吗？\n此操作将删除您手动添加的本地词条及所有在线导入术语表，且无法撤销。')) {
             GM_setValue(LOCAL_GLOSSARY_KEY, {});
-            GM_setValue(LOCAL_FORBIDDEN_TERMS_KEY, []); // 确保本地禁翻也被清空
+            GM_setValue(LOCAL_FORBIDDEN_TERMS_KEY, []);
             GM_setValue(IMPORTED_GLOSSARY_KEY, {});
             GM_setValue(GLOSSARY_METADATA_KEY, {});
             notifyAndLog('所有术语表已被成功清空。', '操作完成');
@@ -8160,7 +8162,6 @@
 
     /**
      * 通用后处理函数：处理块级元素末尾的孤立标点
-     * @param {HTMLElement} [rootElement=document]
      */
     function handleTrailingPunctuation(rootElement = document) {
         const selectors = 'p, li, dd, blockquote, h1, h2, h3, h4, h5, h6, .summary, .notes';
