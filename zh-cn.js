@@ -1,7 +1,7 @@
 /**
  name         AO3 Trans Script - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.0.6-custom-2025-08-25
+ version      1.0.7-custom-2025-08-27
  description  AO3 Trans Script 的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -5567,7 +5567,7 @@ function translateKudosSection() {
 		const originalHtml = html;
             html = html.replace(/(<a[^>]*>)([\d,]+)\s+more\s+users(<\/a>)/g, '$1$2 位用户$3');
             html = html.replace(/([\d,]+)\s+guest(s)?/g, '$1 位访客');
-            html = html.replace(/\s+as well as\s+/g, '，以及 ');
+            html = html.replace(/\s+as well as\s+/g, ' ，以及 ');
             html = html.replace(/(<span id="kudos_more_connector">), and (<\/span>)/g, '$1，和 $2');
             html = html.replace(/\s+and\s+/g, ' 和 ');
             html = html.replace(/, /g, '，');
