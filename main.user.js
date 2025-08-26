@@ -2,13 +2,13 @@
 // @name         AO3 Trans Script
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.0.6-custom-2025-08-25
+// @version      1.0.7-custom-2025-08-27
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
 // @match        https://xn--iao3-lw4b.ws/*
 // @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/assets/icon.png
-// @resource     vIcon https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@custom/assets/icon.png
+// @resource     vIcon https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/assets/icon.png
 // @supportURL   https://github.com/V-Lipset/ao3-chinese/issues
 // @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/main.user.js
 // @updateURL    https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@custom/main.user.js
@@ -88,6 +88,23 @@
             temperature: 0,
         };
     };
+
+    // 创建一个标准的、兼容 OpenAI API 的服务配置对象
+    const createStandardApiConfig = ({ name, url, modelGmKey, defaultModel }) => ({
+        name: name,
+        url_api: url,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        getRequestData: (paragraphs) => {
+            const model = modelGmKey ? GM_getValue(modelGmKey, defaultModel) : defaultModel;
+            return createRequestData(
+                model,
+                sharedSystemPrompt,
+                paragraphs
+            );
+        },
+        responseIdentifier: 'choices[0].message.content',
+    });
 
     // 底层实现配置
     const CONFIG = {
@@ -177,35 +194,18 @@
                     }
                 },
             },
-            zhipu_ai: {
+            zhipu_ai: createStandardApiConfig({
                 name: 'Zhipu AI',
-                url_api: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                getRequestData: (paragraphs, glossary) => createRequestData(
-                    'glm-4-flash-250414',
-                    sharedSystemPrompt,
-                    paragraphs,
-                    glossary
-                ),
-                responseIdentifier: 'choices[0].message.content',
-            },
-            deepseek_ai: {
+                url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+                modelGmKey: null,
+                defaultModel: 'glm-4-flash-250414'
+            }),
+            deepseek_ai: createStandardApiConfig({
                 name: 'DeepSeek',
-                url_api: 'https://api.deepseek.com/chat/completions',
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                getRequestData: (paragraphs, glossary) => {
-                    const model = GM_getValue('deepseek_model', 'deepseek-chat');
-                    return createRequestData(
-                        model,
-                        sharedSystemPrompt,
-                        paragraphs,
-                        glossary
-                    );
-                },
-                responseIdentifier: 'choices[0].message.content',
-            },
+                url: 'https://api.deepseek.com/chat/completions',
+                modelGmKey: 'deepseek_model',
+                defaultModel: 'deepseek-chat'
+            }),
             google_ai: {
                 name: 'Google AI',
                 url_api: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
@@ -238,84 +238,30 @@
                 },
                 responseIdentifier: 'candidates[0].content.parts[0].text',
             },
-            groq_ai: {
+            groq_ai: createStandardApiConfig({
                 name: 'Groq AI',
-                url_api: 'https://api.groq.com/openai/v1/chat/completions',
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                getRequestData: (paragraphs, glossary) => {
-                    const model = GM_getValue('groq_model', 'meta-llama/llama-4-maverick-17b-128e-instruct');
-                    return createRequestData(
-                        model,
-                        sharedSystemPrompt,
-                        paragraphs,
-                        glossary
-                    );
-                },
-                responseIdentifier: 'choices[0].message.content',
-            },
-            together_ai: {
+                url: 'https://api.groq.com/openai/v1/chat/completions',
+                modelGmKey: 'groq_model',
+                defaultModel: 'meta-llama/llama-4-maverick-17b-128e-instruct'
+            }),
+            together_ai: createStandardApiConfig({
                 name: 'Together AI',
-                url_api: 'https://api.together.xyz/v1/chat/completions',
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                getRequestData: (paragraphs) => {
-                    const model = GM_getValue('together_model', 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8');
-                    return createRequestData( 
-                        model,
-                        sharedSystemPrompt,
-                        paragraphs
-                    );
-                },
-                responseIdentifier: 'choices[0].message.content',
-            },
-            cerebras_ai: {
+                url: 'https://api.together.xyz/v1/chat/completions',
+                modelGmKey: 'together_model',
+                defaultModel: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'
+            }),
+            cerebras_ai: createStandardApiConfig({
                 name: 'Cerebras',
-                url_api: 'https://api.cerebras.ai/v1/chat/completions',
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                getRequestData: (paragraphs) => {
-                    const model = GM_getValue('cerebras_model', 'llama-4-scout-17b-16e-instruct');
-                    return createRequestData(
-                        model,
-                        sharedSystemPrompt,
-                        paragraphs
-                    );
-                },
-                responseIdentifier: 'choices[0].message.content',
-            },
-            modelscope_ai: {
+                url: 'https://api.cerebras.ai/v1/chat/completions',
+                modelGmKey: 'cerebras_model',
+                defaultModel: 'llama-4-scout-17b-16e-instruct'
+            }),
+            modelscope_ai: createStandardApiConfig({
                 name: 'ModelScope',
-                url_api: 'https://api-inference.modelscope.cn/v1/chat/completions',
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                getRequestData: (paragraphs) => {
-                    const model = GM_getValue('modelscope_model', 'LLM-Research/Llama-4-Maverick-17B-128E-Instruct');
-                    
-                    const numberedText = paragraphs
-                        .map((p, i) => `${i + 1}. ${p.innerHTML}`)
-                        .join('\n\n');
-                    
-                    const messages = [
-                        { "role": "system", "content": sharedSystemPrompt },
-                        { "role": "user", "content": `Translate the following numbered list to Simplified Chinese（简体中文）:\n\n${numberedText}` }
-                    ];
-
-                    if (model === 'deepseek-ai/DeepSeek-V3.1') {
-                        messages.push({ "role": "assistant", "content": "</think>" });
-                    }
-                    
-                    return {
-                        model: model,
-                        messages: messages,
-                        stream: false,
-                        temperature: 0,
-                    };
-                },
-                responseIdentifier: 'choices[0].message.content',
-            },
+                url: 'https://api-inference.modelscope.cn/v1/chat/completions',
+                modelGmKey: 'modelscope_model',
+                defaultModel: 'LLM-Research/Llama-4-Maverick-17B-128E-Instruct'
+            }),
         }
     };
 
@@ -700,7 +646,7 @@
             .settings-panel-header-title .home-icon-link svg {
                 width: 24px;
                 height: 24px;
-                fill: rgba(0, 0, 0, 0.54);
+                fill: #000000DE;
             }
             .settings-panel-header-title h2 {
                 margin: 0; font-size: 16px; font-weight: bold;
@@ -1663,7 +1609,6 @@
             modelGmKey: 'modelscope_model',
             modelMapping: {
                 'LLM-Research/Llama-4-Maverick-17B-128E-Instruct': 'Llama 4',
-                'deepseek-ai/DeepSeek-V3.1': 'DeepSeek V3.1',
                 'deepseek-ai/DeepSeek-V3': 'DeepSeek V3',
                 'ZhipuAI/GLM-4.5': 'GLM 4.5',
                 'moonshotai/Kimi-K2-Instruct': 'Kimi K2',
@@ -2274,7 +2219,6 @@
             const placeholders = new Map();
             const replacementToPlaceholderMap = new Map();
             let placeholderIndex = 0;
-            const usePlaceholders = getValidEngineName() === 'google_translate';
 
             const preprocessedParagraphs = contentToTranslate.map(p => {
                 const clone = p.original.cloneNode(true);
@@ -2285,14 +2229,14 @@
                     while (currentNode = treeWalker.nextNode()) {
                         currentNode.nodeValue = currentNode.nodeValue.replace(regex, (match) => {
                             const lowerMatch = match.toLowerCase();
-                            let rule, replacement;
+                            let rule, replacement, baseTerm;
 
-                            if (maps.localForbidden.has(match)) {
-                                replacement = match;
+                            if (baseTerm = maps.localForbidden.get(match)) {
+                                replacement = baseTerm;
+                            } else if (baseTerm = maps.onlineForbidden.get(match)) {
+                                replacement = baseTerm;
                             } else if (rule = maps.localCaseSensitiveTerms.get(match)) {
                                 replacement = rule.translation;
-                            } else if (maps.onlineForbidden.has(match)) {
-                                replacement = match;
                             } else if ((rule = maps.onlineCaseSensitiveTerms.get(match)) || (rule = maps.onlineCaseInsensitiveTerms.get(lowerMatch))) {
                                 replacement = rule.translation;
                             }
@@ -2300,7 +2244,7 @@
                             if (replacement !== undefined) {
                                 let placeholder = replacementToPlaceholderMap.get(replacement);
                                 if (!placeholder) {
-                                    placeholder = `__P_${placeholderIndex}__`;
+                                    placeholder = `AO3_P_${placeholderIndex}`;
                                     replacementToPlaceholderMap.set(replacement, placeholder);
                                     placeholders.set(placeholder, replacement);
                                     placeholderIndex++;
@@ -2314,18 +2258,7 @@
                 return clone;
             });
 
-            const paragraphsForAI = preprocessedParagraphs.map(p => {
-                if (usePlaceholders) return p;
-                const clone = p.cloneNode(true);
-                const treeWalker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
-                let node;
-                while (node = treeWalker.nextNode()) {
-                    node.nodeValue = node.nodeValue.replace(/__P_\d+__/g, (ph) => placeholders.get(ph));
-                }
-                return clone;
-            });
-
-            const combinedTranslation = await requestRemoteTranslation(paragraphsForAI);
+            const combinedTranslation = await requestRemoteTranslation(preprocessedParagraphs);
 
             let restoredTranslation = combinedTranslation;
             for (const [placeholder, value] of placeholders) {
@@ -2577,7 +2510,7 @@
 
             if (!isChunkBigEnough && !isChunkSeparator && !forceFlush) {
                 if (translationQueue.size > 0) {
-                    flushTimeout = setTimeout(() => scheduleProcessing(observer, true), 2000);
+                    flushTimeout = setTimeout(() => scheduleProcessing(observer, true), 4000);
                 }
                 return;
             }
@@ -3027,19 +2960,10 @@
             const forms = generateWordForms(term);
             forms.forEach(form => {
                 const key = isGeneral ? form.toLowerCase() : form;
-                let finalTranslation;
-
-                if (form.endsWith("'s") || form.endsWith("'")) {
-                    finalTranslation = translation + '的';
-                } else {
-                    finalTranslation = translation;
-                }
-
                 const newRule = {
-                    translation: finalTranslation,
+                    translation: translation,
                     priority: (isMultiPart ? 1 : 0)
                 };
-                
                 targetMap.set(key, newRule);
             });
         };
@@ -3070,12 +2994,7 @@
 
         localForbiddenTerms.forEach(term => {
             generateWordForms(term).forEach(form => {
-                if (form.endsWith("'s") || form.endsWith("'")) {
-                    const base = form.slice(0, -1);
-                    maps.localCaseSensitiveTerms.set(form, { translation: base + '的', priority: 10 });
-                } else {
-                    maps.localForbidden.set(form, true);
-                }
+                maps.localForbidden.set(form, term);
                 processedLocalKeys.add(form.toLowerCase());
             });
         });
@@ -3111,12 +3030,7 @@
             (g.forbiddenTerms || []).forEach(term => {
                 generateWordForms(term).forEach(form => {
                     if (processedLocalKeys.has(form.toLowerCase())) return;
-                    if (form.endsWith("'s") || form.endsWith("'")) {
-                        const base = form.slice(0, -1);
-                        maps.onlineCaseSensitiveTerms.set(form, { translation: base + '的', priority: 9 });
-                    } else {
-                        maps.onlineForbidden.set(form, true);
-                    }
+                    maps.onlineForbidden.set(form, term);
                 });
             });
 
@@ -3282,6 +3196,7 @@
 			this.lineNumbersRegex = /^\d+\.\s*/;
 			this.aiGenericExplanationRegex = /\s*\uff08[\u4e00-\u9fa5]{1,10}\uff1a[^\uff08\uff09]*?\uff09\s*/g;
             this.fillerWordsRegex = /(?<![a-zA-Z])(emm|hmm|ah|uh|er|um|uhm)(?![a-zA-Z])/gi;
+            this.possessiveRegex = /\b([a-zA-Z]+(?:s|es|ies)?)\'s?\b/gi;
             this.cjkCharsAndPunctuation = '\\u4e00-\\u9fa5\\u3000-\\u303f\\uff00-\\uffef';
 		}
 		clean(text) {
@@ -3292,6 +3207,7 @@
 			cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
             cleanedText = cleanedText.replace(this.aiGenericExplanationRegex, '');
             cleanedText = cleanedText.replace(this.fillerWordsRegex, ' ');
+            cleanedText = cleanedText.replace(this.possessiveRegex, '$1的');
             cleanedText = cleanedText.replace(/的\s*的/g, '的');
 
 			cleanedText = cleanedText.replace(/(<(em|strong|span)[^>]*>)([\s\S]*?)(<\/\2>)/g, (_match, openTag, _tagName, content, closeTag) => {
