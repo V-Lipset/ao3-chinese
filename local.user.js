@@ -2,13 +2,13 @@
 // @name         AO3 Trans Script
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.0.7-custom-2025-08-27
+// @version      1.0.8-custom-2025-08-29
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
 // @match        https://xn--iao3-lw4b.ws/*
-// @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/assets/icon.png
-// @resource     vIcon https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/assets/icon.png
+// @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/assets/icon.png
+// @resource     vIcon https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/assets/icon.png
 // @supportURL   https://github.com/V-Lipset/ao3-chinese/issues
 // @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/custom/local.user.js
 // @updateURL    https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@custom/local.user.js
@@ -34,6 +34,7 @@
 // @grant        GM_addStyle
 // @grant        GM_getResourceURL
 // ==/UserScript==
+
 
 (function (window, document, undefined) {
     'use strict';
@@ -662,7 +663,8 @@
                     'This is a draft chapter in a posted work. It will be kept unless the work is deleted.': '这是已发布作品中的一篇草稿章节。除非作品被删除，否则该草稿将一直保留。',
                     'This chapter is a draft and hasn\'t been posted yet!': '本章节为草稿，尚未发布！',
 					'Are you sure you want to delete this bookmark?': '您确定要删除此书签吗？',
-					'This is part of an ongoing challenge and will be revealed soon!': '本作品正在参与一项开放中的挑战，内容将很快揭晓！'
+					'This is part of an ongoing challenge and will be revealed soon!': '本作品正在参与一项开放中的挑战，内容将很快揭晓！',
+					'Your search failed because of a syntax error. Please try again.': '搜索失败，您的查询存在语法错误。请修改后重试。'
 	            },
 	            'innerHTML_regexp': [
 	
@@ -5675,7 +5677,7 @@
         };
     };
 
-    // 创建一个标准的、兼容 OpenAI API 的服务配置对象
+    // 创建一个标准的、兼容OpenAI API的服务配置对象
     const createStandardApiConfig = ({ name, url, modelGmKey, defaultModel }) => ({
         name: name,
         url_api: url,
@@ -6372,6 +6374,7 @@
                 font-size: 12px;
                 color: #666;
                 padding: 4px 12px;
+                overflow: hidden;
             }
             #online-glossary-details-container {
                 margin-top: 8px;
@@ -6383,6 +6386,7 @@
                 overflow: hidden;
                 text-overflow: ellipsis;
                 padding-right: 8px;
+                min-width: 0;
             }
             .online-glossary-delete-btn {
                 flex-shrink: 0;
@@ -6738,12 +6742,15 @@
         const populateManageGlossary = () => {
             const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
             const urls = Object.keys(metadata);
+            const lastSelectedUrl = GM_getValue(LAST_SELECTED_GLOSSARY_KEY, null);
+
+            glossaryManageSelect.innerHTML = '';
+
             if (urls.length === 0) {
                 glossaryManageSelect.innerHTML = '<option value="" disabled selected>暂无术语表</option>';
                 glossaryManageSelect.disabled = true;
                 glossaryManageDetailsContainer.style.display = 'none';
             } else {
-                glossaryManageSelect.innerHTML = '';
                 urls.forEach(url => {
                     const filename = url.split('/').pop();
                     const lastDotIndex = filename.lastIndexOf('.');
@@ -6756,9 +6763,14 @@
                     glossaryManageSelect.appendChild(option);
                 });
                 glossaryManageSelect.disabled = false;
-                glossaryManageSelect.selectedIndex = 0;
-                glossaryManageSelect.dispatchEvent(new Event('change'));
+
+                if (lastSelectedUrl && urls.includes(lastSelectedUrl)) {
+                    glossaryManageSelect.value = lastSelectedUrl;
+                } else {
+                    glossaryManageSelect.selectedIndex = 0;
+                }
             }
+            glossaryManageSelect.dispatchEvent(new Event('change'));
             resetDeleteButton();
         };
 
@@ -6901,7 +6913,6 @@
                     toggleEditableSection(glossaryImportSection);
                     break;
                 case 'manage':
-                    populateManageGlossary();
                     toggleEditableSection(glossaryManageSection);
                     break;
                 case 'post_replace':
@@ -6932,9 +6943,16 @@
         glossaryImportSaveBtn.addEventListener('click', () => {
             const url = glossaryImportUrlInput.value.trim();
             if (url) {
-                importOnlineGlossary(url, () => {
-                    populateManageGlossary();
-                    updateInputLabel(glossaryManageSelect);
+                importOnlineGlossary(url, (newUrl, newName) => {
+                    if (glossaryManageSelect.disabled) {
+                        glossaryManageSelect.innerHTML = '';
+                        glossaryManageSelect.disabled = false;
+                    }
+                    const newOption = document.createElement('option');
+                    newOption.value = newUrl;
+                    newOption.textContent = newName;
+                    newOption.title = newName;
+                    glossaryManageSelect.appendChild(newOption);
                     invalidateGlossaryCache();
                 });
             }
@@ -6943,6 +6961,7 @@
         glossaryManageSelect.addEventListener('change', () => {
             const url = glossaryManageSelect.value;
             if (url) {
+                GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
                 const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {})[url];
                 glossaryManageInfo.textContent = `版本号：${metadata.version} ，维护者：${metadata.maintainer || '未知'}`;
                 glossaryManageDetailsContainer.style.display = 'flex';
@@ -7042,6 +7061,7 @@
         document.addEventListener('mousedown', handleClickOutside, true);
 
         populateEngineSelect();
+        populateManageGlossary();
         syncPanelState();
 
         function createCustomDropdown(triggerElement) {
@@ -7771,6 +7791,37 @@
     API_ERROR_HANDLERS['cerebras_ai'] = _handleTogetherAiError;
 
     /**
+     * 为术语创建带有单词边界的正则表达式模式
+     */
+    function createSmartRegexPattern(term) {
+        if (!term) return '';
+        
+        const escapedTerm = term.replace(/([.*+?^${}()|[\]\\])/g, '\\$&');
+        const flexibleSpacedTerm = escapedTerm.replace(/[\s-–—−‒―]+/g, '[\\s-–—−‒―]+');
+
+        const wordCharRegex = /^[a-zA-Z0-9_]/;
+        const startsWithWordChar = wordCharRegex.test(term);
+        const endsWithWordChar = wordCharRegex.test(term.slice(-1));
+        
+        const prefix = startsWithWordChar ? '\\b' : '';
+        const suffix = endsWithWordChar ? '\\b' : '';
+        
+        return `${prefix}${flexibleSpacedTerm}${suffix}`;
+    }
+
+    /**
+     * 生成一个随机的6位小写字母字符串
+     */
+    function generateRandomPlaceholderString() {
+        const chars = 'abcdefghijklmnopqrstuvwxyz';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    /**
      * 段落翻译函数，集成了术语表、禁翻和后处理替换逻辑
      */
     async function translateParagraphs(paragraphs, { retryCount = 0, maxRetries = 3 } = {}) {
@@ -7800,46 +7851,50 @@
                 ...maps.localForbidden.keys(), ...maps.localCaseSensitiveTerms.keys(),
                 ...maps.onlineForbidden.keys(), ...maps.onlineCaseSensitiveTerms.keys(), ...maps.onlineCaseInsensitiveTerms.keys()
             ];
+            if (allTermKeys.length === 0) {
+                return await processTranslationWithoutGlossary(indexedParagraphs, contentToTranslate);
+            }
+
             const sortedKeys = [...new Set(allTermKeys)].sort((a, b) => b.length - a.length);
+            const singleTermPattern = sortedKeys.map(createSmartRegexPattern).filter(Boolean).join('|');
+            const singleTermRegex = new RegExp(singleTermPattern, 'gi');
+            const compoundTermRegex = new RegExp(`(?:${singleTermPattern})(?:[-\\s]*(?:${singleTermPattern}))*`, 'gi');
 
             const placeholders = new Map();
             const replacementToPlaceholderMap = new Map();
-            let placeholderIndex = 0;
+
+            const getTranslationForPart = (part) => {
+                const lowerPart = part.toLowerCase();
+                let rule, baseTerm;
+                if ((baseTerm = maps.localForbidden.get(part)) || (baseTerm = maps.onlineForbidden.get(part))) {
+                    return baseTerm;
+                }
+                if ((rule = maps.localCaseSensitiveTerms.get(part)) || (rule = maps.onlineCaseSensitiveTerms.get(part)) || (rule = maps.onlineCaseInsensitiveTerms.get(lowerPart))) {
+                    return rule.translation;
+                }
+                return part;
+            };
 
             const preprocessedParagraphs = contentToTranslate.map(p => {
                 const clone = p.original.cloneNode(true);
-                if (sortedKeys.length > 0) {
-                    const regex = new RegExp(`\\b(${sortedKeys.map(k => k.replace(/([.*+?^${}()|[\]\\])/g, '\\$&')).join('|')})\\b`, 'gi');
-                    const treeWalker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
-                    let currentNode;
-                    while (currentNode = treeWalker.nextNode()) {
-                        currentNode.nodeValue = currentNode.nodeValue.replace(regex, (match) => {
-                            const lowerMatch = match.toLowerCase();
-                            let rule, replacement, baseTerm;
-
-                            if (baseTerm = maps.localForbidden.get(match)) {
-                                replacement = baseTerm;
-                            } else if (baseTerm = maps.onlineForbidden.get(match)) {
-                                replacement = baseTerm;
-                            } else if (rule = maps.localCaseSensitiveTerms.get(match)) {
-                                replacement = rule.translation;
-                            } else if ((rule = maps.onlineCaseSensitiveTerms.get(match)) || (rule = maps.onlineCaseInsensitiveTerms.get(lowerMatch))) {
-                                replacement = rule.translation;
-                            }
-
-                            if (replacement !== undefined) {
-                                let placeholder = replacementToPlaceholderMap.get(replacement);
-                                if (!placeholder) {
-                                    placeholder = `AO3_P_${placeholderIndex}`;
-                                    replacementToPlaceholderMap.set(replacement, placeholder);
-                                    placeholders.set(placeholder, replacement);
-                                    placeholderIndex++;
-                                }
-                                return placeholder;
-                            }
-                            return match;
-                        });
-                    }
+                const treeWalker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
+                let currentNode;
+                while (currentNode = treeWalker.nextNode()) {
+                    currentNode.nodeValue = currentNode.nodeValue.replace(compoundTermRegex, (compoundMatch) => {
+                        const finalTranslatedSnippet = compoundMatch.replace(singleTermRegex, getTranslationForPart);
+                        
+                        let placeholder = replacementToPlaceholderMap.get(finalTranslatedSnippet);
+                        if (!placeholder) {
+                            let randomPart;
+                            do {
+                                randomPart = generateRandomPlaceholderString();
+                                placeholder = `ph_${randomPart}`;
+                            } while (placeholders.has(placeholder));
+                            replacementToPlaceholderMap.set(finalTranslatedSnippet, placeholder);
+                            placeholders.set(placeholder, finalTranslatedSnippet);
+                        }
+                        return placeholder;
+                    });
                 }
                 return clone;
             });
@@ -7848,7 +7903,8 @@
 
             let restoredTranslation = combinedTranslation;
             for (const [placeholder, value] of placeholders) {
-                restoredTranslation = restoredTranslation.replace(new RegExp(placeholder, 'g'), value);
+                const escapedPlaceholder = placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                restoredTranslation = restoredTranslation.replace(new RegExp(`\\b${escapedPlaceholder}\\b`, 'gi'), value);
             }
 
             restoredTranslation = applyPostTranslationReplacements(restoredTranslation);
@@ -7918,6 +7974,31 @@
                 return await translateParagraphs(paragraphs, { retryCount: retryCount + 1, maxRetries });
             }
         }
+    }
+
+    async function processTranslationWithoutGlossary(indexedParagraphs, contentToTranslate) {
+        const combinedTranslation = await requestRemoteTranslation(contentToTranslate.map(p => p.original));
+        let translatedParts = [];
+        const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
+        let match;
+        while ((match = regex.exec(combinedTranslation)) !== null) {
+            translatedParts.push(match[1].trim());
+        }
+        if (translatedParts.length !== contentToTranslate.length) {
+            throw new Error('AI 响应格式不一致，分段数量不匹配');
+        }
+        contentToTranslate.forEach((p, i) => {
+            p.translatedContent = AdvancedTranslationCleaner.clean(translatedParts[i] || p.content);
+        });
+        const finalResults = new Map();
+        indexedParagraphs.forEach(p => {
+            if (p.isSeparator) {
+                finalResults.set(p.original, { status: 'success', content: p.content });
+            } else {
+                finalResults.set(p.original, { status: 'success', content: p.translatedContent });
+            }
+        });
+        return finalResults;
     }
     
     /**
@@ -8187,9 +8268,9 @@
         });
     }
 
-    /**
-     * 各种术语表变量
-     */
+	/**
+	 * 各种术语表变量
+	 */
     const LOCAL_GLOSSARY_KEY = 'ao3_local_glossary';
     const LOCAL_GLOSSARY_STRING_KEY = 'ao3_local_glossary_string';
     const LOCAL_FORBIDDEN_TERMS_KEY = 'ao3_local_forbidden_terms';
@@ -8198,6 +8279,7 @@
     const GLOSSARY_METADATA_KEY = 'ao3_glossary_metadata';
     const POST_REPLACE_STRING_KEY = 'ao3_post_replace_string';
     const POST_REPLACE_MAP_KEY = 'ao3_post_replace_map';
+    const LAST_SELECTED_GLOSSARY_KEY = 'ao3_last_selected_glossary_url';
 
 	/**
 	 * 解析自定义的、非 JSON 格式的术语表文本
@@ -8386,7 +8468,7 @@
                     notifyAndLog(`已成功导入 “${glossaryName}” 术语表（v${onlineData.metadata.version}），共 ${importedCount} 个词条。`, '导入成功');
 
                     if (typeof onCompleteCallback === 'function') {
-                        onCompleteCallback();
+                        onCompleteCallback(url, glossaryName);
                     }
 
                 } catch (e) {
@@ -8696,7 +8778,9 @@
             return text;
         }
 
-        const regex = new RegExp(keys.map(key => key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|'), 'g');
+        const sortedKeys = keys.sort((a, b) => b.length - a.length);
+
+        const regex = new RegExp(sortedKeys.map(key => key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|'), 'g');
         
         return text.replace(regex, (matched) => replacementMap[matched] || matched);
     }
@@ -8785,10 +8869,12 @@
             this.possessiveRegex = /\b([a-zA-Z]+(?:s|es|ies)?)\'s?\b/gi;
             this.cjkCharsAndPunctuation = '\\u4e00-\\u9fa5\\u3000-\\u303f\\uff00-\\uffef';
 		}
+
 		clean(text) {
 			if (!text || typeof text !== 'string') {
 				return '';
 			}
+
 			let cleanedText = text.split('\n').filter(line => !this.junkLineRegex.test(line)).join('\n');
 			cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
             cleanedText = cleanedText.replace(this.aiGenericExplanationRegex, '');
@@ -8796,24 +8882,28 @@
             cleanedText = cleanedText.replace(this.possessiveRegex, '$1的');
             cleanedText = cleanedText.replace(/的\s*的/g, '的');
 
-			cleanedText = cleanedText.replace(/(<(em|strong|span)[^>]*>)([\s\S]*?)(<\/\2>)/g, (_match, openTag, _tagName, content, closeTag) => {
+			cleanedText = cleanedText.replace(/(<(em|strong|span|b|i|u)[^>]*>)([\s\S]*?)(<\/\2>)/g, (_match, openTag, _tagName, content, closeTag) => {
 				return openTag + content.trim() + closeTag;
 			});
 
+			const cjkBlock = `([${this.cjkCharsAndPunctuation}]+)`;
+			const latinBlock = `([a-zA-Z0-9_.-]+)`;
+            const separator = `((?:</?(?:strong|em|code|b|i|u)>|\\s|["':,.\\[\\]@])*?)`;
+
+			cleanedText = cleanedText.replace(new RegExp(`${cjkBlock}${separator}${latinBlock}`, 'g'), '$1 $2$3');
+			cleanedText = cleanedText.replace(new RegExp(`${latinBlock}${separator}${cjkBlock}`, 'g'), '$1$2 $3');
+
+            cleanedText = cleanedText.replace(/(“|‘|「|『)\s+/g, '$1');
+            cleanedText = cleanedText.replace(/\s+(”|’|」|』)/g, '$1');
+
             let previousText;
-            do {
-                previousText = cleanedText;
-                cleanedText = cleanedText.replace(/(<\/[a-zA-Z0-9]+>)\s+(<[a-zA-Z0-9]+[^>]*>)/g, '$1$2');
-            } while (previousText !== cleanedText);
-
-			cleanedText = cleanedText.replace(/\s+/g, ' ');
-
-			cleanedText = cleanedText.replace(/([a-zA-Z0-9])([\u4e00-\u9fa5])/g, '$1 $2');
-			cleanedText = cleanedText.replace(/([\u4e00-\u9fa5])([a-zA-Z0-9])/g, '$1 $2');
+            const simpleFormattingTags = `</?(?:em|strong|span|b|i|u)>`;
+            const cjkContext = `(?:[${this.cjkCharsAndPunctuation}]|${simpleFormattingTags})`;
 
             do {
                 previousText = cleanedText;
-                cleanedText = cleanedText.replace(new RegExp(`([${this.cjkCharsAndPunctuation}])\\s([${this.cjkCharsAndPunctuation}])`, 'g'), '$1$2');
+                cleanedText = cleanedText.replace(/\s+/g, ' ');
+                cleanedText = cleanedText.replace(new RegExp(`(${cjkContext})\\s+(${cjkContext})`, 'g'), '$1$2');
             } while (previousText !== cleanedText);
 
 			return cleanedText.trim();
