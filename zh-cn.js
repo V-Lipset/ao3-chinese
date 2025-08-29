@@ -1,7 +1,7 @@
 /**
  name         AO3 Trans Script - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.0.7-custom-2025-08-27
+ version      1.0.8-custom-2025-08-29
  description  AO3 Trans Script 的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -632,7 +632,8 @@ const I18N = {
                     'This is a draft chapter in a posted work. It will be kept unless the work is deleted.': '这是已发布作品中的一篇草稿章节。除非作品被删除，否则该草稿将一直保留。',
                     'This chapter is a draft and hasn\'t been posted yet!': '本章节为草稿，尚未发布！',
 				'Are you sure you want to delete this bookmark?': '您确定要删除此书签吗？',
-				'This is part of an ongoing challenge and will be revealed soon!': '本作品正在参与一项开放中的挑战，内容将很快揭晓！'
+				'This is part of an ongoing challenge and will be revealed soon!': '本作品正在参与一项开放中的挑战，内容将很快揭晓！',
+				'Your search failed because of a syntax error. Please try again.': '搜索失败，您的查询存在语法错误。请修改后重试。'
             },
             'innerHTML_regexp': [
 
