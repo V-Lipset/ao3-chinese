@@ -1,7 +1,7 @@
 /**
  name         AO3 Trans Script - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.0.8-custom-2025-08-29
+ version      1.0.9-custom-2025-09-21
  description  AO3 Trans Script 的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -53,7 +53,7 @@ const I18N = {
 
                 // 基本
                 'Archive of Our Own': 'AO3 作品库',
-                'Fandoms': '同人圈', 'All Fandoms': '所有同人圈', 
+                'Fandoms': '同人圈', 'All Fandoms': '所有同人圈',
                 'Browse': '浏览', 'Works': '作品', 'Bookmarks': '书签', 'Tags': '标签', 'Collections': '合集',
                 'Search': '搜索', 'People': '用户',
                 'About': '关于', 'About Us': '关于我们', 'News': '新的动态', 'FAQ': '常见问题', 'Wrangling Guidelines': '整理指南', 'Donate or Volunteer': '捐赠/成为志愿者',
@@ -169,7 +169,7 @@ const I18N = {
                 'Enter Comment': '输入评论',
                 'Last Edited': '最后编辑',
 
-                // 同人圈  
+                // 同人圈
                 'Anime & Manga': '动漫及漫画', 'Books & Literature': '书籍及文学', 'Cartoons & Comics & Graphic Novels': '卡通，漫画及图像小说', 'Celebrities & Real People': '明星及真人', 'Movies': '电影', 'Music & Bands': '音乐及乐队', 'Other Media': '其她媒体', 'Theater': '戏剧', 'TV Shows': '电视剧', 'Video Games': '电子游戏', 'Uncategorized Fandoms': '未分类的同人圈',
                 '> Anime & Manga': ' > 动漫及漫画', '> Books & Literature': ' > 书籍及文学', '> Cartoons & Comics & Graphic Novels': ' > 卡通，漫画及图像小说', '> Celebrities & Real People': ' > 明星及真人', '> Movies': ' > 电影', '> Music & Bands': ' > 音乐及乐队', '> Other Media': ' > 其她媒体', '> Theater': ' > 戏剧', '> TV Shows': ' > 电视剧', '> Video Games': ' > 电子游戏', '> Uncategorized Fandoms': ' > 未分类的同人圈',
 
@@ -504,7 +504,7 @@ const I18N = {
                 'Clear Filters': '清除筛选',
 
                 // 书签
-                'Bookmark Search': '书签搜索', 
+                'Bookmark Search': '书签搜索',
                 'Edit Bookmark': '编辑书签',
                 'Start typing for suggestions!': '开始输入以获取建议',
                 'Searching...': '搜索中…',
@@ -597,6 +597,7 @@ const I18N = {
                 'Organization for Transformative Works\' news outlets': ' 再创作组织 的动态发布渠道',
                 'for updates on our other projects!': '，了解我们其她项目的进展！',
                 'Your profile has been successfully updated': '您的个人资料已成功更新',
+				'Your edits were put through! Please check over the works to make sure everything is right.': '您的编辑已生效！请检查相关作品，确保所有更改都已正确应用。',
                 'We\'re sorry! Something went wrong.': '非常抱歉！操作未完成，请稍后重试。',
                 'Your preferences were successfully updated.': '您的偏好设置已成功更新。',
                 'Works and bookmarks listed here have been added to a collection but need approval from a collection moderator before they are listed in the collection.': '此处列出的作品和书签已添加至合集中，但需经合集管理员批准后才会在合集内显示。',
@@ -633,7 +634,8 @@ const I18N = {
                     'This chapter is a draft and hasn\'t been posted yet!': '本章节为草稿，尚未发布！',
 				'Are you sure you want to delete this bookmark?': '您确定要删除此书签吗？',
 				'This is part of an ongoing challenge and will be revealed soon!': '本作品正在参与一项开放中的挑战，内容将很快揭晓！',
-				'Your search failed because of a syntax error. Please try again.': '搜索失败，您的查询存在语法错误。请修改后重试。'
+				'Your search failed because of a syntax error. Please try again.': '搜索失败，您的查询存在语法错误。请修改后重试。',
+				'Type or paste formatted text.': '输入或粘贴带有格式的文本'
             },
             'innerHTML_regexp': [
 
@@ -724,8 +726,8 @@ const I18N = {
                 ['h2.heading', /^\s*(.+?)\s+skin by\s+(.+?)\s*$/s, '$1 界面，由 $2 提供'],
 
                 // 屏蔽与静音
-                ['h2.heading', 
-                    /^Mute (.*)$/s, 
+                ['h2.heading',
+                    /^Mute (.*)$/s,
                     '静音 $1'
                 ],
                 ['div.caution.notice',
@@ -740,12 +742,12 @@ const I18N = {
                     <p>如需阻止某用户在您的作品上发表评论或在站点其她地方回复您的评论，请访问 <a href="$2">已屏蔽用户页面</a> 。</p>
                     <p>请注意，如果您未使用默认站点界面，静音功能可能无法正常工作。要了解有关 <a href="$3">如何恢复默认站点界面</a> 的说明，请参阅 界面与 Archive 界面常见问题 。</p>`
                 ],
-                ['div.flash.notice', 
-                    /^You have muted the user ([^<]+)\.$/s, 
+                ['div.flash.notice',
+                    /^You have muted the user ([^<]+)\.$/s,
                     '您已静音用户 $1 。'
                 ],
-                ['h2.heading', 
-                    /^Block (.*)$/s, 
+                ['h2.heading',
+                    /^Block (.*)$/s,
                     '屏蔽 $1'
                 ],
                 ['div.caution.notice',
@@ -772,8 +774,8 @@ const I18N = {
                     /^You have blocked the user ([^<]+)\.$/s,
                     '您已屏蔽用户 $1 。'
                 ],
-                ['h2.heading', 
-                    /^Unblock (.*)$/s, 
+                ['h2.heading',
+                    /^Unblock (.*)$/s,
                     '取消屏蔽 $1'
                 ],
                 ['div.caution.notice',
@@ -785,12 +787,12 @@ const I18N = {
                     <li>在挑战分配和认领同人梗之外赠送作品给您</li>
                     </ul>`
                 ],
-                ['div.flash.notice', 
-                    /^You have unblocked the user ([^<]+)\.$/s, 
+                ['div.flash.notice',
+                    /^You have unblocked the user ([^<]+)\.$/s,
                     '您已取消屏蔽用户 $1 。'
                 ],
-                ['h2.heading', 
-                    /^Unmute (.*)$/s, 
+                ['h2.heading',
+                    /^Unmute (.*)$/s,
                     '取消静音 $1'
                 ],
                 ['div.caution.notice',
@@ -800,8 +802,8 @@ const I18N = {
                     <li>在站点上查看她们的作品、系列、书签和评论</li>
                     </ul>`
                 ],
-                ['div.flash.notice', 
-                    /^You have unmuted the user ([^<]+)\.$/s, 
+                ['div.flash.notice',
+                    /^You have unmuted the user ([^<]+)\.$/s,
                     '您已取消静音用户 $1 。'
                 ],
 
@@ -934,7 +936,32 @@ const I18N = {
 					'div.flash.notice',
 					/^\s*Bookmark was successfully updated\.\s+Added to collection\(s\):\s*(.*?)\.\s*$/s,
 					'书签已成功更新。已添加到合集：$1。'
-				]
+				],
+                [
+                    'li',
+                    /^\s*Translation into\s+(<span lang="[^"]+">[^<]+<\/span>)\s+available:\s+(<a href="[^"]+">.*?<\/a>)\s+by\s+(<a rel="author" href="[^"]+">.*?<\/a>)\s*$/,
+                    '已有 $1 译本：$2 ，译者：$3'
+                ],
+                [
+                    'li',
+                    /^\s*A translation of\s+(<a href="[^"]+">.*?<\/a>)\s+by\s+(<a rel="author" href="[^"]+">.*?<\/a>)\s*$/,
+                    '翻译自：$1 ，作者：$2'
+                ],
+                [
+                    'li',
+                    /^\s*Inspired by\s+(<a href="[^"]+">.*?<\/a>)\s+by\s+(<a rel="author" href="[^"]+">.*?<\/a>)\s*$/,
+                    '衍生自：$1 ，作者：$2'
+                ],
+                [
+                    'li',
+                    /^\s*For\s+(<a href="\/users\/[^"]+\/gifts">.*?<\/a>)\s*[.。]?\s*$/,
+                    '赠送给：$1'
+                ],
+                [
+                    'p.jump',
+                    /^\s*\(See the end of the work for\s*(<a href="#work_endnotes">)notes(<\/a>)\s+and\s+(<a href="#children">)other works inspired by this one(<\/a>)\.\)\s*$/,
+                    '（在作品结尾查看$1注释$2和$3相关衍生作品$4。）'
+                ]
             ],
             'regexp': [
 
@@ -1127,7 +1154,7 @@ const I18N = {
                 'Associations': '关联',
                 'Post to Collections / Challenges': '发布到合集/挑战',
                 'Gift this work to': '将此作品赠送给',
-                'This work is a remix, a translation, a podfic, or was inspired by another work': '此作品为改编、译作、有声读物或受另一作品启发',
+                'This work is a remix, a translation, a podfic, or was inspired by another work': '此作品为改编、译作、有声读物或衍生自另一作品',
                 'This work is part of a series': '此作品为一个系列的一部分',
                 'This work has multiple chapters': '此作品包含多个章节',
                 'Set a different publication date': '设置一个不同的发布日期',
@@ -1315,6 +1342,36 @@ const I18N = {
                 ],
                 'regexp': [
                     [/\(Draft\)$/, '（草稿）']
+                ]
+            },
+            'works_edit_multiple': {
+                'static': {
+                    'Edit Multiple Works': '编辑多个作品',
+                    'Visibility': '可见性',
+                    'Keep current visibility settings': '保持当前可见性设置',
+                    'Show to all': '对所有人可见',
+                    'Only show to registered users': '仅向注册用户展示',
+                    'Comment moderation': '评论审核',
+                    'Keep current comment moderation settings': '保持当前评论审核设置',
+                    'Disable comment moderation': '禁用评论审核',
+                    'Who can comment on these works': '谁可以评论这些作品',
+                    'Keep current comment settings': '保持当前评论设置',
+                    'Add co-creators': '添加共创者',
+                    'Choose a language': '选择语言',
+                    'Update All Works': '更新所有作品',
+                    'Are you sure? Remember this will replace all existing values!': '您确定吗？请记住，此操作将替换所有现有值！'
+                },
+                'innerHTML_regexp': [
+                    [
+                        'p.caution.notice',
+                        /^\s*Your edits will be applied to <strong>.*?<\/strong> of the following works:\s*$/s,
+                        '您的编辑将应用于以下<strong>全部</strong>作品：'
+                    ],
+                    [
+                        'p.caution.notice',
+                        /^\s*Your edits will <strong>replace<\/strong> the existing values!\s*\(If you leave a field blank it will remain unchanged\.\)\s*$/s,
+                        '您的编辑将<strong>替换</strong>现有值（如果将字段留空，则不会更改）！'
+                    ]
                 ]
             },
         'users_invitations': {
@@ -1687,7 +1744,7 @@ const I18N = {
             'static': {
                 'New Tag Set': '新建标签集',
                 'Nominate': '提名',
-                
+
             },
             'innerHTML_regexp': [
                 ['dl.stats', /(Fandoms:|Characters:|Relationships:|Additional Tags:)/g, (match) => {
@@ -1732,14 +1789,14 @@ const I18N = {
             'innerHTML_regexp': [
                 ['h2.heading', /^Tag Nominations for (.*?)$/, '为 “$1” 提名标签'],
                 ['ul.navigation.actions a[href*="/tag_sets/"]', /^Back To (.*?)$/, '返回 “$1”'],
-                ['#modal .content.userstuff p', 
-                    /^\s*You only need to specify the fandom if your nomination is new or not in the fandom already -- for instance, if you're\s*submitting a character who has just appeared in the fandom\.\s*This information is just used to help the moderators sort out new tags\.\s*$/s, 
+                ['#modal .content.userstuff p',
+                    /^\s*You only need to specify the fandom if your nomination is new or not in the fandom already -- for instance, if you're\s*submitting a character who has just appeared in the fandom\.\s*This information is just used to help the moderators sort out new tags\.\s*$/s,
                     '仅当您的提名为新标签或尚未存在于该同人圈时才需指定同人圈——例如，您提交的角色刚出现在该同人圈中。此信息仅用于帮助管理员整理新标签。'
                 ]
             ],
             'regexp': [
                 [/^You can nominate up to .*$/, translateNominationRule],
-                
+
                 [/^Fandom (\d+)$/, '同人圈 $1'],
                 [/^Additional Tag (\d+)$/, '附加标签 $1']
             ],
@@ -1955,12 +2012,12 @@ const I18N = {
                 ['p.footnote#title-field-notes', /^\s*\(text only\)\s*$/, '（仅限文本）'],
                 ['p.footnote#header-image-field-description', /^\s*JPG, GIF, PNG\s*$/, 'JPG、GIF、PNG'],
                 ['fieldset > legend + p', /^\s*You can also individually\s+Manage Items\s+in your collection\.\s*$/, '您也可以单独管理合集中的作品。'],
-                ['dd', 
-                    /^\s*<ul class="notes">\s*<li>Each collection can have one icon<\/li>\s*<li>Icons can be in png, jpeg or gif form<\/li>\s*<li>Icons should be sized 100x100 pixels for best results<\/li>\s*<\/ul>\s*$/, 
+                ['dd',
+                    /^\s*<ul class="notes">\s*<li>Each collection can have one icon<\/li>\s*<li>Icons can be in png, jpeg or gif form<\/li>\s*<li>Icons should be sized 100x100 pixels for best results<\/li>\s*<\/ul>\s*$/,
                     '<ul class="notes"><li>每个合集可设置一个图标</li><li>图标可为 PNG、JPEG 或 GIF 格式</li><li>建议图标尺寸为 100×100 像素以获得最佳效果</li></ul>'],
                 ['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/g, '剩余 $1 字符'],
-                ['dd', 
-                    /^\s*<ul class="notes">\s*<li>As a challenge owner, you may have access to challenge participants' email addresses\.<\/li>\s*<li>Use of those email addresses for any purpose other than running the challenge will lead to the termination of your account\.<\/li>\s*<\/ul>\s*$/, 
+                ['dd',
+                    /^\s*<ul class="notes">\s*<li>As a challenge owner, you may have access to challenge participants' email addresses\.<\/li>\s*<li>Use of those email addresses for any purpose other than running the challenge will lead to the termination of your account\.<\/li>\s*<\/ul>\s*$/,
                     '<ul class="notes"><li>作为活动主办方，您可能可以获得参与者的邮箱地址。</li><li>将这些邮箱用于除活动运营以外的其她任何用途，将导致您的账户被永久停用。</li></ul>'],
                 ['fieldset.profile > p:first-of-type', /Plain text with limited HTML\s*(<a.*?<\/a>)/, '纯文本，支持有限 HTML $1'],
                 ['fieldset.profile > p.note', /^\s*Tip: if this is a subcollection or challenge, you don't need to repeat yourself: fields left blank will copy from your parent collection\.\s*$/, '提示：如果这是子合集或活动，您无需重复填写：留空字段将从母合集复制。'],
@@ -2579,7 +2636,7 @@ function translateInvitationRequestsPage() {
                 listInfoP.innerHTML = `如果您已提交邀请请求，可 ${statusLink.outerHTML} 。目前等待名单上有 ${peopleCount} 人。我们每 ${hours} 小时发送 ${sendingCount} 份邀请。`;
             }
         }
-        
+
         const statusP = Array.from(mainDiv.querySelectorAll('p')).find(p => p.textContent.includes('people on the waiting list'));
         if (statusP) {
                 const originalText = statusP.textContent;
@@ -2588,7 +2645,7 @@ function translateInvitationRequestsPage() {
                     statusP.textContent = `当前等待名单上有 ${match[1]} 人。我们每 ${match[3]} 小时发送 ${match[2]} 个邀请。`;
                 }
         }
-        
+
         const statusForm = mainDiv.querySelector('form[action="/invite_requests/show"]');
         if (statusForm) {
             const label = statusForm.querySelector('label[for="email"]');
@@ -2612,7 +2669,7 @@ function translateInvitationRequestsPage() {
                 statusH2.setAttribute('data-translated-by-custom-function', 'true');
             }
         }
-        
+
         const statusResultP = inviteStatusDiv.querySelector('p');
         if (statusResultP && !statusResultP.hasAttribute('data-translated-by-custom-function')) {
             const match = statusResultP.innerHTML.match(/You are currently number <strong>([\d,]+)<\/strong> on our waiting list!\s*At our current rate, you should receive an invitation on or around:\s*(.+)\./s);
@@ -2634,7 +2691,7 @@ function translateInvitationRequestsPage() {
             successNotice.innerHTML = `您已进入排队列表！我们预计您将在 ${translatedDate} 前后收到邀请。我们强烈建议您将 do-not-reply@archiveofourown.org 添加到您的通讯录，以防邀请邮件被您的邮件服务商误判为垃圾邮件。`;
         }
     }
-    
+
     const errorDiv = mainDiv.querySelector('div#error.error');
     if (errorDiv) {
         const errorH4 = errorDiv.querySelector('h4');
@@ -3289,6 +3346,56 @@ function translateSymbolsKeyModal() {
         closeButton.textContent = '关闭';
     }
     modal.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专门用于翻译“富文本”帮助弹窗。
+ */
+function translateRteHelpModal() {
+    const container = document.querySelector('#modal div.content.userstuff');
+    const footer = container?.nextElementSibling;
+    const footerTitle = footer?.querySelector('span.title');
+    if (!footerTitle || footerTitle.textContent !== 'Rte help') {
+        return;
+    }
+    if (container) {
+        container.innerHTML = `
+            <h2>富文本</h2>
+            <p>富文本编辑器（<abbr title="富文本编辑器">RTE</abbr>）的具体行为取决于您的设备、浏览器、操作系统以及您粘贴内容的来源。但是，从一个格式规范的文档开始，将有助于您最大程度地利用 <abbr>RTE</abbr> 。以下是一些通用技巧，以确保您的格式尽可能被保留：</p>
+            <ul>
+                <li><p><strong>在段落之间按<em>一次</em> <kbd>Enter</kbd> 键。</strong>按两次 <kbd>Enter</kbd> 会插入一个空段落，当您粘贴到 <abbr>RTE</abbr> 时，会在段落之间产生额外的、可能不需要的空格。Archive 使用顶部和底部边距来制造段落间的空行效果；您可以使用文本编辑器中的段落格式选项来达到类似效果，而无需添加额外的 <code>&lt;p&gt;</code> 标签。</p></li>
+                <li><p><strong>为标题、块引用、代码等使用预设样式。</strong>通常在文本编辑器的 “格式” 菜单中找到的 “样式” 选项，在粘贴到 <abbr>RTE</abbr> 时通常会转换为 <abbr title="超文本标记语言">HTML</abbr> 标签。仅仅通过改变字体大小、字体名称或文本缩进来模拟标题或块引用的视觉效果，通常是不会起作用的。</p></li>
+            </ul>
+            <h3>从特定文本编辑器粘贴</h3>
+            <h4>Google Drive</h4>
+            <p>Google Drive 使用内联 <abbr title="层叠样式表">CSS</abbr> 来改变文本对齐方式以及产生粗体、斜体、下划线和删除线格式。遗憾的是，我们不允许在 Archive 上使用内联样式，因此只有纯 <abbr>HTML</abbr> 格式（如标题、列表、链接和表格）会被保留。</p>
+            <p>在某些浏览器中，格式在粘贴到 <abbr>RTE</abbr> 时可能看起来被保留了，但在预览或发布您的作品时，它将被我们的 <abbr>HTML</abbr> 清理程序移除。</p>
+            <h4>Scrivener</h4>
+            <p>Scrivener 用户通常通过粘贴到 <abbr>HTML</abbr> 编辑器，然后切换到 <abbr>RTE</abbr> 进行修改，可以获得更好的效果。要从 Scrivener 复制 HTML，请执行以下操作：</p>
+            <ol>
+                <li>转到 “编辑” 菜单</li>
+                <li>选择 “特殊复制”</li>
+                <li>选择 “以 HTML 格式复制” 或 “以 HTML 格式复制（基础，使用 &lt;p&gt; 和 &lt;span&gt;）”</li>
+            </ol>
+            <h3>粘贴特定类型的格式</h3>
+            <h4>下划线和删除线</h4>
+            <p>下划线和删除线通常由 <abbr>CSS</abbr> 产生。因为 Archive 不允许使用内联 <abbr>CSS</abbr>，这些文本样式在粘贴时经常会丢失。</p>
+            <p>从使用 <code>&lt;u&gt;</code>、<code>&lt;del&gt;</code>、<code>&lt;strike&gt;</code> 或 <code>&lt;s&gt;</code> 标签的网页粘贴将可以正常工作。</p>
+            <h4>对齐</h4>
+            <p>文本对齐现在通常通过 <abbr>CSS</abbr> 实现，并且因为 Archive 不允许内联 <abbr>CSS</abbr>，对齐方式在粘贴时通常会丢失。</p>
+            <p>从使用 <code>align</code> 属性和 <code>&lt;center&gt;</code> 元素的来源粘贴将保持格式完整，但请注意，<abbr>RTE</abbr> 中的对齐按钮无法修改用 <code>&lt;center&gt;</code> 标签创建的居中对齐。</p>
+            <h4>标题</h4>
+            <p>文本编辑器为其标题预设使用许多不同的样式。例如，在 OpenOffice 中选择 “标题 4” 会产生斜体的无衬线文本。即使成功将标题粘贴到 <abbr>RTE</abbr> 中，这种视觉格式也<em>不会</em>被保留——只有 <code>&lt;h4&gt;</code> 标签会被保留。这不是 bug 。<abbr>HTML</abbr> 旨在告诉浏览器文本的含义（例如：“这是一个标题” ），而不是它应该如何显示（例如：“这应该是 Arial 字体” ）。如果您希望修改标题或作品任何其她部分的样式，请使用作品界面。</p>
+            <h4>缩进文本</h4>
+            <p>缩进文本是一种纯粹的视觉效果，没有等效的 <abbr>HTML</abbr>，并且不会被保留。请使用作品界面来缩进文本。</p>
+        `;
+        container.setAttribute('data-translated-by-custom-function', 'true');
+    }
+    footerTitle.textContent = '富文本 帮助';
+    const closeButton = footer.querySelector('a.modal-closer');
+    if (closeButton) {
+        closeButton.textContent = '关闭';
+    }
 }
 
 /**
@@ -4349,13 +4456,13 @@ function translateCollectionPreferences() {
 
             <dt>允许任何人向我赠送作品</dt>
             <dd>若禁用此选项，用户仅可在完成赠文活动分配或满足征稿活动要求时赠送作品给您。若希望允许用户在无分配或征稿要求的情况下赠送作品，请启用此选项。请注意，您随时可以单独拒绝赠文。要了解有关拒绝赠文的操作，请参阅 <a href="/faq/your-account#refusegift">如何拒绝赠文</a> 。</dd>
-            
+
             <dt>关闭来自合集的电子邮箱</dt>
             <dd>启用此选项后，您将不会收到来自合集的电子邮箱提醒，如作者或作品的揭晓通知。但若您的用户名或作品在加入合集后被隐藏，仍会收到电子邮箱。除非您禁用收件箱通知，合集通知仍会发送到您的 AO3 收件箱。</dd>
-            
+
             <dt>关闭来自合集的消息通知</dt>
             <dd>启用此选项后，您将不会在 AO3 收件箱中收到来自合集的通知，例如隐藏作品揭晓通知。但除非您禁用电子邮箱通知，这些通知仍会以电子邮箱形式发送给您。</dd>
-            
+
             <dt>关闭有关赠文的邮件通知</dt>
             <dd>启用此选项后，当有人赠送作品给您时，您将不会收到电子邮箱提醒。通知仍会显示在您的“接收赠文”页面。</dd>
             </dl>
@@ -4954,7 +5061,7 @@ function translateIconAltTextHelpModal() {
         if (footerTitle) {
             footerTitle.textContent = '图标替代文本';
         }
-        
+
         const closeButton = footer.querySelector('a.modal-closer');
         if (closeButton) {
             closeButton.textContent = '关闭';
@@ -5302,7 +5409,7 @@ function translateTOSPrompt() {
     if (subscribeButton) {
         subscribeButton.value = '订阅';
     }
-    
+
     const unsubscribeButton = document.querySelector('input[name="commit"][value="Unsubscribe"]');
     if (unsubscribeButton) {
         unsubscribeButton.value = '取消订阅';
@@ -5374,7 +5481,7 @@ function translateTagSetsHeading() {
         return;
     }
     if (h2.firstChild && h2.firstChild.nodeType === Node.TEXT_NODE) {
-        h2.firstChild.nodeValue = ' AO3 中的标签集 '; 
+        h2.firstChild.nodeValue = ' AO3 中的标签集 ';
     }
     if (h2.lastChild && h2.lastChild.nodeType === Node.TEXT_NODE) {
         h2.lastChild.nodeValue = '';
@@ -5486,7 +5593,7 @@ function translateSearchResultsHeader() {
     let processedText = originalText.replace(translationRegex, (match) => {
         return translations[match.toLowerCase()] || match;
     });
-    
+
     processedText = processedText.replace(/(排序方式：)\s*(.+?)\s*(升序|降序)\s*$/g, '$1$2（$3）');
     processedText = processedText
         .replace(/You searched for:/i, '您搜索了：')
