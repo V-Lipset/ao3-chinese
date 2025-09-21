@@ -2,7 +2,7 @@
 // @name         AO3 Trans Script
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.0.8-custom-2025-08-29
+// @version      1.0.9-custom-2025-09-21
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
@@ -36,7 +36,6 @@
 // @grant        GM_getResourceURL
 // ==/UserScript==
 
-
 (function (window, document, undefined) {
     'use strict';
     /****************** 全局配置区 ******************/
@@ -61,17 +60,20 @@
     - Your entire response MUST consist of *only* the polished Chinese translation from Stage 3, formatted as a numbered list that exactly matches the input's numbering.
     - Do NOT include any stage numbers, headers (e.g., "Polished Translation"), notes, or explanations in your final output.
     - **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original, including their positions around the translated text.
+    - **Placeholder Preservation:** If an item contains special placeholders in the format \`ph_xxxxxx\` (e.g., \`ph_abcdef\`), you MUST preserve these placeholders exactly as they are. DO NOT translate, modify, add spaces to, delete, or alter them in any way.
     - **Untranslatable Content:** If an item is a separator, a meaningless symbol, or otherwise untranslatable, you MUST return the original item exactly as it is, preserving its number.
 
     ### Example Input:
     1. This is the <em>first</em> sentence.
     2. ---
-    3. This is the third sentence.
+    3. Her name is ph_aexzyr.
+    4. This is the fourth sentence.
 
     ### Example Output:
     1. 这是<em>第一个</em>句子。
     2. ---
-    3. 这是第三个句子。
+    3. 她的名字是 ph_aexzyr。
+    4. 这是第四个句子。
     `;
 
     // AI 请求数据构建
@@ -137,8 +139,8 @@
                     PARAGRAPH_LIMIT: 20,
                 },
                 subsequent: {
-                    CHUNK_SIZE: 6000,
-                    PARAGRAPH_LIMIT: 30,
+                    CHUNK_SIZE: 5000,
+                    PARAGRAPH_LIMIT: 25,
                 },
                 LAZY_LOAD_ROOT_MARGIN: '1200px 0px 3000px 0px',
             },
@@ -177,23 +179,6 @@
                         [sourceTexts, "auto", "zh-CN"], "te"
                     ]);
                 },
-                responseIdentifier: (response) => {
-                    try {
-                        const translatedHtmlSnippets = response[0];
-                        if (!translatedHtmlSnippets || !Array.isArray(translatedHtmlSnippets)) {
-                            throw new Error('从谷歌翻译接口返回的响应结构无效');
-                        }
-                        const parser = new DOMParser();
-                        return translatedHtmlSnippets.map((snippet, index) => {
-                            const doc = parser.parseFromString(snippet, 'text/html');
-                            const textContent = (doc.body.textContent || '').replace(/\n/g, ' ').trim();
-                            return `${index + 1}. ${textContent}`;
-                        }).join('\n\n');
-                    } catch (e) {
-                        console.error("解析谷歌翻译响应时出错:", e, "响应内容:", response);
-                        throw new Error('解析谷歌翻译接口的响应失败。');
-                    }
-                },
             },
             zhipu_ai: createStandardApiConfig({
                 name: 'Zhipu AI',
@@ -218,7 +203,7 @@
                         .join('\n\n');
 
                     const userPrompt = `Translate the following numbered list to Simplified Chinese（简体中文）:\n\n${numberedText}`;
-                    
+
                     return {
                         systemInstruction: {
                             role: "user",
@@ -270,8 +255,6 @@
     let isFirstTranslationChunk = true;
     // 页面配置缓存
     let pageConfig = {};
-    // 术语表缓存
-    let glossaryCache = null;
 
     /**
      * 菜单渲染函数
@@ -291,7 +274,7 @@
                 const newState = !showFab;
                 GM_setValue('show_fab', newState);
                 fabLogic.toggleFabVisibility();
-                render(); 
+                render();
             });
 
             const isPanelOpen = panelLogic.panel.style.display === 'block';
@@ -367,6 +350,14 @@
         return { fabContainer };
     }
 
+    const debounce = (func, delay) => {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    };
+
     /**
      * 悬浮球的交互事件
      */
@@ -386,13 +377,7 @@
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
         const limitNumber = (num, min, max) => Math.max(min, Math.min(num, max));
-        const debounce = (func, delay) => {
-            let timeout;
-            return (...args) => {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), delay);
-            };
-        };
+
         const savePosition = debounce((pos) => GM_setValue(FAB_POSITION_KEY, pos), 500);
 
         const updateFabSize = () => {
@@ -413,7 +398,7 @@
             const winW = document.documentElement.clientWidth;
             const winH = window.innerHeight;
             const currentPos = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
-            
+
             const dist = {
                 left: currentPos.x,
                 right: winW - (currentPos.x + fabSize.width),
@@ -457,10 +442,10 @@
 
         const activateFab = () => {
             if (isDragging || !fabContainer.classList.contains('snapped')) return;
-            
+
             window.removeEventListener('mousemove', checkMouseLeave);
             fabContainer.classList.add('is-active');
-            
+
             const winW = document.documentElement.clientWidth;
             const winH = window.innerHeight;
             const currentPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
@@ -468,7 +453,7 @@
 
 			if (currentPos.x < 0) newPos.x = RETRACT_MARGIN;
 			else if (currentPos.x > winW - fabSize.width) newPos.x = winW - fabSize.width - RETRACT_MARGIN;
-			
+
 			if (currentPos.y < 0) newPos.y = RETRACT_MARGIN;
 			else if (currentPos.y > winH - fabSize.height) newPos.y = winH - fabSize.height - RETRACT_MARGIN;
 
@@ -511,7 +496,7 @@
             if (isDragging) {
                 isDragging = false;
                 fabContainer.classList.remove('dragging');
-                
+
                 const winW = document.documentElement.clientWidth;
                 const winH = window.innerHeight;
                 let finalPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
@@ -519,7 +504,7 @@
                 finalPos.y = limitNumber(finalPos.y, 0, winH - fabSize.height);
                 setPosition(finalPos);
                 savePosition(finalPos);
-                
+
                 snapDecision();
             } else {
                 if (fabContainer.classList.contains('snapped') && !fabContainer.classList.contains('is-active')) {
@@ -551,7 +536,7 @@
         fabContainer.addEventListener('pointermove', onPointerMove);
         fabContainer.addEventListener('pointerup', onPointerUp);
         fabContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); panelLogic.togglePanel(); });
-        
+
         if (!isTouchDevice) {
             fabContainer.addEventListener('mouseenter', activateFab);
             fabContainer.addEventListener('mouseleave', () => {
@@ -707,10 +692,10 @@
                 box-shadow: none;
             }
             .settings-group .settings-control:hover { border-color: var(--ao3-trans-border-hover); }
-            .settings-group .settings-control:focus { 
-                border-color: var(--ao3-trans-primary-color); 
-                border-width: 1px; 
-                outline: none; 
+            .settings-group .settings-control:focus {
+                border-color: var(--ao3-trans-primary-color);
+                border-width: 1px;
+                outline: none;
             }
             .settings-group .settings-label {
                 position: absolute;
@@ -1041,6 +1026,7 @@
         const GLOSSARY_ACTION_KEY = 'ao3_glossary_last_action';
         let isDragging = false;
         let origin = { x: 0, y: 0 }, startPosition = { x: 0, y: 0 };
+        let activeDropdown = null;
 
         const isMobile = () => 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -1053,6 +1039,32 @@
             newPos.x = Math.max(margin, Math.min(newPos.x, winW - size.width - margin));
             newPos.y = Math.max(margin, Math.min(newPos.y, winH - size.height - margin));
             return newPos;
+        };
+
+        const updatePanelPosition = () => {
+            if (panel.style.display !== 'block') return;
+
+            if (isMobile()) {
+                panel.classList.add('mobile-fixed-center');
+                panel.style.left = '';
+                panel.style.top = '';
+            } else {
+                panel.classList.remove('mobile-fixed-center');
+                const panelWidth = 320;
+                panel.style.visibility = 'hidden';
+                const panelHeight = panel.offsetHeight;
+                panel.style.visibility = 'visible';
+
+                let savedPos = GM_getValue(PANEL_POSITION_KEY);
+                if (!savedPos || isDragging) {
+                    savedPos = { x: panel.offsetLeft, y: panel.offsetTop };
+                }
+
+                const correctedPos = ensureOnScreen(savedPos, { width: panelWidth, height: panelHeight });
+                panel.style.left = `${correctedPos.x}px`;
+                panel.style.top = `${correctedPos.y}px`;
+            }
+            repositionActiveDropdown();
         };
 
         const updateInputLabel = (input) => {
@@ -1203,7 +1215,7 @@
             panel.querySelectorAll('.settings-control, .settings-input, .settings-action-button-inline, .online-glossary-delete-btn').forEach(el => {
                 el.disabled = !isEnabled;
             });
-            
+
             updateAllLabels();
         };
 
@@ -1212,7 +1224,7 @@
             if (isOpening) {
                 editableSections.forEach(s => s.style.display = 'none');
                 syncPanelState();
-                
+
                 const lastAction = GM_getValue(GLOSSARY_ACTION_KEY, '');
                 glossaryActionsSelect.value = lastAction;
                 if (lastAction) {
@@ -1221,31 +1233,8 @@
                     glossaryActionsSelect.value = "";
                 }
 
-                if (isMobile()) {
-                    panel.classList.add('mobile-fixed-center');
-                    panel.style.left = '';
-                    panel.style.top = '';
-                } else {
-                    panel.classList.remove('mobile-fixed-center');
-                    const panelWidth = 320;
-                    panel.style.visibility = 'hidden';
-                    panel.style.display = 'block';
-                    const panelHeight = panel.offsetHeight;
-                    panel.style.display = 'none';
-                    panel.style.visibility = 'visible';
-
-                    let savedPos = GM_getValue(PANEL_POSITION_KEY);
-                    if (!savedPos) {
-                        savedPos = {
-                            x: (document.documentElement.clientWidth - panelWidth) / 2,
-                            y: (window.innerHeight - panelHeight) / 2
-                        };
-                    }
-                    const correctedPos = ensureOnScreen(savedPos, { width: panelWidth, height: panelHeight });
-                    panel.style.left = `${correctedPos.x}px`;
-                    panel.style.top = `${correctedPos.y}px`;
-                }
                 panel.style.display = 'block';
+                updatePanelPosition();
             } else {
                 panel.style.display = 'none';
                 if (onPanelCloseCallback) onPanelCloseCallback();
@@ -1340,7 +1329,6 @@
 
         glossaryLocalSaveBtn.addEventListener('click', () => {
             GM_setValue(LOCAL_GLOSSARY_STRING_KEY, glossaryLocalInput.value);
-            invalidateGlossaryCache();
             notifyAndLog('本地术语表已更新。');
         });
 
@@ -1349,7 +1337,6 @@
             const newTerms = rawInput.split(/[，,]/).map(t => t.trim()).filter(Boolean);
             GM_setValue(LOCAL_FORBIDDEN_TERMS_KEY, newTerms);
             GM_setValue(LOCAL_FORBIDDEN_STRING_KEY, rawInput);
-            invalidateGlossaryCache();
             notifyAndLog('禁翻术语表已更新。');
         });
 
@@ -1357,16 +1344,28 @@
             const url = glossaryImportUrlInput.value.trim();
             if (url) {
                 importOnlineGlossary(url, (newUrl, newName) => {
-                    if (glossaryManageSelect.disabled) {
+                    const wasEmpty = glossaryManageSelect.options.length === 0 || (glossaryManageSelect.options.length === 1 && glossaryManageSelect.options[0].disabled);
+
+                    if (wasEmpty) {
                         glossaryManageSelect.innerHTML = '';
                         glossaryManageSelect.disabled = false;
                     }
-                    const newOption = document.createElement('option');
-                    newOption.value = newUrl;
-                    newOption.textContent = newName;
-                    newOption.title = newName;
-                    glossaryManageSelect.appendChild(newOption);
-                    invalidateGlossaryCache();
+
+                    let existingOption = glossaryManageSelect.querySelector(`option[value="${newUrl}"]`);
+                    if (!existingOption) {
+                        const newOption = document.createElement('option');
+                        newOption.value = newUrl;
+                        newOption.textContent = newName;
+                        newOption.title = newName;
+                        glossaryManageSelect.appendChild(newOption);
+                    }
+
+                    if (wasEmpty) {
+                        glossaryManageSelect.value = newUrl;
+                        glossaryManageSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+
+                    updateInputLabel(glossaryManageSelect);
                 });
             }
         });
@@ -1394,7 +1393,6 @@
                     delete allMetadata[urlToRemove];
                     GM_setValue(IMPORTED_GLOSSARY_KEY, allGlossaries);
                     GM_setValue(GLOSSARY_METADATA_KEY, allMetadata);
-                    invalidateGlossaryCache();
                     notifyAndLog(`已删除术语表: ${decodeURIComponent(urlToRemove.split('/').pop())}`);
                     populateManageGlossary();
                     updateInputLabel(glossaryManageSelect);
@@ -1425,39 +1423,36 @@
 
         closeBtn.addEventListener('click', togglePanel);
 
-        if (!isMobile()) {
-            header.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                panel.classList.add('dragging');
-                origin = { x: e.clientX, y: e.clientY };
-                startPosition = { x: panel.offsetLeft, y: panel.offsetTop };
-            });
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                const newPos = {
-                    x: startPosition.x + e.clientX - origin.x,
-                    y: startPosition.y + e.clientY - origin.y
-                };
-                const correctedPos = ensureOnScreen(newPos, panel.getBoundingClientRect());
-                panel.style.left = `${correctedPos.x}px`;
-                panel.style.top = `${correctedPos.y}px`;
-            });
-            document.addEventListener('mouseup', () => {
-                if (!isDragging) return;
-                isDragging = false;
-                panel.classList.remove('dragging');
-                const finalPos = { x: panel.offsetLeft, y: panel.offsetTop };
-                GM_setValue(PANEL_POSITION_KEY, finalPos);
-            });
-        }
-
-        window.addEventListener('resize', () => {
-            if (panel.style.display === 'block' && !isMobile()) {
-                const correctedPos = ensureOnScreen({ x: panel.offsetLeft, y: panel.offsetTop }, panel.getBoundingClientRect());
-                panel.style.left = `${correctedPos.x}px`;
-                panel.style.top = `${correctedPos.y}px`;
-            }
+        header.addEventListener('mousedown', (e) => {
+            if (isMobile()) return;
+            isDragging = true;
+            panel.classList.add('dragging');
+            origin = { x: e.clientX, y: e.clientY };
+            startPosition = { x: panel.offsetLeft, y: panel.offsetTop };
         });
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const newPos = {
+                x: startPosition.x + e.clientX - origin.x,
+                y: startPosition.y + e.clientY - origin.y
+            };
+            const correctedPos = ensureOnScreen(newPos, panel.getBoundingClientRect());
+            panel.style.left = `${correctedPos.x}px`;
+            panel.style.top = `${correctedPos.y}px`;
+            repositionActiveDropdown();
+        });
+        document.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            panel.classList.remove('dragging');
+            const finalPos = { x: panel.offsetLeft, y: panel.offsetTop };
+            GM_setValue(PANEL_POSITION_KEY, finalPos);
+        });
+
+        const debouncedResizeHandler = debounce(() => {
+            updatePanelPosition();
+        }, 150);
+        window.addEventListener('resize', debouncedResizeHandler);
 
         const handleClickOutside = (event) => {
             if (panel.style.display !== 'block') {
@@ -1476,6 +1471,30 @@
         populateEngineSelect();
         populateManageGlossary();
         syncPanelState();
+
+        const repositionActiveDropdown = () => {
+            if (!activeDropdown || !activeDropdown.menu || !activeDropdown.trigger) {
+                return;
+            }
+
+            const { menu, trigger } = activeDropdown;
+            const rect = trigger.getBoundingClientRect();
+
+            menu.style.width = `${rect.width}px`;
+            menu.style.top = `${rect.bottom + 4}px`;
+            menu.style.left = `${rect.left}px`;
+
+            const menuRect = menu.getBoundingClientRect();
+            if (menuRect.right > window.innerWidth - 10) {
+                menu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
+            }
+            if (menuRect.bottom > window.innerHeight - 10) {
+                menu.style.top = `${rect.top - menuRect.height - 4}px`;
+                menu.style.transformOrigin = 'bottom center';
+            } else {
+                menu.style.transformOrigin = 'top center';
+            }
+        };
 
         function createCustomDropdown(triggerElement) {
             if (document.querySelector('.custom-dropdown-backdrop')) {
@@ -1511,19 +1530,9 @@
 
             document.body.appendChild(menu);
 
-            const rect = triggerElement.getBoundingClientRect();
-            menu.style.width = `${rect.width}px`;
-            menu.style.top = `${rect.bottom + 4}px`;
-            menu.style.left = `${rect.left}px`;
-            
-            const menuRect = menu.getBoundingClientRect();
-            if (menuRect.right > window.innerWidth - 10) {
-                menu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
-            }
-            if (menuRect.bottom > window.innerHeight - 10) {
-                menu.style.top = `${rect.top - menuRect.height - 4}px`;
-                menu.style.transformOrigin = 'bottom center';
-            }
+            activeDropdown = { menu: menu, trigger: triggerElement };
+
+            repositionActiveDropdown();
 
             requestAnimationFrame(() => {
                 menu.classList.add('visible');
@@ -1534,6 +1543,7 @@
                 menu.classList.remove('visible');
                 backdrop.remove();
                 setTimeout(() => menu.remove(), 200);
+                activeDropdown = null;
             };
 
             list.addEventListener('click', (e) => {
@@ -1744,7 +1754,17 @@
 		try {
 			let translatedText;
 			if (engineName === 'google_translate') {
-                translatedText = await _handleGoogleRequest(engineConfig, paragraphs);
+                const translatedHtmlSnippets = await _handleGoogleRequest(engineConfig, paragraphs);
+                if (!Array.isArray(translatedHtmlSnippets)) {
+                    throw new Error('谷歌翻译接口未返回预期的数组格式');
+                }
+                const innerContents = translatedHtmlSnippets.map(html => {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = html;
+                    return tempDiv.firstElementChild ? tempDiv.firstElementChild.innerHTML : '';
+                });
+                translatedText = innerContents.map((content, index) => `${index + 1}. ${content}`).join('\n\n');
+
             } else if (engineName === 'google_ai') {
 				translatedText = await _handleGoogleAiRequest(engineConfig, paragraphs);
 			} else {
@@ -1762,9 +1782,13 @@
                 throw error;
             }
 
-			const isRetriable = (error.type === 'server_overloaded' || error.type === 'rate_limit' || error.type === 'network' || error.type === 'timeout') ||
-								error.message.includes('超时') || 
-								error.message.includes('网络');
+			const isRetriable =
+                error.type === 'server_overloaded' ||
+                error.type === 'rate_limit' ||
+                error.type === 'network' ||
+                error.type === 'timeout' ||
+                error.message.includes('超时') ||
+                error.message.includes('网络');
 
 			if (retryCount < maxRetries && isRetriable) {
 				const delay = Math.pow(2, retryCount) * 1500 + Math.random() * 1000;
@@ -1782,7 +1806,7 @@
     async function _handleGoogleAiRequest(engineConfig, paragraphs) {
         const keys = GM_getValue('google_ai_keys_array', []);
         if (keys.length === 0) {
-            const error = new Error('请先在菜单中设置至少一个 Google AI API Key');
+            const error = new Error('请先在设置面板中设置至少一个 Google AI API Key');
             error.noRetry = true;
             throw error;
         }
@@ -1793,7 +1817,7 @@
         for (let i = 0; i < keys.length; i++) {
             const currentKey = keys[keyIndex];
             console.log(`正在尝试使用 Google AI API Key #${keyIndex + 1}...`);
-            
+
             const final_url = engineConfig.url_api.replace('{model}', modelId) + `?key=${currentKey}`;
             const requestData = engineConfig.getRequestData(paragraphs);
 
@@ -1805,8 +1829,6 @@
                         onload: (res) => {
                             let responseData = res.response;
                             if (typeof responseData === 'string') try { responseData = JSON.parse(responseData); } catch(e) {}
-                            
-                            console.debug("Google AI 响应详情：", { requestPayload: requestData, response: responseData, status: res.status });
 
                             const candidate = getNestedProperty(responseData, 'candidates[0]');
                             const translatedText = getNestedProperty(candidate, 'content.parts[0].text');
@@ -1831,7 +1853,7 @@
                                     errorType = 'key_invalid';
                                     message = `Key #${keyIndex + 1} 无效`;
                                 }
-                                
+
                                 reject({ type: errorType, message: message, res: res });
                             }
                         },
@@ -1839,14 +1861,14 @@
                         ontimeout: () => reject({ type: 'network', message: `Key #${keyIndex + 1} 请求超时` })
                     });
                 });
-                
+
                 const translatedText = getNestedProperty(result, engineConfig.responseIdentifier);
                 GM_setValue('google_ai_key_index', (keyIndex + 1) % keys.length);
                 return translatedText;
 
             } catch (errorData) {
                 const finalError = _handleGoogleAiError({ ...errorData, name: engineConfig.name });
-                
+
                 if (errorData.type === 'key_invalid' || getNestedProperty(errorData, 'res.status') === 403) {
                     keyIndex = (keyIndex + 1) % keys.length;
                     GM_setValue('google_ai_key_index', keyIndex);
@@ -1892,14 +1914,15 @@
         });
 
         if (res.status !== 200) {
-            console.debug(`谷歌翻译 异常响应详情：`, { requestPayload: requestData, response: res.response, status: res.status });
             throw new Error(`谷歌翻译 API 错误 (代码: ${res.status}): ${res.statusText}`);
         }
 
-        if (typeof engineConfig.responseIdentifier === 'function') {
-            return engineConfig.responseIdentifier(res.response);
+        const translatedHtmlSnippets = getNestedProperty(res.response, '0');
+        if (!translatedHtmlSnippets || !Array.isArray(translatedHtmlSnippets)) {
+            throw new Error('从谷歌翻译接口返回的响应结构无效');
         }
-        return getNestedProperty(res.response, engineConfig.responseIdentifier);
+
+        return translatedHtmlSnippets;
     }
 
     /**
@@ -1911,14 +1934,14 @@
 		let headers = { ...engineConfig.headers };
         const apiKey = GM_getValue(`${engineName.split('_')[0]}_api_key`);
         if (!apiKey) {
-            const error = new Error(`请先在菜单中设置 ${name} API Key`);
+            const error = new Error(`请先在设置面板中设置 ${name} API Key`);
             error.noRetry = true;
             throw error;
         }
         headers['Authorization'] = `Bearer ${apiKey}`;
 
 		const requestData = getRequestData(paragraphs);
-		
+
 		const res = await new Promise((resolve, reject) => {
 			GM_xmlhttpRequest({
 				method, url: url_api, headers, data: JSON.stringify(requestData),
@@ -1928,7 +1951,7 @@
 				ontimeout: () => reject(new Error('请求超时'))
 			});
 		});
-		
+
 		if (res.status !== 200) {
 			let responseData = res.response;
 			if (typeof responseData === 'string') try { responseData = JSON.parse(responseData); } catch (e) {}
@@ -1936,10 +1959,9 @@
             const errorHandler = API_ERROR_HANDLERS[engineName] || _handleDefaultApiError;
             const error = errorHandler(res, name, responseData);
 
-            console.debug(`${name} 异常响应详情：`, { requestPayload: requestData, response: res.response, status: res.status });
 			throw error;
 		}
-		
+
 		return getNestedProperty(res.response, responseIdentifier);
 	}
 
@@ -1956,7 +1978,7 @@
 
         switch (res.status) {
             case 401:
-                userFriendlyError = `API Key 无效或缺失 (401)：请在菜单中检查您的 ${name} API Key 是否正确填写。`;
+                userFriendlyError = `API Key 无效或缺失 (401)：请在设置面板中检查您的 ${name} API Key 是否正确填写。`;
                 error.noRetry = true;
                 break;
             case 429:
@@ -1973,7 +1995,7 @@
                 error.noRetry = true;
                 break;
         }
-        
+
         error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
         return error;
     }
@@ -1993,7 +2015,7 @@
                 case '1002':
                 case '1003':
                 case '1004':
-                    userFriendlyError = `API Key 无效或认证失败 (${businessErrorCode})：请在菜单中检查您的 ${name} API Key 是否正确填写。`;
+                    userFriendlyError = `API Key 无效或认证失败 (${businessErrorCode})：请在设置面板中检查您的 ${name} API Key 是否正确填写。`;
                     error.noRetry = true;
                     break;
                 case '1112':
@@ -2026,7 +2048,7 @@
         } else {
             switch (res.status) {
                 case 401:
-                    userFriendlyError = `API Key 无效或认证失败 (401)：请在菜单中检查您的 ${name} API Key 是否正确填写。`;
+                    userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${name} API Key 是否正确填写。`;
                     error.noRetry = true;
                     break;
                 case 429:
@@ -2043,7 +2065,7 @@
                     break;
             }
         }
-        
+
         error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
         return error;
     }
@@ -2063,7 +2085,7 @@
                 error.noRetry = true;
                 break;
             case 401:
-                userFriendlyError = `API Key 无效或认证失败 (401)：请在菜单中检查您的 ${name} API Key 是否正确填写。`;
+                userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${name} API Key 是否正确填写。`;
                 error.noRetry = true;
                 break;
             case 402:
@@ -2087,7 +2109,7 @@
                 error.noRetry = true;
                 break;
         }
-        
+
         error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
         return error;
     }
@@ -2104,7 +2126,7 @@
             userFriendlyError = `内容安全策略阻止：${message}。请尝试修改原文内容。`;
             error.noRetry = true;
         } else if (type === 'key_invalid') {
-            userFriendlyError = `API Key 无效或认证失败：${message}。请在菜单中检查您的 API Key。`;
+            userFriendlyError = `API Key 无效或认证失败：${message}。请在设置面板中检查您的 API Key。`;
             error.noRetry = true;
         } else if (res) {
             switch (res.status) {
@@ -2161,7 +2183,7 @@
                 error.noRetry = true;
                 break;
             case 401:
-                userFriendlyError = `API Key 无效或认证失败 (401)：请在菜单中检查您的 ${name} API Key 是否正确填写。`;
+                userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${name} API Key 是否正确填写。`;
                 error.noRetry = true;
                 break;
             case 402:
@@ -2174,7 +2196,7 @@
                 error.noRetry = true;
                 break;
             case 404:
-                userFriendlyError = `模型或终结点不存在 (404)：您选择的模型名称可能已失效。请尝试在菜单中切换至其她模型。`;
+                userFriendlyError = `模型或终结点不存在 (404)：您选择的模型名称可能已失效。请尝试在设置面板中切换至其她模型。`;
                 error.noRetry = true;
                 break;
             case 429:
@@ -2192,7 +2214,7 @@
                 error.noRetry = true;
                 break;
         }
-        
+
         error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
         return error;
     }
@@ -2204,22 +2226,44 @@
     API_ERROR_HANDLERS['cerebras_ai'] = _handleTogetherAiError;
 
     /**
-     * 为术语创建带有单词边界的正则表达式模式
+     * 为术语创建带有单词边界、全角/半角不敏感，且将空格与连字符视为等效分隔符的正则表达式模式
      */
     function createSmartRegexPattern(term) {
         if (!term) return '';
-        
-        const escapedTerm = term.replace(/([.*+?^${}()|[\]\\])/g, '\\$&');
-        const flexibleSpacedTerm = escapedTerm.replace(/[\s-–—−‒―]+/g, '[\\s-–—−‒―]+');
+
+        const combinedSeparatorPattern = '[\\s-－﹣—–]+';
+        const symbolMap = {
+            '(': '[\\(（]', ')': '[\\)）]',
+            '[': '[\\[［]', ']': '[\\]］]',
+            '{': '[\\{｛]', '}': '[\\}｝]',
+            '.': '[\\.。]', ':': '[:：]',
+            ',': '[,，]', ';': '[;；]',
+            '?': '[\\?？]', '!': '[!！]',
+            ' ': combinedSeparatorPattern,
+            '-': combinedSeparatorPattern
+        };
+
+        let pattern = '';
+        for (const char of term) {
+            const mappedPattern = symbolMap[char];
+            if (mappedPattern) {
+                if (mappedPattern === combinedSeparatorPattern && pattern.endsWith(combinedSeparatorPattern)) {
+                    continue;
+                }
+                pattern += mappedPattern;
+            } else {
+                pattern += char.replace(/([.*+?^${}|])/g, '\\$&');
+            }
+        }
 
         const wordCharRegex = /^[a-zA-Z0-9_]/;
         const startsWithWordChar = wordCharRegex.test(term);
         const endsWithWordChar = wordCharRegex.test(term.slice(-1));
-        
+
         const prefix = startsWithWordChar ? '\\b' : '';
         const suffix = endsWithWordChar ? '\\b' : '';
-        
-        return `${prefix}${flexibleSpacedTerm}${suffix}`;
+
+        return `${prefix}${pattern}${suffix}`;
     }
 
     /**
@@ -2235,9 +2279,199 @@
     }
 
     /**
+     * 在DOM节点内查找一个由多部分文本组成的序列
+     */
+    function findDOMSequence(rootNode, rule) {
+        const { parts, isGeneral } = rule;
+        const fullTextToMatch = parts.join(' ');
+
+        const textMap = [];
+        let currentText = '';
+
+        const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => {
+                if (node.parentElement.closest('[data-glossary-applied="true"]') || /^\s*$/.test(node.nodeValue)) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        });
+
+        let node;
+        while (node = walker.nextNode()) {
+            const nodeValue = node.nodeValue;
+            for (let i = 0; i < nodeValue.length; i++) {
+                textMap.push({ node: node, offset: i });
+            }
+            currentText += nodeValue;
+        }
+
+        const normalizedText = (isGeneral ? currentText.toLowerCase() : currentText).replace(/[\s-－﹣—–]+/g, ' ');
+        const normalizedTerm = (isGeneral ? fullTextToMatch.toLowerCase() : fullTextToMatch);
+
+        let searchFrom = 0;
+        let matchIndex;
+
+        while ((matchIndex = normalizedText.indexOf(normalizedTerm, searchFrom)) !== -1) {
+            const endMatchIndex = matchIndex + normalizedTerm.length;
+
+            const start = textMap[matchIndex];
+            const end = textMap[endMatchIndex - 1];
+
+            if (start && end) {
+                const prevCharIndex = matchIndex - 1;
+                const nextCharIndex = endMatchIndex;
+
+                const isStartBoundary = (prevCharIndex < 0) || /^\s$/.test(normalizedText[prevCharIndex]);
+                const isEndBoundary = (nextCharIndex >= normalizedText.length) || /^[\s.,!?;:)]$/.test(normalizedText[nextCharIndex]);
+
+                if (isStartBoundary && isEndBoundary) {
+                    return {
+                        startNode: start.node,
+                        startOffset: start.offset,
+                        endNode: end.node,
+                        endOffset: end.offset + 1,
+                    };
+                }
+            }
+            searchFrom = matchIndex + 1;
+        }
+        return null;
+    }
+
+    /**
+     * 预处理单个段落DOM节点，应用所有术语表规则并替换为占位符
+     */
+    function _preprocessParagraph(p, rules, placeholders, placeholderCache) {
+        const clone = p.cloneNode(true);
+
+        const domRules = rules.filter(r => r.matchStrategy === 'dom');
+        if (domRules.length > 0) {
+            let domReplaced;
+            do {
+                domReplaced = false;
+                for (const rule of domRules) {
+                    const match = findDOMSequence(clone, rule);
+                    if (match) {
+                        const range = document.createRange();
+                        range.setStart(match.startNode, match.startOffset);
+                        range.setEnd(match.endNode, match.endOffset);
+
+                        const contents = range.extractContents();
+                        const tempDiv = document.createElement('div');
+                        tempDiv.appendChild(contents);
+                        const originalHTML = tempDiv.innerHTML;
+
+                        const finalValue = rule.type === 'forbidden' ? originalHTML : rule.replacement;
+                        let placeholder;
+                        if (placeholderCache.has(finalValue)) {
+                            placeholder = placeholderCache.get(finalValue);
+                        } else {
+                            placeholder = `ph_${generateRandomPlaceholderString()}`;
+                            placeholderCache.set(finalValue, placeholder);
+                            placeholders.set(placeholder, finalValue);
+                        }
+                        range.insertNode(document.createTextNode(placeholder));
+
+                        clone.normalize();
+                        domReplaced = true;
+                        break;
+                    }
+                }
+            } while (domReplaced);
+        }
+
+        const regexRules = rules.filter(r => r.matchStrategy === 'regex');
+        if (regexRules.length > 0) {
+            const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, {
+                acceptNode: (node) => {
+                    if (node.parentElement.closest('[data-glossary-applied="true"]')) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            });
+            const textNodes = [];
+            let n;
+            while (n = walker.nextNode()) textNodes.push(n);
+
+            textNodes.forEach(node => {
+                if (!node.parentNode) return;
+                let text = node.nodeValue;
+                const replacements = [];
+
+                for (const rule of regexRules) {
+                    text = text.replace(rule.regex, (match) => {
+                        const id = `__REPL_${replacements.length}__`;
+                        replacements.push({ id, match, rule });
+                        return id;
+                    });
+                }
+
+                if (replacements.length > 0) {
+                    const fragment = document.createDocumentFragment();
+                    const parts = text.split(/(__REPL_\d+__)/g);
+                    parts.forEach(part => {
+                        if (part.startsWith('__REPL_')) {
+                            const repl = replacements.find(r => r.id === part);
+                            if (repl) {
+                                const appliedNode = _applyRuleToTextMatch(repl.match, repl.rule, placeholders, placeholderCache);
+                                fragment.appendChild(appliedNode);
+                            }
+                        } else if (part) {
+                            fragment.appendChild(document.createTextNode(part));
+                        }
+                    });
+                    node.parentNode.replaceChild(fragment, node);
+                }
+            });
+        }
+        return clone;
+    }
+
+    /**
+     * 将规则应用于通过正则表达式找到的文本匹配，并返回占位符文本节点
+     */
+    function _applyRuleToTextMatch(match, rule, placeholders, placeholderCache) {
+        const finalValue = rule.type === 'forbidden' ? match : rule.replacement;
+        let placeholder;
+        if (placeholderCache.has(finalValue)) {
+            placeholder = placeholderCache.get(finalValue);
+        } else {
+            placeholder = `ph_${generateRandomPlaceholderString()}`;
+            placeholderCache.set(finalValue, placeholder);
+            placeholders.set(placeholder, finalValue);
+        }
+        return document.createTextNode(placeholder);
+    }
+
+    /**
+     * 后处理翻译后的文本，将占位符还原为最终的HTML或文本
+     */
+    function _postprocessAndRestoreText(translatedText, placeholders) {
+        if (placeholders.size === 0) {
+            const finalResult = applyPostTranslationReplacements(translatedText);
+            return finalResult;
+        }
+
+        let processedText = translatedText;
+
+        for (const [placeholder, replacement] of placeholders.entries()) {
+            const regex = new RegExp(placeholder, 'g');
+            if (processedText.includes(placeholder)) {
+                processedText = processedText.replace(regex, replacement);
+            }
+        }
+
+        const finalResult = applyPostTranslationReplacements(processedText);
+
+        return finalResult;
+    }
+
+    /**
      * 段落翻译函数，集成了术语表、禁翻和后处理替换逻辑
      */
-    async function translateParagraphs(paragraphs, { retryCount = 0, maxRetries = 3 } = {}) {
+    async function translateParagraphs(paragraphs, { maxRetries = 3 } = {}) {
         if (!paragraphs || paragraphs.length === 0) {
             return new Map();
         }
@@ -2245,7 +2479,7 @@
         const indexedParagraphs = paragraphs.map((p, index) => ({
             original: p,
             index: index,
-            isSeparator: p.tagName === 'HR' || /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(p.textContent),
+            isSeparator: p.tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(p.textContent),
             content: p.innerHTML
         }));
 
@@ -2258,166 +2492,162 @@
             return results;
         }
 
-        try {
-            const maps = getGlossaryMaps();
-            const allTermKeys = [
-                ...maps.localForbidden.keys(), ...maps.localCaseSensitiveTerms.keys(),
-                ...maps.onlineForbidden.keys(), ...maps.onlineCaseSensitiveTerms.keys(), ...maps.onlineCaseInsensitiveTerms.keys()
-            ];
-            if (allTermKeys.length === 0) {
-                return await processTranslationWithoutGlossary(indexedParagraphs, contentToTranslate);
-            }
+        let lastTranslationAttempt = '';
+        let lastPlaceholdersMap = new Map();
 
-            const sortedKeys = [...new Set(allTermKeys)].sort((a, b) => b.length - a.length);
-            const singleTermPattern = sortedKeys.map(createSmartRegexPattern).filter(Boolean).join('|');
-            const singleTermRegex = new RegExp(singleTermPattern, 'gi');
-            const compoundTermRegex = new RegExp(`(?:${singleTermPattern})(?:[-\\s]*(?:${singleTermPattern}))*`, 'gi');
+        for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
+            try {
+                const rules = buildPrioritizedGlossaryMaps();
+                const placeholders = new Map();
+                const placeholderCache = new Map();
 
-            const placeholders = new Map();
-            const replacementToPlaceholderMap = new Map();
-
-            const getTranslationForPart = (part) => {
-                const lowerPart = part.toLowerCase();
-                let rule, baseTerm;
-                if ((baseTerm = maps.localForbidden.get(part)) || (baseTerm = maps.onlineForbidden.get(part))) {
-                    return baseTerm;
+                const preprocessedParagraphs = [];
+                const CHUNK_PROCESSING_SIZE = 5;
+                for (let i = 0; i < contentToTranslate.length; i++) {
+                    const p = contentToTranslate[i];
+                    preprocessedParagraphs.push(_preprocessParagraph(p.original, rules, placeholders, placeholderCache));
+                    if ((i + 1) % CHUNK_PROCESSING_SIZE === 0) {
+                        await sleep(0);
+                    }
                 }
-                if ((rule = maps.localCaseSensitiveTerms.get(part)) || (rule = maps.onlineCaseSensitiveTerms.get(part)) || (rule = maps.onlineCaseInsensitiveTerms.get(lowerPart))) {
-                    return rule.translation;
+
+                const preprocessedText = preprocessedParagraphs.map(p => p.innerHTML).join(' ');
+                const expectedCounts = {};
+                const legalPlaceholders = new Set();
+                for (const key of placeholders.keys()) {
+                    expectedCounts[key] = (preprocessedText.match(new RegExp(key, 'g')) || []).length;
+                    legalPlaceholders.add(key);
                 }
-                return part;
-            };
 
-            const preprocessedParagraphs = contentToTranslate.map(p => {
-                const clone = p.original.cloneNode(true);
-                const treeWalker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT);
-                let currentNode;
-                while (currentNode = treeWalker.nextNode()) {
-                    currentNode.nodeValue = currentNode.nodeValue.replace(compoundTermRegex, (compoundMatch) => {
-                        const finalTranslatedSnippet = compoundMatch.replace(singleTermRegex, getTranslationForPart);
-                        
-                        let placeholder = replacementToPlaceholderMap.get(finalTranslatedSnippet);
-                        if (!placeholder) {
-                            let randomPart;
-                            do {
-                                randomPart = generateRandomPlaceholderString();
-                                placeholder = `ph_${randomPart}`;
-                            } while (placeholders.has(placeholder));
-                            replacementToPlaceholderMap.set(finalTranslatedSnippet, placeholder);
-                            placeholders.set(placeholder, finalTranslatedSnippet);
-                        }
-                        return placeholder;
-                    });
-                }
-                return clone;
-            });
+                const combinedTranslation = await requestRemoteTranslation(preprocessedParagraphs);
 
-            const combinedTranslation = await requestRemoteTranslation(preprocessedParagraphs);
+                lastTranslationAttempt = combinedTranslation;
+                lastPlaceholdersMap = placeholders;
 
-            let restoredTranslation = combinedTranslation;
-            for (const [placeholder, value] of placeholders) {
-                const escapedPlaceholder = placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-                restoredTranslation = restoredTranslation.replace(new RegExp(`\\b${escapedPlaceholder}\\b`, 'gi'), value);
-            }
+                const suspectedPlaceholders = combinedTranslation.match(/ph_[a-zA-Z0-9_-]{3,}/g) || [];
+                const actualCounts = {};
+                legalPlaceholders.forEach(key => actualCounts[key] = 0);
 
-            restoredTranslation = applyPostTranslationReplacements(restoredTranslation);
+                let shouldRetryForUnknown = false;
+                let mismatchDetails = [];
 
-            let translatedParts = [];
-            const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
-            let match;
-            while ((match = regex.exec(restoredTranslation)) !== null) {
-                translatedParts.push(match[1].trim());
-            }
-
-            if (translatedParts.length !== contentToTranslate.length && restoredTranslation.includes('\n')) {
-                const potentialParts = restoredTranslation.split('\n').filter(p => p.trim().length > 0);
-                if (potentialParts.length === contentToTranslate.length) {
-                    translatedParts = potentialParts.map(p => p.replace(/^\d+\.\s*/, '').trim());
-                }
-            }
-
-            if (translatedParts.length !== contentToTranslate.length) {
-                throw new Error('AI 响应格式不一致，分段数量不匹配');
-            }
-
-            contentToTranslate.forEach((p, i) => {
-                p.translatedContent = AdvancedTranslationCleaner.clean(translatedParts[i] || p.content);
-            });
-
-            const finalResults = new Map();
-            indexedParagraphs.forEach(p => {
-                if (p.isSeparator) {
-                    finalResults.set(p.original, { status: 'success', content: p.content });
-                } else {
-                    finalResults.set(p.original, { status: 'success', content: p.translatedContent });
-                }
-            });
-            
-            return finalResults;
-
-        } catch (e) {
-            if (e.noRetry || retryCount >= maxRetries) {
-                console.error(`翻译失败: ${e.message}`);
-                if (e.message.includes('分段数量不匹配') && paragraphs.length > 1) {
-                    console.warn("批量翻译失败，自动切换到逐段翻译模式...");
-                    const fallbackResults = new Map();
-                    for (const p of paragraphs) {
-                        const singleResultMap = await translateParagraphs([p], { maxRetries: 0 });
-                        const singleResult = singleResultMap.get(p);
-                        if (singleResult?.status === 'success') {
-                            fallbackResults.set(p, singleResult);
-                        } else {
-                            const errorMessage = singleResult?.content || e.message || '未知错误';
-                            console.error(`逐段翻译失败: ${errorMessage}`);
-                            fallbackResults.set(p, { status: 'error', content: errorMessage });
+                for (const suspected of suspectedPlaceholders) {
+                    let isKnown = false;
+                    for (const legal of legalPlaceholders) {
+                        if (suspected.startsWith(legal)) {
+                            actualCounts[legal]++;
+                            isKnown = true;
+                            break;
                         }
                     }
-                    return fallbackResults;
-                } else {
-                    const results = new Map();
-                    const finalErrorMessage = `翻译失败：${e.message}`;
-                    paragraphs.forEach(p => {
-                        results.set(p, { status: 'error', content: finalErrorMessage });
-                    });
-                    return results;
+                    if (!isKnown) {
+                        shouldRetryForUnknown = true;
+                        mismatchDetails.push(`检测到未知占位符: "${suspected}"`);
+                    }
                 }
-            } else {
-                console.warn(`翻译失败 (尝试 ${retryCount + 1}/${maxRetries + 1}): ${e.message}`);
-                await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
-                return await translateParagraphs(paragraphs, { retryCount: retryCount + 1, maxRetries });
+
+                let shouldRetryForMissing = false;
+                for (const key of legalPlaceholders) {
+                    const expected = expectedCounts[key];
+                    const actual = actualCounts[key];
+                    if (expected > actual && (expected - actual > 5 || expected > 2 && actual === 0)) {
+                        shouldRetryForMissing = true;
+                        mismatchDetails.push(`占位符 "${key}" 大量缺失。期望: ${expected}, 实际: ${actual}`);
+                    }
+                }
+
+                if (mismatchDetails.length > 0) {
+                    mismatchDetails.forEach(detail => console.warn(`[校验警告] ${detail}`));
+                }
+
+                if (shouldRetryForMissing || shouldRetryForUnknown) {
+                    const errorReason = shouldRetryForUnknown ? "检测到未知占位符" : "占位符大量缺失";
+                    throw new Error(`占位符校验失败 (${errorReason})！`);
+                }
+
+                const restoredTranslation = _postprocessAndRestoreText(combinedTranslation, placeholders);
+
+                let translatedParts = [];
+                const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
+                let match;
+                while ((match = regex.exec(restoredTranslation)) !== null) {
+                    translatedParts.push(match[1].trim());
+                }
+
+                if (translatedParts.length !== contentToTranslate.length && restoredTranslation.includes('\n')) {
+                    const potentialParts = restoredTranslation.split('\n').filter(p => p.trim().length > 0);
+                    if (potentialParts.length === contentToTranslate.length) {
+                        translatedParts = potentialParts.map(p => p.replace(/^\d+\.\s*/, '').trim());
+                    }
+                }
+
+                if (translatedParts.length !== contentToTranslate.length) {
+                    throw new Error('AI 响应格式不一致，分段数量不匹配');
+                }
+
+                const finalResults = new Map();
+                indexedParagraphs.forEach(p => {
+                    if (p.isSeparator) {
+                        finalResults.set(p.original, { status: 'success', content: p.content });
+                    } else {
+                        const originalPara = contentToTranslate.find(item => item.index === p.index);
+                        if (originalPara) {
+                            const transIndex = contentToTranslate.indexOf(originalPara);
+                            const cleanedContent = AdvancedTranslationCleaner.clean(translatedParts[transIndex] || p.content);
+                            finalResults.set(p.original, { status: 'success', content: cleanedContent });
+                        }
+                    }
+                });
+                return finalResults;
+
+            } catch (e) {
+                if (retryCount < maxRetries) {
+                    console.warn(`[重试机制] 翻译尝试失败 (${e.message})，正在进行第 ${retryCount + 1} 次重试...`);
+                    await sleep(500 * (retryCount + 1));
+                    continue;
+                } else {
+                    console.error(`[重试机制] 所有翻译尝试均失败。`, `最终错误: ${e.message}`);
+
+                    if (e.message.includes('分段数量不匹配') && paragraphs.length > 1) {
+                        console.warn("批量翻译失败，自动切换到逐段翻译模式...");
+                        const fallbackResults = new Map();
+                        for (const p of paragraphs) {
+                            const singleResultMap = await translateParagraphs([p], { maxRetries: 0 });
+                            const singleResult = singleResultMap.get(p);
+                            fallbackResults.set(p, singleResult || { status: 'error', content: '逐段翻译失败' });
+                        }
+                        return fallbackResults;
+                    }
+
+                    const restoredTranslation = _postprocessAndRestoreText(lastTranslationAttempt, lastPlaceholdersMap);
+                    let translatedParts = [];
+                    const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
+                    let match;
+                    while ((match = regex.exec(restoredTranslation)) !== null) {
+                        translatedParts.push(match[1].trim());
+                    }
+                    const finalResults = new Map();
+                    indexedParagraphs.forEach(p => {
+                        if (p.isSeparator) {
+                            finalResults.set(p.original, { status: 'success', content: p.content });
+                        } else {
+                            const originalPara = contentToTranslate.find(item => item.index === p.index);
+                            if (originalPara) {
+                                const transIndex = contentToTranslate.indexOf(originalPara);
+                                const content = translatedParts[transIndex] || `翻译失败：${e.message}`;
+                                const cleanedContent = AdvancedTranslationCleaner.clean(content);
+                                finalResults.set(p.original, { status: 'success', content: cleanedContent });
+                            }
+                        }
+                    });
+                    return finalResults;
+                }
             }
         }
     }
 
-    async function processTranslationWithoutGlossary(indexedParagraphs, contentToTranslate) {
-        const combinedTranslation = await requestRemoteTranslation(contentToTranslate.map(p => p.original));
-        let translatedParts = [];
-        const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
-        let match;
-        while ((match = regex.exec(combinedTranslation)) !== null) {
-            translatedParts.push(match[1].trim());
-        }
-        if (translatedParts.length !== contentToTranslate.length) {
-            throw new Error('AI 响应格式不一致，分段数量不匹配');
-        }
-        contentToTranslate.forEach((p, i) => {
-            p.translatedContent = AdvancedTranslationCleaner.clean(translatedParts[i] || p.content);
-        });
-        const finalResults = new Map();
-        indexedParagraphs.forEach(p => {
-            if (p.isSeparator) {
-                finalResults.set(p.original, { status: 'success', content: p.content });
-            } else {
-                finalResults.set(p.original, { status: 'success', content: p.translatedContent });
-            }
-        });
-        return finalResults;
-    }
-    
     /**
-     * 翻译引擎（可清除译文）
-     * @param {HTMLElement} containerElement - 容器元素
-     * @param {function} onComplete - 全部翻译完成后的回调
+     * 翻译引擎（简介、注释、评论等）
      */
     async function runTranslationEngineForBlock(containerElement, onComplete) {
         const translatableSelectors = 'p, blockquote, li, h1, h2, h3:not(.landmark), h4, h5, h6';
@@ -2450,16 +2680,17 @@
             const result = translationResults.get(unit);
             if (result) {
                 const transNode = document.createElement('div');
-                const tagName = unit.tagName.toLowerCase();
+                const newTranslatedElement = unit.cloneNode(false);
+                newTranslatedElement.innerHTML = result.content;
+
                 if (result.status === 'success') {
                     transNode.className = 'translated-by-ao3-script';
-                    transNode.innerHTML = `<${tagName}>${result.content}</${tagName}>`;
                     unit.dataset.translationState = 'translated';
                 } else {
                     transNode.className = 'translated-by-ao3-script-error';
-                    transNode.innerHTML = `<${tagName}>${result.content}</${tagName}>`;
                     unit.dataset.translationState = 'error';
                 }
+                transNode.appendChild(newTranslatedElement);
                 transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
                 unit.after(transNode);
             } else {
@@ -2471,16 +2702,83 @@
     }
 
     /**
-     * 翻译引擎（懒加载模式）
-     * @param {HTMLElement} containerElement - 容器元素
+     * 正文翻译任务状态管理
      */
-    function runTranslationEngineWithObserver(containerElement) {
+    const mainTextTranslator = {
+        state: 'idle',
+        observer: null,
+        isCancellationRequested: false,
+        buttonWrapper: null,
+        containerElement: null,
 
+        start: function(container, wrapper) {
+            if (this.state === 'running') return;
+
+            this.state = 'running';
+            this.isCancellationRequested = false;
+            this.containerElement = container;
+            this.buttonWrapper = wrapper;
+
+            this.observer = runTranslationEngineWithObserver({
+                containerElement: this.containerElement,
+                isCancelled: () => this.isCancellationRequested,
+                onProgress: (translated, total) => {
+                },
+                onComplete: () => {
+                    if (!this.isCancellationRequested) {
+                        this.state = 'complete';
+                        this._updateButtonState('已翻译');
+                    }
+                }
+            });
+        },
+
+        stop: function() {
+            if (this.state !== 'running') return;
+
+            this.state = 'paused';
+            this.isCancellationRequested = true;
+            if (this.observer) {
+                this.observer.disconnect();
+            }
+            this.observer = null;
+        },
+
+        clear: function() {
+            this.stop();
+
+            if (this.containerElement) {
+                const translationNodes = this.containerElement.querySelectorAll('.translated-by-ao3-script, .translated-by-ao3-script-error');
+                translationNodes.forEach(node => node.remove());
+
+                this.containerElement.querySelectorAll('[data-translation-state="translated"]').forEach(originalUnit => {
+                    originalUnit.style.display = '';
+                    delete originalUnit.dataset.translationState;
+                });
+            }
+
+            this.state = 'idle';
+        },
+
+        _updateButtonState: function(text) {
+            if (this.buttonWrapper) {
+                const button = this.buttonWrapper.querySelector('div');
+                if (button) {
+                    button.textContent = text;
+                }
+            }
+        }
+    };
+
+    /**
+     * 翻译引擎（懒加载模式）
+     */
+    function runTranslationEngineWithObserver(options) {
+        const { containerElement, isCancelled, onProgress, onComplete } = options;
         const elementState = new WeakMap();
 
         function preProcessAndGetUnits(container) {
             const elementsToProcess = container.querySelectorAll('p, blockquote');
-            
             const elementsToModify = [];
             elementsToProcess.forEach(el => {
                 if (elementState.has(el)) return;
@@ -2494,17 +2792,12 @@
             elementsToModify.forEach(el => {
                 const separatorRegex = /(?:\s*<br\s*\/?>\s*)+/ig;
                 const fragmentsHTML = el.innerHTML.split(separatorRegex);
-                
-                const newElements = fragmentsHTML
-                    .map(fragment => fragment.trim())
-                    .filter(fragment => fragment)
-                    .map(fragment => {
-                        const newP = document.createElement(el.tagName);
-                        newP.innerHTML = fragment;
-                        elementState.set(newP, { preprocessed: true });
-                        return newP;
-                    });
-
+                const newElements = fragmentsHTML.map(fragment => fragment.trim()).filter(fragment => fragment).map(fragment => {
+                    const newP = document.createElement(el.tagName);
+                    newP.innerHTML = fragment;
+                    elementState.set(newP, { preprocessed: true });
+                    return newP;
+                });
                 if (newElements.length > 1) {
                     el.after(...newElements);
                     el.remove();
@@ -2513,21 +2806,27 @@
 
             const translatableSelectors = 'p, blockquote, li, h1, h2, h3, h4, h5, h6, hr';
             const allPotentialUnits = Array.from(container.querySelectorAll(translatableSelectors));
-            
             const skippableHeaders = ['Summary', 'Notes', 'Work Text', 'Chapter Text'];
             const candidateUnits = allPotentialUnits.filter(p => !skippableHeaders.includes(p.textContent.trim()));
-
             const finalUnits = [];
             for (const unit of candidateUnits) {
                 if (!unit.querySelector(translatableSelectors)) {
                     finalUnits.push(unit);
                 }
             }
-            
             return finalUnits;
         }
-        
+
         const allUnits = preProcessAndGetUnits(containerElement);
+        const unitsToObserve = allUnits.filter(unit => !unit.dataset.translationState);
+        const totalUnits = unitsToObserve.length;
+        let translatedUnits = 0;
+
+        if (totalUnits === 0) {
+            if (onComplete) onComplete();
+            return null;
+        }
+
         let isProcessing = false;
         const translationQueue = new Set();
         let scheduleTimeout = null;
@@ -2535,12 +2834,12 @@
 
         const isInViewport = (el) => {
             const rect = el.getBoundingClientRect();
-            return ( rect.top < window.innerHeight && rect.bottom >= 0 );
+            return (rect.top < window.innerHeight && rect.bottom >= 0);
         };
 
-        const processQueue = async (observer, forceFlush = false) => {
-            if (isProcessing || translationQueue.size === 0) return;
-            
+        const processQueue = async (forceFlush = false) => {
+            if (isCancelled() || isProcessing || translationQueue.size === 0) return;
+
             clearTimeout(flushTimeout);
 
             const allQueuedUnits = [...translationQueue];
@@ -2551,28 +2850,24 @@
             const prioritizedUnits = [...visibleInQueue, ...offscreenInQueue];
 
             const runType = isFirstTranslationChunk ? 'first' : 'subsequent';
-            
             const engineName = getValidEngineName();
             const modelId = getCurrentModelId();
-
             let paragraphLimit = CONFIG[runType === 'first' ? 'PARAGRAPH_LIMIT' : 'SUBSEQUENT_PARAGRAPH_LIMIT'];
             let chunkSize = CONFIG[runType === 'first' ? 'CHUNK_SIZE' : 'SUBSEQUENT_CHUNK_SIZE'];
-
             const priorityKeys = [modelId, engineName].filter(Boolean);
             for (const key of priorityKeys) {
                 const specificLimits = getNestedProperty(CONFIG.MODEL_SPECIFIC_LIMITS, `${key}.${runType}`);
                 if (specificLimits) {
                     paragraphLimit = specificLimits.PARAGRAPH_LIMIT || paragraphLimit;
                     chunkSize = specificLimits.CHUNK_SIZE || chunkSize;
-                    break; 
+                    break;
                 }
             }
 
             let currentChars = 0;
             let chunkToSend = [];
-
             for (const unit of prioritizedUnits) {
-                const isSeparator = unit.tagName === 'HR' || /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(unit.textContent);
+                const isSeparator = unit.tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(unit.textContent);
                 if (isSeparator) {
                     if (chunkToSend.length > 0) break;
                     chunkToSend.push(unit);
@@ -2580,72 +2875,84 @@
                 }
                 chunkToSend.push(unit);
                 currentChars += unit.textContent.length;
-                if (chunkToSend.length >= paragraphLimit || currentChars >= chunkSize) {
-                    break;
-                }
+                if (chunkToSend.length >= paragraphLimit || currentChars >= chunkSize) break;
             }
 
             const isChunkBigEnough = chunkToSend.length >= paragraphLimit || currentChars >= chunkSize;
-            const isChunkSeparator = chunkToSend.length > 0 && (chunkToSend[0].tagName === 'HR' || /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(chunkToSend[0].textContent));
+            const isChunkSeparator = chunkToSend.length > 0 && (chunkToSend[0].tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(chunkToSend[0].textContent));
 
             if (!isChunkBigEnough && !isChunkSeparator && !forceFlush) {
                 if (translationQueue.size > 0) {
-                    flushTimeout = setTimeout(() => scheduleProcessing(observer, true), 4000);
+                    flushTimeout = setTimeout(() => scheduleProcessing(true), 4000);
                 }
                 return;
             }
-            
             if (chunkToSend.length === 0) return;
 
             isProcessing = true;
             if (isFirstTranslationChunk) isFirstTranslationChunk = false;
-            chunkToSend.forEach(p => translationQueue.delete(p));
+            chunkToSend.forEach(p => {
+                translationQueue.delete(p);
+                p.dataset.translationState = 'translating';
+            });
 
             const paragraphsToTranslate = chunkToSend.filter(p => p.tagName !== 'HR' && p.textContent.trim().length > 0);
             const translationResults = paragraphsToTranslate.length > 0 ? await translateParagraphs(paragraphsToTranslate) : new Map();
 
+            if (isCancelled()) {
+                isProcessing = false;
+                return;
+            }
+
             for (const p of chunkToSend) {
-                if (p.tagName === 'HR' || p.textContent.trim().length === 0 || /^\s*[-—*~<>#.=_\s]{3,}\s*$/.test(p.textContent)) {
-                    elementState.set(p, { ...elementState.get(p), status: 'translated' });
+                observer.unobserve(p);
+                translatedUnits++;
+
+                if (p.tagName === 'HR' || p.textContent.trim().length === 0 || /^\s*[-—*~<>=.]{3,}\s*$/.test(p.textContent)) {
                     p.dataset.translationState = 'translated';
-                    if (observer) observer.unobserve(p);
                     continue;
                 }
                 const result = translationResults.get(p);
                 if (result) {
                     const transNode = document.createElement('div');
+                    const newTranslatedElement = p.cloneNode(false);
+                    newTranslatedElement.innerHTML = result.content;
+
                     if (result.status === 'success') {
                         transNode.className = 'translated-by-ao3-script';
-                        transNode.innerHTML = `<${p.tagName.toLowerCase()}>${result.content}</${p.tagName.toLowerCase()}>`;
                         const currentMode = GM_getValue('translation_display_mode', 'bilingual');
                         if (currentMode === 'translation_only') p.style.display = 'none';
-                        elementState.set(p, { ...elementState.get(p), status: 'translated' });
                         p.dataset.translationState = 'translated';
-                        if (observer) observer.unobserve(p);
                     } else {
                         transNode.className = 'translated-by-ao3-script-error';
-                        transNode.innerHTML = `<${p.tagName.toLowerCase()}>翻译失败：${result.content.replace('翻译失败：', '')}</${p.tagName.toLowerCase()}>`;
-                        elementState.delete(p);
+                        newTranslatedElement.innerHTML = `翻译失败：${result.content.replace('翻译失败：', '')}`;
+                        p.dataset.translationState = 'error';
                     }
+                    transNode.appendChild(newTranslatedElement);
                     transNode.style.cssText = 'margin-top: 0.25em; margin-bottom: 1em;';
                     p.after(transNode);
                 } else {
-                    elementState.delete(p);
+                    p.dataset.translationState = 'error';
                 }
             }
 
+            if (onProgress) onProgress(translatedUnits, totalUnits);
             isProcessing = false;
 
-            if (translationQueue.size > 0) {
-                scheduleProcessing(observer, false);
+            if (translatedUnits >= totalUnits) {
+                if (onComplete) onComplete();
+                if (observer) observer.disconnect();
+            } else if (translationQueue.size > 0) {
+                scheduleProcessing(false);
             }
         };
 
-        const scheduleProcessing = (observer, force = false) => {
+        const scheduleProcessing = (force = false) => {
+            if (isCancelled()) return;
             clearTimeout(scheduleTimeout);
-            scheduleTimeout = setTimeout(() => processQueue(observer, force), 300);
+            scheduleTimeout = setTimeout(() => processQueue(force), 300);
         };
-        
+
         let effectiveRootMargin = CONFIG.LAZY_LOAD_ROOT_MARGIN;
         const engineName = getValidEngineName();
         const modelId = getCurrentModelId();
@@ -2658,32 +2965,30 @@
             }
         }
 
-        const observer = new IntersectionObserver((entries, obs) => {
+        const observer = new IntersectionObserver((entries) => {
+            if (isCancelled()) return;
             let addedToQueue = false;
             entries.forEach(entry => {
-                const state = elementState.get(entry.target);
-                if (entry.isIntersecting && (!state || !state.status)) {
-                    elementState.set(entry.target, { ...state, status: 'queued' });
+                if (entry.isIntersecting && !entry.target.dataset.translationState) {
                     translationQueue.add(entry.target);
                     addedToQueue = true;
                 }
             });
-
             if (addedToQueue) {
-                scheduleProcessing(obs, false);
+                scheduleProcessing(false);
             }
         }, { rootMargin: effectiveRootMargin });
 
-        allUnits.forEach(unit => {
-            if (!elementState.get(unit)?.status) {
-                observer.observe(unit);
-            }
+        unitsToObserve.forEach(unit => {
+            observer.observe(unit);
         });
+
+        return observer;
     }
 
-	/**
-	 * 各种术语表变量
-	 */
+    /**
+     * 各种术语表变量
+     */
     const LOCAL_GLOSSARY_KEY = 'ao3_local_glossary';
     const LOCAL_GLOSSARY_STRING_KEY = 'ao3_local_glossary_string';
     const LOCAL_FORBIDDEN_TERMS_KEY = 'ao3_local_forbidden_terms';
@@ -2694,9 +2999,9 @@
     const POST_REPLACE_MAP_KEY = 'ao3_post_replace_map';
     const LAST_SELECTED_GLOSSARY_KEY = 'ao3_last_selected_glossary_url';
 
-	/**
-	 * 解析自定义的、非 JSON 格式的术语表文本
-	 */
+    /**
+     * 解析自定义的、非 JSON 格式的术语表文本
+     */
     function parseCustomGlossaryFormat(text) {
         const result = {
             metadata: {},
@@ -2704,20 +3009,22 @@
             generalTerms: {},
             multiPartTerms: {},
             multiPartGeneralTerms: {},
-            forbiddenTerms: []
+            forbiddenTerms: [],
+            regexTerms: []
         };
         const lines = text.split('\n');
 
         const sectionHeaders = {
             TERMS: ['terms', '词条'],
             GENERAL_TERMS: ['general terms', '通用词条'],
-            FORBIDDEN_TERMS: ['forbidden terms', '禁翻词条']
+            FORBIDDEN_TERMS: ['forbidden terms', '禁翻词条'],
+            REGEX_TERMS: ['regex', '正则表达式']
         };
 
         const sections = [];
         let metadataLines = [];
-
         let inMetadata = true;
+
         for (let i = 0; i < lines.length; i++) {
             const trimmedLine = lines[i].trim().toLowerCase().replace(/[:：\s]*$/, '');
             let isHeader = false;
@@ -2729,7 +3036,7 @@
                     break;
                 }
             }
-            if (inMetadata && !isHeader) {
+            if (inMetadata && lines[i].trim()) {
                 metadataLines.push(lines[i]);
             }
         }
@@ -2748,16 +3055,16 @@
         const processLine = (line, target, multiPartTarget) => {
             const trimmedLine = line.trim();
             if (!trimmedLine || trimmedLine.startsWith('//')) return;
-            
-            const multiPartParts = line.split(/[=＝]/, 2);
+
+            const multiPartParts = trimmedLine.split(/[=＝]/, 2);
             if (multiPartParts.length === 2) {
                 const key = multiPartParts[0].trim();
                 const value = multiPartParts[1].trim().replace(/[,，]$/, '');
                 if (key && value) multiPartTarget[key] = value;
                 return;
             }
-            
-            const singleParts = line.split(/[:：]/, 2);
+
+            const singleParts = trimmedLine.split(/[:：]/, 2);
             if (singleParts.length === 2) {
                 const key = singleParts[0].trim();
                 const value = singleParts[1].trim().replace(/[,，]$/, '');
@@ -2771,6 +3078,9 @@
             const sectionLines = lines.slice(section.start, end);
 
             for (const line of sectionLines) {
+                const trimmedLine = line.trim();
+                if (!trimmedLine || trimmedLine.startsWith('//')) continue;
+
                 switch (section.type) {
                     case 'TERMS':
                         processLine(line, result.terms, result.multiPartTerms);
@@ -2779,8 +3089,18 @@
                         processLine(line, result.generalTerms, result.multiPartGeneralTerms);
                         break;
                     case 'FORBIDDEN_TERMS':
-                        const term = line.trim().replace(/[,，]$/, '');
-                        if (term && !term.startsWith('//')) result.forbiddenTerms.push(term);
+                        const term = trimmedLine.replace(/[,，]$/, '');
+                        if (term) result.forbiddenTerms.push(term);
+                        break;
+                    case 'REGEX_TERMS':
+                        const match = trimmedLine.match(/^(.+?)\s*[:：]\s*(.*)$/s);
+                        if (match) {
+                            const pattern = match[1].trim();
+                            const replacement = match[2].trim().replace(/[,，]$/, '');
+                            if (pattern) {
+                                result.regexTerms.push({ pattern, replacement });
+                            }
+                        }
                         break;
                 }
             }
@@ -2789,34 +3109,13 @@
         if (!result.metadata.version) {
             throw new Error('文件格式错误：必须在文件头部包含 "版本号" 或 "version" 字段。');
         }
-        if (Object.keys(result.terms).length === 0 && Object.keys(result.generalTerms).length === 0 && Object.keys(result.multiPartTerms).length === 0 && Object.keys(result.multiPartGeneralTerms).length === 0 && result.forbiddenTerms.length === 0) {
-            throw new Error('文件格式错误：必须包含 "词条"、"通用词条" 或 "禁翻词条" 部分，且至少有一个有效词条。');
+        if (Object.keys(result.terms).length === 0 && Object.keys(result.generalTerms).length === 0 &&
+            Object.keys(result.multiPartTerms).length === 0 && Object.keys(result.multiPartGeneralTerms).length === 0 &&
+            result.forbiddenTerms.length === 0 && result.regexTerms.length === 0) {
+            throw new Error('文件格式错误：必须包含至少一个有效词条区域 (词条, 通用词条, 禁翻词条, 正则表达式)。');
         }
-        
-        return result;
-    }
 
-    /**
-     * 处理并解析不规范的 JSON 字符串
-     */
-    function sanitizeAndParseJson(jsonString) {
-        if (typeof jsonString !== 'string') {
-            throw new TypeError('输入内容无效，必须为字符串。');
-        }
-        const trimmedString = jsonString.trim();
-        if (trimmedString === '') {
-            throw new Error('输入内容无效，不能为空字符串。');
-        }
-        const sanitizedString = trimmedString
-            .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '')
-            .replace(/,\s*([}\]])/g, '$1');
-        try {
-            return JSON.parse(sanitizedString);
-        } catch (error) {
-            console.error("JSON 净化后解析失败:", error);
-            console.error("净化后的内容:", sanitizedString);
-            throw new Error(`JSON 格式严重错误，自动净化未能修复此问题: ${error.message}`);
-        }
+        return result;
     }
 
     /**
@@ -2846,30 +3145,16 @@
                     return;
                 }
                 try {
-                    let onlineData;
-                    try {
-                        onlineData = parseCustomGlossaryFormat(response.responseText);
-                    } catch (customError) {
-                        const jsonData = sanitizeAndParseJson(response.responseText);
-                        if (!jsonData.version || typeof jsonData.terms !== 'object') {
-                            throw new Error('JSON 格式不规范，缺少 "version" 或 "terms" 字段。');
-                        }
-                        onlineData = {
-                            metadata: {
-                                maintainer: jsonData.maintainer || '未知',
-                                version: jsonData.version,
-                                last_updated: jsonData.last_updated || new Date().toISOString()
-                            },
-                            terms: jsonData.terms, generalTerms: {}, multiPartTerms: {},
-                            multiPartGeneralTerms: {}, forbiddenTerms: []
-                        };
-                    }
+                    const onlineData = parseCustomGlossaryFormat(response.responseText);
 
                     const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
                     allImportedGlossaries[url] = {
-                        terms: onlineData.terms, generalTerms: onlineData.generalTerms,
-                        multiPartTerms: onlineData.multiPartTerms, multiPartGeneralTerms: onlineData.multiPartGeneralTerms,
-                        forbiddenTerms: onlineData.forbiddenTerms
+                        terms: onlineData.terms,
+                        generalTerms: onlineData.generalTerms,
+                        multiPartTerms: onlineData.multiPartTerms,
+                        multiPartGeneralTerms: onlineData.multiPartGeneralTerms,
+                        forbiddenTerms: onlineData.forbiddenTerms,
+                        regexTerms: onlineData.regexTerms
                     };
                     GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
 
@@ -2877,7 +3162,9 @@
                     metadata[url] = { ...onlineData.metadata, last_imported: new Date().toISOString() };
                     GM_setValue(GLOSSARY_METADATA_KEY, metadata);
 
-                    const importedCount = Object.keys(onlineData.terms).length + Object.keys(onlineData.generalTerms).length + Object.keys(onlineData.multiPartTerms).length + Object.keys(onlineData.multiPartGeneralTerms).length;
+                    const importedCount = Object.keys(onlineData.terms).length + Object.keys(onlineData.generalTerms).length +
+                                          Object.keys(onlineData.multiPartTerms).length + Object.keys(onlineData.multiPartGeneralTerms).length +
+                                          onlineData.regexTerms.length;
                     notifyAndLog(`已成功导入 “${glossaryName}” 术语表（v${onlineData.metadata.version}），共 ${importedCount} 个词条。`, '导入成功');
 
                     if (typeof onCompleteCallback === 'function') {
@@ -2911,9 +3198,9 @@
         return 0;
     }
 
-	/**
-	 * 检查并更新所有已导入的在线术语表
-	 */
+    /**
+     * 检查并更新所有已导入的在线术语表
+     */
     async function checkForGlossaryUpdates() {
         const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
         const urls = Object.keys(metadata);
@@ -2922,15 +3209,14 @@
         if (urls.length === 0) {
             return;
         }
-        
-        console.log(`${LOG_PREFIX} 开始检查 ${urls.length} 个在线术语表...`);
+
+        console.info(`${LOG_PREFIX} 开始检查 ${urls.length} 个在线术语表...`);
 
         let updatedCount = 0;
         let failedCount = 0;
 
         for (const url of urls) {
             const glossaryName = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
-            console.log(`${LOG_PREFIX} 正在处理: “${glossaryName}”`);
 
             try {
                 const response = await new Promise((resolve, reject) => {
@@ -2949,7 +3235,7 @@
 
                 if (!localVersion || compareVersions(onlineVersion, localVersion) > 0) {
                     const versionInfo = localVersion ? `v${localVersion} -> v${onlineVersion}` : `至 v${onlineVersion}`;
-                    console.log(`${LOG_PREFIX} 检测到“${glossaryName}”新版本，已成功更新：${versionInfo}`);
+                    console.info(`${LOG_PREFIX} 检测到“${glossaryName}”新版本，已成功更新：${versionInfo}`);
 
                     const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
                     allImportedGlossaries[url] = {
@@ -2957,20 +3243,18 @@
                         generalTerms: onlineData.generalTerms,
                         multiPartTerms: onlineData.multiPartTerms,
                         multiPartGeneralTerms: onlineData.multiPartGeneralTerms,
-                        forbiddenTerms: onlineData.forbiddenTerms
+                        forbiddenTerms: onlineData.forbiddenTerms,
+                        regexTerms: onlineData.regexTerms
                     };
                     currentMetadata[url] = { ...onlineData.metadata, last_updated: new Date().toISOString() };
-                    
+
                     GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
                     GM_setValue(GLOSSARY_METADATA_KEY, currentMetadata);
-                    
-                    invalidateGlossaryCache();
+
                     updatedCount++;
 
                     GM_notification(`检测到术语表“${glossaryName}”新版本，已自动更新至 v${onlineVersion} 。`, 'AO3 汉化插件');
 
-                } else {
-                    console.log(`${LOG_PREFIX} “${glossaryName}”已是最新版本 (v${localVersion})`);
                 }
             } catch (e) {
                 failedCount++;
@@ -2979,49 +3263,11 @@
         }
 
         const summaryMessage = `后台检查完成！总计 ${urls.length} 个，更新 ${updatedCount} 个，失败 ${failedCount} 个。`;
-        console.log(`${LOG_PREFIX} ${summaryMessage}`);
+        console.info(`${LOG_PREFIX} ${summaryMessage}`);
     }
 
     /**
-     * 获取数组元素的所有排列组合
-     */
-    function getPermutations(arr) {
-        if (arr.length <= 1) return [arr];
-        const result = [];
-        for (let i = 0; i < arr.length; i++) {
-            const current = arr[i];
-            const remaining = [...arr.slice(0, i), ...arr.slice(i + 1)];
-            const permsOfRemaining = getPermutations(remaining);
-            for (const perm of permsOfRemaining) {
-                result.push([current, ...perm]);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * 使术语表缓存失效，强制下次调用时重新构建
-     */
-    function invalidateGlossaryCache() {
-        glossaryCache = null;
-        console.log('[缓存管理] 术语表缓存已失效。');
-    }
-
-    /**
-     * 获取、构建并缓存已处理的术语表映射
-     */
-    function getGlossaryMaps() {
-        if (glossaryCache) {
-            return glossaryCache;
-        }
-        console.log('[缓存管理] 缓存未命中，正在构建新的术语表映射...');
-        glossaryCache = buildPrioritizedGlossaryMaps();
-        console.log('[缓存管理] 新的术语表映射已构建并缓存。');
-        return glossaryCache;
-    }
-
-    /**
-     * 构建术语替换规则映射表
+     * 构建并排序所有术语表规则，为翻译预处理做准备
      */
     function buildPrioritizedGlossaryMaps() {
         const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
@@ -3029,71 +3275,157 @@
         const localGlossaryString = GM_getValue(LOCAL_GLOSSARY_STRING_KEY, '');
         const localForbiddenTerms = new Set(GM_getValue(LOCAL_FORBIDDEN_TERMS_KEY, []));
 
-        const maps = {
-            localForbidden: new Map(),
-            localCaseSensitiveTerms: new Map(),
-            onlineForbidden: new Map(),
-            onlineCaseSensitiveTerms: new Map(),
-            onlineCaseInsensitiveTerms: new Map()
+        let rules = [];
+        const processedLocalKeys = new Set();
+
+        const PRIORITY = {
+            LOCAL_FORBIDDEN: 60000,
+            LOCAL_TERM: 50000,
+            ONLINE_FORBIDDEN: 40000,
+            ONLINE_TERM: 30000,
+            ONLINE_GENERAL_TERM: 20000,
+            ONLINE_REGEX: 10000
         };
 
-        const processTerm = (term, translation, targetMap, isGeneral, isMultiPart = false) => {
-            const forms = generateWordForms(term);
-            forms.forEach(form => {
-                const key = isGeneral ? form.toLowerCase() : form;
-                const newRule = {
-                    translation: translation,
-                    priority: (isMultiPart ? 1 : 0)
-                };
-                targetMap.set(key, newRule);
-            });
-        };
+        const normalizeWhitespace = (str) => str.replace(/[\s　]+/g, ' ').trim();
 
-        const processMultiPartTerm = (term, translation, targetMap, isGeneral) => {
-            const termParts = term.split(/[-\s·　]+/).filter(p => p);
-            const translationParts = translation.split(/[-\s·•．　]+/).filter(p => p);
-            if (termParts.length === 0 || translationParts.length === 0) return;
+        function addRule(ruleConfig) {
+            const { term, translation, type, isLocal, timestamp = 0 } = ruleConfig;
 
-            let joiner = ['•', '·', '．', '　', ' '].find(j => translation.includes(j)) || ' ';
-            const fullTranslation = translationParts.join(joiner);
+            const basePriority = PRIORITY[type];
+            if (basePriority === undefined) return;
 
-            const addPermutation = (parts) => {
-                const original = parts.join(' ');
-                const key = isGeneral ? original.toLowerCase() : original;
-                const newRule = { translation: fullTranslation, priority: 2 };
-                targetMap.set(key, newRule);
+            const priority = basePriority + timestamp + term.length;
+            const isForbidden = type.includes('FORBIDDEN');
+            const isGeneral = type.includes('GENERAL');
+            const hasSpaces = term.includes(' ');
+
+            try {
+                let ruleObject;
+                if (type === 'ONLINE_REGEX') {
+                    ruleObject = {
+                        type: 'regex',
+                        matchStrategy: 'regex',
+                        regex: new RegExp(term, 'g'),
+                        replacement: translation,
+                        priority: priority,
+                        source: term
+                    };
+                } else if (hasSpaces) {
+                    ruleObject = {
+                        type: isForbidden ? 'forbidden' : 'term',
+                        matchStrategy: 'dom',
+                        parts: term.split(' '),
+                        replacement: isForbidden ? term : translation,
+                        priority: priority,
+                        isGeneral: isGeneral,
+                        source: term
+                    };
+                } else {
+                    const pattern = createSmartRegexPattern(term);
+                    const flags = isGeneral ? 'gi' : 'g';
+                    ruleObject = {
+                        type: isForbidden ? 'forbidden' : 'term',
+                        matchStrategy: 'regex',
+                        regex: new RegExp(pattern, flags),
+                        replacement: isForbidden ? term : translation,
+                        priority: priority,
+                        source: term
+                    };
+                }
+                rules.push(ruleObject);
+
+                if (isLocal) {
+                    const forms = generateWordForms(term, { preserveCase: isForbidden });
+                    forms.forEach(f => processedLocalKeys.add(f.toLowerCase()));
+                }
+            } catch (e) {
+                console.warn(`创建术语表规则失败: "${term}". 错误: ${e.message}`);
+            }
+        }
+
+        const addTermAndItsForms = (term, translation, type, isLocal, timestamp = 0) => {
+            const normalizedTerm = normalizeWhitespace(term);
+            if (!normalizedTerm) return;
+
+            const isForbidden = type.includes('FORBIDDEN');
+            const forms = generateWordForms(normalizedTerm, { preserveCase: isForbidden });
+
+            const process = (form) => {
+                addRule({ term: form, translation, type, isLocal, timestamp });
             };
 
-            addPermutation(termParts);
-            if (termParts.length > 1) getPermutations(termParts).forEach(addPermutation);
-            if (termParts.length === translationParts.length) {
-                termParts.forEach((part, i) => processTerm(part, translationParts[i], targetMap, isGeneral, true));
+            if (isLocal) {
+                forms.forEach(process);
+            } else {
+                if (processedLocalKeys.has(normalizedTerm.toLowerCase())) return;
+                forms.forEach(form => {
+                    if (!processedLocalKeys.has(form.toLowerCase())) {
+                        process(form);
+                    }
+                });
             }
         };
 
-        const processedLocalKeys = new Set();
+        const addMultiPartRule = (term, translation, type, isLocal, timestamp = 0) => {
+            const normalizedTerm = normalizeWhitespace(term);
+            const normalizedTranslation = normalizeWhitespace(translation);
+            if (!normalizedTerm || !normalizedTranslation) return;
+
+            const termParts = normalizedTerm.split(' ');
+            if (termParts.length === 0) return;
+
+            if (isLocal || !processedLocalKeys.has(normalizedTerm.toLowerCase())) {
+                const PARENT_RULE_PRIORITY_BONUS = 1000;
+                const isGeneral = type.includes('GENERAL');
+                const basePriority = (isLocal ? PRIORITY.LOCAL_TERM : PRIORITY.ONLINE_TERM) + timestamp + normalizedTerm.length;
+
+                const translationWithSeparators = normalizedTranslation.split(/([ ·　]+)/).filter(Boolean);
+                const translationParts = translationWithSeparators.filter(p => !/^[ ·　]+$/.test(p));
+
+                if (termParts.length === translationParts.length) {
+                    termParts.forEach((part, i) => {
+                        addTermAndItsForms(part, translationParts[i], type, isLocal, timestamp);
+                    });
+                } else {
+                    console.warn(`[术语表警告] 多词条 "${normalizedTerm}" 的原文和译文部分数量不匹配，将仅生成完整匹配规则。`);
+                }
+
+                const allTermPermutations = permutations(termParts);
+                allTermPermutations.forEach((perm, index) => {
+                    const isOriginalOrder = perm.join(' ') === normalizedTerm;
+                    rules.push({
+                        type: 'term',
+                        matchStrategy: 'dom',
+                        parts: perm,
+                        replacement: normalizedTranslation,
+                        priority: (isOriginalOrder ? basePriority : basePriority - (index + 1)) + PARENT_RULE_PRIORITY_BONUS,
+                        isGeneral: isGeneral,
+                        source: term
+                    });
+                });
+
+                if (isLocal) {
+                    processedLocalKeys.add(normalizedTerm.toLowerCase());
+                }
+            }
+        };
 
         localForbiddenTerms.forEach(term => {
-            generateWordForms(term).forEach(form => {
-                maps.localForbidden.set(form, term);
-                processedLocalKeys.add(form.toLowerCase());
-            });
+            addTermAndItsForms(term, null, 'LOCAL_FORBIDDEN', true);
         });
 
         if (localGlossaryString.trim()) {
             localGlossaryString.split(/[，,]/).forEach(entry => {
-                const parts = entry.split(/[:：=＝]/);
-                if (parts.length < 2) return;
-                const key = parts.shift().trim();
-                const value = parts.join(':').trim();
-                if (!key) return;
-
-                if (/[=\s·　-]/.test(entry)) {
-                    processMultiPartTerm(key, value, maps.localCaseSensitiveTerms, false);
-                } else {
-                    processTerm(key, value, maps.localCaseSensitiveTerms, false);
+                const multiPartMatch = entry.match(/^\s*(.+?)\s*[=＝]\s*(.+?)\s*$/);
+                if (multiPartMatch) {
+                    addMultiPartRule(multiPartMatch[1], multiPartMatch[2], 'LOCAL_TERM', true);
+                    return;
                 }
-                generateWordForms(key).forEach(form => processedLocalKeys.add(form.toLowerCase()));
+                const singlePartMatch = entry.match(/^\s*(.+?)\s*[:：]\s*(.+?)\s*$/);
+                if (singlePartMatch) {
+                    addTermAndItsForms(singlePartMatch[1], singlePartMatch[2], 'LOCAL_TERM', true);
+                }
             });
         }
 
@@ -3101,83 +3433,94 @@
             .sort((a, b) => {
                 const timeA = new Date(glossaryMetadata[a]?.last_imported || 0).getTime();
                 const timeB = new Date(glossaryMetadata[b]?.last_imported || 0).getTime();
-                return timeA - timeB;
+                return timeB - timeA;
             });
 
-        sortedOnlineGlossaryUrls.forEach(url => {
+        sortedOnlineGlossaryUrls.forEach((url, index) => {
             const g = allImportedGlossaries[url];
             if (!g) return;
+            const timestamp = index * 0.001;
 
-            (g.forbiddenTerms || []).forEach(term => {
-                generateWordForms(term).forEach(form => {
-                    if (processedLocalKeys.has(form.toLowerCase())) return;
-                    maps.onlineForbidden.set(form, term);
-                });
-            });
-
-            const processOnlineGlossarySection = (terms, isGeneral, isMulti) => {
-                for (const term in terms) {
-                    if (processedLocalKeys.has(term.toLowerCase())) continue;
-                    const translation = terms[term];
-                    const targetMap = isGeneral ? maps.onlineCaseInsensitiveTerms : maps.onlineCaseSensitiveTerms;
-                    if (isMulti) {
-                        processMultiPartTerm(term, translation, targetMap, isGeneral);
-                    } else {
-                        processTerm(term, translation, targetMap, isGeneral);
-                    }
+            (g.forbiddenTerms || []).forEach(term => addTermAndItsForms(term, null, 'ONLINE_FORBIDDEN', false, timestamp));
+            Object.entries(g.terms || {}).forEach(([k, v]) => addTermAndItsForms(k, v, 'ONLINE_TERM', false, timestamp));
+            Object.entries(g.generalTerms || {}).forEach(([k, v]) => addTermAndItsForms(k, v, 'ONLINE_GENERAL_TERM', false, timestamp));
+            Object.entries(g.multiPartTerms || {}).forEach(([k, v]) => addMultiPartRule(k, v, 'ONLINE_TERM', false, timestamp));
+            Object.entries(g.multiPartGeneralTerms || {}).forEach(([k, v]) => addMultiPartRule(k, v, 'ONLINE_GENERAL_TERM', false, timestamp));
+            (g.regexTerms || []).forEach(({ pattern, replacement }) => {
+                if (!processedLocalKeys.has(pattern.toLowerCase())) {
+                    addRule({ term: pattern, translation: replacement, type: 'ONLINE_REGEX', isLocal: false, timestamp });
                 }
-            };
-
-            processOnlineGlossarySection(g.terms || {}, false, false);
-            processOnlineGlossarySection(g.generalTerms || {}, true, false);
-            processOnlineGlossarySection(g.multiPartTerms || {}, false, true);
-            processOnlineGlossarySection(g.multiPartGeneralTerms || {}, true, true);
+            });
         });
 
-        return maps;
+        rules.sort((a, b) => b.priority - a.priority);
+
+        return rules;
     }
 
     /**
-     * 为单个英文单词生成其所有格、复数等常见变体
+     * 为单个英文单词生成其常见词形变体
      */
-    function generateWordForms(baseTerm) {
+    function generateWordForms(baseTerm, options = {}) {
+        const { preserveCase = false } = options;
         const forms = new Set();
-        if (!baseTerm || typeof baseTerm !== 'string') return forms;
+        if (!baseTerm || typeof baseTerm !== 'string') {
+            return forms;
+        }
 
-        const lowerBase = baseTerm.toLowerCase();
         forms.add(baseTerm);
 
-        let plural;
+        const lowerBase = baseTerm.toLowerCase();
+        let pluralEnding;
+        let baseWithoutEnding = baseTerm;
+
         if (lowerBase.endsWith('y') && !['a', 'e', 'i', 'o', 'u'].includes(lowerBase.slice(-2, -1))) {
-            plural = baseTerm.slice(0, -1) + 'ies';
+            pluralEnding = 'ies';
+            baseWithoutEnding = baseTerm.slice(0, -1);
         } else if (/[sxz]$/i.test(lowerBase) || /(ch|sh)$/i.test(lowerBase)) {
-            plural = baseTerm + 'es';
+            pluralEnding = 'es';
         } else {
-            plural = baseTerm + 's';
-        }
-        forms.add(plural);
-
-        forms.add(baseTerm + "'s");
-        if (plural.endsWith('s')) {
-            forms.add(plural + "'");
-        } else {
-            forms.add(plural + "'s");
+            pluralEnding = 's';
         }
 
-        const capitalizedBase = baseTerm.charAt(0).toUpperCase() + baseTerm.slice(1);
-        if (capitalizedBase !== baseTerm) {
-            const capitalizedPlural = plural.charAt(0).toUpperCase() + plural.slice(1);
-            forms.add(capitalizedBase);
-            forms.add(capitalizedPlural);
-            forms.add(capitalizedBase + "'s");
-            if (capitalizedPlural.endsWith('s')) {
-                forms.add(capitalizedPlural + "'");
-            } else {
-                forms.add(capitalizedPlural + "'s");
+        let pluralForm;
+        if (preserveCase) {
+            if (baseTerm === lowerBase) { // 全小写
+                pluralForm = baseWithoutEnding + pluralEnding;
+            } else if (baseTerm === baseTerm.toUpperCase()) { // 全大写
+                pluralForm = (baseWithoutEnding + pluralEnding).toUpperCase();
+            } else if (baseTerm[0] === baseTerm[0].toUpperCase() && baseTerm.slice(1) === baseTerm.slice(1).toLowerCase()) { // 标题格式
+                const pluralBase = baseWithoutEnding + pluralEnding;
+                pluralForm = pluralBase.charAt(0).toUpperCase() + pluralBase.slice(1).toLowerCase();
+            } else { // 混合大小写
+                pluralForm = baseWithoutEnding + pluralEnding;
             }
+        } else {
+            pluralForm = baseWithoutEnding + pluralEnding;
         }
 
+        forms.add(pluralForm);
         return forms;
+    }
+
+    /**
+     * 计算一个数组的所有元素全排列
+     */
+    function permutations(arr) {
+        if (arr.length <= 1) {
+            return [arr];
+        }
+        const first = arr[0];
+        const rest = arr.slice(1);
+        const permsWithoutFirst = permutations(rest);
+        const allPermutations = [];
+        permsWithoutFirst.forEach(perm => {
+            for (let i = 0; i <= perm.length; i++) {
+                const permWithFirst = [...perm.slice(0, i), first, ...perm.slice(i)];
+                allPermutations.push(permWithFirst);
+            }
+        });
+        return allPermutations;
     }
 
     /**
@@ -3194,7 +3537,7 @@
         const sortedKeys = keys.sort((a, b) => b.length - a.length);
 
         const regex = new RegExp(sortedKeys.map(key => key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|'), 'g');
-        
+
         return text.replace(regex, (matched) => replacementMap[matched] || matched);
     }
 
@@ -3203,7 +3546,7 @@
      */
     function notifyAndLog(message, title = 'AO3 汉化插件', logType = 'info') {
         const logMessage = `[${title}] ${message.replace(/\n/g, ' ')}`;
-        
+
         switch (logType) {
             case 'warn':
                 console.warn(logMessage);
@@ -3279,7 +3622,7 @@
 			this.lineNumbersRegex = /^\d+\.\s*/;
 			this.aiGenericExplanationRegex = /\s*\uff08[\u4e00-\u9fa5]{1,10}\uff1a[^\uff08\uff09]*?\uff09\s*/g;
             this.fillerWordsRegex = /(?<![a-zA-Z])(emm|hmm|ah|uh|er|um|uhm)(?![a-zA-Z])/gi;
-            this.possessiveRegex = /\b([a-zA-Z]+(?:s|es|ies)?)\'s?\b/gi;
+            this.possessiveRegex = /([a-zA-Z\u4e00-\u9fa5]+(?:s|es|ies)?)\s*['’‘](s\b)?/g;
             this.cjkCharsAndPunctuation = '\\u4e00-\\u9fa5\\u3000-\\u303f\\uff00-\\uffef';
 		}
 
@@ -3292,7 +3635,13 @@
 			cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
             cleanedText = cleanedText.replace(this.aiGenericExplanationRegex, '');
             cleanedText = cleanedText.replace(this.fillerWordsRegex, ' ');
-            cleanedText = cleanedText.replace(this.possessiveRegex, '$1的');
+            cleanedText = cleanedText.replace(this.possessiveRegex, (match, p1, p2) => {
+                if (p2 !== undefined || /[sS]$/.test(p1)) {
+                    return p1 + '的';
+                }
+                return match;
+            });
+
             cleanedText = cleanedText.replace(/的\s*的/g, '的');
 
 			cleanedText = cleanedText.replace(/(<(em|strong|span|b|i|u)[^>]*>)([\s\S]*?)(<\/\2>)/g, (_match, openTag, _tagName, content, closeTag) => {
@@ -3433,7 +3782,7 @@
                 formattedTime = timeText;
             }
         }
-        
+
         // 提取时区
         const timezoneEl = containerElement.querySelector('abbr.timezone');
         const timezoneText = timezoneEl ? timezoneEl.textContent : 'UTC';
@@ -3449,7 +3798,7 @@
             containerElement.appendChild(document.createTextNode(prefixText));
         }
         containerElement.appendChild(document.createTextNode(`${yearEl.textContent}年${translatedMonth}${dateEl.textContent}日 ${dayFull} ${formattedTime} ${timezoneText}`));
-        
+
         containerElement.setAttribute('data-reformatted', 'true');
     }
 
@@ -3704,6 +4053,7 @@
         translateBookmarkSearchTips();
         translateWarningHelpModal();
         translateHtmlHelpModal();
+		translateRteHelpModal();
         translateBookmarkSearchResultsHelpModal();
         translateTagsetAboutModal();
         translateFlashMessages();
@@ -3738,7 +4088,7 @@
         if (pageType === 'donate_page') {
             translateDonatePage();
         }
-        
+
         if (pageType === 'tag_sets_new' || pageType === 'collections_dashboard_common') {
             reorderCategoryCheckboxes();
         }
@@ -3818,7 +4168,8 @@
             'works_edit': 'works_new',
             'works_edit_tags': 'works_new',
             'chapters_new': 'works_new',
-            'chapters_edit': 'chapters_new'
+            'chapters_edit': 'chapters_new',
+            'works_edit_multiple': 'works_new'
         };
 
         const parentPageType = parentPageMap[pageType];
@@ -3878,7 +4229,6 @@
         if (document.querySelector('ul.media.fandom.index.group')) return 'media_index';
         if (document.querySelector('div#main.owned_tag_sets-show')) return 'owned_tag_sets_show';
         const { pathname, search } = window.location;
-        // 忽略 /first_login_help 页面
         if (pathname.startsWith('/first_login_help')) {
             return false;
         }
@@ -3901,7 +4251,7 @@
         if (pathname === '/tag_sets') return 'tag_sets_index';
         if (pathname === '/external_works/new') return 'external_works_new';
         if (pathname === '/works') return 'works_new';
-        
+
         if (pathname === '/invite_requests' || pathname === '/invite_requests/status') return 'invite_requests_index';
 
         const isSearchResultsPage = document.querySelector('h2.heading')?.textContent.trim() === 'Search Results';
@@ -3964,6 +4314,7 @@
                     if (p2 && p3 === 'works' && p4 === 'drafts') return 'users_drafts_index';
                     if (p2 && p3 === 'series') return 'users_series_index';
                     if (p2 && p3 === 'works' && p4 === 'show_multiple') return 'works_show_multiple';
+                    if (p2 && p3 === 'works' && p4 === 'edit_multiple') return 'works_edit_multiple';
                     if (p2 && p3 === 'works') return 'users_works_index';
                     if (p2 && p3 === 'bookmarks') return 'users_bookmarks_index';
                     if (p2 && p3 === 'collections') return 'users_collections_index';
@@ -4151,7 +4502,7 @@
             [Node.ELEMENT_NODE]: handleElement,
             [Node.TEXT_NODE]: handleTextNode
         };
-        
+
         let currentNode;
         while ((currentNode = treeWalker.nextNode())) {
             handlers[currentNode.nodeType]?.(currentNode);
@@ -4211,7 +4562,7 @@
             if (!dict) return targetText;
             const keys = Object.keys(dict);
             if (keys.length === 0) return targetText;
-            
+
             const regexParts = keys.map(key => {
                 const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 if (/^[\w\s]+$/.test(key)) {
@@ -4350,28 +4701,36 @@
         isAbove ? element.before(wrapper) : element.after(wrapper);
 
         const handleClick = () => {
+            if (!canClear) {
+                switch (mainTextTranslator.state) {
+                    case 'idle':
+                    case 'paused':
+                        buttonLink.textContent = '翻译中…';
+                        mainTextTranslator.start(element, wrapper);
+                        break;
+                    case 'running':
+                        mainTextTranslator.stop();
+                        buttonLink.textContent = originalButtonText;
+                        break;
+                    case 'complete':
+                        mainTextTranslator.clear();
+                        buttonLink.textContent = originalButtonText;
+                        break;
+                }
+                return;
+            }
+
             if (wrapper.dataset.state === 'translated') {
                 const translationNodes = element.querySelectorAll('.translated-by-ao3-script, .translated-by-ao3-script-error');
                 translationNodes.forEach(node => node.remove());
-
                 element.querySelectorAll('[data-translation-state="translated"]').forEach(originalUnit => {
                     delete originalUnit.dataset.translationState;
                 });
-
                 buttonLink.textContent = originalButtonText;
                 delete wrapper.dataset.state;
                 return;
             }
 
-            if (!canClear) {
-                buttonLink.removeEventListener('click', handleClick);
-                buttonLink.textContent = '翻译已启用...';
-                buttonLink.style.cursor = 'default';
-                buttonLink.style.color = '#777';
-                startTranslationEngine(element, null);
-                return;
-            }
-            
             buttonLink.removeEventListener('click', handleClick);
             buttonLink.textContent = '翻译中…';
 
@@ -4440,11 +4799,11 @@
 			const originalText = tagElement.textContent.trim();
 			if (fullDictionary[originalText]) {
 				tagElement.textContent = fullDictionary[originalText];
-			} 
+			}
 			tagElement.setAttribute('data-translated-by-custom-function', 'true');
 		});
 	}
-    
+
     /**
      * 脚本主入口检查
      */
