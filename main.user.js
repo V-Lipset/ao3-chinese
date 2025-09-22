@@ -2,7 +2,7 @@
 // @name         AO3 Trans Script
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.0.9-custom-2025-09-21
+// @version      1.1.0-custom-2025-09-22
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
@@ -60,19 +60,19 @@
     - Your entire response MUST consist of *only* the polished Chinese translation from Stage 3, formatted as a numbered list that exactly matches the input's numbering.
     - Do NOT include any stage numbers, headers (e.g., "Polished Translation"), notes, or explanations in your final output.
     - **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original, including their positions around the translated text.
-    - **Placeholder Preservation:** If an item contains special placeholders in the format \`ph_xxxxxx\` (e.g., \`ph_abcdef\`), you MUST preserve these placeholders exactly as they are. DO NOT translate, modify, add spaces to, delete, or alter them in any way.
+    - **Placeholder Preservation:** If an item contains special placeholders in the format \`ph_\` followed by six digits (e.g., \`ph_123456\`), you MUST preserve these placeholders exactly as they are. DO NOT translate, modify, add spaces to, delete, or alter them in any way.
     - **Untranslatable Content:** If an item is a separator, a meaningless symbol, or otherwise untranslatable, you MUST return the original item exactly as it is, preserving its number.
 
     ### Example Input:
     1. This is the <em>first</em> sentence.
     2. ---
-    3. Her name is ph_aexzyr.
+    3. Her name is ph_123456.
     4. This is the fourth sentence.
 
     ### Example Output:
     1. 这是<em>第一个</em>句子。
     2. ---
-    3. 她的名字是 ph_aexzyr。
+    3. 她的名字是 ph_123456。
     4. 这是第四个句子。
     `;
 
@@ -164,6 +164,16 @@
                     PARAGRAPH_LIMIT: 15,
                 }
             }
+        },
+
+        // 占位符校验阈值
+        VALIDATION_THRESHOLDS: {
+            absolute_loss: {
+                google_translate: 4,
+                default: 5,
+            },
+            proportional_loss: 0.8,
+            proportional_trigger_count: 5,
         },
 
         // 翻译服务配置
@@ -1405,19 +1415,53 @@
 
         postReplaceSaveBtn.addEventListener('click', () => {
             const rawInput = postReplaceInput.value;
-            const replacementMap = {};
+            const rules = {
+                singleRules: {},
+                multiPartRules: []
+            };
+
+            const internalSeparatorRegex = /[\s-－﹣—–]+/;
+            const internalSeparatorGlobalRegex = /[\s-－﹣—–]+/g;
+
             rawInput.split(/[，,]/).forEach(entry => {
-                const parts = entry.split(/[:：=＝]/);
-                if (parts.length >= 2) {
-                    const key = parts.shift().trim();
-                    const value = parts.join(':').trim();
-                    if (key) {
-                        replacementMap[key] = value;
+                const trimmedEntry = entry.trim();
+                if (!trimmedEntry) return;
+
+                const multiPartMatch = trimmedEntry.match(/^(.*?)\s*[=＝]\s*(.*?)$/);
+                if (multiPartMatch) {
+                    const source = multiPartMatch[1].trim();
+                    const target = multiPartMatch[2].trim();
+
+                    if (source && target) {
+                        const sourceParts = source.split(internalSeparatorRegex);
+                        const targetParts = target.split(internalSeparatorRegex);
+                        const multiPartRule = {
+                            source: source.replace(internalSeparatorGlobalRegex, ' '),
+                            target: target.replace(internalSeparatorGlobalRegex, ' '),
+                            subRules: {}
+                        };
+
+                        if (sourceParts.length === targetParts.length && sourceParts.length > 1) {
+                            for (let i = 0; i < sourceParts.length; i++) {
+                                multiPartRule.subRules[sourceParts[i]] = targetParts[i];
+                            }
+                        }
+                        rules.multiPartRules.push(multiPartRule);
+                    }
+                } else {
+                    const singlePartMatch = trimmedEntry.match(/^(.*?)\s*[:：]\s*(.*?)$/);
+                    if (singlePartMatch) {
+                        const key = singlePartMatch[1].trim();
+                        const value = singlePartMatch[2].trim();
+                        if (key) {
+                            rules.singleRules[key] = value;
+                        }
                     }
                 }
             });
+
             GM_setValue(POST_REPLACE_STRING_KEY, rawInput);
-            GM_setValue(POST_REPLACE_MAP_KEY, replacementMap);
+            GM_setValue(POST_REPLACE_MAP_KEY, rules);
             notifyAndLog('译文后处理替换规则已更新。');
         });
 
@@ -2267,10 +2311,10 @@
     }
 
     /**
-     * 生成一个随机的6位小写字母字符串
+     * 生成一个随机的6位数字字符串
      */
-    function generateRandomPlaceholderString() {
-        const chars = 'abcdefghijklmnopqrstuvwxyz';
+    function generateRandomPlaceholder() {
+        const chars = '0123456789';
         let result = '';
         for (let i = 0; i < 6; i++) {
             result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -2342,7 +2386,7 @@
     /**
      * 预处理单个段落DOM节点，应用所有术语表规则并替换为占位符
      */
-    function _preprocessParagraph(p, rules, placeholders, placeholderCache) {
+    function _preprocessParagraph(p, rules, placeholders, placeholderCache, engineName) {
         const clone = p.cloneNode(true);
 
         const domRules = rules.filter(r => r.matchStrategy === 'dom');
@@ -2367,11 +2411,13 @@
                         if (placeholderCache.has(finalValue)) {
                             placeholder = placeholderCache.get(finalValue);
                         } else {
-                            placeholder = `ph_${generateRandomPlaceholderString()}`;
+                            placeholder = `ph_${generateRandomPlaceholder()}`;
                             placeholderCache.set(finalValue, placeholder);
                             placeholders.set(placeholder, finalValue);
                         }
-                        range.insertNode(document.createTextNode(placeholder));
+
+                        const placeholderNode = document.createTextNode(placeholder);
+                        range.insertNode(placeholderNode);
 
                         clone.normalize();
                         domReplaced = true;
@@ -2415,7 +2461,7 @@
                         if (part.startsWith('__REPL_')) {
                             const repl = replacements.find(r => r.id === part);
                             if (repl) {
-                                const appliedNode = _applyRuleToTextMatch(repl.match, repl.rule, placeholders, placeholderCache);
+                                const appliedNode = _applyRuleToTextMatch(repl.match, repl.rule, placeholders, placeholderCache, engineName);
                                 fragment.appendChild(appliedNode);
                             }
                         } else if (part) {
@@ -2430,25 +2476,26 @@
     }
 
     /**
-     * 将规则应用于通过正则表达式找到的文本匹配，并返回占位符文本节点
+     * 将规则应用于通过正则表达式找到的文本匹配，并返回占位符节点
      */
-    function _applyRuleToTextMatch(match, rule, placeholders, placeholderCache) {
+    function _applyRuleToTextMatch(match, rule, placeholders, placeholderCache, engineName) {
         const finalValue = rule.type === 'forbidden' ? match : rule.replacement;
         let placeholder;
         if (placeholderCache.has(finalValue)) {
             placeholder = placeholderCache.get(finalValue);
         } else {
-            placeholder = `ph_${generateRandomPlaceholderString()}`;
+            placeholder = `ph_${generateRandomPlaceholder()}`;
             placeholderCache.set(finalValue, placeholder);
             placeholders.set(placeholder, finalValue);
         }
+
         return document.createTextNode(placeholder);
     }
 
     /**
      * 后处理翻译后的文本，将占位符还原为最终的HTML或文本
      */
-    function _postprocessAndRestoreText(translatedText, placeholders) {
+    function _postprocessAndRestoreText(translatedText, placeholders, engineName) {
         if (placeholders.size === 0) {
             const finalResult = applyPostTranslationReplacements(translatedText);
             return finalResult;
@@ -2457,10 +2504,9 @@
         let processedText = translatedText;
 
         for (const [placeholder, replacement] of placeholders.entries()) {
-            const regex = new RegExp(placeholder, 'g');
-            if (processedText.includes(placeholder)) {
-                processedText = processedText.replace(regex, replacement);
-            }
+            const escapedPlaceholder = placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            const plainRegex = new RegExp(escapedPlaceholder, 'g');
+            processedText = processedText.replace(plainRegex, replacement);
         }
 
         const finalResult = applyPostTranslationReplacements(processedText);
@@ -2494,6 +2540,7 @@
 
         let lastTranslationAttempt = '';
         let lastPlaceholdersMap = new Map();
+        const engineName = getValidEngineName();
 
         for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
             try {
@@ -2505,7 +2552,7 @@
                 const CHUNK_PROCESSING_SIZE = 5;
                 for (let i = 0; i < contentToTranslate.length; i++) {
                     const p = contentToTranslate[i];
-                    preprocessedParagraphs.push(_preprocessParagraph(p.original, rules, placeholders, placeholderCache));
+                    preprocessedParagraphs.push(_preprocessParagraph(p.original, rules, placeholders, placeholderCache, engineName));
                     if ((i + 1) % CHUNK_PROCESSING_SIZE === 0) {
                         await sleep(0);
                     }
@@ -2524,7 +2571,9 @@
                 lastTranslationAttempt = combinedTranslation;
                 lastPlaceholdersMap = placeholders;
 
-                const suspectedPlaceholders = combinedTranslation.match(/ph_[a-zA-Z0-9_-]{3,}/g) || [];
+                const placeholderScanRegex = /(ph_\d{6})/g;
+
+                const suspectedPlaceholders = Array.from(combinedTranslation.matchAll(placeholderScanRegex)).map(match => match[1]);
                 const actualCounts = {};
                 legalPlaceholders.forEach(key => actualCounts[key] = 0);
 
@@ -2546,13 +2595,32 @@
                     }
                 }
 
+                const thresholds = CONFIG.VALIDATION_THRESHOLDS;
+                const absoluteLossThreshold = thresholds.absolute_loss[engineName] || thresholds.absolute_loss.default;
+                const proportionalLossThreshold = thresholds.proportional_loss;
+                const proportionalTriggerCount = thresholds.proportional_trigger_count;
+
                 let shouldRetryForMissing = false;
                 for (const key of legalPlaceholders) {
                     const expected = expectedCounts[key];
                     const actual = actualCounts[key];
-                    if (expected > actual && (expected - actual > 5 || expected > 2 && actual === 0)) {
-                        shouldRetryForMissing = true;
-                        mismatchDetails.push(`占位符 "${key}" 大量缺失。期望: ${expected}, 实际: ${actual}`);
+                    const loss = expected - actual;
+
+                    if (loss > 0) {
+                        const isCatastrophicLoss = expected > 2 && actual === 0;
+                        const isAbsoluteLoss = loss >= absoluteLossThreshold;
+                        const isProportionalLoss = expected >= proportionalTriggerCount && (loss / expected) >= proportionalLossThreshold;
+
+                        if (isCatastrophicLoss) {
+                            shouldRetryForMissing = true;
+                            mismatchDetails.push(`占位符 "${key}" 完全丢失。期望: ${expected}, 实际: 0`);
+                        } else if (isAbsoluteLoss) {
+                            shouldRetryForMissing = true;
+                            mismatchDetails.push(`占位符 "${key}" 绝对数量丢失严重。期望: ${expected}, 实际: ${actual} (阈值: ${absoluteLossThreshold})`);
+                        } else if (isProportionalLoss) {
+                            shouldRetryForMissing = true;
+                            mismatchDetails.push(`占位符 "${key}" 相对比例丢失严重。期望: ${expected}, 实际: ${actual} (丢失率: ${((loss / expected) * 100).toFixed(0)}%)`);
+                        }
                     }
                 }
 
@@ -2565,7 +2633,7 @@
                     throw new Error(`占位符校验失败 (${errorReason})！`);
                 }
 
-                const restoredTranslation = _postprocessAndRestoreText(combinedTranslation, placeholders);
+                const restoredTranslation = _postprocessAndRestoreText(combinedTranslation, placeholders, engineName);
 
                 let translatedParts = [];
                 const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
@@ -2619,7 +2687,7 @@
                         return fallbackResults;
                     }
 
-                    const restoredTranslation = _postprocessAndRestoreText(lastTranslationAttempt, lastPlaceholdersMap);
+                    const restoredTranslation = _postprocessAndRestoreText(lastTranslationAttempt, lastPlaceholdersMap, engineName);
                     let translatedParts = [];
                     const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
                     let match;
@@ -2702,73 +2770,75 @@
     }
 
     /**
-     * 正文翻译任务状态管理
+     * 创建并返回一个独立的翻译任务状态管理实例。
      */
-    const mainTextTranslator = {
-        state: 'idle',
-        observer: null,
-        isCancellationRequested: false,
-        buttonWrapper: null,
-        containerElement: null,
+    function createMainTextTranslator() {
+        return {
+            state: 'idle',
+            observer: null,
+            isCancellationRequested: false,
+            buttonWrapper: null,
+            containerElement: null,
 
-        start: function(container, wrapper) {
-            if (this.state === 'running') return;
+            start: function(container, wrapper) {
+                if (this.state === 'running') return;
 
-            this.state = 'running';
-            this.isCancellationRequested = false;
-            this.containerElement = container;
-            this.buttonWrapper = wrapper;
+                this.state = 'running';
+                this.isCancellationRequested = false;
+                this.containerElement = container;
+                this.buttonWrapper = wrapper;
 
-            this.observer = runTranslationEngineWithObserver({
-                containerElement: this.containerElement,
-                isCancelled: () => this.isCancellationRequested,
-                onProgress: (translated, total) => {
-                },
-                onComplete: () => {
-                    if (!this.isCancellationRequested) {
-                        this.state = 'complete';
-                        this._updateButtonState('已翻译');
+                this.observer = runTranslationEngineWithObserver({
+                    containerElement: this.containerElement,
+                    isCancelled: () => this.isCancellationRequested,
+                    onProgress: (translated, total) => {
+                    },
+                    onComplete: () => {
+                        if (!this.isCancellationRequested) {
+                            this.state = 'complete';
+                            this._updateButtonState('已翻译');
+                        }
+                    }
+                });
+            },
+
+            stop: function() {
+                if (this.state !== 'running') return;
+
+                this.state = 'paused';
+                this.isCancellationRequested = true;
+                if (this.observer) {
+                    this.observer.disconnect();
+                }
+                this.observer = null;
+            },
+
+            clear: function() {
+                this.stop();
+
+                if (this.containerElement) {
+                    const translationNodes = this.containerElement.querySelectorAll('.translated-by-ao3-script, .translated-by-ao3-script-error');
+                    translationNodes.forEach(node => node.remove());
+
+                    this.containerElement.querySelectorAll('[data-translation-state="translated"]').forEach(originalUnit => {
+                        originalUnit.style.display = '';
+                        delete originalUnit.dataset.translationState;
+                    });
+                }
+
+                this.state = 'idle';
+            },
+
+            _updateButtonState: function(text) {
+                if (this.buttonWrapper) {
+                    const button = this.buttonWrapper.querySelector('div');
+                    if (button) {
+                        button.textContent = text;
                     }
                 }
-            });
-        },
-
-        stop: function() {
-            if (this.state !== 'running') return;
-
-            this.state = 'paused';
-            this.isCancellationRequested = true;
-            if (this.observer) {
-                this.observer.disconnect();
             }
-            this.observer = null;
-        },
-
-        clear: function() {
-            this.stop();
-
-            if (this.containerElement) {
-                const translationNodes = this.containerElement.querySelectorAll('.translated-by-ao3-script, .translated-by-ao3-script-error');
-                translationNodes.forEach(node => node.remove());
-
-                this.containerElement.querySelectorAll('[data-translation-state="translated"]').forEach(originalUnit => {
-                    originalUnit.style.display = '';
-                    delete originalUnit.dataset.translationState;
-                });
-            }
-
-            this.state = 'idle';
-        },
-
-        _updateButtonState: function(text) {
-            if (this.buttonWrapper) {
-                const button = this.buttonWrapper.querySelector('div');
-                if (button) {
-                    button.textContent = text;
-                }
-            }
-        }
-    };
+        };
+    }
 
     /**
      * 翻译引擎（懒加载模式）
@@ -3527,9 +3597,26 @@
      * 译文后处理替换
      */
     function applyPostTranslationReplacements(text) {
-        const replacementMap = GM_getValue(POST_REPLACE_MAP_KEY, {});
-        const keys = Object.keys(replacementMap);
+        const rulesData = GM_getValue(POST_REPLACE_MAP_KEY, null);
 
+        if (!rulesData || typeof rulesData !== 'object' || Array.isArray(rulesData)) {
+            return text;
+        }
+
+        const { singleRules = {}, multiPartRules = [] } = rulesData;
+        const finalReplacementMap = {};
+
+        multiPartRules.forEach(rule => {
+            Object.assign(finalReplacementMap, rule.subRules);
+        });
+
+        Object.assign(finalReplacementMap, singleRules);
+
+        multiPartRules.forEach(rule => {
+            finalReplacementMap[rule.source] = rule.target;
+        });
+
+        const keys = Object.keys(finalReplacementMap);
         if (keys.length === 0) {
             return text;
         }
@@ -3538,7 +3625,7 @@
 
         const regex = new RegExp(sortedKeys.map(key => key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|'), 'g');
 
-        return text.replace(regex, (matched) => replacementMap[matched] || matched);
+        return text.replace(regex, (matched) => finalReplacementMap[matched]);
     }
 
     /**
@@ -3806,6 +3893,18 @@
      * 脚本主入口，初始化所有功能
      */
     function main() {
+		(function() {
+			const postReplaceData = GM_getValue(POST_REPLACE_MAP_KEY, null);
+			if (postReplaceData && typeof postReplaceData === 'object' && !postReplaceData.hasOwnProperty('singleRules')) {
+				console.log('AO3 汉化插件：检测到译文后处理替换规则数据，正在迁移至新版本...');
+				const newRules = {
+					singleRules: postReplaceData,
+					multiPartRules: []
+				};
+				GM_setValue(POST_REPLACE_MAP_KEY, newRules);
+				console.log('AO3 汉化插件：译文后处理替换规则迁移成功！');
+			}
+		})();
 		(function() {
 			const veryOldGlossaryKey = 'ao3_translation_glossary';
 			const oldGlossaryObject = GM_getValue(LOCAL_GLOSSARY_KEY, null);
@@ -4699,6 +4798,8 @@
         wrapper.appendChild(buttonLink);
 
         isAbove ? element.before(wrapper) : element.after(wrapper);
+
+        const mainTextTranslator = !canClear ? createMainTextTranslator() : null;
 
         const handleClick = () => {
             if (!canClear) {
