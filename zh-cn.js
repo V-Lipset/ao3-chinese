@@ -1,7 +1,7 @@
 /**
  name         AO3 Trans Script - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.0.9-custom-2025-09-21
+ version      1.1.0-custom-2025-09-22
  description  AO3 Trans Script 的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -635,7 +635,17 @@ const I18N = {
 				'Are you sure you want to delete this bookmark?': '您确定要删除此书签吗？',
 				'This is part of an ongoing challenge and will be revealed soon!': '本作品正在参与一项开放中的挑战，内容将很快揭晓！',
 				'Your search failed because of a syntax error. Please try again.': '搜索失败，您的查询存在语法错误。请修改后重试。',
-				'Type or paste formatted text.': '输入或粘贴带有格式的文本'
+				'Type or paste formatted text.': '输入或粘贴带有格式的文本',
+
+                    // 标签说明
+                    'This tag indicates adult content.': '此标签涉及成人内容。',
+                    'Parent tags (more general):': '母级标签（更通用）：',
+                    'Tags with the same meaning:': '同义标签：',
+                    'Metatags:': '元标签：',
+                    'Subtags:': '子标签：',
+                    'Child tags (displaying the first 300 of each type):': '子标签（每种类型显示前 300 个）：',
+                    'and more': '以及更多',
+                    'Relationships by Character': '关系按角色分类'
             },
             'innerHTML_regexp': [
 
@@ -961,7 +971,47 @@ const I18N = {
                     'p.jump',
                     /^\s*\(See the end of the work for\s*(<a href="#work_endnotes">)notes(<\/a>)\s+and\s+(<a href="#children">)other works inspired by this one(<\/a>)\.\)\s*$/,
                     '（在作品结尾查看$1注释$2和$3相关衍生作品$4。）'
-                ]
+                ],
+
+                    // 标签说明
+                    [
+                        'p',
+                        /^\s*This tag belongs to the (Fandom|Relationship|Character|Category|Archive Warning|Rating|Additional Tags) Category\.(\s*It's a <a href="\/faq\/glossary#canonicaldef">(?:canonical tag|规范标签)<\/a>[\.。]\s*You can use it to <a href="([^"]+)">(?:filter works|筛选作品)<\/a> and to <a href="([^"]+)">(?:filter bookmarks|筛选书签)<\/a>[\.。]\s*(\s*You can also access a list of <a href="([^"]+)">(?:Relationship tags in this fandom|此同人圈中的关系标签)<\/a>\s*)?[\.。]?)?\s*$/s,
+                        (_, category, canonicalPart, worksLink, bookmarksLink, relationshipPart, relationshipLink) => {
+                            const categoryMap = {
+                                'Fandom': '同人圈',
+                                'Relationship': '关系',
+                                'Character': '角色',
+                                'Category': '分类',
+                                'Archive Warning': 'Archive 预警',
+                                'Rating': '分级',
+                                'Additional Tags': '附加标签'
+                            };
+                            const translatedCategory = categoryMap[category] || category;
+                            let result = `此标签属于“${translatedCategory}”类别。`;
+                            if (canonicalPart) {
+                                result += `这是一个<a href="/faq/glossary#canonicaldef">规范标签</a>。您可以用它来<a href="${worksLink}">筛选作品</a>和<a href="${bookmarksLink}">筛选书签</a>。`;
+                                if (relationshipPart && relationshipLink) {
+                                    result += `您也可以访问<a href="${relationshipLink}">此同人圈中的关系标签</a>列表。`;
+                                }
+                            }
+                            return result;
+                        }
+                    ],
+                    [
+                        'div.merger > h3.heading',
+                        /^Mergers$/,
+                        '合并'
+                    ],
+                    [
+                        'div.merger p',
+                        /^\s*(')?([^'<]+)(')?\s+has been made a synonym of (<a class="tag"[^>]*>.*<\/a>)\.\s*Works and bookmarks tagged with ('?)([^'<]+)(')?\s+will show up in (.*)'s filter\.\s*$/s,
+                        (_, quote1, tag1, quote2, tag2Link, quote3, tag3, quote4, tag4) => {
+                            const displayTag1 = quote1 ? `'${tag1}'` : tag1;
+                            const displayTag3 = quote3 ? `'${tag3}'` : tag3;
+                            return `${displayTag1} 已被设为 ${tag2Link} 的同义标签。使用 ${displayTag3} 标签的作品和书签将会在 ${tag4} 的筛选结果中显示。`;
+                        }
+                    ]
             ],
             'regexp': [
 
@@ -1719,7 +1769,7 @@ const I18N = {
         },
         'tags_index': {
             'static': {
-                'Canonical Tags': '标准标签',
+                'Canonical Tags': '规范标签',
                 'Uncategorized Tags': '未分类标签',
                 'Browse Tags': '浏览标签',
             },
