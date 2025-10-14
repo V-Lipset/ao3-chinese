@@ -1,5 +1,5 @@
 // 元数据区
-版本号：1.0.0
+版本号：1.0.1
 维护者：maenora
 更新时间：2025-10-14
 // 人名地名等专有名词，此区域区分大小写
@@ -470,7 +470,6 @@ Little Willow = 小柳江
 Grey King = 灰海王
 House Tollett = 托勒特家族
 House Uller = 乌勒家族
-Rylona Rhee = 瑞罗娜·蕤娥
 Mero = 梅罗
 Hag's Mire = 女巫沼泽
 Currency = 货币
@@ -500,3 +499,5 @@ Lewys Piper = 林斯·派柏
 Walder Goodbrook = 瓦德·古柏克
 Brandon Snow = 布兰登·雪诺
 Rhaenys Targaryen = 雷妮丝·坦格利安
+Viserys Targaryen = 韦赛里斯·坦格利安
+Alicent Hightower = 阿莉森·海塔尔
