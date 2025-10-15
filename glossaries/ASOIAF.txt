@@ -1,7 +1,7 @@
 // 元数据区
-版本号：1.0.2
+版本号：1.1.0
 维护者：maenora
-更新时间：2025-10-14
+更新时间：2025-10-15
 // 人名地名等专有名词，此区域区分大小写
 Jon Snow = 琼恩·雪诺
 Visenya Targaryen = 维桑尼亚·坦格利安
@@ -68,7 +68,6 @@ Lancel Lannister  = 蓝赛尔·兰尼斯特
 Renly Baratheon = 蓝礼·拜拉席恩  
 Pypar = 派普尔  
 Jacaerys Velaryon = 杰卡里斯·瓦列利安  
-Guildhall of the Alchemists = 炼金术士的公会大厅  
 Sea of Myrth = 密尔海  
 Stag of the Sea = 海鹿号  
 Tywin Frey = 泰温·佛雷  
@@ -214,7 +213,6 @@ Allaquo = 艾拉括
 House of Uhlez = 乌尔兹家族
 Warrens = 庇圣所
 The greens = 绿党
-Lady Lyanna = 莱安娜小姐号
 Morning = 晨光
 Rickon Stark = 瑞肯·史塔克
 Tommen Tully = 托曼·徒利
@@ -416,7 +414,6 @@ House Osgrey = 坚定堡的奥斯格雷家族
 Merling King = 人鱼王
 Dryn = 戴温
 White Lady = 白色女士号
-Ben (Big Belly) = 本恩(大肚子)
 Donnor Stark = 多诺·史塔克
 Tower of Ghosts = 厉鬼塔
 Let Me Drink Your Beauty = 让我啜吸你的美丽
@@ -539,7 +536,7 @@ bear-paws = 熊掌
 Dagon Ironmaker = 达衮·艾枚克
 Pious dwarf = 侏儒僧侣
 House of Dhazak = 达兹纳克家族
-The Rogue Prince, or, A King’s Brother = 游侠王子
+The Rogue Prince = 游侠王子
 Lucas Tyrell = 卢卡斯·提利尔
 Balerion  = 贝勒里恩
 Mistwood = 雾林城
@@ -623,7 +620,6 @@ Pollitor = 波立特
 House Frey of Riverrun = 奔流城的佛雷家族
 Rhodry = 罗德雷
 Quincy Cox = 昆西·考克斯
-The Red = 红色骏马
 Robar Royce = 罗拔·罗伊斯
 Arwyn Oakheart = 艾雯·奥克赫特
 Meera Reed = 梅拉·黎德
@@ -711,7 +707,6 @@ Tywin Frey  = 泰温·佛雷
 Tallad = 塔拉德
 Meereen = 弥林
 Pono = 波诺
-cave of the last greenseer = 最后的绿先知晓
 House Graceford = 格雷佛德家族
 Alla Tyrell = 雅兰·提利尔
 Mallador Locke = 马拉多·洛克
@@ -719,7 +714,6 @@ Norne Goodbrother = 纽恩·古柏勒
 Silken Spirit = 丝灵号
 Samwell Tarly = 山姆威尔·塔利
 Joseth = 乔赛斯
-Balerion (cat) = 贝勒里恩(猫)
 Lysa Meadows = 莱莎·梅斗
 Lady Ushanora = 乌莎诺拉小姐号
 Collio Quaynis = 科里罗·昆延提斯
@@ -1039,7 +1033,6 @@ Roseroad = 玫瑰大道
 Shipbreaker Bay = 破船湾
 Pentos = 潘托斯
 Elmar Frey = 艾尔玛·佛雷
-Bastard's girls = 拉姆斯·波顿的猎犬
 Qarth = 魁尔斯
 Tarth = 塔斯岛
 Creylen = 克雷伦
@@ -1052,3 +1045,5 @@ Barth = 巴斯
 Morgan Martell = 莫甘·马泰尔
 Trident = 三叉戟河
 Redwyn = 雷德温
+Joana = 琼安娜
+Maegella Targaryen = 玛格娜·坦格利安
