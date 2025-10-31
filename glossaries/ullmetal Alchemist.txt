@@ -1,0 +1,36 @@
+维护者：Senka
+版本号：1.0.0
+更新时间：2025-10-31
+
+词条
+// 主角团
+Edward Elric = 爱德华 艾尔利克
+Alphonse Elric = 阿尔冯斯 艾尔利克
+Von Hohenheim = 冯 霍恩海姆
+Winry Rockbell = 温莉 洛克贝
+Izumi Curtis = 伊兹米 卡迪斯
+
+// 军
+Roy Mustang = 罗伊 马斯坦
+Riza Hawkeye = 莉莎 霍克艾
+Maes Hughes = 马斯 休斯
+
+// 其他
+Scar：刀疤
+Lin Yao：姚麟
+May Chang：张梅
+Ranfun：兰芳
+
+
+通用词条
+// 专有名词
+One is All：一即是全
+All is one：全即是一
+Fullmetal Alchemist：钢之炼金术师
+Fullmetal：钢
+Homunculus：人造人
+Xing：兴国
+Xerxes：克赛鲁克赛斯
+
+禁翻词条
+// 此区域区分大小写，用于保持原文
