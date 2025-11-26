@@ -55,3 +55,5 @@ The Squip:斯奎普
 squipped：服用了斯奎普
 pre-squip：服用斯奎普之前
 post-squip：服用斯奎普之后
+mountain dew：激浪
+mountain dew red：激浪红
