@@ -51,5 +51,7 @@ Middleborough High School：米德伯勒高中
 通用词条
 // 此区域不区分大小写，用于翻译通用概念
 Squip: 斯奎普
-
-
+The Squip:斯奎普
+squipped：服用了斯奎普
+pre-squip：服用斯奎普之前
+post-squip：服用斯奎普之后
