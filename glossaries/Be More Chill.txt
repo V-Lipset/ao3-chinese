@@ -4,11 +4,11 @@
 
 
 词条
-Jeremy Heere = 杰瑞米·希尔
-Jeremy = 杰瑞米
-Heere = 希尔
-jeremy = 杰瑞米
-heere = 希尔
+Jeremy Heere: 杰瑞米·希尔
+Jeremy: 杰瑞米
+Heere: 希尔
+jeremy: 杰瑞米
+heere: 希尔
 Mr Heere = 希尔先生
 Michael Mell = 迈克尔·梅尔
 Michael = 迈克尔
