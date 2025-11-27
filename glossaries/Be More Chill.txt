@@ -49,7 +49,6 @@ Mr Reyes = 雷耶斯先生
 Middleborough High School：米德伯勒高中
 
 通用词条
-// 此区域不区分大小写，用于翻译通用概念
 Squip: 斯奎普
 The Squip:斯奎普
 squipped：服用了斯奎普
