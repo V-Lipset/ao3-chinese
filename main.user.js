@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.2.0-custom-2025-12-19
+// @version      1.2.1-custom-2025-12-19
 // @author       V-Lipset
 // @license      GPL-3.0
 // @match        https://archiveofourown.org/*
@@ -402,7 +402,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 						.map((p, i) => `${i + 1}. ${p.innerHTML}`)
 						.join('\n\n');
 
-					const userPrompt = `Translate the following numbered list to Simplified Chinese（简体中文）:\n\n${numberedText}`;
+					const userPrompt = `Translate the following numbered list to Simplified Chinese（简体中文）(output translation only):\n\n${numberedText}`;
 
 					return {
 						systemInstruction: {
@@ -492,7 +492,7 @@ Your task is to translate a numbered list of text segments provided by the user.
         _record(level, module, message, data) {
             const timestamp = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
             const logEntry = { timestamp, level, module, message, data };
-            
+
             if (this.config.history.length >= this.config.maxHistory) {
                 this.config.history.shift();
             }
@@ -1010,19 +1010,19 @@ Your task is to translate a numbered list of text segments provided by the user.
 				}
 				.data-selection-item input { margin: 0; cursor: pointer; width: 16px; height: 16px; }
 				.data-selection-item.disabled input { cursor: default; }
-				
+
 				.data-item-content { display: flex; flex-direction: column; }
 				.data-item-label { font-size: 14px; font-weight: 400; color: #333; margin-left: 8px; }
-				
+
 				.data-modal-footer {
 					padding: 8px 16px; border-top: 1px solid rgba(0,0,0,0.12);
-					display: flex; flex-direction: row; justify-content: space-between; align-items: center; 
+					display: flex; flex-direction: row; justify-content: space-between; align-items: center;
 					background-color: #fff; gap: 8px;
 				}
 				.data-modal-btn {
 					flex: 1;
 					padding: 6px 0; border-radius: 4px; font-size: 13px; font-weight: 500;
-					cursor: pointer; border: none; background: transparent !important; 
+					cursor: pointer; border: none; background: transparent !important;
 					color: #333;
 					transition: opacity 0.2s;
 					white-space: nowrap;
@@ -1035,8 +1035,8 @@ Your task is to translate a numbered list of text segments provided by the user.
 				}
 				.data-modal-btn:focus { outline: none; }
 				.data-modal-btn:hover { opacity: 0.7; }
-				
-				.data-select-all-wrapper { 
+
+				.data-select-all-wrapper {
 					font-size: 13px; color: #1976d2; cursor: pointer; user-select: none;
 					position: absolute; right: 16px;
 					-webkit-tap-highlight-color: transparent;
@@ -1055,7 +1055,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 
 			const overlay = document.createElement('div');
 			overlay.id = 'ao3-data-selection-overlay';
-			
+
 			const savedSelection = storageKey ? GM_getValue(storageKey, []) : [];
 			const hasSavedSelection = savedSelection.length > 0;
 
@@ -1077,7 +1077,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 				} else if (item.checked === false) {
 					isChecked = false;
 				}
-				
+
 				html += `
                     <label class="data-selection-item ${item.disabled ? 'disabled' : ''}">
                         <input type="checkbox" value="${item.id}" ${isChecked ? 'checked' : ''} ${item.disabled ? 'disabled' : ''}>
@@ -1117,7 +1117,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 			const modal = overlay.querySelector('#ao3-data-selection-modal');
 			const checkboxes = modal.querySelectorAll('input[type="checkbox"]:not(:disabled)');
 			const selectAllBtn = modal.querySelector('.data-select-all-wrapper');
-			
+
 			let isAllSelected = Array.from(checkboxes).every(cb => cb.checked);
 			selectAllBtn.textContent = isAllSelected ? '取消全选' : '全选';
 
@@ -1294,8 +1294,8 @@ Your task is to translate a numbered list of text segments provided by the user.
 	 * 导入用户配置数据，支持按需导入及合并/覆盖模式
 	 */
     async function importAllData(jsonData, selectedCategories, importMode, syncPanelStateCallback) {
-        if (!jsonData || typeof jsonData !== 'object' || !jsonData.data) {
-            return { success: false, message: "文件格式无效：缺少核心数据模块。" };
+        if (!jsonData || typeof jsonData !== 'object' || !jsonData.data || typeof jsonData.data !== 'object') {
+            return { success: false, message: "文件格式无效或文件已损坏：缺少核心 'data' 模块。" };
         }
 
         const data = jsonData.data;
@@ -1339,7 +1339,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 
                     if (isSelected('apiKeys') && data.apiKeys) {
                         const oldKeyName = `${importedService.id}_keys_string`;
-                        const apiKeyVal = data.apiKeys[oldKeyName];
+                        const apiKeyVal = data.apiKeys[oldKeyName] || importedService.apiKey;
                         if (apiKeyVal !== undefined) {
                             GM_setValue(`${newServiceId}_keys_string`, apiKeyVal);
                             const keysArray = apiKeyVal.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
@@ -1361,6 +1361,9 @@ Your task is to translate a numbered list of text segments provided by the user.
                     let finalValue = value;
                     if (key === 'transEngine' && serviceIdMap.has(value)) {
                         finalValue = serviceIdMap.get(value);
+                    }
+                    if (key === 'from_lang' && (value === 'auto' || value === 'script_auto')) {
+                        finalValue = 'auto';
                     }
                     GM_setValue(key, finalValue);
                 }
@@ -1404,6 +1407,20 @@ Your task is to translate a numbered list of text segments provided by the user.
                 GM_setValue(POST_REPLACE_MAP_KEY, { singleRules: {}, multiPartRules: [] });
             }
 
+            if (g.local || g.forbidden) {
+                const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+                existingLocal.push({
+                    id: `local_migrated_${Date.now()}`,
+                    name: '默认术语表',
+                    sensitive: g.local || '',
+                    insensitive: '',
+                    forbidden: g.forbidden || '',
+                    enabled: true
+                });
+                GM_setValue(CUSTOM_GLOSSARIES_KEY, existingLocal);
+                importLog.push("旧版术语表已迁移");
+            }
+
             if (g.customGlossaries && Array.isArray(g.customGlossaries)) {
                 const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
                 let localAdded = 0;
@@ -1429,6 +1446,10 @@ Your task is to translate a numbered list of text segments provided by the user.
             if (g.metadata) {
                 const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
                 const mergedMeta = { ...existingMeta, ...g.metadata };
+                GM_setValue(GLOSSARY_METADATA_KEY, mergedMeta);
+            } else if (g.onlineMetadata) {
+                const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
+                const mergedMeta = { ...existingMeta, ...g.onlineMetadata };
                 GM_setValue(GLOSSARY_METADATA_KEY, mergedMeta);
             }
 
@@ -1464,23 +1485,17 @@ Your task is to translate a numbered list of text segments provided by the user.
                     importLog.push("后处理替换规则已合并");
                 }
             }
-
-            if (g.local) {
-                const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-                existingLocal.push({
-                    id: `local_imp_legacy_${Date.now()}`,
-                    name: '导入的旧版术语表',
-                    sensitive: g.local,
-                    forbidden: g.forbidden || '',
-                    enabled: true
-                });
-                GM_setValue(CUSTOM_GLOSSARIES_KEY, existingLocal);
-            }
         }
 
         if (isSelected('aiParameters') && data.aiParameters) {
             for (const [key, value] of Object.entries(data.aiParameters)) {
-                if (value !== undefined) GM_setValue(key, value);
+                if (value !== undefined) {
+                    let finalValue = value;
+                    if (key === 'custom_ai_system_prompt' && typeof value === 'string' && value.includes('${')) {
+                        finalValue = value.replace(/\$\{/g, '{');
+                    }
+                    GM_setValue(key, finalValue);
+                }
             }
         }
 
@@ -1493,7 +1508,8 @@ Your task is to translate a numbered list of text segments provided by the user.
 
         let syncSummary = "";
         if (isSelected('glossaries')) {
-            const importedUrls = data.glossaries?.importedGlossaries ? Object.keys(data.glossaries.importedGlossaries) : [];
+            const importedUrls = (data.glossaries?.importedGlossaries) ? Object.keys(data.glossaries.importedGlossaries) :
+            (data.glossaries?.onlineMetadata ? Object.keys(data.glossaries.onlineMetadata) : []);
             if (importedUrls.length > 0) {
                 const downloadPromises = importedUrls.map(url => importOnlineGlossary(url, { silent: true }));
                 Promise.allSettled(downloadPromises).then(results => {
@@ -1676,12 +1692,12 @@ Your task is to translate a numbered list of text segments provided by the user.
                 display: flex; align-items: center; justify-content: center;
                 font-size: 24px; color: rgba(0, 0, 0, 0.54);
             }
-            .settings-panel-body { 
-                padding: 16px; 
-                display: flex; 
-                flex-direction: column; 
+            .settings-panel-body {
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
                 gap: 16px;
-                overflow-y: auto; 
+                overflow-y: auto;
                 flex: 1;
                 min-height: 0;
             }
@@ -1882,9 +1898,9 @@ Your task is to translate a numbered list of text segments provided by the user.
                 display: flex; align-items: center;
             }
 
-            .editable-section { 
-                display: none; 
-                flex-direction: column; 
+            .editable-section {
+                display: none;
+                flex-direction: column;
                 gap: 16px;
             }
             .online-glossary-manager { display: flex; flex-direction: column; gap: 0px; }
@@ -3061,7 +3077,7 @@ Your task is to translate a numbered list of text segments provided by the user.
             };
             const defaults = {
                 system_prompt: () => getSharedSystemPrompt(),
-                user_prompt: () => `Translate the following numbered list to {toLangName}:\n\n{numberedText}`,
+                user_prompt: () => `Translate the following numbered list to {toLangName} (output translation only):\n\n{numberedText}`,
                 temperature: () => 0,
                 chunk_size: () => CONFIG.CHUNK_SIZE,
                 para_limit: () => CONFIG.PARAGRAPH_LIMIT,
@@ -3508,24 +3524,32 @@ Your task is to translate a numbered list of text segments provided by the user.
 
                         const hasData = (catId, data) => {
                             if (!data) return false;
+                            const hasContent = (val) => {
+                                if (!val) return false;
+                                if (typeof val === 'string') return val.trim() !== '';
+                                if (Array.isArray(val)) return val.length > 0;
+                                if (typeof val === 'object') return Object.keys(val).length > 0;
+                                return false;
+                            };
+
                             switch (catId) {
                                 case 'staticKeys':
+                                case 'apiKeys':
+                                case 'modelSelections':
+                                case 'aiParameters':
                                     return Object.keys(data).length > 0;
                                 case 'uiState':
                                     return !!(data.fabPosition || data.panelPosition);
-                                case 'apiKeys':
-                                    return Object.keys(data).length > 0;
-                                case 'modelSelections':
-                                    return Object.keys(data).length > 0;
                                 case 'customServices':
                                     return Array.isArray(data) && data.length > 0;
                                 case 'glossaries':
-                                    return (data.customGlossaries && data.customGlossaries.length > 0) ||
-                                        (data.importedGlossaries && Object.keys(data.importedGlossaries).length > 0) ||
-                                        (data.postReplaceString && data.postReplaceString.trim() !== '') ||
-                                        (data.postReplace && (Object.keys(data.postReplace.singleRules || {}).length > 0 || (data.postReplace.multiPartRules || []).length > 0));
-                                case 'aiParameters':
-                                    return Object.keys(data).length > 0;
+                                    return hasContent(data.customGlossaries) ||
+                                        hasContent(data.importedGlossaries) ||
+                                        hasContent(data.postReplaceString) ||
+                                        hasContent(data.postReplace) ||
+                                        hasContent(data.local) ||
+                                        hasContent(data.forbidden) ||
+                                        hasContent(data.onlineMetadata);
                                 default:
                                     return false;
                             }
@@ -5133,11 +5157,11 @@ Your task is to translate a numbered list of text segments provided by the user.
         // 常见 ISO 639-2/3 三字母代码兼容
         'jpn': 'ja', 'deu': 'de', 'ger': 'de', 'rus': 'ru', 'por': 'pt',
         'tha': 'th', 'ara': 'ar', 'ita': 'it', 'ell': 'el', 'nld': 'nl',
-        'pol': 'pl', 'bul': 'bg', 'est': 'et', 'fin': 'fi', 'ces': 'cs', 
+        'pol': 'pl', 'bul': 'bg', 'est': 'et', 'fin': 'fi', 'ces': 'cs',
         'slv': 'sl', 'hun': 'hu',
 
         // 中文变体处理
-        'cht': 'zh-TW', 
+        'cht': 'zh-TW',
         'yue': 'zh-TW',
         'wyw': 'zh-TW',
         'zh-hk': 'zh-TW',
@@ -8654,6 +8678,10 @@ Your task is to translate a numbered list of text segments provided by the user.
             if (GM_getValue('custom_ai_validation_thresholds') === undefined) {
                 const d = CONFIG.VALIDATION_THRESHOLDS.default;
                 GM_setValue('custom_ai_validation_thresholds', `${d.absolute_loss}, ${d.proportional_loss}, ${d.proportional_trigger_count}`);
+            }
+            const sysPrompt = GM_getValue('custom_ai_system_prompt');
+            if (sysPrompt && typeof sysPrompt === 'string' && sysPrompt.includes('${')) {
+                GM_setValue('custom_ai_system_prompt', sysPrompt.replace(/\$\{/g, '{'));
             }
         })();
     }
