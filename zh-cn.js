@@ -1,7 +1,7 @@
 /**
  name         AO3 Trans Script - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.2.0-custom-2025-12-19
+ version      1.2.1-custom-2025-12-19
  description  AO3 Trans Script 的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -1309,7 +1309,7 @@ const I18N = {
 					'您已登录账户，请登出后重试。'
 				],
                     [
-					'p', 
+					'p',
 					/^\s*The creator's summary is added automatically\.\s*$/s,
 					'创作者的简介会自动添加'
 				],
@@ -1997,7 +1997,7 @@ const I18N = {
 				'Flat View': '平铺视图',
 				'Listing Statistics': '列表统计',
 				'Comment Threads': '评论串',
-				'Subscriptions': '作品订阅'
+				'Subscriptions': '订阅列表'
 			},
 			'innerHTML_regexp': [
 				['span.words', /^\(([\d,]+)\s+words\)$/s, '（$1 字）']
@@ -5777,7 +5777,7 @@ function translateSortButtons() {
 		'Hits': '点击',
 		'Kudos ♥': '点赞',
 		'Prompter': '梗提供者',
-		'Subscriptions': '作品订阅',
+		'Subscriptions': '订阅列表',
 		'Word Count': '字数统计'
 	};
 	const sortButtons = document.querySelectorAll('a[title="sort up"], a[title="sort down"]');
@@ -6062,7 +6062,7 @@ function translateStatsChart() {
 			'Comment Threads': '评论串',
 			'Comment Thread Count': '评论串数',
 			'Bookmarks': '书签',
-			'Subscriptions': '作品订阅',
+			'Subscriptions': '订阅列表',
 			'Word Count': '字数',
 			'Most Recent': '最近发布',
 			'Oldest': '最早发布'
