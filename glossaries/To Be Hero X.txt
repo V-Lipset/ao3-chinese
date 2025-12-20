@@ -1,0 +1,120 @@
+维护者：x000315
+版本号：1.0.11
+更新时间：2025-10-24
+
+词条
+
+// 主要角色
+X：X
+Queen：女王
+Liu Yuwei = 刘 宇唯
+Dragon Boy：梁龙
+Liang Long = 梁 龙
+Ghostblade：默杀
+Ghost Blade：默杀
+Wang Yi = 王 一
+Little Johnny：小强
+Big Johnny：大强
+The Johnnies：大小强
+Loli：罗莉
+Luo Li = 罗 莉
+Lucky Cyan：幸运青
+Cyan：小青
+A-hu：阿虎
+Ahu：阿虎
+E-soul：魂电
+Yang Cheng = 杨 澄
+Nice：奈斯
+Lin Ling = 林 凌
+The Commoner：普通人
+
+// 其他角色
+Cheng Yaojin = 程 咬金
+Xiao Yueqing = 潇 月卿
+Moon：潇月卿
+Miss J：娟姐
+sister Juan：娟姐
+Enlighter：启士
+Qi shi：启士
+Eye of Truth：启士
+God Eye：天眼
+Wreck：破坏王
+Firm Man：不倒
+BuDao：不倒
+Magic Shadow：魔影
+Crash：沖撞
+Wolf Girl：蛊狼
+Blankster：忘仔
+Xia Qing = 夏 晴
+Pomelo：小柚子
+Shang Chao = 尚 超
+Luo：洛
+Ken：肯
+Bowa：波娃
+Mr. Matchstick：干柴
+Ms. Blazing Fire：烈火
+Da Xiong：大雄
+Wang Nuonuo = 王 诺诺
+Luo Tong = 罗 同
+DJ Shindig：狂欢
+Zhang Lan = 张 兰
+Ah Sheng = 阿 生
+Vortex：旋涡
+Phobiaclone：分裂
+Split：分裂
+Liu Ge：六哥
+Smile：微笑
+Weixiao：微笑
+Extro：微笑
+Xin Ya：新芽
+Bug：霸格
+Graffiti King：涂鸦王
+The Ruby-Sapphire Master：丹苍二老
+Nine：Nine
+NINE：NINE
+
+// 老闆
+Shang De = 尚 德
+Mr. Shang：尚总
+Boss Shang：尚总
+Yan Mo = 岩 莫
+Rock：岩莫
+Mickey：米基
+Liu Zhen = 刘 真
+Zac：阿扎
+
+// 組織名稱
+Hero Affairs Commission：联合会
+H.A.C：联合会
+Treeman：树人
+Mighty Glory：MG
+Spotlight：探照灯
+The Spotlight Organization：探照灯组织
+Glimmer Lab：微光实验室
+
+通用词条
+
+// 赌城特区在英文百科里被误写成京城Jingcheng了，不知道官方英文到底是哪一个，按照官方地图上写的都翻成赌城。
+
+the commission：联合会
+hero agency：英雄事务所
+trust value：信赖值
+fear value：恐惧值
+Heroes Tournament：英雄排位赛
+Ruins Incident：废墟事件
+X City：X市
+Center 11 Districts：中心11区
+Chengbei Zone：城北地区
+Chengdong Zone：城东地区
+Chengdong Bay Zone：城东湾区
+Chengnan Zone：城南地区
+Chengxi Zone：城西地区
+Jingcheng Special Zone：赌城特区
+Ducheng Special Zone：赌城特区
+Western Suburbs：城西郊区
+
+禁翻词条
+
+MG
+DOS
+FOMO

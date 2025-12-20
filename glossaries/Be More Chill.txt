@@ -1,0 +1,59 @@
+版本号：1.5.7
+维护者：S.Q.U.I.P
+更新时间：2025-11-27
+
+
+词条
+Jeremy Heere = 杰瑞米·希尔
+Jeremy = 杰瑞米
+Heere = 希尔
+jeremy = 杰瑞米
+heere = 希尔
+Mr.Heere = 希尔先生
+Michael Mell = 迈克尔·梅尔
+Michael = 迈克尔
+Mell = 梅尔
+michael = 迈克尔
+mell = 梅尔
+Christine Canigula= 克里斯汀·卡尼古拉
+Christine = 克里斯汀
+Canigula = 卡尼古拉
+christine = 克里斯汀
+canigula = 卡尼古拉
+Jake Dillinger = 杰克·迪林格
+Jake = 杰克
+Dillinger = 迪林格
+jake = 杰克
+dillinger = 迪林格
+Rich Goranski = 里奇·戈兰斯基
+Rich = 里奇
+Goranski = 戈兰斯基
+rich = 里奇
+goranski = 戈兰斯基
+Chloe Valentine = 克洛伊·瓦伦汀
+Valentine = 瓦伦汀
+Chloe = 克洛伊
+chloe = 克洛伊
+valentine = 瓦伦汀
+Brooke Lohst = 布鲁克·洛斯特
+Brooke = 布鲁克
+Lohst = 洛斯特
+brooke = 布鲁克
+lohst = 洛斯特
+Jenna Rolan = 珍娜·罗兰
+Jenna = 珍娜
+Rolan = 罗兰
+jenna = 珍娜
+rolan = 罗兰
+Mr.Reyes = 雷耶斯先生
+Middleborough High School：米德伯勒高中
+
+通用词条
+// 此区域不区分大小写，用于翻译通用概念
+Squip: 斯奎普
+The Squip:斯奎普
+squipped：服用了斯奎普
+pre-squip：服用斯奎普之前
+post-squip：服用斯奎普之后
+mountain dew：激浪
+mountain dew red：激浪红
