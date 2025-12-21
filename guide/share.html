@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分享你的术语表</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background-color: #fdfdfd;
+        }
+
+        h1, h2, h3 {
+            font-weight: 700;
+            color: #111;
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #eee;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+        }
+
+        h2 {
+            font-size: 1.8em;
+        }
+        
+        h3 {
+            font-size: 1.4em;
+            border-bottom: none;
+        }
+
+        p {
+            margin-bottom: 1.2em;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+            margin-bottom: 1.2em;
+        }
+
+        li {
+            margin-bottom: 0.6em;
+        }
+
+        code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        strong {
+            font-weight: 700;
+            color: #c7254e;
+        }
+        
+        .intro {
+            font-size: 1.1em;
+            color: #555;
+            text-align: center;
+            margin-bottom: 2em;
+        }
+        
+        .guide-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            margin-top: 0.5em;
+        }
+
+        @media print {
+            body {
+                max-width: 100%;
+                margin: 20px;
+                padding: 0;
+                font-size: 12pt;
+            }
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+            pre, blockquots {
+                page-break-inside: avoid;
+            }
+            a {
+                text-decoration: none;
+                color: inherit;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>分享你的术语表</h1>
+
+    <h3>1. 访问 AO3 汉化插件的<code>Wiki</code>界面。</h3>
+    <p>Wiki 网址：<a href="https://github.com/V-Lipset/ao3-chinese/wiki/%E5%9C%A8%E7%BA%BF%E6%9C%AF%E8%AF%AD%E8%A1%A8" target="_blank">https://github.com/V-Lipset/ao3-chinese/wiki/在线术语表</a></p>
+    <p style="text-align: center;">
+        <img src="https://github.com/V-Lipset/ao3-chinese/blob/main/assets/share/1.1.png?raw=true" alt="步骤示意图 1.1" class="guide-image">
+    </p>
+
+    <h3>2. 点击<code>编辑</code>。</h3>
+    <p style="text-align: center;">
+        <img src="https://github.com/V-Lipset/ao3-chinese/blob/main/assets/share/2.1.png?raw=true" alt="步骤示意图 2.1" class="guide-image">
+    </p>
+
+    <h3>3. 在代码框中添加你的术语表信息。</h3>
+    <ul>
+        <li><code>### Princess Principal</code>
+            <ul>
+                <li><code>###</code> 表示这是一个三级标题。</li>
+            </ul>
+        </li>
+        <li><code>* 链接：[]()</code>
+            <ul>
+                <li><code>*</code> 表示这是一个无序列表。</li>
+                <li><code>[]</code> 内是要显示的文本，<code>()</code> 内是此文本指向的链接。可以在里面写上你的术语表的导入链接。</li>
+            </ul>
+        </li>
+        <li><code>* 维护者：[]()</code>
+            <ul>
+                <li><code>[你的名称](你想指向的个人主页链接)</code></li>
+            </ul>
+        </li>
+    </ul>
+    <p>示例：</p>
+    <p style="text-align: center;">
+        <img src="https://github.com/V-Lipset/ao3-chinese/blob/main/assets/share/3.1.png?raw=true" alt="步骤示意图 3.1" class="guide-image">
+    </p>
+
+    <h3>4. 添加完成后，可以点击<code>预览</code>看一下呈现效果。</h3>
+    <p style="text-align: center;">
+        <img src="https://github.com/V-Lipset/ao3-chinese/blob/main/assets/share/4.1.png?raw=true" alt="步骤示意图 4.1" class="guide-image">
+    </p>
+    <p style="text-align: center;">
+        <img src="https://github.com/V-Lipset/ao3-chinese/blob/main/assets/share/4.2.png?raw=true" alt="步骤示意图 4.2" class="guide-image">
+    </p>
+
+    <h3>5. 确认无误后，就可以填写<code>提交信息</code>、<code>保存页面</code>了。</h3>
+    <p style="text-align: center;">
+        <img src="https://github.com/V-Lipset/ao3-chinese/blob/main/assets/share/5.1.png?raw=true" alt="步骤示意图 5.1" class="guide-image">
+    </p>
+
+    <h3>6. 感谢你的分享！</h3>
+    <p style="text-align: center;">
+        <img src="https://github.com/V-Lipset/ao3-chinese/blob/main/assets/share/6.1.png?raw=true" alt="步骤示意图 6.1" class="guide-image">
+    </p>
+
+</body>
+</html>

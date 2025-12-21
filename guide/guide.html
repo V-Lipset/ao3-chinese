@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>术语表编写指南</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background-color: #fdfdfd;
+        }
+
+        h1, h2, h3 {
+            font-weight: 700;
+            color: #111;
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #eee;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+        }
+
+        h2 {
+            font-size: 1.8em;
+        }
+        
+        h3 {
+            font-size: 1.4em;
+            border-bottom: none;
+        }
+
+        p {
+            margin-bottom: 1.2em;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+            margin-bottom: 1.2em;
+        }
+
+        li {
+            margin-bottom: 0.6em;
+        }
+
+        code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        strong {
+            font-weight: 700;
+            color: #c7254e;
+        }
+        
+        .intro {
+            font-size: 1.1em;
+            color: #555;
+            text-align: center;
+            margin-bottom: 2em;
+        }
+        
+        .edit-date {
+            text-align: right;
+            font-size: 0.9em;
+            color: #777;
+            margin-top: -1.5em;
+            margin-bottom: 3em;
+        }
+        
+        .note {
+            background-color: #fffbe6;
+            border-left: 4px solid #ffc107;
+            padding: 10px 15px;
+            margin: 1.5em 0;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5em 0;
+            font-size: 0.95em;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f9f9f9;
+            font-weight: 700;
+        }
+        td {
+            vertical-align: top;
+        }
+
+        @media print {
+            body {
+                max-width: 100%;
+                margin: 20px;
+                padding: 0;
+                font-size: 12pt;
+            }
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+            pre, blockquots {
+                page-break-inside: avoid;
+            }
+            a {
+                text-decoration: none;
+                color: inherit;
+            }
+        }
+
+        .comparison-table {
+            width: 660px; /* 或者 100% */
+            border-collapse: collapse;
+            margin: 1.5em 0;
+            font-size: 0.95em;
+        }
+        .comparison-table th, .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .comparison-table th {
+            background-color: #f9f9f9;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>术语表编写指南 v1.0.2</h1>
+
+    <p class="intro">
+        感谢您为 AO3 汉化插件编写术语表！一份精心编撰的术语表可以极大地提升 AI 翻译的准确性和一致性。为了让脚本能够正确解析和使用您创建的术语表，请遵循以下格式和编写规范。
+    </p>
+
+    <p class="edit-date">编辑于：2025-09-22</p>
+
+    <h2>一、文件基本格式</h2>
+    <ol>
+        <li><strong>文件类型</strong>：必须是纯文本文件，推荐使用 <code>.txt</code> 后缀。</li>
+        <li><strong>文件编码</strong>：必须使用 <strong>UTF-8</strong> 编码。</li>
+        <li><strong>结构</strong>：一个在线术语表文件由多个主要部分组成，包括：<strong>元数据区</strong>、<strong><code>词条</code>区</strong>、<strong><code>通用词条</code>区</strong>、<strong><code>禁翻词条</code>区</strong> 和 <strong><code>正则表达式</code>区</strong>。</li>
+        <li><strong>注释</strong>：以 <code>//</code> 开头的行将被脚本忽略，可用于添加说明、整理分类词条等。</li>
+    </ol>
+
+    <h2>二、元数据区</h2>
+    <p>这部分位于文件开头，用于描述术语表的基本信息。</p>
+    <ul>
+        <li><strong>格式</strong>：每条信息占一行，格式为 <code>键：值</code>。</li>
+        <li><strong>必填字段</strong>：
+            <ul>
+                <li><code>版本号</code>：<strong>必须提供</strong>。用于版本控制。当您更新词条后，请务必提升版本号（例如从 <code>1.0.0</code> 改为 <code>1.0.1</code>），这样脚本才能检测到更新。</li>
+                <li><code>维护者</code>：术语表的创建者或维护者的名称。</li>
+            </ul>
+        </li>
+        <li><strong>可选字段</strong>：
+            <ul>
+                <li><code>更新时间</code>：最后一次修改的日期。</li>
+            </ul>
+        </li>
+    </ul>
+    <h3>示例</h3>
+    <pre><code>// 元数据区
+版本号：1.0.1
+维护者：V-Lipset
+更新时间：2025-09-22</code></pre>
+
+    <h2>三、翻译词条区</h2>
+    <p>这是用于定义翻译规则的核心部分，分为两个区域以适应不同需求。区域之间必须由 <code>词条</code> 或 <code>通用词条</code> 这样的标题行分隔。</p>
+
+    <h3>1. <code>词条</code> 区</h3>
+    <ul>
+        <li><strong>用途</strong>：用于定义需要<strong>严格区分大小写</strong>的词汇。非常适合人名、专有缩写、品牌等大小写具有特定含义的词。</li>
+        <li><strong>规则</strong>：脚本只会匹配与原文大小写完全一致的词。例如，定义 <code>Hypatia</code> 不会匹配到 <code>hypatia</code>。</li>
+        <li><strong>示例</strong>：<code>Hypatia：伊帕希娅</code></li>
+    </ul>
+
+    <h3>2. <code>通用词条</code> 区</h3>
+    <ul>
+        <li><strong>用途</strong>：用于定义<strong>不区分大小写</strong>的通用词汇或概念。</li>
+        <li><strong>规则</strong>：脚本会匹配该词的所有大小写形式。例如，定义 <code>Hypercube</code> 会同时匹配 <code>Hypercube</code>，<code>hypercube</code>，<code>HyPerCube</code>，和 <code>HYPERCUBE</code>。</li>
+        <li><strong>示例</strong>：<code>Hypercube：异方晶</code></li>
+    </ul>
+
+    <h3>3. 多词条关联定义（使用 <code>=</code>）</h3>
+    <p>此定义方式可以在 <strong><code>词条</code></strong> 和 <strong><code>通用词条</code></strong> 两个区域内使用，其大小写敏感性取决于它所在的区域。</p>
+    <ul>
+        <li><strong>格式</strong>：<code>原文部分1 原文部分2 = 译文部分1 译文部分2</code></li>
+        <li><strong>核心规则</strong>：使用 <code>=</code> 作为分隔符；原文和译文的<strong>部分数量必须完全一致</strong>，并用<strong>空格</strong>隔开。</li>
+        <li><strong>自动处理</strong>：脚本会自动识别所有词序组合（统一翻译为指定译文），并分别翻译其组成部分。</li>
+        <li><strong>示例1</strong>：在 <code>词条</code> 区定义 <code>Wakaba Mutsumi = 若叶 睦</code>，脚本会自动生成以下<strong>区分大小写</strong>的规则：
+            <ul>
+                <li><code>Wakaba Mutsumi</code> → <code>若叶睦</code></li>
+                <li><code>Mutsumi Wakaba</code> → <code>若叶睦</code>（自动处理词序，输出结果不变）</li>
+                <li><code>Wakaba</code> → <code>若叶</code></li>
+                <li><code>Mutsumi</code> → <code>睦</code></li>
+            </ul>
+        </li>
+        <li><strong>示例2</strong>：在 <code>词条</code> 区定义 <code>Elvira Stewart = 艾尔维拉·斯图尔特</code>，脚本会自动生成以下<strong>区分大小写</strong>的规则：
+            <ul>
+                <li><code>Elvira Stewart</code> → <code>艾尔维拉·斯图尔特</code></li>
+                <li><code>Stewart Elvira</code> → <code>艾尔维拉·斯图尔特</code>（自动处理词序，输出结果不变）</li>
+                <li><code>Elvira</code> → <code>艾尔维拉</code></li>
+                <li><code>Stewart</code> → <code>斯图尔特</code></li>
+            </ul>
+        </li>
+    </ul>
+
+    <h2>四、禁翻词条区</h2>
+    <p>
+        这是一个独立的区域，用于列出您希望在AI翻译过程中 <strong>保持原文、不被翻译</strong> 的词汇。
+    </p>
+    <ul>
+        <li><strong>标记</strong>：使用 <code>禁翻词条</code> 作为区域标题。</li>
+        <li><strong>格式</strong>：每行一个词条，或用逗号分隔多个词条。</li>
+        <li><strong>规则</strong>：此区域的词条匹配是 <strong>区分大小写</strong> 的，以提供最精确的保护。</li>
+    </ul>
+
+    <h2>五、正则表达式区</h2>
+    <p>
+        在此区域下，可使用正则表达式定义复杂的查找和替换规则，为处理特定模式的文本提供了极大的灵活性。
+    </p>
+    <ul>
+        <li><strong>标记</strong>：使用 <code>正则表达式</code> 作为区域标题。</li>
+        <li><strong>格式</strong>：<code>正则表达式: 替换后的文本</code>。</li>
+        <li><strong>规则</strong>：脚本将直接使用您提供的正则表达式模式进行全局匹配和替换。</li>
+        <li><strong>示例</strong>：<code>Wachm(a|ä)nn(er)?: 守卫</code></li>
+            <ul>
+                <li><code>Wachm</code>和<code>nn</code>：匹配固定的部分。</li>
+                <li><code>(a|ä)</code>：使用 <code>|</code>来匹配单数形式的 <code>a</code> 或复数形式的 <code>ä</code>。</li>
+                <li><code>(er)?</code>：使用 <code>?</code>来匹配复数形式中可能出现的后缀 <code>er</code>。</li>
+                <li>通过这一条规则，脚本就能准确匹配 <code>Wachmann</code> 和 <code>Wachmänner</code>，并将它们统一翻译为<code>守卫</code>。</li>
+            </ul>
+        <li><strong>警告</strong>：正则表达式功能非常强大，但也极具风险。一个编写不当的表达式可能会严重影响浏览器性能，甚至导致页面卡死。<strong>请仅在您完全理解正则表达式并经过充分测试后才使用此功能。</strong></li>
+    </ul>
+
+    <h2>六、通用规则</h2>
+    <ul>
+        <li>
+        <strong>复数自动处理</strong>：所有词条都能自动匹配其常见复数形式（<code>-s</code>、<code>-es</code>、<code>-ies</code>）。
+        </li>
+        <li>
+        <strong>分隔符灵活匹配</strong>：如果定义了一个包含空格的词条（例如 <code>Dis City</code>），将能自动匹配 <code>Dis City</code> 和 <code>Dis-City</code>。反之亦然。
+        <li>
+        <strong>注意</strong>：以上 2 条通用规则均不作用于<code>正则表达式</code>区。
+        </li>
+    </ul>
+    <h2>七、完整文件示例</h2>
+    <p>下面是一个完整的 <code>.txt</code> 术语表文件示例，展示了所有功能：</p>
+    <pre><code>版本号：1.0.1
+维护者：V-Lipset
+更新时间：2025-09-22
+
+// 编写时，请至少包含“词条”、“通用词条”、“禁翻词条”、“正则表达式”这 4 个部分中的 1 个
+
+词条
+// 此区域区分大小写，用于翻译人名等专有名词
+Wakaba Mutsumi = 若叶 睦
+Elvira Stewart = 艾尔维拉·斯图尔特
+Hypatia：伊帕希娅
+Dis City：狄斯城
+
+通用词条
+// 此区域不区分大小写，用于翻译通用概念
+Hypercube：异方晶
+Sinner：禁闭者
+
+禁翻词条
+// 此区域区分大小写，用于保持原文
+EDGE
+HUSH
+
+正则表达式
+// 匹配德语中 "Wachmann" 的单数和复数形式
+Wachm(a|ä)nn(er)?: 守卫
+</code></pre>
+
+    <h2>八、优先级与最佳实践</h2>
+    <ol>
+        <li>
+            <strong>功能分层与对比</strong>：
+            <p>本地设置与在线术语表在功能上有所不同，以满足从快速配置到精细控制的不同需求。</p>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: center; vertical-align: middle;">功能/规则</th>
+                        <th style="text-align: center; vertical-align: middle;">本地设置</th>
+                        <th style="text-align: center; vertical-align: middle;">在线术语表</th>
+                        <th style="text-align: center; vertical-align: middle;">大小写敏感性</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="text-align: center; vertical-align: middle;"><strong>词条</strong></td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">区分大小写</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center; vertical-align: middle;"><strong>通用词条</strong></td>
+                        <td style="text-align: center; vertical-align: middle;">不支持</td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">不区分大小写</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center; vertical-align: middle;"><strong>禁翻词条</strong></td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">区分大小写</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center; vertical-align: middle;"><strong>正则表达式</strong></td>
+                        <td style="text-align: center; vertical-align: middle;">不支持</td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">\</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center; vertical-align: middle;"><strong><code>:</code>和<code>=</code>规则</strong></td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">\</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center; vertical-align: middle;"><strong>复数自动处理</strong></td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">\</td>
+                    </tr>
+                    <tr>
+                        <td style="text-align: center; vertical-align: middle;"><strong>分隔符灵活匹配</strong></td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">支持</td>
+                        <td style="text-align: center; vertical-align: middle;">\</td>
+                    </tr>
+                </tbody>
+            </table>
+        </li>
+        <li>
+            <strong>优先级顺序</strong>：
+                <ul>
+                    <li>本地禁翻词条＞本地翻译词条＞在线禁翻词条＞在线翻译词条＞在线通用词条 > 在线正则表达式。</li>
+                    <li>后导入的在线术语表＞先导入的在线术语表。</li>
+                </ul>
+        </li>
+        <li><strong>长词优先</strong>：在同一优先级层级内，脚本会自动优先匹配更长的词条。例如，如果您同时定义了 <code>Dis</code> 和 <code>Dis City</code>，脚本在遇到 <code>Dis City</code> 时会优先匹配后者。</li>
+        <li><strong>版本管理</strong>：每次更新在线术语表后，<strong>请务必提升 <code>版本号</code> 字段</strong>。这是脚本判断是否需要下载更新的关键。</li>
+    </ol>
+
+</body>
+</html>

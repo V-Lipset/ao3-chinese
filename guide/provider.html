@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>翻译服务介绍</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans SC', 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            background-color: #fdfdfd;
+        }
+
+        h1, h2, h3 {
+            font-weight: 700;
+            color: #111;
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+            padding-bottom: 0.3em;
+            border-bottom: 1px solid #eee;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            text-align: center;
+        }
+        
+        h3 {
+            font-size: 1.4em;
+            border-bottom: none;
+        }
+
+        p {
+            margin-bottom: 1.2em;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+            margin-bottom: 1.2em;
+        }
+
+        li {
+            margin-bottom: 0.6em;
+        }
+
+        code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        strong {
+            font-weight: 700;
+            color: #c7254e;
+        }
+        
+        .intro {
+            font-size: 1.1em;
+            color: #555;
+            text-align: center;
+            margin-bottom: 2em;
+        }
+        
+        .edit-date {
+            text-align: right;
+            font-size: 0.9em;
+            color: #777;
+            margin-top: -1.5em;
+            margin-bottom: 3em;
+        }
+        
+        .note {
+            background-color: #fffbe6;
+            border-left: 4px solid #ffc107;
+            padding: 10px 15px;
+            margin: 1.5em 0;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5em 0;
+            font-size: 0.95em;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f9f9f9;
+            font-weight: 700;
+        }
+        td {
+            vertical-align: top;
+        }
+
+        @media print {
+            body {
+                max-width: 100%;
+                margin: 20px;
+                padding: 0;
+                font-size: 12pt;
+            }
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+            pre, blockquots {
+                page-break-inside: avoid;
+            }
+            a {
+                text-decoration: none;
+                color: inherit;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>翻译服务介绍</h1>
+    <p class="intro">
+        注意：如果访问某个网址或使用某项翻译服务时，出现异常错误，请科学上网并开启全局代理。
+    </p>
+
+    <h3>1. 谷歌翻译</h3>
+    <p><strong>备注：</strong>需要科学上网。</p>
+
+    <h3>2. Zhipu AI</h3>
+    <p><strong>模型：</strong><code>GLM-4-Flash-250414</code></p>
+    <p><strong>简介：</strong>免费、不可翻译敏感内容</p>
+    <p><strong>API Key 获取地址：</strong><a href="https://www.bigmodel.cn" target="_blank">https://www.bigmodel.cn</a></p>
+    <p><strong>备注：</strong>默认使用小体量模型，翻译质量比较基础。</p>
+
+    <h3>3. DeepSeek</h3>
+    <p><strong>模型：</strong><code>DeepSeek V3.2 Think</code>、<code>DeepSeek V3.2 Non-Think</code></p>
+    <p><strong>简介：</strong>付费、可翻译敏感内容</p>
+    <p><strong>API Key 获取地址：</strong><a href="https://platform.deepseek.com" target="_blank">https://platform.deepseek.com</a></p>
+    <p><strong>价格查询：</strong><a href="https://api-docs.deepseek.com/zh-cn/quick_start/pricing" target="_blank">https://api-docs.deepseek.com/zh-cn/quick_start/pricing</a></p>
+    <p><strong>备注：</strong>非必要情况下，不要使用 <code>DeepSeek V3.2 Think</code> ，它是大体量推理模型，拥有过多思考过程，返回译文异常缓慢。</p>
+
+    <h3>4. Google AI</h3>
+    <p><strong>模型：</strong><code>Gemini 2.5 Pro</code>、<code>Gemini 2.5 Flash</code>、<code>Gemini 2.5 Flash-Lite</code></p>
+    <p><strong>简介：</strong>有每日免费额度、不可翻译敏感内容</p>
+    <p><strong>API Key 获取地址：</strong><a href="https://aistudio.google.com" target="_blank">https://aistudio.google.com</a></p>
+    <p><strong>免费额度查询文档：</strong><a href="https://ai.google.dev/gemini-api/docs/rate-limits" target="_blank">https://ai.google.dev/gemini-api/docs/rate-limits</a></p>
+    <p><strong>备注：</strong>非必要情况下，不要使用 <code>Gemini 2.5 Pro</code> ，它也是大体量推理模型，并且由于调用量太大，时常会有模型过载的问题。</p>
+    <p><strong>小技巧：</strong>可准备多个谷歌账号，每个账号下创建不超过 5 个项目，每个项目下创建一个 API Key，将这些 API Key 填入选框中（Key 之间以逗号隔开），翻译时，脚本将自动进行轮询，从而提高每日免费额度。一个项目下，每天可调用 <code>Gemini 2.5 Pro</code> 100 次，<code>Gemini 2.5 Flash</code> 250 次，<code>Gemini 2.5 Flash-Lite</code> 1000 次。</p>
+
+    <h3>5. Groq AI</h3>
+    <p><strong>模型：</strong><code>Llama 4 Maverick</code>、<code>Kimi K2</code>、<code>DeepSeek 70B</code>、<code>GPT-OSS 120B</code></p>
+    <p><strong>简介：</strong>有每日免费额度、前 3 个模型（L/K/D）可翻译敏感内容</p>
+    <p><strong>API Key 获取地址：</strong><a href="https://console.groq.com" target="_blank">https://console.groq.com</a></p>
+    <p><strong>免费额度查询文档：</strong><a href="https://console.groq.com/docs/rate-limits" target="_blank">https://console.groq.com/docs/rate-limits</a></p>
+    <p><strong>备注：</strong>每天可免费使用的 tokens 分别为 500k 、300k、100k、200k。</p>
+
+    <h3>6. Together AI</h3>
+    <p><strong>模型：</strong><code>Llama 4 Maverick</code>、<code>DeepSeek V3</code>、<code>Qwen3 235B</code></p>
+    <p><strong>简介：</strong>付费、可翻译敏感内容</p>
+    <p><strong>API Key 获取地址：</strong><a href="https://api.together.ai" target="_blank">https://api.together.ai</a></p>
+    <p><strong>价格查询：</strong><a href="https://api.together.ai/models" target="_blank">https://api.together.ai/models</a></p>
+
+    <h3>7. Cerebras</h3>
+    <p><strong>模型：</strong><code>Llama 4 Maverick</code>、<code>Qwen 3 235B</code>、<code>GPT-OSS 120B</code></p>
+    <p><strong>简介：</strong>有每日免费额度、可翻译敏感内容</p>
+    <p><strong>API Key 获取地址：</strong><a href="https://cloud.cerebras.ai" target="_blank">https://cloud.cerebras.ai</a></p>
+    <p><strong>免费额度查询文档：</strong>Cerebras 控制台</p>
+    <p><strong>备注：</strong>每个模型一百万 tokens / 天。</p>
+
+    <h3>8. ModelScope</h3>
+    <p><strong>模型：</strong><code>Llama 4 Maverick</code>、<code>DeepSeek V3.1</code>、<code>GLM 4.5</code>、<code>Qwen3 235B</code></p>
+    <p><strong>简介：</strong>有每日免费额度、不可翻译敏感内容</p>
+    <p><strong>API Key 获取地址：</strong><a href="https://www.modelscope.cn/my/myaccesstoken" target="_blank">https://www.modelscope.cn/my/myaccesstoken</a></p>
+    <p><strong>免费额度查询文档：</strong><a href="https://www.modelscope.cn/docs/model-service/API-Inference/intro" target="_blank">https://www.modelscope.cn/docs/model-service/API-Inference/intro</a></p>
+    <p><strong>阿里云账号绑定与授权教程：</strong><a href="https://www.modelscope.cn/docs/accounts/aliyun-binding-and-authorization" target="_blank">https://www.modelscope.cn/docs/accounts/aliyun-binding-and-authorization</a></p>
+    <p><strong>备注：</strong>所有模型共计 2000 次/天。需要进行阿里云账号绑定与授权才能正常使用。</p>
+
+    <h3>9. OpenAI</h3>
+    <p><strong>API Key 获取地址：</strong><a href="https://platform.openai.com" target="_blank">https://platform.openai.com</a></p>
+
+    <h3>10. Anthropic</h3>
+    <p><strong>API Key 获取地址：</strong><a href="https://console.anthropic.com" target="_blank">https://console.anthropic.com</a></p>
+
+</body>
+</html>
