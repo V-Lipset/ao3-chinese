@@ -1,4 +1,4 @@
-# AO3 Translator
+# AO3 汉化插件
 
 一个简单的用户脚本，旨在中文化 [Archive of Our Own](https://archiveofourown.org/) 界面，集成了 AI 翻译及术语表功能，让你的阅读体验更加流畅。
 
