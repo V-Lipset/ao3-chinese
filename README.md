@@ -23,7 +23,7 @@
      - [远程版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/main.user.js)
      - [本地版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js)
 5. 安装脚本后，访问/刷新[AO3 网站](https://archiveofourown.org/)，界面将自动变为中文。
-6. 如需使用翻译功能，请点击 `悬浮球` 或者 `Tampermonkey 图标` -> `AO3 汉化插件` -> `打开设置面板` -> `启用翻译功能`。在各页面，你会看到新增的蓝色翻译按钮，点击即可使用。
+6. 如需使用翻译功能，请点击 `悬浮球` 或者 `Tampermonkey 图标` -> `AO3 Translator` -> `打开设置面板` -> `启用翻译功能`。在各页面，你会看到新增的蓝色翻译按钮，点击即可使用。
 
 ## 📖 使用说明
 
@@ -38,8 +38,9 @@
     - [术语表编写指南](https://v-lipset.github.io/docs/guides/glossary/write)
     - [创建在线术语表](https://v-lipset.github.io/docs/guides/glossary/create)
     - [分享你的术语表](https://v-lipset.github.io/docs/guides/glossary/share)
-- 网盘链接：
-  - [相关文件](https://pan.baidu.com/s/1JVAj6vEVVrxu4h86sBNkVw?pwd=o1je)
+- 网盘链接
+  - [夸克网盘](https://pan.quark.cn/s/41bf3604f803)
+  - [百度网盘](https://pan.baidu.com/s/1JVAj6vEVVrxu4h86sBNkVw?pwd=o1je)
 
 ## 🤝 贡献与反馈
 
