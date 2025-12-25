@@ -1,0 +1,78 @@
+维护者：FemslashAmateur
+版本号：0.1
+更新时间：2025-12-25
+
+
+词条
+
+// 角色
+Gideon：吉迪恩
+Nav：纳夫
+Griddle：锅宝
+Goblin：锅布林
+Gonad：吉宝
+Harrowhark：哈罗霍克
+Harrow：哈罗
+Nonagesimus：诺那杰斯姆斯
+Judith：茱蒂斯
+Deuteros：德特罗斯
+Marta：玛尔塔
+Dyas：戴亚斯
+Coronabeth：科罗娜贝丝
+Ianthe：伊安忒
+Tridentarius：泰汀德瑞俄丝
+Naberius：纳贝琉斯
+Tern：特纳
+Isaac：以撒
+Tettares：泰塔瑞斯
+Jeannemary：珍梅莉
+Chatur：查图尔
+Abigail：阿比盖尔
+Pent：潘特
+Magnus：马格努斯
+Quinn：奎因
+Palamedes：帕拉梅德斯
+Sextus：赛克斯图斯
+Camilla：卡米拉
+Hect：赫克特
+Dulcinea：杜尔西内娅
+Septimus：塞普蒂默斯
+Protesilaus：坡罗忒西拉奥斯
+Ebdoma：埃布多玛
+Silas：塞拉斯
+Octakiseron：奥克塔基塞隆
+Augustine：奥古斯丁
+Mercymorn：梅茜摩恩
+Gaius：盖乌斯
+
+// 职位
+Gideon The Ninth：第九宫的吉迪恩
+Reverend Daughter：虔敬女儿
+
+// 组织和地点
+The Locked Tomb：闭锁之墓
+Nine Houses：九重宫
+The Ninth House：第九宫
+Dominicus：帝明星
+Drearburh：幽暗堡
+The Secundarius Bell：继发钟
+
+// 概念
+Lyctor：宰执
+Lyctors：宰执
+Resurrection Beasts：复活野兽
+Heralds：预兆者
+The River：冥河
+Blood of Eden：伊甸之血
+Necromancy：死灵巫术
+Necromancer：死灵巫师
+cavalier：骑士
+Thanergy：死能
+Thalergy：生能
+A myriad：万象年
+ward：防域
+
+禁翻词条
+
+BoE
+RB
