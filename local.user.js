@@ -2,12 +2,11 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.2.1-custom-2025-12-19
+// @version      1.2.2-custom-2026-01-08
 // @author       V-Lipset
 // @license      GPL-3.0
-// @match        https://archiveofourown.org/*
-// @match        https://archiveofourown.gay/*
-// @match        https://xn--iao3-lw4b.ws/*
+// @include      http*://archiveofourown.org/*
+// @include      http*://archiveofourown.gay/*
 // @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/assets/icon.png
 // @resource     vIcon https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/assets/icon.png
 // @resource     santaHat https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/assets/santa%20hat.png
@@ -42,10 +41,15 @@
 // @grant        GM_notification
 // @grant        GM_addStyle
 // @grant        GM_getResourceURL
+// @grant        GM_info
 // ==/UserScript==
 
 (function (window, document, undefined) {
 	'use strict';
+
+	/**************************************************************************
+	 * Region 1: 全局常量与配置
+	 **************************************************************************/
 
 	/****************** 词库区 (I18N) ******************/
 
@@ -54,2770 +58,527 @@
 		'Jul': '7', 'Aug': '8', 'Sep': '9', 'Oct': '10', 'Nov': '11', 'Dec': '12'
 	};
 
-	const I18N = {
-		'conf': {
-			ignoreMutationSelectorPage: {
-				'*': ['.userstuff .revised.at', '.kudos_count', '.bookmark_count', '.comment_count', '.hit_count', '.view_count'],
-				'works_show': ['.stats .hits', '.stats .kudos'],
-			},
-			ignoreSelectorPage: {
-				'*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', 'dd.freeform.tags', '[data-translated-by-custom-function]', 'li.freeforms'],
-                'works_show': ['.dropdown.actions-menu ul', '#main .userstuff'],
-				'works_chapters_show': ['#main .userstuff'],
-				'admin_posts_show': ['.userstuff'],
-				'tag_sets_index': ['h2.heading', 'dl.stats'],
-				'tag_sets_new': ['h4.heading > label[for*="freeform"]'],
-				'faq_page': ['.userstuff', '.faq.index.group'],
-				'wrangling_guidelines_page': ['.userstuff'],
-				'tos_page': ['#tos.userstuff'],
-				'content_policy_page': ['#content.userstuff'],
-				'privacy_policy_page': ['#privacy.userstuff'],
-				'dmca_policy_page': ['#DMCA.userstuff'],
-				'tos_faq_page': ['.admin.userstuff'],
-				'abuse_reports_new': ['.userstuff'],
-				'support_page': ['.userstuff'],
-				'known_issues_page': ['.admin.userstuff'],
-				'report_and_support_page': ['.userstuff'],
-			},
-			characterDataPage: ['common', 'works_show', 'users_dashboard'],
-			rePagePath: /^\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_-]+))?/
+	// 功能开关
+	const FeatureSet = {
+		enable_RegExp: GM_getValue('enable_RegExp', true),
+		enable_transDesc: GM_getValue('enable_transDesc', false),
+		enable_ui_trans: GM_getValue('enable_ui_trans', true),
+	};
+
+	// 自定义服务存储键
+	const CUSTOM_SERVICES_LIST_KEY = 'custom_services_list';
+	const ACTIVE_MODEL_PREFIX_KEY = 'active_model_for_';
+	const ADD_NEW_CUSTOM_SERVICE_ID = 'add_new_custom';
+
+	/**
+	 * 语言选项常量
+	 */
+	const ALL_LANG_OPTIONS = [
+		["zh-CN", "简体中文"],
+		["zh-TW", "繁體中文"],
+		["ar", "العربية"],
+		["bg", "Български"],
+		["bn", "বাংলা"],
+		["ca", "Català"],
+		["cs", "Čeština"],
+		["da", "Dansk"],
+		["de", "Deutsch"],
+		["el", "Ελληνικά"],
+		["en", "English"],
+		["es", "Español"],
+		["et", "Eesti"],
+		["fa", "فارسی"],
+		["fi", "Suomi"],
+		["fr", "Français"],
+		["gu", "ગુજરાતી"],
+		["he", "עברית"],
+		["hi", "हिन्दी"],
+		["hr", "Hrvatski"],
+		["hu", "Magyar"],
+		["id", "Indonesia"],
+		["is", "Íslenska"],
+		["it", "Italiano"],
+		["ja", "日本語"],
+		["kn", "ಕನ್ನಡ"],
+		["ko", "한국어"],
+		["lt", "Lietuvių"],
+		["lv", "Latviešu"],
+		["ml", "മലയാളം"],
+		["mr", "मराठी"],
+		["ms", "Melayu"],
+		["mt", "Malti"],
+		["nl", "Nederlands"],
+		["no", "Norsk"],
+		["pa", "ਪੰਜਾਬੀ"],
+		["pl", "Polski"],
+		["pt", "Português"],
+		["ro", "Română"],
+		["ru", "Русский"],
+		["sk", "Slovenčina"],
+		["sl", "Slovenščina"],
+		["sv", "Svenska"],
+		["sw", "Kiswahili"],
+		["ta", "தமிழ்"],
+		["te", "తెలుగు"],
+		["th", "ไทย"],
+		["tr", "Türkçe"],
+		["uk", "Українська"],
+		["ur", "اردو"],
+		["vi", "Tiếng Việt"],
+		["zu", "isiZulu"],
+	];
+
+	/**
+	 * 语言代码到自然语言名称的映射
+	 */
+	const LANG_CODE_TO_NAME = {
+		'auto': 'the original language',
+		'zh-CN': 'Simplified Chinese (简体中文)',
+		'zh-TW': 'Traditional Chinese (繁體中文)',
+		'ar': 'Arabic (العربية)',
+		'bg': 'Bulgarian (Български)',
+		'bn': 'Bengali (বাংলা)',
+		'ca': 'Catalan (Català)',
+		'cs': 'Czech (Čeština)',
+		'da': 'Danish (Dansk)',
+		'de': 'German (Deutsch)',
+		'el': 'Greek (Ελληνικά)',
+		'en': 'English',
+		'es': 'Spanish (Español)',
+		'et': 'Estonian (Eesti)',
+		'fa': 'Persian (فارسی)',
+		'fi': 'Finnish (Suomi)',
+		'fr': 'French (Français)',
+		'gu': 'Gujarati (ગુજરાતી)',
+		'he': 'Hebrew (עברית)',
+		'hi': 'Hindi (हिन्दी)',
+		'hr': 'Croatian (Hrvatski)',
+		'hu': 'Hungarian (Magyar)',
+		'id': 'Indonesian (Indonesia)',
+		'is': 'Icelandic (Íslenska)',
+		'it': 'Italian (Italiano)',
+		'ja': 'Japanese (日本語)',
+		'kn': 'Kannada (ಕನ್ನಡ)',
+		'ko': 'Korean (한국어)',
+		'lt': 'Lithuanian (Lietuvių)',
+		'lv': 'Latvian (Latviešu)',
+		'ml': 'Malayalam (മലയാളം)',
+		'mr': 'Marathi (मराठी)',
+		'ms': 'Malay (Melayu)',
+		'mt': 'Maltese (Malti)',
+		'nl': 'Dutch (Nederlands)',
+		'no': 'Norwegian (Norsk)',
+		'pa': 'Punjabi (ਪੰਜਾਬੀ)',
+		'pl': 'Polish (Polski)',
+		'pt': 'Portuguese (Português)',
+		'ro': 'Romanian (Română)',
+		'ru': 'Russian (Русский)',
+		'sk': 'Slovak (Slovenčina)',
+		'sl': 'Slovenian (Slovenščina)',
+		'sv': 'Swedish (Svenska)',
+		'sw': 'Swahili (Kiswahili)',
+		'ta': 'Tamil (தமிழ்)',
+		'te': 'Telugu (తెలుగు)',
+		'th': 'Thai (ไทย)',
+		'tr': 'Turkish (Türkçe)',
+		'uk': 'Ukrainian (Українська)',
+		'ur': 'Urdu (اردو)',
+		'vi': 'Vietnamese (Tiếng Việt)',
+		'zu': 'Zulu (isiZulu)',
+	};
+
+	/**
+	 * 针对不同目标语言的输出示例数据
+	 */
+	const PROMPT_EXAMPLE_OUTPUTS = {
+		'zh-CN': `1. 这是<em>第一个</em>句子。\n2. ---\n3. 她的名字是 ph_123456。\n4. 这是第四个句子。`,
+		'zh-TW': `1. 這是<em>第一個</em>句子。\n2. ---\n3. 她的名字是 ph_123456。\n4. 這是第四個句子。`,
+		'ar': `1. هذه هي الجملة <em>الأولى</em>.\n2. ---\n3. اسمها هو ph_123456.\n4. هذه هي الجملة الرابعة.`,
+		'bg': `1. Това е <em>първото</em> изречение.\n2. ---\n3. Нейното име е ph_123456.\n4. Това е четвъртото изречение.`,
+		'bn': `1. এটি <em>প্রথম</em> বাক্য।\n2. ---\n3. তার নাম ph_123456।\n4. এটি চতুর্থ বাক্য।`,
+		'ca': `1. Aquesta és la <em>primera</em> frase.\n2. ---\n3. El seu nom és ph_123456.\n4. Aquesta és la quarta frase.`,
+		'cs': `1. Toto je <em>první</em> věta.\n2. ---\n3. Jmenuje se ph_123456.\n4. Toto je čtvrtá věta.`,
+		'da': `1. Dette er den <em>første</em> sætning.\n2. ---\n3. Hendes navn er ph_123456.\n4. Dette er den fjerde sætning.`,
+		'de': `1. Das ist der <em>erste</em> Satz.\n2. ---\n3. Ihr Name ist ph_123456.\n4. Das ist der vierte Satz.`,
+		'el': `1. Αυτή είναι η <em>πρώτη</em> πρόταση.\n2. ---\n3. Το όνομά της είναι ph_123456.\n4. Αυτή είναι η τέταρτη πρόταση.`,
+		'es': `1. Esta es la <em>primera</em> frase.\n2. ---\n3. Su nombre es ph_123456.\n4. Esta es la cuarta frase.`,
+		'et': `1. See on <em>esimene</em> lause.\n2. ---\n3. Tema nimi on ph_123456.\n4. See on neljas lause.`,
+		'fa': `1. این <em>اولین</em> جمله است.\n2. ---\n3. نام او ph_123456 است.\n4. این چهارمین جمله است.`,
+		'fi': `1. Tämä on <em>ensimmäinen</em> lause.\n2. ---\n3. Hänen nimensä on ph_123456.\n4. Tämä on neljäs lause.`,
+		'fr': `1. C'est la <em>première</em> phrase.\n2. ---\n3. Son nom est ph_123456.\n4. C'est la quatrième phrase.`,
+		'gu': `1. આ <em>પહેલું</em> વાક્ય છે।\n2. ---\n3. તેનું નામ ph_123456 છે।\n4. આ ચોથું વાક્ય છે।`,
+		'he': `1. זהו המשפט ה<em>ראשון</em>.\n2. ---\n3. שמה הוא ph_123456.\n4. זהו המשפט הרביעי.`,
+		'hi': `1. यह <em>पहला</em> वाक्य है।\n2. ---\n3. उसका नाम ph_123456 है।\n4. यह चौथा वाक्य है।`,
+		'hr': `1. Ovo je <em>prva</em> rečenica.\n2. ---\n3. Njeno ime je ph_123456.\n4. Ovo je četvrta rečenica.`,
+		'hu': `1. Ez az <em>első</em> mondat.\n2. ---\n3. A neve ph_123456.\n4. Ez a negyedik mondat.`,
+		'id': `1. Ini adalah kalimat <em>pertama</em>.\n2. ---\n3. Namanya adalah ph_123456.\n4. Ini adalah kalimat keempat.`,
+		'is': `1. Þetta er <em>fyrsta</em> setningin.\n2. ---\n3. Hún heitir ph_123456.\n4. Þetta er fjórða setningin.`,
+		'it': `1. Questa è la <em>prima</em> frase.\n2. ---\n3. Il suo nome è ph_123456.\n4. Questa è la quarta frase.`,
+		'ja': `1. これは<em>最初の</em>文です。\n2. ---\n3. 彼女の名前は ph_123456 です。\n4. これは4番目の文です。`,
+		'kn': `1. ಇದು <em>ಮೊದಲ</em> ವಾಕ್ಯ।\n2. ---\n3. ಅವಳ ಹೆಸರು ph_123456।\n4. ಇದು ನಾಲ್ಕನೇ ವಾಕ್ಯ।`,
+		'ko': `1. 이것은 <em>첫 번째</em> 문장입니다。\n2. ---\n3. 그녀의 이름은 ph_123456 입니다。\n4. 이것은 네 번째 문장입니다。`,
+		'lt': `1. Tai yra <em>pirmas</em> sakinys.\n2. ---\n3. Jos vardas yra ph_123456.\n4. Tai yra ketvirtas sakinys.`,
+		'lv': `1. Šis ir <em>pirmais</em> teikums.\n2. ---\n3. Viņas vārds ir ph_123456.\n4. Šis ir ceturtais teikums.`,
+		'ml': `1. ഇതാണ് <em>ഒന്നാമത്തെ</em> വാക്യം।\n2. ---\n3. അവളുടെ പേര് ph_123456 എന്നാണ്।\n4. ഇതാണ് നാലാമത്തെ വാക്യം।`,
+		'mr': `1. हे <em>पहिले</em> वाक्य आहे।\n2. ---\n3. तिचे नाव ph_123456 आहे।\n4. हे चौथे वाक्य आहे।`,
+		'ms': `1. Ini adalah ayat <em>pertama</em>.\n2. ---\n3. Namanya ialah ph_123456.\n4. Ini adalah ayat keempat.`,
+		'mt': `1. Din hija l-<em>ewwel</em> sentenza.\n2. ---\n3. Jisimha hu ph_123456.\n4. Din hija r-raba' sentenza.`,
+		'nl': `1. Dit is de <em>eerste</em> zin.\n2. ---\n3. Haar naam is ph_123456.\n4. Dit is de vierde zin.`,
+		'no': `1. Dette er den <em>første</em> setningen.\n2. ---\n3. Hennes navn er ph_123456.\n4. Dette er den fjerde setningen.`,
+		'pa': `1. ਇਹ <em>ਪਹਿਲਾ</em> ਵਾਕ ਹੈ।\n2. ---\n3. ਉਸਦਾ ਨਾਮ ph_123456 ਹੈ।\n4. ਇਹ ਚੌਥਾ ਵਾਕ ਹੈ।`,
+		'pl': `1. To jest <em>pierwsze</em> zdanie.\n2. ---\n3. Nazywa się ph_123456.\n4. To jest czwarte zdanie.`,
+		'pt': `1. Esta é a <em>primeira</em> frase.\n2. ---\n3. O nome dela é ph_123456.\n4. Esta é a quarta frase.`,
+		'ro': `1. Aceasta este <em>prima</em> propoziție.\n2. ---\n3. Numele ei este ph_123456.\n4. Aceasta este a patra propoziție.`,
+		'ru': `1. Это <em>первое</em> предложение.\n2. ---\n3. Её зовут ph_123456.\n4. Это четвёртое предложение.`,
+		'sk': `1. Toto je <em>prvá</em> veta.\n2. ---\n3. Volá sa ph_123456.\n4. Toto je štvrtá veta.`,
+		'sl': `1. To je <em>prvi</em> stavek.\n2. ---\n3. Ime ji je ph_123456.\n4. To je četrti stavek.`,
+		'sv': `1. Detta är den <em>första</em> meningen.\n2. ---\n3. Hennes namn är ph_123456.\n4. Detta är den fjärde meningen.`,
+		'sw': `1. Hii ni sentensi ya <em>kwanza</em>.\n2. ---\n3. Jina lake ni ph_123456.\n4. Hii ni sentensi ya nne.`,
+		'ta': `1. இது <em>முதல்</em> வாக்கியம்.\n2. ---\n3. அவள் பெயர் ph_123456.\n4. இது நான்காவது வாக்கியம்.`,
+		'te': `1. ఇది <em>మొదటి</em> వాక్యం.\n2. ---\n3. ఆమె పేరు ph_123456.\n4. ఇది నాల్గవ వాక్యం.`,
+		'th': `1. นี่คือประโยค<em>แรก</em>\n2. ---\n3. ชื่อของเธอคือ ph_123456\n4. นี่คือประโยคที่สี่`,
+		'tr': `1. Bu <em>birinci</em> cümledir.\n2. ---\n3. Onun adı ph_123456.\n4. Bu dördüncü cümledir.`,
+		'uk': `1. Це <em>перше</em> речення.\n2. ---\n3. Її звати ph_123456.\n4. Це четверте речення.`,
+		'ur': `1. یہ <em>پہلا</em> جملہ ہے۔\n2. ---\n3. اس کا نام ph_123456 ہے۔\n4. یہ چوتھا جملہ ہے۔`,
+		'vi': `1. Đây là câu <em>đầu tiên</em>.\n2. ---\n3. Tên cô ấy là ph_123456.\n4. Đây là câu thứ tư.`,
+		'zu': `1. Lona umusho <em>wokuqala</em>.\n2. ---\n3. Igama lakhe ngu-ph_123456.\n4. Lona umusho wesine.`,
+		'default': `1. This is the <em>first</em> sentence.\n2. ---\n3. Her name is ph_123456.\n4. This is the fourth sentence.`
+	};
+
+	/**
+		 * 根据目标语言动态生成完整的提示示例
+		 */
+	function generatePromptExample(toLang) {
+		const exampleOutputText = PROMPT_EXAMPLE_OUTPUTS[toLang] || PROMPT_EXAMPLE_OUTPUTS['zh-CN'];
+		return `### Example Output:\n${exampleOutputText}`;
+	}
+
+	/**
+	 * 获取 AI 翻译系统提示词模板
+	 */
+	function getSharedSystemPrompt() {
+		return `You are a professional translator fluent in {toLangName}, with particular expertise in translating web novels and online fanfiction from {fromLangName}.
+
+Your task is to translate a numbered list of text segments provided by the user. These segments can be anything from full paragraphs to single phrases or words. For each numbered item, you will follow an internal three-stage strategy to produce the final, polished translation.
+
+### Internal Translation Strategy (for each item):
+1.  **Stage 1 (Internal Thought Process):** Produce a literal, word-for-word translation of the original content.
+2.  **Stage 2 (Internal Thought Process):** Based on the literal translation, identify any phrasing that is unnatural or does not flow well in the target language.
+3.  **Stage 3 (Final Output):** Produce a polished, idiomatic translation that fully preserves the original meaning, tone, cultural nuances, and any specialized fandom terminology. The final translation must be natural-sounding, readable, and conform to standard usage in {toLangName}.
+
+### CRITICAL OUTPUT INSTRUCTIONS:
+- Your entire response MUST consist of *only* the polished translation from Stage 3, formatted as a numbered list that exactly matches the input's numbering.
+- Do NOT include any stage numbers, headers (e.g., "Polished Translation"), notes, or explanations in your final output.
+- **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original, including their positions around the translated text.
+- **Placeholder Preservation:** If an item contains special placeholders in the format \`ph_\` followed by six digits (e.g., \`ph_123456\`), you MUST preserve these placeholders exactly as they are.
+  - **DO NOT** change \`ph_\` to \`P_\`, \`Ph_\`, or any other variation.
+  - **DO NOT** add spaces inside the placeholder (e.g., \`ph_ 123456\` is WRONG).
+  - **DO NOT** translate, modify, or delete them.
+- **Untranslatable Content:** If an item is a separator, a meaningless symbol, or otherwise untranslatable, you MUST return the original item exactly as it is, preserving its number.
+
+### Example Input:
+1. This is the <em>first</em> sentence.
+2. ---
+3. Her name is ph_123456.
+4. This is the fourth sentence.
+
+{exampleOutput}
+		`;
+	}
+
+	// 创建一个标准的、兼容OpenAI API的服务配置对象
+	const createStandardApiConfig = ({ name, url }) => ({
+		name: name,
+		url_api: url,
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		responseIdentifier: 'choices[0].message.content',
+	});
+
+	/**
+	 * 微软翻译语言代码映射表
+	 */
+	const BING_LANG_CODE_MAP = {
+		'zh-CN': 'zh-Hans',
+		'zh-TW': 'zh-Hant',
+		'yue': 'yue',
+		'auto': 'auto-detect'
+	};
+
+	// 语言检测截取字符长度限制
+	const LANG_DETECT_MAX_LENGTH = 800;
+
+	// 底层实现配置
+	const CONFIG = {
+		LANG: 'zh-CN',
+		OBSERVER_CONFIG: {
+			childList: true,
+			subtree: true,
+			characterData: true,
+			attributeFilter: ['value', 'placeholder', 'aria-label', 'data-confirm', 'title']
 		},
-		'zh-CN': {
-			'title': {
-				'static': {},
-				'regexp': []
+
+		// 将默认翻译服务设置为微软翻译
+		transEngine: GM_getValue('transEngine', 'google_translate'),
+
+		// 默认文本分块、懒加载边距
+		CHUNK_SIZE: 1600,
+		PARAGRAPH_LIMIT: 8,
+		LAZY_LOAD_ROOT_MARGIN: '400px 0px 1000px 0px',
+
+		// 谷歌、微软翻译文本分块、懒加载边距
+		MODEL_SPECIFIC_LIMITS: {
+			'google_translate': {
+				CHUNK_SIZE: 4000,
+				PARAGRAPH_LIMIT: 20,
+				LAZY_LOAD_ROOT_MARGIN: '1200px 0px 3000px 0px',
 			},
-			'public': {
-				'static': {
+			'bing_translator': {
+				CHUNK_SIZE: 3000,
+				PARAGRAPH_LIMIT: 15,
+				LAZY_LOAD_ROOT_MARGIN: '1200px 0px 3000px 0px',
+			}
+		},
 
-					// 基本
-					'Archive of Our Own': 'AO3 作品库',
-					'Fandoms': '同人圈', 'All Fandoms': '所有同人圈',
-					'Browse': '浏览', 'Works': '作品', 'Bookmarks': '书签', 'Tags': '标签', 'Collections': '合集',
-					'Search': '搜索', 'People': '用户',
-					'About': '关于', 'About Us': '关于我们', 'News': '新的动态', 'FAQ': '常见问题', 'Wrangling Guidelines': '整理指南', 'Donate or Volunteer': '捐赠/志愿',
-					'Recent Works': '最近作品',
-					'Recent Series': '最近系列',
-					'Recent Bookmarks': '最近书签', 'Collections:': '合集:',
-					'Bookmarker\'s Tags:': '书签创建者的标签：', 'Bookmarker\'s Collections:': '书签创建者的合集：', 'Completed': '已完结',
-					'Bookmark Tags:': '书签标签：', 'Complete Work': '已完结', 'Work in Progress': '连载中', 'Public Bookmark': '公开书签',
-					'Most Popular': '最常用', 'Tag Sets': '标签集',
-					'Warnings': '预警',
-					'Find your favorites': '寻找喜欢的内容',
-
-					// 登录
-					'Log In': '登录',
-					'Log in': '登录',
-					'Sign Up': '注册',
-					'User': '用户',
-					'Username or email:': '用户名或邮箱:',
-					'Password:': '密码:',
-					'Remember Me': '记住我',
-					'Remember me': '记住我',
-					'Forgot password?': '忘记密码？',
-					'Get an Invitation': '获取邀请',
-
-					// 忘记密码
-					'Forgotten your password?': '忘记您的密码了吗？',
-					'If you\'ve forgotten your password, we can send instructions that will allow you to reset it. Please tell us the username or email address you used when you signed up for your Archive account.': '如果您忘记了密码，我们可以发送允许您重置密码的邮件说明。请输入您注册 AO3 帐户时使用的用户名或电子邮箱地址。',
-					'Reset Password': '重置密码',
-
-					// 星期
-					'Mon': '周一',
-					'Tue': '周二',
-					'Wed': '周三',
-					'Thu': '周四',
-					'Fri': '周五',
-					'Sat': '周六',
-					'Sun': '周日',
-					'Monday': '星期一',
-					'Tuesday': '星期二',
-					'Wednesday': '星期三',
-					'Thursday': '星期四',
-					'Friday': '星期五',
-					'Saturday': '星期六',
-					'Sunday': '星期日',
-
-					// 月份
-					'Jan': '1月',
-					'Feb': '2月',
-					'Mar': '3月',
-					'Apr': '4月',
-					'May': '5月',
-					'Jun': '6月',
-					'Jul': '7月',
-					'Aug': '8月',
-					'Sep': '9月',
-					'Oct': '10月',
-					'Nov': '11月',
-					'Dec': '12月',
-					'January': '1月',
-					'February': '2月',
-					'March': '3月',
-					'April': '4月',
-					'May': '5月',
-					'June': '6月',
-					'July': '7月',
-					'August': '8月',
-					'September': '9月',
-					'October': '10月',
-					'November': '11月',
-					'December': '12月',
-
-					// 页脚
-					'Footer': '页脚',
-					'Customize': '自定义',
-					'Default': '默认界面',
-					'Low Vision Default': '低视力默认界面',
-					'Reversi': 'Reversi 界面',
-					'Snow Blue': 'Snow Blue 界面',
-					'About the Archive': '关于 Archive',
-					'Site Map': '站点地图',
-					'Diversity Statement': '多元化声明',
-					'Terms of Service': '服务条款',
-					'Content Policy': '内容政策',
-					'Privacy Policy': '隐私政策',
-					'DMCA Policy': 'DMCA 政策',
-					'Site Status': '站点状态',
-					'TOS FAQ': '服务条款常见问题',
-					'↑ Top': '↑ 回到顶部',
-					'Frequently Asked Questions': '常见问题',
-					'Contact Us': '联系我们',
-					'Policy Questions & Abuse Reports': '政策咨询与滥用举报',
-					'Technical Support & Feedback': '技术支持与反馈',
-					'Development': '开发',
-					'Known Issues': '已知问题',
-					'View License': '查看许可证',
-					'OTW': 'OTW',
-					'Organization for Transformative Works': '再创作组织',
-
-					// 反馈
-					'Support and Feedback': '支持与反馈',
-					'FAQs & Tutorials': '常见问题与教程',
-					'Release Notes': '更新日志',
-
-					// 动态
-					'News': '最新动态',
-					'All News': '全部动态',
-					'Published': '发布于',
-					'Comments': '评论',
-					'Read more...': '更多',
-					'Tag:': '标签：',
-					'Go': '确定',
-					'RSS Feed': 'RSS 订阅',
-					'Follow us': '关注我们',
-					'What\'s New': '新增内容',
-					'Enter Comment': '输入评论',
-					'Last Edited': '最后编辑',
-
-					// 同人圈
-					'Anime & Manga': '动漫及漫画', 'Books & Literature': '书籍及文学', 'Cartoons & Comics & Graphic Novels': '卡通，漫画及图像小说', 'Celebrities & Real People': '明星及真人', 'Movies': '电影', 'Music & Bands': '音乐及乐队', 'Other Media': '其她媒体', 'Theater': '戏剧', 'TV Shows': '电视剧', 'Video Games': '电子游戏', 'Uncategorized Fandoms': '未分类的同人圈',
-					'> Anime & Manga': ' > 动漫及漫画', '> Books & Literature': ' > 书籍及文学', '> Cartoons & Comics & Graphic Novels': ' > 卡通，漫画及图像小说', '> Celebrities & Real People': ' > 明星及真人', '> Movies': ' > 电影', '> Music & Bands': ' > 音乐及乐队', '> Other Media': ' > 其她媒体', '> Theater': ' > 戏剧', '> TV Shows': ' > 电视剧', '> Video Games': ' > 电子游戏', '> Uncategorized Fandoms': ' > 未分类的同人圈',
-
-					// 个人中心
-					'My Dashboard': '个人中心',
-					'My Subscriptions': '订阅列表',
-					'My History': '历史记录',
-					'My Preferences': '偏好设置',
-					'Dashboard': '仪表盘',
-					'Preferences': '偏好设置',
-					'Skins': '站点界面',
-					'Works in Collections': '合集中的作品',
-					'Drafts': '草稿',
-					'Please note:': '注意：',
-					'Unposted drafts are only saved for a month from the day they are first created, and then deleted from the Archive.': '未发布的草稿自创建日起仅保留一个月，之后将被从 Archive 中删除。',
-					'Series': '系列',
-					'Bookmark External Work': '为外部作品创建书签',
-					'Sorry, there were no collections found.': '抱歉，未找到任何合集。',
-					'Manage Collection Items': '管理合集',
-					'New Collection': '新建合集',
-					'Works in Challenges/Collections': '参与挑战/合集的作品',
-					'Awaiting Collection Approval': '等待合集方审核',
-					'Awaiting User Approval': '等待用户确认',
-					'Rejected by Collection': '合集方已拒绝',
-					'Rejected by User': '用户已拒绝',
-					'Approved': '已通过',
-					'Nothing to review here!': '当前无待审内容！',
-					'Inbox': '消息中心',
-					'Filter by read': '按阅读状态筛选',
-					'Show all': '显示全部',
-					'Show unread': '显示未读',
-					'Show read': '显示已读',
-					'Filter by replied to': '按回复状态筛选',
-					'Show all': '显示全部',
-					'Show without replies': '显示未回复',
-					'Show replied to': '显示已回复',
-					'Sort by date': '按日期排序',
-					'Newest first': '最新优先',
-					'Oldest first': '最早优先',
-					'Filter': '筛选',
-					'Statistics': '数据统计',
-					'History': '历史记录',
-					'Full History': '全部历史记录',
-					'Marked for Later': '稍后阅读',
-					'Is it later already?': '到“稍后”了吗？',
-					'Some works you\'ve marked for later.': '这里是您标记为稍后阅读的作品。',
-					'Clear History': '清空历史记录',
-					'Delete from History': '删除历史记录',
-					'Subscriptions': '订阅列表',
-					'All Subscriptions': '所有订阅',
-					'Series Subscriptions': '系列订阅',
-					'User Subscriptions': '用户订阅',
-					'Work Subscriptions': '作品订阅',
-                    'My Series Subscriptions': '系列订阅',
-                    'My User Subscriptions': '用户订阅',
-                    'My Work Subscriptions': '作品订阅',
-                    'Delete All Work Subscriptions': '删除所有作品订阅',
-                    'Delete All Series Subscriptions': '删除所有系列订阅',
-                    'Delete All User Subscriptions': '删除所有用户订阅',
-                    'Yes, Delete All Subscriptions': '是的，删除所有订阅',
-                    'Yes, Delete All Work Subscriptions': '是的，删除所有作品订阅',
-                    'Yes, Delete All Series Subscriptions': '是的，删除所有系列订阅',
-                    'Yes, Delete All User Subscriptions': '是的，删除所有用户订阅',
-                    'Your subscriptions have been deleted.': '您的订阅已成功删除。',
-					'Unsubscribe': '取消订阅',
-					'Delete All Subscriptions': '删除所有订阅',
-					'Sign-ups': '报名挑战',
-					'Assignments': '任务中心',
-					'My Assignments': '任务中心',
-					'Looking for prompts you claimed in a prompt meme? Try': '想查看您在“接梗挑战”中认领的同人梗？请前往',
-					'My Claims': '我的认领',
-					'Unfulfilled Claims': '未完成的认领',
-					'Fulfilled Claims': '已完成的认领',
-					'Looking for assignments you were given for a gift exchange? Try': '想查看您在赠文交换活动中被分配的任务？请前往',
-					'Claims': '我的认领',
-					'Related Works': '相关作品',
-					'Gifts': '赠文',
-					'Accepted Gifts': '已接受的赠文',
-					'Refused Gifts': '已拒绝的赠文',
-					'Choices': '用户选项',
-					'Pitch': '创作与发布',
-					'Catch': '互动与追踪',
-					'Switch': '活动与交换',
-					'My Works': '我的作品',
-					'My Series': '我的系列',
-					'My Bookmarks': '我的书签',
-					'My Collections': '我的合集',
-					'History': '历史记录',
-					'Log Out': '登出',
-					'Post New': '发布新作',
-					'Edit Works': '编辑作品',
-					'Subscribe': '订阅',
-					'Invitations': '邀请',
-					'My pseuds:': '笔名：',
-                    'Name (required)': '名称（必填）',
-                    'Create Pseud': '创建笔名',
-                    'Edit Pseud': '编辑笔名',
-					'Back To Pseuds': '返回笔名列表',
-					'Pseuds': '笔名',
-                    'Pseud was successfully created.': '笔名已成功创建。',
-					'I joined on:': '加入于：',
-					'My user ID is:': '用户ID：',
-					'Edit My Works': '编辑作品',
-					'Edit My Profile': '编辑资料',
-					'Set My Preferences': '设置偏好',
-					'Manage My Pseuds': '管理笔名',
-					'Delete My Account': '删除账号',
-					'Blocked Users': '已屏蔽用户',
-					'Muted Users': '已静音用户',
-					'Change Username': '修改用户名',
-					'Change Password': '修改密码',
-					'Email address': '邮箱地址',
-					'Change Email': '修改邮箱',
-					'Privacy': '隐私设置',
-					'Show my email address to other people.': '向其她人显示我的邮箱地址',
-					'Show my date of birth to other people.': '向其她人显示我的出生日期',
-					'Hide my work from search engines when possible.': '尽可能地对搜索引擎隐藏我的作品',
-					'Hide the share buttons on my work.': '隐藏我作品中的分享按钮',
-					'Allow others to invite me to be a co-creator.': '允许其她人邀请我成为共同创作者',
-					'Display': '显示设置',
-					'Show me adult content without checking.': '无需确认即可显示成人内容',
-					'Show the whole work by default.': '默认显示全文',
-					'Hide warnings (you can still choose to show them).': '隐藏内容预警（仍可手动显示）',
-					'Hide additional tags (you can still choose to show them).': '隐藏附加标签（仍可手动显示）',
-					'Hide work skins (you can still choose to show them).': '隐藏作品界面（仍可手动显示）',
-					'Your site skin': '您的站点界面',
-					'Public Site Skins': '公开站点界面',
-					'Your time zone': '您所在的时区',
-					'Browser page title format': '浏览页面标题格式',
-					'Turn off emails about comments.': '关闭评论邮件通知',
-					'Turn off messages to your inbox about comments.': '关闭评论消息通知',
-					'Turn off copies of your own comments.': '关闭自己评论的副本通知',
-					'Turn off emails about kudos.': '关闭点赞邮件通知',
-					'Do not allow guests to reply to my comments on news posts or other users\' works (you can still control the comment settings for your works separately).': '不允许游客回复我在动态帖或其她用户作品中的评论（仍可单独调整自己作品的评论权限）',
-					'Collections, Challenges and Gifts': '合集、挑战与赠文设置',
-					'Allow others to invite my works to collections.': '允许其她人将我的作品加入合集',
-					'Allow anyone to gift me works.': '允许任何人向我赠送作品',
-					'Turn off emails from collections.': '关闭来自合集的邮件通知',
-					'Turn off inbox messages from collections.': '关闭来自合集的消息通知',
-					'Turn off emails about gift works.': '关闭有关赠文的邮件通知',
-					'Misc': '其她偏好设置',
-					'Turn on History.': '启用历史记录',
-					'Turn the new user help banner back on.': '重新显示新用户帮助横幅',
-					'Turn off the banner showing on every page.': '关闭每个页面的提示横幅',
-					'Update': '确定',
-					'My Site Skins': '我的站点界面',
-					'Create Site Skin': '创建站点界面',
-					'A site skin lets you change the way the Archive is presented when you are logged in to your account. You can use work skins to customize the way your own works are shown to others.': '站点界面可让您在登录账户后更改 Archive 的呈现方式。您也可以使用作品界面来自定义其她人查看您作品时的展示样式。',
-					'My Site Skins': '我的站点界面',
-					'My Work Skins': '我的作品界面',
-					'Public Work Skins': '公开作品界面',
-					'Create Work Skin': '创建作品界面',
-					'No site skins here yet!': '还没有站点界面！',
-					'No work skins here yet!': '还没有作品界面！',
-					'Why not try making one?': '为什么不试着去创建一个呢？',
-					'Inbox': '收件箱',
-					'Subscribed Works': '已订阅作品',
-					'Subscribed Series': '已订阅系列',
-
-					// 作品搜索页
-					'Work Info': '作品信息',
-					'Date Posted': '发布日期',
-					'Date Updated': '更新日期',
-					'Completion status': '完成状态',
-					'All works': '所有作品',
-					'Complete works only': '仅完结作品',
-					'Works in progress only': '仅连载作品',
-					'Include crossovers': '包含跨圈作品',
-					'Exclude crossovers': '排除跨圈作品',
-					'Only crossovers': '仅限跨圈作品',
-					'Single Chapter': '单个章节',
-					'Rating': '分级',
-					'Categories': '分类',
-					'Other': '其她',
-					'Work Stats': '作品统计',
-					'Hits': '点击',
-					'Kudos': '点赞',
-					'Kudos ♥': '点赞 ♥',
-					'Sort by': '排序方式',
-					'Best Match': '最佳匹配',
-					'Sort direction': '排序方向',
-					'Descending': '降序',
-					'Ascending': '升序',
-					'Filter by title': '按标题筛选',
-					'Filter by tag': '按标签筛选',
-					'Work Search': '作品搜索',
-					'Any Field': '任意字段',
-					'Date': '日期',
-					'Crossovers': '跨圈作品',
-					'Language': '语言',
-					'Characters': '角色',
-					'Relationships': '关系',
-					'Additional Tags': '附加标签',
-
-					// 用户搜索页
-					'Search all fields': '搜索所有字段',
-					'Name': '名称',
-					'Fandom': '同人圈',
-					'Search People': '搜索用户',
-
-					// 标签搜索页
-					'Tag name': '标签名称',
-					'Find tags wrangled to specific canonical fandoms.': '查找已整理至特定规范同人圈的标签。',
-					'Type': '类型',
-					'Fandom': '同人圈',
-					'Character': '角色',
-					'Relationship': '关系',
-					'Freeform': '自由标签',
-					'Any type': '任意类型',
-					'Wrangling status': '整理状态',
-					'Canonical': '规范',
-					'Non-canonical': '非规范',
-					'Synonymous': '同义',
-					'Canonical or synonymous': '规范或同义',
-					'Non-canonical and non-synonymous': '非规范且非同义',
-					'Any status': '任意状态',
-					'Name': '名称',
-					'Date Created': '创建日期',
-					'Uses': '使用次数',
-					'Search Tags': '搜索标签',
-					'Title': '标题',
-					'Author': '作者',
-					'Artist': '画师',
-					'Author/Artist': '作者/画师',
-					'People Search': '用户搜索',
-					'Tag Search': '标签搜索',
-					'Work Tags': '作品标签',
-
-					// 浏览
-					'Expand Fandoms List': '展开同人圈列表',
-					'Collapse Fandoms List': '收起同人圈列表',
-					'Recent works': '最近作品',
-					'Recent series': '最近系列',
-					'Recent bookmarks': '最近书签',
-					'Expand Works List': '展开作品列表',
-					'Collapse Works List': '收起作品列表',
-					'Expand Bookmarks List': '展开书签列表',
-					'Collapse Booksmarks List': '收起书签列表',
-
-					// 个人资料
-                    'Edit My Profile': '编辑简介',
-					'Edit Profile': '编辑简介',
-					'Edit Default Pseud and Icon': '编辑笔名和头像',
-					'Change Username': '更改用户名',
-					'Change My Username': '更改用户名',
-					'Change Password': '更改密码',
-					'Change My Password': '更改密码',
-					'Change Email': '更改邮箱',
-					'Title': '标题',
-					'Location': '位置',
-					'Date of Birth': '出生日期',
-					'About Me': '关于我',
-					'Plain text with limited HTML': '纯文本，支持有限 HTML',
-                    'Embedded images (<img> tags) will be displayed as HTML, including the image\'s source link and any alt text.': '嵌入的图像（<img> 标签）将显示为 HTML，包括图像的源链接和任何替代文本。',
-					'Update': '更新',
-					'Editing pseud': '编辑笔名',
-					'Name': '名称',
-					'Make this name default': '将此笔名设为默认',
-					'Description': '简介',
-					'Icon': '头像',
-					'This is your icon.': '这是您的头像。',
-					'You can have one icon for each pseud.': '每个笔名可设置一个头像。',
-					'Icons can be in png, jpeg or gif form.': '头像格式支持 PNG、JPEG 和 GIF。',
-					'Icons should be sized 100x100 pixels for best results.': '建议头像尺寸为 100×100 像素以获得最佳效果。',
-					'Upload a new icon': '上传新头像',
-					'Icon alt text': '头像替代文本',
-					'Icon comment text': '头像注释文本',
-					'New Pseud': '新建笔名',
-					'Default Pseud': '默认笔名',
-					'Edit Pseud': '编辑笔名',
-					'Edit': '编辑',
-					'Current username': '当前用户名',
-					'New username': '新用户名',
-                    'Your username has been successfully updated.': '您的用户名已成功更新。',
-					'Password': '密码',
-					'New password': '新密码',
-					'Confirm new password': '确认新密码',
-					'Old password': '旧密码',
-					'Current email': '当前邮箱',
-					'New email': '新邮箱',
-					'Enter new email again': '再次输入新邮箱',
-					'Confirm New Email': '确认新邮箱',
-					'Submit': '提交',
-					'Create': '创建',
-
-					// 作品
-					'Rating:': '分级:',
-					'Archive Warning:': 'Archive 预警:',
-					'Archive Warnings:': 'Archive 预警:',
-					'Archive Warning': 'Archive 预警',
-					'Archive Warnings': 'Archive 预警',
-					'Category:': '分类:',
-					'Categories:': '分类:',
-					'Fandom:': '同人圈:',
-					'Fandoms:': '同人圈:',
-					'Relationship:': '关系:',
-					'Relationships:': '关系:',
-					'Character:': '角色:',
-					'Characters:': '角色:',
-					'Additional Tag:': '附加标签:',
-					'Additional Tags:': '附加标签:',
-					'Language:': '语言:',
-					'Series': '系列',
-					'Series:': '系列:',
-					'Stats:': '统计:',
-					'Published:': '发布于:',
-					'Completed:': '完结于:',
-					'Updated:': '更新于:',
-					'Words:': '字数:',
-					'Chapters:': '章节:',
-					'Comments:': '评论:',
-					'Kudos:': '点赞:',
-					'Bookmarks:': '书签:',
-					'Hits:': '点击:',
-					'Complete?': '已完结？',
-					'Word Count:': '字数:',
-					'Date Updated:': '更新日期:',
-					'Post': '发布',
-					'New Work': '新作品',
-					'Edit Work': '编辑作品',
-					'Import Work': '导入作品',
-					'From Draft': '从草稿',
-					'Edit': '编辑',
-					'Edit Tags': '编辑标签',
-					'Add Chapter': '添加章节',
-					'Post Draft': '发布草稿',
-					'Delete Draft': '删除草稿',
-					'Post Chapter': '发布章节',
-					'Edit Chapter': '编辑章节',
-					'Delete Chapter': '删除章节',
-					'Manage Chapters': '管理章节',
-					'Drag chapters to change their order.': '拖动章节以更改顺序。',
-					'Enter new chapter numbers.': '输入新的章节编号。',
-					'Update Positions': '更新顺序',
-					'Update': '更新',
-					'Delete': '删除',
-					'Cancel': '取消',
-					'Save': '保存',
-					'Saved': '已保存',
-					'Submit': '提交',
-					'Orphan Work': '匿名化作品',
-					'Orphan Works': '匿名化作品',
-					'Filters': '筛选器',
-					'Sort By': '排序方式',
-					'Random': '随机',
-					'Creator': '创作者',
-					'Date Updated': '更新日期',
-					'Word Count': '字数统计',
-					'Summary': '简介',
-					'Summary:': '简介:',
-					'Notes': '注释',
-					'Work Text': '作品正文',
-					'Chapter Index': '章节索引',
-					'Full-page index': '整页索引',
-					'Full-Page Index': '整页索引',
-					'Entire Work': '完整作品',
-					'Next Chapter': '下一章',
-					'Previous Chapter': '上一章',
-					'kudos': ' 个赞',
-					'bookmark': ' 条书签',
-					'comment': ' 条评论',
-					'← Previous': '← 上一页',
-					'Next →': '下一页 →',
-					'All fields are required. Your email address will not be published.': '所有字段均为必填。您的电子邮箱地址不会被公开。',
-					'Guest name': '访客名称',
-					'Guest email': '访客邮箱',
-					'Please enter your name.': '请输入您的名称',
-					'Please enter your email address.': '请输入您的电子邮箱地址',
-					'Hide Creator\'s Style': '隐藏创作者样式',
-					'Show Creator\'s Style': '显示创作者样式',
-					'top level comment': '主评论',
-					'Share Work': '分享作品',
-					'Restore From Last Unposted Draft?': '从上次未发布的草稿继续',
-					'Delete Work': '删除作品',
-					'Save As Draft': '存为草稿',
-					'Save Draft': '保存草稿',
-					'Post Work': '发布作品',
-                    'Comment as': '发表评论',
-
-					// 合集
-					'Collections in the Archive of Our Own': ' AO3 中的合集',
-					'Profile': '简介',
-					'Join': '加入',
-					'Leave': '退出',
-					'Open Challenges': '开放中的挑战',
-					'Open Collections': '开放中的合集',
-					'Closed Collections': '已截止的合集',
-					'Moderated Collections': '审核制合集',
-					'Unmoderated Collections': '非审核制合集',
-					'Unrevealed Collections': '未公开合集',
-					'Anonymous Collections': '匿名合集',
-					'Sort and Filter': '排序及筛选',
-					'Filter collections:': '筛选合集:',
-					'Filter by title or name': '按标题或名称筛选',
-					'Filter by fandom': '按同人圈筛选',
-					'Closed': '已截止',
-					'Multifandom': '跨圈',
-					'Yes': '是',
-					'No': '否',
-					'Either': '皆可',
-					'Collection Type': '合集类型',
-					'No Challenge': '无挑战',
-					'Any': '任意',
-					'Clear Filters': '清除筛选',
-
-					// 书签
-					'Bookmark Search': '书签搜索',
-					'Edit Bookmark': '编辑书签',
-					'Start typing for suggestions!': '开始输入以获取建议',
-					'Searching...': '搜索中…',
-					'(No suggestions found)': '未找到建议',
-					'Any field on work': '作品任意字段', 'Work tags': '作品标签', 'Type': '类型', 'Work': '作品', 'Work language': '作品语言', 'External Work': '外部作品', 'Date updated': '更新日期', 'Bookmark': '书签', 'Any field on bookmark': '书签任意字段', 'Bookmarker\'s tags': '书签创建者的标签', 'Bookmarker': '书签创建者', 'Bookmark type': '书签类型', 'Rec': '推荐', 'With notes': '含注释', 'Date Bookmarked': '书签创建日期', 'Date bookmarked': '书签创建日期', 'Search Bookmarks': '搜索书签',
-					'Search Results': '搜索结果', 'Edit Your Search': '修改搜索设置',
-					'Ratings': '分级',
-					'Include': '包括',
-					'Include Ratings': '包括分级',
-					'Other tags to include': '要包括的其她标签',
-					'Exclude': '排除',
-					'Other tags to exclude': '要排除的其她标签',
-					'More Options': '更多选项',
-					'Show only crossovers': '仅显示跨圈作品',
-					'Completion Status': '完成状态',
-					'Search within results': '在结果中搜索',
-					'Bookmarker\'s Tags': '书签创建者标签',
-					'Other work tags to include': '要包括的其她作品标签',
-					'Other bookmarker\'s tags to include': '要包括的其她书签创建者标签',
-					'Search bookmarker\'s tags and notes': '搜索书签创建者标签和注释',
-					'Other work tags to exclude': '要排除的其她作品标签',
-					'Other bookmarker\'s tags to exclude': '要排除的其她书签创建者标签',
-					'Bookmark types': '书签类型',
-					'Recs only': '仅推荐',
-					'Only bookmarks with notes': '仅含注释',
-					'All Bookmarks': '所有书签',
-					'Add To Collection': '添加到合集',
-					'Share': '分享',
-					'Private Bookmark': '私人书签',
-					'Your tags': '标签',
-                    'Plain text with limited HTML': '纯文本，支持有限 HTML',
-					'The creator\'s tags are added automatically.': '创建者的标签会自动添加',
-					'Comma separated, 150 characters per tag': '以逗号分隔，每个标签最多 150 字符',
-					'Add to collections': '添加到合集',
-					'Private bookmark': '私人书签',
-					'Create': '创建',
-					'Bookmark was successfully deleted.': '书签已成功删除。',
-					'Add Bookmark to collections': '将书签添加到合集',
-					'Collection name(s):': '合集名称：',
-					'collection name': '合集名称',
-					'Add': '添加',
-					'Back': '返回',
-					'Bookmark was successfully updated.': '书签已成功更新。',
-					'Share Bookmark': '分享书签',
-					'Close': '关闭',
-					'Show': '展示',
-					'Bookmark Collections:': '书签合集:',
-
-					// 系列
-					'Creators:': '创建者:',
-					'Creator:': '创建者:',
-					'Series Begun:': '系列开始于:',
-					'Series Updated:': '系列更新于:',
-					'Description:': '描述:',
-					'Notes:': '注释:',
-					'Works:': '作品:',
-					'Complete:': '完结:',
-
-					// 语言
-					'Work Languages': '作品语言',
-					'Suggest a Language': '建议语言',
-
-					// 界面
-					'You are now using the default Archive skin again!': '您已重新切换至 Archive 默认界面！',
-					'Revert to Default Skin': '恢复默认界面',
-					'Role:': '功能:',
-					'user': '用户',
-					'Media:': '媒体:',
-					'all': '全部',
-					'Condition:': '状态:',
-					'Normal': '正常',
-					'(No Description Provided)': '（未提供描述）',
-					'Parent Skins': '母级界面',
-					'Use': '使用',
-					'Stop Using': '停用',
-					'Preview': '预览',
-					'Set For Session': '为当前会话设置',
-					'override': '覆盖',
-
-					// 屏蔽与静音
-					'Block': '屏蔽',
-					'Unblock': '取消屏蔽',
-					'Mute': '静音',
-					'Unmute': '取消静音',
-					'Yes, Unmute User': '是的，取消静音',
-					'Yes, Mute User': '是的，静音用户',
-					'Yes, Unblock User': '是的，取消屏蔽',
-					'Yes, Block User': '是的，屏蔽用户',
-
-					// 提示信息
-					'Your profile has been successfully updated': '您的个人资料已成功更新。',
-					'Your edits were put through! Please check over the works to make sure everything is right.': '您的编辑已生效！请检查相关作品，确保所有更改都已正确应用。',
-					'We\'re sorry! Something went wrong.': '非常抱歉！操作未完成，请稍后重试。',
-					'Your preferences were successfully updated.': '您的偏好设置已成功更新。',
-					'Works and bookmarks listed here have been added to a collection but need approval from a collection moderator before they are listed in the collection.': '此处列出的作品和书签已添加至合集中，但需经合集管理员批准后才会在合集内显示。',
-					'Successfully logged out.': '已成功登出。',
-					'Successfully logged in.': '已成功登录。',
-					'Bookmark was successfully created. It should appear in bookmark listings within the next few minutes.': '书签已创建成功。它将在接下来的几分钟内出现在书签列表中。',
-					'Browse fandoms by media or favorite up to 20 tags to have them listed here!': '可按媒体浏览同人圈，或收藏最多 20 个标签以在此展示。',
-					'You can search this page by pressing': '按', 'ctrl F': ' Ctrl + F ', 'cmd F': ' Cmd + F ，', '': '', 'and typing in what you are looking for.': '输入关键词即可在本页搜索。',
-					'Sorry! We couldn\'t save this bookmark because:': '抱歉！我们无法保存此书签，因为', 'Pseud can\'t be blank': '笔名不能为空',
-					'The following challenges are currently open for sign-ups! Those closing soonest are at the top.': '以下挑战现已开放报名！即将截止的挑战排在最前面。',
-					'You currently have no works posted to the Archive. If you add some, you\'ll find information on this page about hits, kudos, comments, and bookmarks of your works.': '您当前没有任何已发布的作品。添加作品后，您可以在此页面查看作品的访问量、点赞、评论和书签情况。',
-					'Users can also see how many subscribers they have, but not the names of their subscribers or identifying information about other users who have viewed or downloaded their works.': '用户还可以查看自己的订阅者数量，但无法看到订阅者的姓名，也无法获取浏览或下载其作品的其她用户的任何身份信息。',
-					'This work could have adult content. If you continue, you have agreed that you are willing to see such content.': '此作品可能含有成人内容。若您选择“继续”，即表示您同意查看此类内容。',
-					'Yes, Continue': '是，继续',
-					'No, Go Back': '否，返回',
-					'Set your preferences now': '立即设置您的偏好',
-					'Work successfully deleted from your history.': '该作品已成功从您的历史记录中删除。',
-					'Your history is now cleared.': '您的历史记录已清除。',
-					'You are already signed in.': '您已登录。',
-					'There are no works or bookmarks under this name yet.': '此名称下尚无作品或书签。',
-					'Sorry, you don\'t have permission to access the page you were trying to reach. Please log in.': '抱歉，您无权访问目标页面。请先登录。',
-					'Are you sure you want to delete this draft?': '您确定要删除此草稿吗？',
-					'Work was successfully updated.': '作品已成功更新。',
-					'The work was not updated.': '作品没有更新。',
-					'Your changes have not been saved. Please post your work or save as draft if you want to keep them.': '您的更改尚未保存。如果您想保留，请发布作品或将其保存为草稿。',
-					'Work was successfully posted. It should appear in work listings within the next few minutes.': '作品已成功发布。它将在接下来的几分钟内出现在作品列表中。',
-					'Are you sure you want to delete this work? This will destroy all comments and kudos on this work as well and CANNOT BE UNDONE!': '您确定要删除这篇作品吗？此操作将一并删除该作品收到的所有评论和点赞，且无法撤销！',
-					'Chapter has been posted!': '章节已成功发布！',
-					'Chapter was successfully updated.': '章节已成功更新。',
-					'Are you sure?': '您确定吗？',
-					'The chapter was successfully deleted.': '已成功删除此章节。',
-					'Chapter order has been successfully updated.': '章节顺序已成功更新。',
-					'This is a draft chapter in a posted work. It will be kept unless the work is deleted.': '这是已发布作品中的一篇草稿章节。除非作品被删除，否则该草稿将一直保留。',
-					'This chapter is a draft and hasn\'t been posted yet!': '本章节为草稿，尚未发布！',
-					'Are you sure you want to delete this bookmark?': '您确定要删除此书签吗？',
-					'This is part of an ongoing challenge and will be revealed soon!': '本作品正在参与一项开放中的挑战，内容将很快揭晓！',
-					'Your search failed because of a syntax error. Please try again.': '搜索失败，您的查询存在语法错误。请修改后重试。',
-					'Type or paste formatted text.': '输入或粘贴带有格式的文本',
-					'Comment created!': '评论已发布！',
-					'Are you sure you want to delete this comment?': '您确定要删除这条评论吗？',
-					'Yes, delete!': '是的，删除！',
-					'Comment deleted.': '评论已删除。',
-					'(Previous comment deleted.)': '（原评论已删除）',
-					'Freeze Thread': '锁定评论串',
-					'Comment thread successfully frozen!': '已成功锁定评论串！',
-					'Unfreeze Thread': '解锁评论串',
-					'Comment thread successfully unfrozen!': '已成功解锁评论串！',
-					'Frozen': '已锁定',
-					'Comment was successfully updated.': '评论已成功更新。',
-					'Sorry! We couldn\'t save this skin because:': '抱歉！我们无法保存此界面，因为：',
-					'Title must be unique': '标题必须唯一',
-					'We couldn\'t find any valid CSS rules in that code.': '代码中不存在任何有效的 CSS 规则',
-					'Skin was successfully created.': '界面已成功创建。',
-					'Skin was successfully updated.': '界面已成功删除。',
-					'Are you sure you want to delete this skin?': '您确定要删除此界面吗？',
-					'The skin was deleted.': '界面已删除。',
-					'Your changes have not been saved. Please post your work or save the draft if you want to keep them.': '您的更改尚未保存。如果您想保留，请发布作品或保存草稿。',
-                    'Are you sure you want to change your username?': '您确定要更改用户名吗？',
-
-					// 标签说明
-					'This tag indicates adult content.': '此标签涉及成人内容。',
-					'Parent tags (more general):': '母级标签（更通用）：',
-					'Tags with the same meaning:': '同义标签：',
-					'Metatags:': '元标签：',
-					'Subtags:': '子标签：',
-					'Child tags (displaying the first 300 of each type):': '子标签（每种类型显示前 300 个）：',
-					'and more': '以及更多',
-					'Relationships by Character': '关系按角色分类'
-				},
-				'innerHTML_regexp': [
-
-					['h4.heading', /^\s*Hi,\s+(.+?)!\s*$/s, '您好，$1！'],
-					[
-						'li.dropdown a.dropdown-toggle',
-						/^\s*Hi,\s+(.+?)!\s*$/s,
-						'您好，$1！'
-					],
-
-					// 用户主页
-					['li a, li span.current', /^\s*Works\s*\((\d+)\)\s*$/s, '作品（$1）'],
-					['li a, li span.current', /^\s*Drafts\s*\((\d+)\)\s*$/s, '草稿（$1）'],
-					['li a, li span.current', /^\s*Series\s*\((\d+)\)\s*$/s, '系列（$1）'],
-					['li a, li span.current', /^\s*Bookmarks\s*\((\d+)\)\s*$/s, '书签（$1）'],
-					['li a, li span.current', /^\s*Collections\s*\((\d+)\)\s*$/s, '合集（$1）'],
-					['li a, li span.current', /^\s*Inbox\s*\((\d+)\)\s*$/s, '消息中心（$1）'],
-					['li a, li span.current', /^\s*Sign-ups\s*\((\d+)\)\s*$/s, '报名挑战（$1）'],
-					['li a, li span.current', /^\s*Assignments\s*\((\d+)\)\s*$/s, '任务中心（$1）'],
-					['li a, li span.current', /^\s*Claims\s*\((\d+)\)\s*$/s, '我的认领（$1）'],
-					['li a, li span.current', /^\s*Related Works\s*\((\d+)\)\s*$/s, '相关作品（$1）'],
-					['li a, li span.current', /^\s*Gifts\s*\((\d+)\)\s*$/s, '接收赠文（$1）'],
-					['li a, li span.current', /^\s*Challenge Sign-ups\s*$/s, '挑战活动报名'],
-					['li a, li span.current', /^\s*Gifts\s*$/s, '接收赠文'],
-					['a', /^\s*Unsubscribe from (.+?)\s*$/s, '取消订阅 $1'],
-					['h2.heading', /^\s*Works by\s+(.+?)\s*$/s, '$1 的作品'],
-					['h2.heading', /^\s*Series by\s+(.+?)\s*$/s, '$1 的系列'],
-					['h2.heading', /^\s*Bookmarks by\s+(.+?)\s*$/s, '$1 的书签'],
-					['h2.heading', /^\s*Collections by\s+(.+?)\s*$/s, '$1 的合集'],
-					['h2.heading', /^\s*Gifts for\s+(.+?)\s*$/s, '$1 收到的赠文'],
-					['h2.heading', /^\s*(.+?)'s Related Works\s*$/s, '$1 的相关作品'],
-					['h2.heading', /^\s*(.+?)'s Collections\s*$/s, '$1 的合集'],
-					['h2.heading', /^\s*Challenge Sign-ups for\s+(.+?)\s*$/s, '$1 参加的挑战'],
-					[
-						'h2.heading',
-						/^\s*(\d+)\s+Works?\s+by\s+(.+?)\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s,
-						'$3（$2）：$1 篇作品'
-					],
-					[
-						'h2.heading',
-						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+?)\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s,
-						'$5（$4）：$3 篇作品，第 $1 - $2 篇'
-					],
-					[
-						'h2.heading',
-						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s,
-						'$4：$3 篇作品，第 $1 - $2 篇'
-					],
-					[
-						'h2.heading',
-						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+?)\s*$/s,
-						'$4：$3 篇作品，第 $1 - $2 篇'
-					],
-					[
-						'h2.heading',
-						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Series\s+by\s+(.+?)\s*$/s,
-						'$4：$3 个系列，第 $1 - $2 个'
-					],
-					[
-						'h2.heading',
-						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Bookmarks?\s+by\s+(.+?)\s*$/s,
-						'$4：$3 条书签，第 $1 - $2 条'
-					],
-					['h2.heading', /^\s*(\d+)\s+Works?\s+by\s+(.+?)\s*$/s, '$2：$1 篇作品'],
-					['h2.heading', /^\s*(\d+)\s+Series\s+by\s+(.+?)\s*$/s, '$2：$1 个系列'],
-					['h2.heading', /^\s*(\d+)\s+Bookmarks?\s+by\s+(.+?)\s*$/s, '$2：$1 条书签'],
-					['h2.heading', /^\s*(\d+)\s+Collections?\s+by\s+(.+?)\s*$/s, '$2：$1 个合集'],
-					['h2.heading', /^\s*(\d+)\s+Unposted\s+Drafts?\s*$/s, '未发布的草稿（$1）'],
-
-					// 浏览
-					[
-						'p',
-						/^\s*These are some of the latest works posted to the Archive\. To find more works, <a href="\/media">choose a fandom<\/a> or <a href="\/works\/search">try our advanced search<\/a>\.\s*(?:<!--[\s\S]*?-->)?\s*$/s,
-						'这里展示了一些最新发布的作品。若要查看更多作品，请<a href="/media">选择一个同人圈</a>或<a href="/works/search">尝试高级搜索</a>。'
-					],
-					[
-						'p',
-						/^\s*These are some of the latest bookmarks created on the Archive\. To find more bookmarks,\s*<a href="\/media">choose a fandom<\/a>\s*or\s*<a href="\/bookmarks\/search">try our advanced search<\/a>\.\s*(?:<!--[\s\S]*?-->)?\s*$/s,
-						'这里展示了一些最新创建的书签。若要查看更多书签，请<a href="/media">选择一个同人圈</a>或<a href="/bookmarks/search">尝试高级搜索</a>。'
-					],
-					[
-						'p',
-						/^\s*These are some of the most popular tags used on the Archive\. To find more tags,\s*<a href="\/tags\/search">try our tag search<\/a>\.\s*$/s,
-						'这里展示了一些最常用的标签。若要查看更多标签，请<a href="/tags/search">尝试标签搜索</a>。'
-					],
-					[
-						'h2.heading',
-						/^\s*Chapter Index for\s+(<a href="\/works\/\d+">.+?<\/a>)\s+by\s+(<a rel="author" href="\/users\/.+?">.+?<\/a>)\s*$/s,
-						'章节索引：$1 by $2'
-					],
-					['p', /^\s*<strong>([\d,]+)\s+Found<\/strong>\s*$/, '找到 $1 条结果'],
-					['h2.heading', /^\s*([\d,]+)\s+Works?\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$2：$1 篇作品'],
-					['dd.expandable dl.range dt label', /^From$/s, '从'],
-					['dd.expandable dl.range dt label', /^To$/s, '到'],
-					['label[for*="_work_search_category_ids_"] span:last-of-type', /^(Other)(\s*\(\d+\))$/s, '其她$2'],
-					['label[for*="_bookmark_search_category_ids_"] span:last-of-type', /^(Other)(\s*\(\d+\))$/s, '其她$2'],
-					['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s*of\s*([0-9,]+)\s*Bookmarks by\s*(.+)\s*$/s, '$4：$3 条书签，第 $1 - $2 条'],
-					[
-						'h2.heading',
-						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+?)\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s,
-						'$5（$4）：$3 篇作品，第 $1 - $2 篇'
-					],
-					['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+)\s*$/s, '$4：$3 篇作品，第 $1 - $2 篇'],
-					['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4：$3 篇已创建书签作品，第 $1 - $2 篇'],
-					['h2.heading', /^\s*Gifts for\s+(.+)\s*$/s, '$1 收到的赠文'],
-					['h2.heading', /^\s*(.+)'s Collections\s*$/s, '$1 的合集'],
-					['h5.byline.heading', /^\s*Bookmarked by\s*(<a .*?<\/a>)/s, '创建者：$1'],
-					['li', /^\s*Part (<strong>\d+<\/strong>) of (<a .*?<\/a>)/, '$2 第 $1 部分'],
-					['h2.heading', /^New bookmark for (<a href="\/works\/\d+">.*?<\/a>)/, '为 $1 创建新书签'],
-					['h5.heading a', /^(\d+)\s+works?$/s, '$1 篇作品'],
-					['h5.heading a', /^(\d+)\s+recs?$/s, '$1 条推荐'],
-					['h2.heading', /^\s*Items\s+by\s+(.+?)\s+in\s+Collections\s*$/s, '$1 在合集中的作品'],
-					['dd a', /^([\d,]+)\s+works?$/s, '$1 篇作品'],
-					['h2.heading', /^\s*([\d,]+)\s+Works?\s*$/s, '$1 篇作品'],
-					['h2.heading', /^\s*([\d,]+)\s+Collections?\s*$/s, '$1 个合集'],
-					[
-						'dt',
-						/(<\/a>)\s*\(Work\)\s+by\s*(<a\s+rel="author".*?>.*?<\/a>|[^<]+)/s,
-						'$1（作品）by $2'
-					],
-					[
-						'dt',
-						/(<\/a>)\s*\(Series\)\s+by\s*(<a\s+rel="author".*)/s,
-						'$1（系列）by $2'
-					],
-					[
-						'h4.heading',
-						/<img alt="\(Restricted\)" title="Restricted" src="\/images\/lockblue\.png"[^>]*>/g,
-						'<img alt="(访问受限)" title="访问受限" src="/images/lockblue.png" width="15" height="15">'
-					],
-					['li.pseud ul a[href$="/pseuds"], li.pseud ul span.current', /^\s*All Pseuds\s*\((\d+)\)\s*$/s, '所有笔名 ($1)'],
-
-                    // 个人资料
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/g, '剩余 $1 字符'],
-					['p#password-field-description', /^\s*6 to 40 characters\s*$/, '6 到 40 字符'],
-					['p.notice', /Any personal information you post on your public AO3 profile[\s\S]*?<a href="\/privacy">(?:Privacy Policy|隐私政策)<\/a>[\s\S]*?\./s, '您在公开 AO3 个人资料中发布的任何个人信息（包括但不限于您的姓名、电子邮箱、年龄、位置、个人关系、性别或性取向认同、种族或族裔背景、宗教或政治观点，以及/或其她网站的账户用户名）都会对公众可见。要了解 AO3 在您使用网站时收集哪些数据以及我们如何使用这些数据，请查看我们的<a href="/privacy">隐私政策</a>。'],
-					['div.caution.notice', /<p>\s*<strong>Please use this feature with caution\.<\/strong>[\s\S]*?<\/p>/s, '<p><strong>请谨慎使用此功能。</strong>用户名每 7 天仅能更改一次。</p>'],
-					['div.notice', /Changing your email will send a request for confirmation[\s\S]*?will <strong>invalidate any pending email change requests<\/strong>\./s, '更改电子邮箱将向您的新邮箱发送确认请求，并向当前邮箱发送通知。<br>您必须使用确认邮件中的链接完成邮箱更改。如在 7 天内未确认，请求链接将失效，邮箱不会更改。<br>重新提交新邮箱请求将使<strong>任何未完成的更改请求失效</strong>。'],
-					['p.footnote', /You cannot change the pseud that matches your username\. However, you can <a href="([^"]*change_username[^"]*)">change your username<\/a> instead\./g, '无法修改与用户名相同的笔名。如需修改，请<a href="$1">更改您的用户名</a>。'],
-					['h2.heading', /^Pseuds for (.+)$/, '$1 的笔名'],
-					['div.caution.notice p:last-child', /For information on how changing your username will affect your account.*?contact Support.*?\./s, '要了解更改用户名对账户的影响，请参阅<a href="/faq/your-account#namechange">账户常见问题</a>。用户名变更可能需要数天或更长时间才会生效。如果一周后您的作品、书签、系列或合集中仍显示旧用户名，请<a href="/support">联系支持团队</a>。'],
-					['p.note', /If that is not what you want.*?create a new Pseud.*?instead\./s, '如果您不想更改用户名，也可以<a href="/users/Ubifo/pseuds/new">创建一个新的笔名</a>。'],
-					['p.footnote', /3 to 40 characters.*?underscore.*?\)/s, '3 至 40 个字符（仅限 A–Z、a–z、_、0–9），禁止使用空格，且不能以下划线开头或结尾'],
-                    [
-                        'div.caution.notice p',
-                        /For information on how changing your username will affect your account[\s\S]*?<a href="\/support">contact Support<\/a>[.。]?/s,
-                        '有关更改用户名如何影响账户的详情，请参阅<a href="/faq/your-account#namechange">账户常见问题</a>。用户名更改可能需要数天或更长时间才会生效。如果一周后您的作品、书签、系列或合集中仍显示旧用户名，请<a href="/support">联系支持团队</a>。'
-                    ],
-                    [
-                        'div.flash.notice',
-                        /^\s*Your password has been changed\. To protect your account, you have been logged out of all active sessions\. Please log in with your new password\.\s*$/s,
-                        '您的密码已更改。为了保护您的账户，您已从所有活动会话中登出。请使用新密码登录。'
-                    ],
-
-					// 作品
-					[
-						'h4.heading.byline',
-						/on\s+(<a\s+href="[^"]*?">)Chapter\s+(\d+)(<\/a>)/g,
-						'于 $1第 $2 章$3'
-					],
-					[
-						'h2.heading',
-						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Series\s+by\s+(.+?)\s*$/s,
-						'$4：$3 个系列，第 $1 - $2 个'
-					],
-					[
-						'h3.heading',
-						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Collections\s*$/s,
-						'$3 个合集，第 $1 - $2 个'
-					],
-					[
-						'p.type',
-						/^\s*\((Open|Closed)(.*)\)\s*$/s,
-						(_match, status, rest) => {
-							const map = { 'Open': '开放中', 'Closed': '已截止' };
-							return `(${map[status]}${rest})`;
-						}
-					],
-
-					// 书签
-					[
-						'h4.heading',
-						/^\s*<span class="byline">\s*(.+?),\s*(<input[^>]+>)\s*<\/span>\s*save a bookmark!\s*$/s,
-						'创建书签（<span class="byline">$1$2</span>）'
-					],
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
-					['div.flash.notice', /^Added to collection\(s\):\s+(.*)\.$/s, '已添加到合集：$1 。'],
-                    [
-						'p.note',
-						/^\s*Copy and paste the following code to link back to this work \((<kbd>CTRL A<\/kbd>\/<kbd>CMD A<\/kbd>) will select all\), or use the Tweet or Tumblr links to share the work on your Twitter or Tumblr account\.\s*$/s,
-						'请复制以下代码以添加指向此作品的链接（按 $1 可全选），或使用 Tweet / Tumblr 链接在您的 Twitter / Tumblr 账户上分享此作品。'
-					],
-					['h2.heading', /^\s*([\d,]+)\s+Bookmarks?\s*$/s, '$1 条书签'],
-                    [
-                        'h2.heading',
-                        /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Bookmarks?\s*$/s,
-                        '$3 条书签，第 $1 - $2 条'
-                    ],
-					[
-						'h6.landmark.heading',
-						/^Bookmarker's Notes$/,
-						'书签创建者的注释'
-					],
-					[
-						'h4.heading',
-						/^Mystery Work$/,
-						'神秘作品'
-					],
-					[
-						'h5.heading',
-						/^Part of (<a href="\/collections\/.*?">.+?<\/a>)$/,
-						'属于合集：$1'
-					],
-
-					// 界面
-					['div.flash.notice', /^The skin (.+) has been set\. This will last for your current session\.$/s, '$1 界面已启用，此设置将在当前会话期间持续生效。'],
-					['h2.heading', /^\s*(.+?)\s+skin by\s+(.+?)\s*$/s, '$1 界面，提供者：$2'],
-
-                    // 笔名
-                    [
-                        'dd',
-                        /^\s*<ul class="notes">\s*<li>You can have one icon for each pseud\.<\/li>\s*<li>Icons can be in png, jpeg or gif form\.<\/li>\s*<li>Icons should be sized 100x100 pixels for best results\.<\/li>\s*<\/ul>\s*$/s,
-                        '<ul class="notes"><li>每个笔名可设置一个头像。</li><li>头像格式支持 PNG、JPEG 和 GIF。</li><li>建议头像尺寸为 100×100 像素以获得最佳效果。</li></ul>'
-                    ],
-
-                    // 匿名化作品
-                    [
-                        'h2.heading',
-                        /^\s*Orphan All Works by (.*?)\s*$/s,
-                        '匿名化 $1 的所有作品'
-                    ],
-                    [
-                        'p.caution.notice',
-                        /^\s*Orphaning all works by (.*?) will\s*<strong>permanently<\/strong>\s*remove the pseud \1 from the following work\(s\), their chapters, associated series, and any feedback replies you may have left on them\.\s*$/s,
-                        '匿名化 $1 的所有作品将从以下作品、其章节、关联系列以及您可能留下的任何反馈回复中<strong>永久</strong>移除笔名 $1 。'
-                    ],
-                    [
-                        'p.caution.notice',
-                        /^\s*Unless another one of your pseuds is listed as a creator on the work\(s\) below, orphaning them will remove them from your account and re-attach them to the specially created orphan_account\. Please note that this is\s*<strong>permanent and irreversible\.<\/strong>\s*You are giving up control over the work\(s\),\s*<strong>including the ability to edit or delete them\.<\/strong>\s*$/s,
-                        '除非以下作品的创作者名单中包含您的其她笔名，否则匿名化操作会将这些作品从您的账户中移除，并重新关联至专门创建的 orphan_account（匿名帐户）。请注意，此操作是<strong>永久且不可逆的。</strong>您将放弃对这些作品的控制权，<strong>包括编辑或删除它们的能力。</strong>'
-                    ],
-
-					// 屏蔽与静音
-					['h2.heading',
-						/^Mute (.*)$/s,
-						'静音 $1'
-					],
-					['div.caution.notice',
-						/^\s*<p>\s*Are you sure you want to <strong>mute<\/strong> ([^<]+)\?\s*Muting a user:\s*<\/p>[\s\S]*?<li>completely hides their works, series, bookmarks, and comments from you; there will be no empty space, placeholder text, or other indication something has been removed<\/li>[\s\S]*?<p>Muting a user will not:<\/p>[\s\S]*?<li>prevent you from receiving comment or subscription emails from this user<\/li>\s*<li>hide their works, series, bookmarks, and comments from anyone else<\/li>[\s\S]*?<p>\s*To prevent a user from commenting on your works or replying to your comments elsewhere on the site, visit <a href="([^"]+)">your Blocked Users page<\/a>\.\s*<\/p>[\s\S]*?<p>[\s\S]*?<a href="([^"]+)">instructions for reverting to the default site skin<\/a>\.\s*<\/p>\s*$/s,
-						`<p>您确定要静音 <strong>$1</strong> 吗？静音用户后：</p>
-	                    <ul><li>她们的作品、系列、书签和评论将完全对您隐藏；不会留下空白空间、占位文本或其她任何提示</li></ul>
-	                    <p>静音用户不会：</p>
-	                    <ul>
-	                    <li>阻止您接收来自该用户的评论或订阅邮件</li>
-	                    <li>将她们的内容隐藏给其她任何人</li>
-	                    </ul>
-	                    <p>如需阻止某用户在您的作品上发表评论或在站点其她地方回复您的评论，请访问<a href="$2">已屏蔽用户页面</a>。</p>
-	                    <p>请注意，如果您未使用默认站点界面，静音功能可能无法正常工作。要了解有关<a href="$3">如何恢复默认站点界面</a>的说明，请参阅界面与 Archive 界面常见问题。</p>`
-					],
-					['div.flash.notice',
-						/^You have muted the user ([^<]+)\.$/s,
-						'您已静音用户 $1 。'
-					],
-					['h2.heading',
-						/^Block (.*)$/s,
-						'屏蔽 $1'
-					],
-					['div.caution.notice',
-						/^\s*<p>\s*Are you sure you want to <strong>block<\/strong> ([^<]+)\?\s*Blocking a user prevents them from:\s*<\/p>[\s\S]*?<ul>\s*<li>commenting or leaving kudos on your works<\/li>\s*<li>replying to your comments anywhere on the site<\/li>\s*<li>giving you gift works outside of challenge assignments and claimed prompts<\/li>\s*<\/ul>[\s\S]*?<p>Blocking a user will not:<\/p>[\s\S]*?<ul>\s*<li>hide their works or bookmarks from you<\/li>\s*<li>delete or hide comments they previously left on your works; you can delete these individually<\/li>\s*<li>hide their comments elsewhere on the site<\/li>\s*<\/ul>[\s\S]*?<p>To hide a user's works, bookmarks, series, and comments from you, visit <a href="([^"]+)">your Muted Users page<\/a>\.<\/p>\s*$/s,
-						`<p>您确定要屏蔽 <strong>$1</strong> 吗？屏蔽用户后，她们将无法：</p>
-	                    <ul>
-	                    <li>在您的作品上发表评论或留下点赞</li>
-	                    <li>在站点任何地方回复您的评论</li>
-	                    <li>在挑战分配和认领同人梗之外赠送作品给您</li>
-	                    </ul>
-	                    <p>屏蔽用户不会：</p>
-	                    <ul>
-	                    <li>隐藏您所屏蔽用户的作品或书签</li>
-	                    <li>删除或隐藏她们之前在您作品上留下的评论；您可以逐条删除</li>
-	                    <li>隐藏她们在站点其她地方的评论</li>
-	                    </ul>
-	                    <p>如需隐藏某用户的作品、书签、系列和评论，请访问<a href="$2">已静音用户页面</a>。</p>`
-					],
-					['p.actions',
-						/<a href="([^"]+)">Cancel<\/a>\s*<input type="submit" name="commit" value="Yes, Block User">/s,
-						'<a href="$1">取消</a> <input type="submit" name="commit" value="是的，屏蔽用户">'
-					],
-					['div.flash.notice',
-						/^You have blocked the user ([^<]+)\.$/s,
-						'您已屏蔽用户 $1 。'
-					],
-					['h2.heading',
-						/^Unblock (.*)$/s,
-						'取消屏蔽 $1'
-					],
-					['div.caution.notice',
-						/^\s*<p>\s*Are you sure you want to <strong>unblock<\/strong> ([^<]+)\?\s*Unblocking a user allows them to resume:\s*<\/p>[\s\S]*?<ul>\s*<li>commenting or leaving kudos on your works<\/li>\s*<li>replying to your comments anywhere on the site<\/li>\s*<li>giving you gift works outside of challenge assignments and claimed prompts<\/li>\s*<\/ul>\s*$/s,
-						`<p>您确定要取消屏蔽 <strong>$1</strong> 吗？取消屏蔽后对方将恢复以下权限：</p>
-	                    <ul>
-	                    <li>在您的作品上发表评论或留下点赞</li>
-	                    <li>在站点任何地方回复您的评论</li>
-	                    <li>在挑战分配和认领同人梗之外赠送作品给您</li>
-	                    </ul>`
-					],
-					['div.flash.notice',
-						/^You have unblocked the user ([^<]+)\.$/s,
-						'您已取消屏蔽用户 $1 。'
-					],
-					['h2.heading',
-						/^Unmute (.*)$/s,
-						'取消静音 $1'
-					],
-					['div.caution.notice',
-						/^\s*<p>\s*Are you sure you want to <strong>unmute<\/strong> ([^<]+)\?\s*Unmuting a user allows you to:\s*<\/p>[\s\S]*?<ul>\s*<li>see their works, series, bookmarks, and comments on the site<\/li>\s*<\/ul>\s*$/s,
-						`<p>您确定要取消静音 <strong>$1</strong> 吗？取消静音后，您将可以：</p>
-	                    <ul>
-	                    <li>在站点上查看她们的作品、系列、书签和评论</li>
-	                    </ul>`
-					],
-					['div.flash.notice',
-						/^You have unmuted the user ([^<]+)\.$/s,
-						'您已取消静音用户 $1 。'
-					],
-
-					// 历史记录
-					[
-						'h4.viewed.heading',
-						/^\s*<span>Last visited:<\/span>\s*(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+\((.*?)\)\s+Visited\s+(once|(\d+)\s+times)(?:\s+\((Marked for Later\.)\))?\s*$/s,
-						(_match, day, monthAbbr, year, statusText, visitText, visitCount, markedForLaterText) => {
-							const statusMap = {
-								'Latest version.': '已是最新版',
-								'Minor edits made since then.': '有微小修订',
-								'Update available.': '作品有更新'
-							};
-							const translatedDate = `${year}年${monthMap[monthAbbr]}月${day}日`;
-							const translatedStatus = statusMap[statusText.trim()] || statusText.trim();
-							const translatedVisit = visitText === 'once' ? '阅读 1 次' : `共阅读 ${visitCount} 次`;
-							const translatedMarked = markedForLaterText ? '（已标记为稍后阅读）' : '';
-
-							let result = `上次阅读：${translatedDate}（${translatedStatus}）。${translatedVisit}`;
-							if (translatedMarked) {
-								result += `${translatedMarked}`;
-							}
-							result += '。';
-							return result;
-						}
-					],
-
-					// 提示信息
-					[
-						'#modal .content p:has(a[href*="content#II.J"])',
-						/\(For more information, see the <a href="\/content#II.J">Ratings and Warnings section of the AO3 Terms of Service<\/a>\.\)/s,
-						'（要了解更多信息，请参阅 <a href="/content#II.J">AO3 服务条款的分级与预警部分</a>。）'
-					],
-					['div.flash.error', /Sorry, additional invitations are unavailable\. Please <a href="\/invite_requests">use the queue<\/a>! If you are the mod of a challenge currently being run on the Archive, please <a href="\/support">contact Support<\/a>\. If you are the maintainer of an at-risk archive, please <a href="http:\/\/opendoors\.transformativeworks\.org\/contact-open-doors\/">contact Open Doors<\/a>\./s, '抱歉，暂时无法提供更多邀请。请<a href="/invite_requests">使用排队系统</a>！<br>如果您是正在 Archive 举办挑战活动的管理员，请<a href="/support">联系支持</a>。<br>如果您是处于风险 Archive 站点的维护者，请<a href="http://opendoors.transformativeworks.org/contact-open-doors/">联系 Open Doors</a>。'],
-					['div.flash.error', /^\s*Password resets are disabled for that user\.\s*For more information, please\s*<a href="\/abuse_reports\/new">\s*contact our Policy & Abuse team\s*<\/a>\.\s*$/s, '此用户的密码重置功能已被禁用。要了解更多信息，请<a href="/abuse_reports/new">联系我们的策略与滥用团队</a>。'],
-					[
-						'div.flash.error',
-						/^\s*Your current session has expired and we can't authenticate your request\. Try logging in again, refreshing the page, or <a href="http:\/\/kb\.iu\.edu\/data\/ahic\.html">clearing your cache<\/a> if you continue to experience problems\.\s*$/s,
-						'您当前的会话已过期，无法验证您的请求。如问题持续存在，请重新登录、刷新页面，或清除缓存。'
-					],
-					['h2.heading', /^Error 404$/, '错误 404'],
-					['h3.heading', /^The page you were looking for doesn't exist\.$/, '您查找的页面不存在。'],
-					['div.error-404 p', /^You may have mistyped the address or the page may have been deleted\.$/, '您可能输入了错误的地址或该页面已被删除。'],
-					[
-						'h2.heading',
-						/^\s*Error 503\s*$/s,
-						'错误 503'
-					],
-					[
-						'h3.heading',
-						/^\s*The page was responding too slowly\.\s*$/s,
-						'页面响应过慢。'
-					],
-					[
-						'div[class*="error-"] p',
-						/^\s*Check our <a href="(https:\/\/www\.otwstatus\.org)">status page<\/a> and follow (<a href="[^"]+">@status\.archiveofourown\.org<\/a>) on Bluesky or (<a href="[^"]+">ao3org<\/a>) on Tumblr for updates if this keeps happening\.\s*$/s,
-						'如果此情况持续发生，请查看我们的<a href="$1">站点状态页面</a>，或在 Bluesky 上关注 $2 、在 Tumblr 上关注 $3 以获取最新动态。'
-					],
-					[
-						'p.message.footnote',
-						/^\s*If you accept cookies from our site and you choose "Yes, Continue", you will not be asked again during this session \(that is, until you close your browser\)\. If you log in you can store your preference and never be asked again\.\s*$/s,
-						'如果您接受我们站点的 Cookie 并选择“是，继续”，在本会话期间（即关闭浏览器之前）将不会被再次询问。若您登录账号，可保存您的偏好，再也不会被询问。'
-					],
-					[
-						'p.notice',
-						/^\s*Sorry, this work doesn't allow non-Archive users to comment\.\s+You can however still leave Kudos!\s*$/s,
-						'抱歉，此作品不允许非 Archive 用户发表评论。但您仍可留下点赞！'
-					],
-                    [
-						'h4.heading',
-						/^\s*Comment as\s+(<span class="byline">[\s\S]*?<\/span>)([\s\S]*)$/i,
-						'发表评论（$1）$2'
-					],
-					[
-						'p',
-						/^\s*<strong>Reminder:<\/strong>\s*This site is in beta\. Things may break or crash without notice\.\s*Please report any pesky bugs and <a href="(\/support)">give us your feedback<\/a>!\s*$/s,
-						'<strong>提示：</strong>本站处于测试阶段。功能可能会无预警地出现故障或崩溃。欢迎报告任何烦人的 Bug 以及<a href="$1">提交您的反馈</a>！'
-					],
-					[
-						'p',
-						/^\s*Forgot your password or username\?\s*<a href="(\/users\/password\/new)">Reset (?:your )?password<\/a>\.\s*<br.*?>\s*Don't have an account\?\s*<a href="(\/invite_requests)">Request an invitation to join<\/a>\.?\s*$/s,
-						'忘记了您的密码或用户名？<a href="$1">重置密码</a>。<br>还没有帐户？<a href="$2">获取邀请</a>。'
-					],
-					[
-						'label[for="reset_login"]',
-						/^\s*Email address\s*<strong>or<\/strong>\s*username\s*$/s,
-						'电子邮箱地址 <strong>或</strong> 用户名'
-					],
-					[
-						'p.muted.notice',
-						/^\s*You have muted some users on the Archive\.\s*Some items may not be shown, and any counts may be inaccurate\.\s*You can mute or unmute users on\s*<a href="(\/users\/[^\/]+\/muted\/users)">your Muted Users page<\/a>\s*[.。]?\s*$/s,
-						'您已在 Archive 上静音了部分用户。部分内容可能因此不予显示，相关计数也可能并不准确。您可在<a href="$1">已静音用户</a>页面静音或取消静音用户。'
-					],
-					[
-						'p.caution.notice',
-						/^\s*This draft will be <strong>scheduled for deletion<\/strong> on\s*(<abbr class="day".*?<\/span>)\s*\.\s*$/s,
-						'此草稿将于 <span>$1</span> <strong>预定删除</strong>。'
-					],
-					[
-						'p:has(a[href="/content"]):has(a[href="/tos_faq#content_faq"])',
-						/All\s+works\s+you\s+post\s+on\s+AO3\s+must\s+comply\s+with\s+our\s+<a\s+href="\/content"[^>]*>(?:Content Policy|内容政策)<\/a>\.\s*For\s+more\s+information,\s+please\s+refer\s+to\s+our\s+<a\s+href="\/tos_faq#content_faq"[^>]*>(?:Terms of Service FAQ|服务条款常见问题)<\/a>[\.。]?/s,
-						'您在 AO3 发布的所有作品均必须遵守我们的<a href="/content">内容政策</a>。更多信息请参阅我们的<a href="/tos_faq#content_faq">服务条款常见问题</a>。'
-					],
-					[
-						'p.notice',
-						/^\s*This work is a draft and has not been posted\. The draft will be <strong>scheduled for deletion<\/strong> on\s*(<abbr class="day".*?<\/span>)\s*\.\s*$/s,
-						'此作品是尚未发布的草稿。将于 <span>$1</span> <strong>预定删除</strong>。'
-					],
-					[
-						'p.notice',
-						/^\s*Sorry, this work doesn't allow comments\.\s*$/s,
-						'抱歉，此作品不允许评论。'
-					],
-					[
-						'h4.heading.byline',
-						/^\s*Chapter by (<a\s+rel="author".*?<\/a>)\s*$/s,
-						'章节作者：$1'
-					],
-					[
-						'div.flash.notice',
-						/^Draft was successfully created\. It will be <strong>scheduled for deletion<\/strong>\s+on\s+(.*)\.$/s,
-						'草稿已成功创建。它将于 <span class="datetime">$1</span> <strong>预定删除</strong>。'
-					],
-					[
-						'p',
-						/^\s*This tag belongs to the Character Category\.\s*$/,
-						'此标签属于“角色”分类。'
-					],
-					[
-						'p',
-						/^\s*This tag has not been marked common and can't be filtered on \(yet\)\.\s*$/,
-						'此标签尚未被标记为常用，（目前）无法用于筛选。'
-					],
-					[
-						'h3.heading',
-						/^\s*Works which have used it as a tag:\s*$/,
-						'使用此标签的作品：'
-					],
-					[
-						'div.flash.error',
-						/^We couldn't add your submission to the following collections: (.*?) does not exist\.$/s,
-						'我们无法将您的提交添加到以下合集：$1 不存在。'
-					],
-					[
-						'h2.heading',
-						/^\s*Editing bookmark for (<a href="\/works\/\d+">.*?<\/a>)\s*$/s,
-						'编辑书签：$1'
-					],
-					[
-						'div.flash.notice',
-						/^\s*Bookmark was successfully updated\.\s+Added to collection\(s\):\s*(.*?)\.\s*$/s,
-						'书签已成功更新。已添加到合集：$1。'
-					],
-					[
-						'li',
-						/^\s*Translation into\s+(<span lang="[^"]+">[^<]+<\/span>)\s+available:\s+(<a href="[^"]+">.*?<\/a>)\s+by\s+(<a rel="author" href="[^"]+">.*?<\/a>)\s*$/,
-						'已有 $1 译本：$2 ，译者：$3'
-					],
-					[
-						'li',
-						/^\s*A translation of\s+(<a href="[^"]+">.*?<\/a>)\s+by\s+(<a rel="author" href="[^"]+">.*?<\/a>)\s*$/,
-						'翻译自：$1 ，作者：$2'
-					],
-					[
-						'li',
-						/^\s*Inspired by\s+(<a href="[^"]+">.*?<\/a>)\s+by\s+(<a rel="author" href="[^"]+">.*?<\/a>)\s*$/,
-						'衍生自：$1 ，作者：$2'
-					],
-					[
-						'li',
-						/^\s*For\s+(<a href="\/users\/[^"]+\/gifts">.*?<\/a>)\s*[.。]?\s*$/,
-						'赠送给：$1'
-					],
-					[
-						'p.jump',
-						/^\s*\(See the end of the work for\s*(<a href="#work_endnotes">)notes(<\/a>)\s+and\s+(<a href="#children">)other works inspired by this one(<\/a>)\.\)\s*$/,
-						'（在作品结尾查看$1注释$2和$3相关衍生作品$4。）'
-					],
-					[
-						'main',
-						/^\s*<h2>The archive is down for maintenance\.<\/h2>\s*<p>Check our (<a href="https:\/\/www\.otwstatus\.org">status page<\/a>), (<a href="https:\/\/bsky\.app\/profile\/status\.archiveofourown\.org">@status\.archiveofourown\.org<\/a>) on Bluesky or (<a href="https:\/\/ao3org\.tumblr\.com\/">ao3org<\/a>) on Tumblr for updates\.<\/p>\s*$/s,
-						'<h2> Archive 正在进行维护。</h2><p>请查看我们的 $1、Bluesky 上的 $2 或 Tumblr 上的 $3，以获取最新动态。</p>'
-					],
-					[
-						'h3.heading',
-						/^\s*Sorry!\s*$/s,
-						'抱歉！'
-					],
-					[
-						'h3.heading + p',
-						/^\s*This work is only available to registered users of the Archive\.\s*If you already have an Archive of Our Own account, log in now\.\s*If you don't have an account, you can\s*<a href="\/invite_requests">.*?<\/a>\s*[.。]?\s*$/s,
-						'此作品仅对 Archive 的注册用户开放。如果您已有 AO3 帐户，请立即登录。如果您还没有帐户，可以<a href="/invite_requests">获取邀请</a>。'
-					],
-					[
-						'div#error.error ul',
-						/<li>(.+?) does not accept gifts\.<\/li>/g,
-						(_match, username) => `<li>${username} 不接受赠文。</li>`
-					],
-					[
-						'div.flash.error',
-						/^We couldn't add your submission to the following collection\(s\): <br><ul><li>(.*?), because this item has already been submitted\.<\/li><\/ul>$/s,
-						'我们无法将您的提交添加到以下合集：<br><ul><li>$1，因为该项目已被提交。</li></ul>'
-					],
-					[
-						'p.note',
-						/^\s*Follow AO3 on Bluesky or Tumblr for status updates, and don't forget to check out the <a href="https:\/\/www\.transformativeworks\.org\/where-find-us\/">Organization for Transformative Works' news outlets<\/a> for updates on our other projects!\s*$/s,
-						'在 Bluesky 或 Tumblr 上关注 AO3 以获取最新动态；同时别忘了查看<a href="https://www.transformativeworks.org/where-find-us/">再创作组织的动态发布渠道</a>，了解我们其她项目的进展！'
-					],
-					[
-						'p.jump',
-						/^\s*\(See the end of the work for\s*(<a href="#work_endnotes">)(more )?notes(<\/a>)\s+and\s+(<a href="#children">)other works inspired by this one(<\/a>)\.\)\s*$/s,
-						(_match, p1, p2, p3, p4, p5) => `（在作品结尾查看${p1}${p2 ? '更多' : ''}注释${p3}和${p4}相关衍生作品${p5}。）`
-					],
-					[
-						'div.flash.notice',
-						/^\s*This work was added to your <a href="([^"]*)">Marked for Later list<\/a>\.\s*$/s,
-						'已将此作品添加至<a href="$1">稍后阅读列表</a>。'
-					],
-					[
-						'h4.viewed.heading',
-						/^\s*\(Deleted work, last visited (\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})\)\s*$/s,
-						(_match, day, month, year) => `作品已删除，上次阅读：${year}年${monthMap[month]}月${day}日`
-					],
-					[
-						'div.flash.notice li',
-						/^\s*You are previewing the skin (.*?)\. This is a randomly chosen page\.\s*$/,
-						'您正在预览界面：$1。这是一个随机选择的页面。'
-					],
-					[
-						'div.flash.notice li',
-						/^\s*Go back or click any link to remove the skin\.\s*$/,
-						'返回或点击任意链接以移除此界面。'
-					],
-					[
-						'div.flash.notice li',
-						/^\s*Tip: You can preview any archive page you want by tacking on '\?site_skin=\[skin_id\]' like you can see in the url above\.\s*$/,
-						'提示：您可以通过在 URL 末尾添加 “?site_skin=[skin_id]” 来预览任意 Archive 页面，如上方地址栏所示。'
-					],
-					[
-						'div.flash.notice li a',
-						/^\s*Return To Skin To Use\s*$/,
-						'返回界面以使用'
-					],
-					[
-						'div.flash.alert',
-						/^You are already logged in to an account\. Please log out and try again\.$/,
-						'您已登录账户，请登出后重试。'
-					],
-                    [
-						'p',
-						/^\s*The creator's summary is added automatically\.\s*$/s,
-						'创作者的简介会自动添加'
-					],
-					[
-						'p',
-						/^\s*If you've forgotten your password, we can send you an email with instructions to reset your password\.\s*$/s,
-						'如果您忘记了密码，我们可以发送包含重置密码说明的邮件。'
-					],
-					[
-						'p',
-						/^\s*Please enter the email address associated with your AO3 account\. You may only request a password reset a limited number of times per day\.\s*$/s,
-						'请输入与您的 AO3 账户关联的电子邮箱地址。您每天只能请求有限次数的密码重置。'
-					],
-// 建议替换或添加到 I18N['zh-CN']['public']['innerHTML_regexp'] 数组中
-                    [
-                        'div.caution.notice',
-                        /<p>\s*<strong>Please use this feature with caution\.<\/strong>\s*You can change your username once every 7 days\.\s*<\/p>/s,
-                        '<p><strong>请谨慎使用此功能。</strong>用户名每 7 天仅能更改一次。</p>'
-                    ],
-                    [
-                        'span#more_pseuds_connector',
-                        /^\s*,\s+and\s*$/s,
-                        '，和 '
-                    ],
-                    [
-                        'dd.pseuds',
-                        /(<\/a>),\s+(<a)/g,
-                        '$1，$2'
-                    ],
-                    [
-                        'div.flash.error',
-                        /^\s*Your password was incorrect\. Please try again or, if you've forgotten your password, log out and reset your password via the link on the login form\. If you are still having trouble, <a href="\/support">contact Support<\/a> for help\.\s*$/s,
-                        '您的密码不正确。请重试，如果您忘记了密码，请登出并通过登录表单上的链接重置密码。如果问题仍然存在，请<a href="/support">联系支持团队</a>寻求帮助。'
-                    ],
-
-					// 标签说明
-					[
-						'p',
-						/^\s*This tag belongs to the (Fandom|Relationship|Character|Category|Archive Warning|Rating|Additional Tags) Category\.(\s*It's a <a href="\/faq\/glossary#canonicaldef">(?:canonical tag|规范标签)<\/a>[\.。]\s*You can use it to <a href="([^"]+)">(?:filter works|筛选作品)<\/a> and to <a href="([^"]+)">(?:filter bookmarks|筛选书签)<\/a>[\.。]\s*(\s*You can also access a list of <a href="([^"]+)">(?:Relationship tags in this fandom|此同人圈中的关系标签)<\/a>\s*)?[\.。]?)?\s*$/s,
-						(_match, category, canonicalPart, worksLink, bookmarksLink, relationshipPart, relationshipLink) => {
-							const categoryMap = {
-								'Fandom': '同人圈',
-								'Relationship': '关系',
-								'Character': '角色',
-								'Category': '分类',
-								'Archive Warning': 'Archive 预警',
-								'Rating': '分级',
-								'Additional Tags': '附加标签'
-							};
-							const translatedCategory = categoryMap[category] || category;
-							let result = `此标签属于“${translatedCategory}”类别。`;
-							if (canonicalPart) {
-								result += `这是一个<a href="/faq/glossary#canonicaldef">规范标签</a>。您可以用它来<a href="${worksLink}">筛选作品</a>和<a href="${bookmarksLink}">筛选书签</a>。`;
-								if (relationshipPart && relationshipLink) {
-									result += `您也可以访问<a href="${relationshipLink}">此同人圈中的关系标签</a>列表。`;
-								}
-							}
-							return result;
-						}
-					],
-					[
-						'div.merger > h3.heading',
-						/^Mergers$/,
-						'合并'
-					],
-					[
-						'div.merger p',
-						/^\s*(')?([^'<]+)(')?\s+has been made a synonym of (<a class="tag"[^>]*>.*<\/a>)\.\s*Works and bookmarks tagged with ('?)([^'<]+)(')?\s+will show up in (.*)'s filter\.\s*$/s,
-						(_match, quote1, tag1, _quote2, tag2Link, quote3, tag3, _quote4, tag4) => {
-							const displayTag1 = quote1 ? `'${tag1}'` : tag1;
-							const displayTag3 = quote3 ? `'${tag3}'` : tag3;
-							return `${displayTag1} 已被设为 ${tag2Link} 的同义标签。使用 ${displayTag3} 标签的作品和书签将会在 ${tag4} 的筛选结果中显示。`;
-						}
-					],
-                    [
-                        'p.caution.notice',
-                        /^\s*Are you sure you want to <strong><em>delete<\/em><\/strong> all your subscriptions\? This <strong>cannot be undone<\/strong>\s*[.。]?\s*$/s,
-                        '您确定要<strong>删除</strong>所有订阅吗？此操作<strong>无法撤销</strong>。'
-                    ]
-				],
-				'regexp': [
-					[/^(\d+) kudos$/, '$1 个赞'],
-					[/^(\d+) bookmark(?:s)?$/, '$1 条书签'],
-					[/^(\d+) comment(?:s)?$/, '$1 条评论'],
-					[/^(\d+) hit(?:s)?$/, '$1 次点击'],
-					[/^(\d{2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})$/,
-						(match, p1, p2, p3) => `${p3}年${monthMap[p2]}月${p1}日`
-					],
-					[/^Your work (.*) was deleted\.$/, '您的作品 $1 已被删除。'],
-                    [/^Unsubscribe from (.*)$/, '取消订阅 $1']
-				],
-				'selector': [
-					['#tos_prompt button[name=commit]', '我同意并已阅读服务条款'],
-					['.actions a.comment_form_placement_open', '评论'],
-                    ['.actions a.bookmark_form_placement_open', '创建书签'],
-					['#main .comment_error', '评论不能为空白。'],
-					['.post.comment .submit input[type=submit]', '评论'],
-					['form#new_comment .actions input[name=commit]', '评论'],
-					['#kudo_submit', '点赞'],
-					[/^Chapter (\d+)$/, '第 $1 章']
-				]
+		// 占位符校验阈值
+		VALIDATION_THRESHOLDS: {
+			google_translate: {
+				absolute_loss: 4,
+				proportional_loss: 0.8,
+				proportional_trigger_count: 5
 			},
+			bing_translator: {
+				absolute_loss: 4,
+				proportional_loss: 0.8,
+				proportional_trigger_count: 5
+			},
+			default: {
+				absolute_loss: 5,
+				proportional_loss: 0.8,
+				proportional_trigger_count: 5
+			}
+		},
 
-			'flexible': {
-
-				'You searched for:': '您搜索了：',
-				'Moderated': '审核制',
-				'Unmoderated': '非审核制',
-				'Unrevealed': '未揭晓',
-				'Anonymous': '匿名',
-				'Gift Exchange Challenges': '赠文交换活动',
-				'Gift Exchange Challenge': '赠文交换活动',
-				'Prompt Meme Challenges': '接梗挑战',
-				'Prompt Meme Challenge': '接梗挑战',
-				'Bookmarked Items': '已创建书签作品',
-
-				'Not Rated': '未分级',
-				'No rating': '未分级',
-				'No category': '未分类',
-				'General Audiences': '全年龄',
-				'Teen And Up Audiences': '青少年及以上',
-				'Mature': '成人向',
-				'Explicit': '限制级',
-
-				'F/F': '女/女',
-				'F/M': '女/男',
-				'Gen': '无CP',
-				'M/M': '男/男',
-				'Multi-Fandom': '跨圈',
-				'Original Work': '原创作品',
-				'Multi': '多配对',
-				'Choose Not To Use Archive Warnings': '不使用 Archive 预警',
-				'Creator Chose Not To Use Archive Warnings': '不使用 Archive 预警',
-				'No Archive Warnings Apply': ' Archive 预警不适用',
-				'Graphic Depictions Of Violence': '暴力场景描写',
-				'Major Character Death': '主要角色死亡',
-				'Underage Sex': '未成年性行为',
-				'Rape/Non-Con': '强暴/非自愿性行为',
-
-			},
-			'common': {
-				'static': {},
-				'regexp': [],
-				'selector': []
-			},
-			'front_page': {
-				'static': {
-					'What is AO3?': 'AO3 是什么？',
-					'Follow @AO3_Status on Twitter for news and updates!': '在 Twitter 上关注 @AO3_Status 获取新闻和更新！',
-				},
-				'regexp': [],
-				'selector': [
-					['.front.home-banner .heading a', '进入 AO3'],
-				]
-			},
-			// 作品搜索
-			'works_search': {
-				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-			},
-			'works_search_results': {
-				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-			},
-			// 用户搜索
-			'people_search': {
-				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-			},
-			'people_search_results': {
-				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-			},
-			// 书签搜索
-			'bookmarks_search': {
-				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-			},
-			'bookmarks_search_results': {
-				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-			},
-			// 标签搜索
-			'tags_search': {
-				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-			},
-			'tags_search_results': {
-				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-			},
-			'dashboard': {
-				'static': {
-				},
-				'regexp': [],
-				'selector': []
-			},
-			'profile': {
-				'static': {
-					'User Profile': '用户资料',
-					'My Pseud': '我的笔名',
-					'Pseuds': '笔名',
-					'Joined': '加入日期',
-					'Bio': '个人简介',
-					'Dismiss permanently': '永久关闭此信息',
-					'Hide first login help banner': '隐藏首次登录帮助横幅',
-					'×': '×',
-				},
-				'innerHTML_regexp': [
-					['p.alt.message',
-						/^\s*You don't have anything posted under this name yet\.\s*Would you like to\s*<a (href="\/works\/new")>post a new work<\/a>\s*or maybe\s*<a (href="\/external_works\/new")>a new bookmark<\/a>\s*\?\s*$/s,
-						'您还没有以这个笔名发布任何作品。您想要<a $1>发布新作品</a>或者创建<a $2>一个新的书签</a>吗？'
-					]
-				],
-				'regexp': [],
-				'selector': []
-			},
-			'works_edit': {
-				'static': {
-					'Edit Work': '编辑作品',
-					'Add Chapter': '添加章节',
-					'Edit Chapter:': '编辑章节:',
-				},
-				'regexp': [], 'selector': [], 'innerHTML_regexp': []
-			},
-			'works_new': {
-				'static': {
-					'Post New Work': '发布新作品',
-					'Import From An Existing URL Instead?': '从现有 URL 导入',
-					'* Required information': '* 处为必填信息',
-					'Tags are comma separated, 150 characters per tag. Fandom, relationship, character, and additional tags must not add up to more than 75. Archive warning, category, and rating tags do not count toward this limit.': '标签以逗号分隔，每个标签最多 150 字符。同人圈、关系、角色及附加标签总计不得超过 75 字符。Archive 预警、分类及分级标签不计入此限制。',
-					'Rating*': '分级*',
-					'Archive Warnings*': 'Archive 预警*',
-					'Fandoms*': '同人圈*',
-					'If this is the first work for a fandom, it may not show up in the fandoms page for a day or two.': '如果这是该同人圈的第一篇作品，可能需要一两天才会出现在同人圈页面。',
-					'Preface': '前言',
-					'Work Title*': '作品标题*',
-					'We need a title! (At least 1 character long, please.)': '需要一个标题！(请至少输入 1 个字符)',
-					'Add co-creators?': '添加共创者？',
-					'at the beginning': '在开头',
-					'at the end': '在结尾',
-					'End Notes': '尾注',
-					'Associations': '关联',
-					'Post to Collections / Challenges': '发布到合集/挑战',
-					'Gift this work to': '将此作品赠送给',
-					'This work is a remix, a translation, a podfic, or was inspired by another work': '此作品为改编、译作、有声读物或衍生自另一作品',
-					'This work is part of a series': '此作品为一个系列的一部分',
-					'This work has multiple chapters': '此作品包含多个章节',
-					'Set a different publication date': '设置一个不同的发布日期',
-					'Choose a language *': '选择语言*',
-					'Please select a language': '请选择语言',
-					'Select work skin': '选择作品界面',
-					'Basic Formatting': '基本界面',
-					'Homestuck Skin': 'Homestuck 界面',
-					'Undertale Work Skin': 'Undertale 界面',
-					'Only show your work to registered users': '仅向注册用户展示',
-					'Enable comment moderation': '启用评论审核',
-					'Registered users and guests can comment': '注册用户及游客可评论',
-					'Only registered users can comment': '仅注册用户可评论',
-					'No one can comment': '禁止评论',
-					'Work Text*': '作品正文*',
-					'Rich Text': '富文本',
-					'Preview': '预览',
-					'Brevity is the soul of wit, but your content does have to be at least 10 characters long.': '简洁乃智慧之魂，但您的内容长度必须至少 10 个字符。',
-					'Sorry! We couldn\'t save this work because:': '抱歉！我们无法保存此作品，因为：', 'Language cannot be blank.': '语言不能为空。', 'Please fill in at least one fandom.': '请至少填写一个同人圈。', 'Please select at least one warning.': '请至少选择一个预警。',
-					'For a work in the Archive, only the URL is required.': '对于 Archive 站内的作品，仅需填写 URL。',
-					'This is a translation': '这是一个译本',
-					'Choose one of your existing series:': '选择一个您已有的系列：',
-					'Please select': '请选择',
-					'Or create and use a new one:': '或创建并使用一个新系列：',
-					'Chapter Title:': '章节标题：',
-					'Set publication date': '设置发布日期',
-				},
-				'innerHTML_regexp': [
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
-					['fieldset.work.text p.notice', /<strong>Note:<\/strong> Text entered in the posting form is <strong>not<\/strong> automatically saved\. Always keep a backup copy of your work\./s, '<strong>注意：</strong>在发布表单中输入的文本<strong>不会</strong>自动保存。请务必保留作品的备份。'],
-					[
-						'fieldset.create p.notice',
-						/All works you post on AO3 must comply with our <a href="\/content">(Content Policy|内容政策)<\/a>\. For more information, please refer to our <a href="\/tos_faq#content_faq">(?:Terms of Service FAQ|服务条款常见问题)<\/a>\./s,
-						'您在 AO3 发布的所有作品均必须遵守我们的<a href="/content">内容政策</a>。更多信息请参阅我们的<a href="/tos_faq#content_faq">服务条款常见问题</a>。'
-					],
-				],
-				'regexp': [],
-				'selector': [
-					['dt.permissions.comments', '谁可以评论此作品'],
-					['#chapters-options label[for="work_wip_length"]', '第 1 章 / 共']
-				]
-			},
-			'works_import': {
-				'static': {
-					'Import New Work': '导入新作品',
-					'Please note! Fanfiction.net, Wattpad.com, and Quotev.com do not allow imports from their sites.': '请注意！FanFiction.net、Wattpad.com 和 Quotev.com 不允许从其站点导入内容。',
-					'Post New Work Instead?': '改为发布新作品？',
-					'Works URLs': '作品 URL',
-					'Rating*': '分级*',
-					'Archive Warnings*': 'Archive 预警*',
-					'Fandoms*': '同人圈*',
-					'Choose a language*': '选择语言*',
-					'Please select a language': '请选择语言',
-					'Set custom encoding': '设置自定义编码',
-					'Import as': '作为以下内容导入',
-					'Works (limit of 25)': '作品（限 25 个）',
-					'Chapters in a single work (limit of 200)': '单部作品的多个章节（限 200 个）',
-					'Preferences': '偏好设置',
-					'Post without previewing.': '不预览直接发布。',
-					'Override tags and notes': '覆盖标签和说明',
-					'Enable comment moderation': '启用评论审核',
-					'Registered users and guests can comment': '注册用户及游客可评论',
-					'Only registered users can comment': '仅注册用户可评论',
-					'No one can comment': '禁止评论',
-					'Set the following tags and/or notes on all works, overriding whatever the importer finds in the content.': '对所有导入的作品设置以下标签和/或说明，覆盖导入工具从内容中提取的信息。',
-					'Use values extracted from the content for blank fields if possible': '如果可能，对空白字段使用从内容中提取的值',
-					'Do not use values extracted from the content at all; use Archive defaults for blank fields': '完全不使用从内容中提取的值；对空白字段使用 Archive 默认值',
-					'Only show imported works to registered users': '仅向注册用户展示导入的作品',
-					'Notes at the beginning': '将注释放在开头',
-					'Submit': '提交',
-					'Import': '导入'
-				},
-				'innerHTML_regexp': [
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
-					[
-						'div.notice p',
-						/You might find the <a href="\/faq\/posting-and-editing#importwork">Import FAQ<\/a> useful\./s,
-						'您可能会想查看<a href="/faq/posting-and-editing#importwork">导入常见问题</a>。'
-					],
-					[
-						'p.footnote#url-field-description',
-						/URLs for existing work\(s\) or for the chapters of a single work; <strong>one URL per line\.<\/strong>/s,
-						'现有作品或单部作品各章节的 URL ；<strong>每行一个 URL 。</strong>'
-					],
-					[
-						'p.note',
-						/Tags are comma separated, 150 characters per tag\. Fandom, relationship, character, and additional tags must not add up to more than 75\. Archive warning, category, and rating tags do not count toward this limit\./s,
-						'标签以逗号分隔，每个标签最多 150 字符。同人圈、关系、角色及附加标签总计不得超过 75 字符。Archive 预警、分类及分级标签不计入此限制。'
-					],
-					[
-						'p.footnote',
-						/If this is the first work for a fandom, it may not show up in the fandoms page for a day or two\./s,
-						'如果这是该同人圈的第一篇作品，可能需要一两天才会出现在同人圈页面。'
-					],
-					[
-						'fieldset p.notice',
-						/All works you post on AO3 must comply with our <a href="\/content">(Content Policy|内容政策)<\/a>\. For more information, please refer to our <a href="\/tos_faq#content_faq">(?:Terms of Service FAQ|服务条款常见问题)<\/a>\./s,
-						'您在 AO3 发布的所有作品均必须遵守我们的<a href="/content">内容政策</a>。更多信息请参阅我们的<a href="/tos_faq#content_faq">服务条款常见问题</a>。'
-					],
-				],
-				'regexp': [],
-				'selector': [
-					['dt.permissions.comments', '谁可以评论此作品']
-				]
-			},
-			'chapters_new': {
-				'static': {
-					'Post New Chapter': '发布新章节',
-					'Name, Order and Date': '名称、顺序和日期',
-					'Chapter Title': '章节标题',
-					'Chapter Number': '章节编号',
-					'Chapter Publication Date': '章节发布日期',
-					'Chapter Preface': '章节前言',
-					'Chapter Summary': '章节简介',
-					'Chapter Notes': '章节注释',
-					'End Notes': '尾注',
-					'Chapter Text*': '章节正文*',
-					'Post Chapter': '发布章节',
-					'Warning: Unchecking this box will delete the existing beginning note.': '警告：取消勾选此框将删除已有的开头注释。',
-					'Warning: Unchecking this box will delete the existing end note.': '警告：取消勾选此框将删除已有的结尾注释。'
-				},
-				'selector': [
-					['label[for="chapter_wip_length"]', '共']
-				]
-			},
-			'works_edit_tags': {
-				'static': {
-					'Post Work': '发布作品',
-					'Update': '更新'
-				},
-				'innerHTML_regexp': [
-					[
-						'h2.heading',
-						/^\s*Edit Work Tags for (.*)\s*$/s,
-						'编辑作品标签：$1 '
-					]
-				],
-				'selector': []
-			},
-			'chapters_edit': {
-				'static': {}
-			},
-			'orphans_new': {
-				'static': {
-					'Take my pseud off as well': '同时移除我的笔名',
-					'Leave a copy of my pseud on': '保留我的笔名副本',
-					'Read More About The Orphaning Process': '阅读更多关于匿名流程的信息',
-					'Yes, I\'m sure': '是的，我确定'
-				},
-				'innerHTML_regexp': [
-					[
-						'p.caution.notice',
-						/Orphaning will\s*<strong>permanently<\/strong>\s*remove all identifying data from the following work\(s\), their chapters, associated series, and any feedback replies you may have left on them\./s,
-						'匿名化操作将<strong>永久</strong>移除以下作品、其章节、关联系列以及您可能留下的任何反馈回复中的所有身份识别信息。'
-					],
-					[
-						'p.caution.notice',
-						/Orphaning a work removes it from your account and re-attaches it to the specially created orphan_account\. Please note that this is\s*<strong>permanent and irreversible\.<\/strong>\s*You are giving up control over the work,\s*<strong>including the ability to edit or delete it\.<\/strong>/s,
-						'匿名化作品会将其从您的账户中移除，并重新关联至专门创建的 orphan_account（匿名帐户）。请注意，此操作是<strong>永久且不可逆的。</strong>您将放弃对该作品的控制权，<strong>包括编辑或删除它的能力。</strong>'
-					],
-					[
-						'p.caution.notice',
-						/Are you\s*<strong>really<\/strong>\s*sure you want to do this\?/s,
-						'您<strong>真的</strong>确定要这样做吗？'
-					]
-				],
-				'selector': []
-			},
-			'works_show_multiple': {
-				'static': {
-					'Edit Multiple Works': '编辑多个作品',
-					'You have no works or drafts to edit.': '您没有可编辑的作品或草稿。',
-					'All': '全选',
-					'None': '取消勾选',
-					'Actions': '操作',
-					'Orphan': '匿名化'
-				},
-				'innerHTML_regexp': [
-					[
-						'fieldset.fandom.listbox > legend',
-						/^Select (.*) works$/s,
-						'选择 $1 的作品'
-					]
-				],
-				'regexp': [
-					[/\(Draft\)$/, '（草稿）']
-				]
-			},
-			'works_edit_multiple': {
-				'static': {
-					'Edit Multiple Works': '编辑多个作品',
-					'Visibility': '可见性',
-					'Keep current visibility settings': '保持当前可见性设置',
-					'Show to all': '对所有人可见',
-					'Only show to registered users': '仅向注册用户展示',
-					'Comment moderation': '评论审核',
-					'Keep current comment moderation settings': '保持当前评论审核设置',
-					'Disable comment moderation': '禁用评论审核',
-					'Who can comment on these works': '谁可以评论这些作品',
-					'Keep current comment settings': '保持当前评论设置',
-					'Add co-creators': '添加共创者',
-					'Choose a language': '选择语言',
-					'Update All Works': '更新所有作品',
-					'Are you sure? Remember this will replace all existing values!': '您确定吗？请记住，此操作将替换所有现有值！'
-				},
-				'innerHTML_regexp': [
-					[
-						'p.caution.notice',
-						/^\s*Your edits will be applied to <strong>.*?<\/strong> of the following works:\s*$/s,
-						'您的编辑将应用于以下<strong>全部</strong>作品：'
-					],
-					[
-						'p.caution.notice',
-						/^\s*Your edits will <strong>replace<\/strong> the existing values!\s*\(If you leave a field blank it will remain unchanged\.\)\s*$/s,
-						'您的编辑将<strong>替换</strong>现有值（如果将字段留空，则不会进行更改）。'
-					]
-				]
-			},
-			'users_invitations': {
-				'flexible': {
-					'Unsent': '未发送',
-					'Sent But Unused': '已发送但未使用',
-					'Used': '已使用',
-
-				},
-				'static': {
-					'Invite a friend': '邀请好友',
-					'Invitations': '邀请',
-					'Manage Invitations': '管理邀请',
-					'Request Invitations': '获取邀请',
-					'Your Invitations': '您的邀请',
-					'Manage:': '管理：',
-					'All': '全部'
-				},
-				'innerHTML_regexp': [
-					['div.module p', /Sorry, you have no unsent invitations right now\. <a href="\/user_invite_requests\/new">Request invitations<\/a>/s, '抱歉，您当前没有未发送的邀请。<a href="/user_invite_requests/new">获取邀请</a>']
-				]
-			},
-			'users_common': {
-				'static': {
-					'Profile': '个人资料',
+		// 翻译服务配置
+		TRANS_ENGINES: {
+			google_translate: {
+				name: '谷歌翻译',
+				url_api: 'https://translate-pa.googleapis.com/v1/translateHtml',
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json+protobuf' },
+				getRequestData: (paragraphs) => {
+					const sourceTexts = paragraphs.map(p => p.outerHTML);
+					return JSON.stringify([
+						[sourceTexts, "auto", "zh-CN"], "te"
+					]);
 				},
 			},
-			'users_settings': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
+			bing_translator: {
+				name: '微软翻译',
+				url_api: 'https://api-edge.cognitive.microsofttranslator.com/translate?api-version=3.0&includeSentenceLength=true',
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' }
 			},
-			'users_block_mute_list': {
-				'static': {
-					'Blocked Users': '已屏蔽用户',
-					'Muted Users': '已静音用户',
-					'Block a user': '屏蔽用户',
-					'Mute a user': '静音用户',
-					'Block': '屏蔽',
-					'Mute': '静音',
-					'Unblock': '取消屏蔽',
-					'Unmute': '取消静音',
-					'You have not muted any users.': '您尚未静音任何用户。',
-					'You have not blocked any users.': '您尚未屏蔽任何用户。'
-				},
-				'innerHTML_regexp': [
-					[
-						'div.notice',
-						/^\s*<p>You can block up to 2,000 users\. Blocking a user prevents them from:<\/p>[\s\S]*?<a href="(\/users\/[^\/]+\/muted\/users)">your Muted Users page<\/a>\.<\/p>\s*$/s,
-						`<p>您最多可以屏蔽 2,000 位用户。屏蔽用户后，她们将无法：</p>
-	                        <ul>
-	                        <li>在您的作品上发表评论或留下点赞</li>
-	                        <li>在站点任何地方回复您的评论</li>
-	                        <li>在活动分配和认领同人梗之外赠送作品给您</li>
-	                        </ul>
-	                        <p>屏蔽用户不会：</p>
-	                        <ul>
-	                        <li>隐藏您所屏蔽用户的作品或书签</li>
-	                        <li>删除或隐藏她们之前在您作品上留下的评论；您可以逐条删除</li>
-	                        <li>隐藏她们在站点其她地方的评论</li>
-	                        </ul>
-	                        <p>如需隐藏某用户的作品、书签、系列和评论，请访问<a href="$1">已静音用户页面</a>。</p>`
-					],
-					[
-						'div.notice',
-						/^\s*<p>You can mute up to 2,000 users\. Muting a user:<\/p>[\s\S]*?<a href="(\/users\/[^\/]+\/blocked\/users)">your Blocked Users page<\/a>\.[\s\S]*?<a href="(\/faq\/skins-and-archive-interface#restoresiteskin)">instructions for reverting to the default site skin<\/a>\.\s*<\/p>\s*$/s,
-						`<p>您最多可静音 2,000 位用户。静音用户后：</p>
-	                        <ul>
-	                        <li>她们的作品、系列、书签和评论将完全对您隐藏；不会留下空白空间、占位文本或其她任何提示</li>
-	                        </ul>
-	                        <p>静音用户不会：</p>
-	                        <ul>
-	                        <li>阻止您接收来自该用户的评论或订阅邮件</li>
-	                        <li>将她们的内容隐藏给其她任何人</li>
-	                        </ul>
-	                        <p>如需阻止某用户在您的作品上发表评论或在站点其她地方回复您的评论，请访问<a href="$1">已屏蔽用户页面</a>。</p>
-	                        <p>请注意，如果您未使用默认站点界面，静音功能可能无法正常工作。要了解有关<a href="$2">如何恢复默认站点界面</a>的说明，请参阅界面与 Archive 界面常见问题 。</p>`
-					]
-				],
-				'regexp': [],
-				'selector': []
+			openai: createStandardApiConfig({
+				name: 'OpenAI',
+				url: 'https://api.openai.com/v1/chat/completions',
+			}),
+			siliconflow: createStandardApiConfig({
+				name: 'SiliconFlow',
+				url: 'https://api.siliconflow.cn/v1/chat/completions',
+			}),
+			anthropic: {
+				name: 'Anthropic',
+				url_api: 'https://api.anthropic.com/v1/messages',
+				method: 'POST',
+				responseIdentifier: 'content[0].text',
 			},
-			'preferences': {
-				'static': {
-					'Edit My Preferences': '编辑我的偏好设置',
-					'Privacy': '隐私设置',
-					'Interface': '界面设置',
-					'Work Display': '作品显示',
-					'Site Skins': '站点界面',
-					'When I post a work, credit me as:': '当我发布作品时，署名方式：',
-					'Show': '显示',
-					'Hide': '隐藏',
-					'Turn on Creator Styles': '启用创作者界面样式',
-					'Update': '确定',
-				},
-				'regexp': [],
-				'selector': []
+			zhipu_ai: createStandardApiConfig({
+				name: 'Zhipu AI',
+				url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+			}),
+			deepseek_ai: createStandardApiConfig({
+				name: 'DeepSeek',
+				url: 'https://api.deepseek.com/chat/completions',
+			}),
+			google_ai: {
+				name: 'Google AI',
+				url_api: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				responseIdentifier: 'candidates[0].content.parts[0].text',
 			},
-			'skins': {
-				'static': {
-					'Public Site Skins': '公共站点界面',
-					'Create Site Skin': '创建新界面',
-					'Edit Skin': '编辑界面',
-					'Description': '描述',
-					'Use': '使用',
-					'Preview': '预览',
-					'Set For Session': '为本次会话设置',
-					'Create New Skin': '创建新界面',
-					'Write Custom CSS': '编写自定义 CSS',
-					'Use Wizard': '使用向导',
-					'* Required information': '* 处为必填信息',
-					'Type*': '类型*',
-					'Title*': '标题*',
-					'Site Skin': '站点界面',
-					'Work Skin': '作品界面',
-					'Upload a preview (png, jpeg or gif)': '上传预览（PNG、JPEG 或 GIF）',
-					'Apply to make public': '应用并公开',
-					'Advanced': '高级',
-					'Show ↓': '显示 ↓',
-					'Hide ↑': '隐藏 ↑',
-					'Conditions': '条件',
-					'What it does:': '作用：',
-					'add on to archive skin': '添加到 Archive 界面',
-					'replace archive skin entirely': '完全替换 Archive 界面',
-					'IE Only:': '仅限 IE：',
-					'Parent Only:': '仅限母级：',
-					'Media:': '媒体：',
-					'Choose @media': '选择 @media',
-					'Parent Skins': '母级界面',
-					'Add parent skin': '添加母级界面',
-					'Actions': '操作',
-					'Submit': '提交',
-					'Site Skin Wizard': '站点界面向导',
-					'Fonts and Whitespace': '字体与留白',
-					'Font': '字体',
-					'Colors': '颜色设置',
-					'Percent of browser font size': '浏览器字体大小百分比',
-					'Work margin width': '作品页边距宽度',
-					'Vertical gap between paragraphs': '段落垂直间距',
-					'Background color': '背景色',
-					'Text color': '文字颜色',
-					'Header color': '页眉颜色',
-					'Accent color': '强调色',
-					'This form allows you to create a new site or work skin. Select "Work Skin" or "Site Skin" in the Type option list to choose which type of skin you are creating.': '此表单允许您创建新的站点或作品界面。在“类型”选项列表中选择“作品界面”或“站点界面”以指定创建的界面类型。',
-				},
-				'innerHTML_regexp': [
-					['p.notes', /^\s*This wizard only creates site skins\.\s*You can also <a href="\/skins\/new\?skin_type=WorkSkin">create a work skin<\/a> which can be used to add styling to works that you post\.\s*<a[^>]*><span class="symbol question"><span>\?<\/span><\/span><\/a>\s*$/, '此向导仅创建站点界面。您也可以<a href="/skins/new?skin_type=WorkSkin">创建作品界面</a>，用于为您发布的作品添加样式。<a class="help symbol question modal modal-attached" title="Skins basics" href="/help/skins-basics.html" aria-controls="modal"><span class="symbol question"><span>?</span></span></a>'],
-					['p.notes', /^\s*You may wish to refer to this <a href="https:\/\/www\.w3schools\.com\/colors\/colors_names\.asp">handy list of colors<\/a>\.\s*$/, '您可以参考这份<a href="https://www.w3schools.com/colors/colors_names.asp">实用的颜色列表</a>。'],
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
-					['p.footnote#font-field-notes', /^\s*Comma-separated list of font names\.\s*$/, '以逗号分隔的字体名称列表。'],
-					['p.footnote#base-em-field-notes', /^\s*Numbers only, treated as a percentage of the browser's default font size\. Default: <code>100<\/code>\s*$/, '仅限数字，表示相对于浏览器默认字体大小的百分比。默认值：<code>100</code>'],
-					['p.footnote#margin-field-notes', /^\s*Numbers only, treated as a percentage of the page width\.\s*$/, '仅限数字，表示相对于页面宽度的百分比。'],
-					['p.footnote#paragraph-margin-field-notes', /^\s*Numbers only, treated as a multipler of the paragraph font size\. Default: <code>1\.286<\/code>\s*$/, '仅限数字，表示相对于段落字体大小的倍数。默认值：<code>1.286</code>'],
-					['p.footnote#background-color-field-notes', /^\s*Name or hex code\. Default: <code>#fff<\/code>\s*$/, '名称或十六进制代码。默认值：<code>#fff</code>'],
-					['p.footnote#foreground-color-field-notes', /^\s*Name or hex code\. Default: <code>#2a2a2a<\/code>\s*$/, '名称或十六进制代码。默认值：<code>#2a2a2a</code>'],
-					['p.footnote#header-color-field-notes', /^\s*Name or hex code\. Default: <code>#900<\/code>\s*$/, '名称或十六进制代码。默认值：<code>#900</code>'],
-					['p.footnote#accent-color-field-notes', /^\s*Name or hex code\. Default: <code>#ddd<\/code>\s*$/, '名称或十六进制代码。默认值：<code>#ddd</code>']
-				],
-				'regexp': [
-					[/^Must be present\.$/, '必须提供']
-				],
-				'selector': []
-			},
-			'users_works_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': [],
-			},
-			'users_drafts_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': [],
-			},
-			'users_series_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': [],
-			},
-			'users_bookmarks_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': [],
-			},
-			'users_collections_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': [],
-			},
-			'users_subscriptions_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': [],
-			},
-			'users_related_works_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': [],
-			},
-			'users_gifts_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': [],
-			},
-			'users_signups': {
-				'static': {
-					'Challenge Sign-ups': '挑战活动报名'
-				},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': []
-			},
-			'users_stats': {
-				'static': {
-					'Navigation and Sorting': '导航与排序',
-					'Stats': '数据统计',
-					'All Years': '所有年份',
-					'Totals': '总计',
-					'User Subscriptions:': '用户订阅:',
-					'Comment Threads:': '评论串:',
-					'Subscriptions:': '作品订阅:',
-					'View Sorting and Actions': '视图排序与操作',
-					'Fandoms View': '同人圈视图',
-					'Flat View': '平铺视图',
-					'Listing Statistics': '列表统计',
-					'Comment Threads': '评论串',
-					'Subscriptions': '订阅列表'
-				},
-				'innerHTML_regexp': [
-					['span.words', /^\(([\d,]+)\s+words\)$/s, '（$1 字）']
-				],
-				'regexp': [],
-				'selector': []
-			},
-			'works_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': []
-			},
-			'works_show': {
-				'static': {
-					'Download': '下载',
-					'Subscribe': '订阅',
-					'Unsubscribe': '取消订阅',
-					'kudos': ' 个赞',
-					'Comments': '评论',
-					'Chapter Notes': '章节注释',
-					'Work Notes': '作品注释',
-					'End Notes': '章节尾注',
-					'Inspired by': '灵感来源于',
-				},
-				'innerHTML_regexp': [],
-				'regexp': [
-					[/^Chapter (\d+) of (\d+)$/, '第 $1 章 / 共 $2 章'],
-					[/^Chapter (\d+)$/, '第 $1 章'],
-				],
-				'selector': [
-					['#workskin .preface .notes .landmark', '注释'],
-				]
-			},
-			'series_index': {
-				'static': {}, 'innerHTML_regexp': [], 'regexp': [], 'selector': []
-			},
-			'series_show': {
-				'static': {
-					'Works in Series': '系列中的作品',
-					'Series Begun': '系列开始于',
-					'Series Updated': '系列更新于',
-					'Words': '总字数',
-					'Description': '系列描述',
-				},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': []
-			},
-			'tags_index': {
-				'static': {
-					'Canonical Tags': '规范标签',
-					'Uncategorized Tags': '未分类标签',
-					'Browse Tags': '浏览标签',
-				},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': []
-			},
-			'tags_show': {
-				'static': {
-					'Works in Tag': '此标签下的作品',
-					'Filter': '筛选',
-					'Related Tags': '相关标签',
-					'Meta Tag': '元标签',
-					'Sub Tag': '子标签',
-					'Synonymous Tag': '同义标签',
-				},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': []
-			},
-			'tag_sets_index': {
-				'static': {
-					'New Tag Set': '新建标签集',
-					'Nominate': '提名',
-
-				},
-				'innerHTML_regexp': [
-					['dl.stats', /(Fandoms:|Characters:|Relationships:|Additional Tags:)/g, (match) => {
-						const translationMap = {
-							'Fandoms:': '同人圈：',
-							'Characters:': '角色：',
-							'Relationships:': '关系：',
-							'Additional Tags:': '附加标签：'
-						};
-						return translationMap[match] || match;
-					}]
-				],
-				'regexp': [],
-				'selector': []
-			},
-			'tag_sets_nominations_new': {
-				'flexible': {
-					'Relationship': '关系',
-				},
-				'static': {
-					// 表单区域标题
-					'Basic Information': '基本信息',
-					'Submit': '提交',
-					'Tag Nominations': '标签提名',
-					'Nominate Tags Form': '提名标签表单',
-					'Fandom?': '同人圈？',
-
-					// 标签与提示
-					'Nominating For:': '提名对象：',
-					'Pseud:': '笔名：',
-
-					// 页面说明文字
-					'The autocomplete lists canonical tags for you. Please choose the canonical version of your tag if there is one.': '自动补全列表会为您列出规范标签。如存在规范版本，请选择。',
-					'The tag set moderators might change or leave out your nominations (sometimes just because a different form of your nomination was included).': '标签集管理员可能会更改或忽略您的提名（有时仅因已收录了另一种形式）。',
-					'Nominations are not forever! Don\'t be confused if you come back in a few months and they are gone: they may have been cleaned up.': '提名并非永久保留！几个月后回来如发现提名消失，请勿感到困惑：可能已被清理。',
-					'If crossover relationships are allowed, you can enter them under either fandom.': '若允许跨圈关系，可在任一同人圈下输入。',
-
-					'Specifying Fandom': '指定同人圈',
-					'Tagset fandom for child': '子标签集同人圈',
-					'Close': '关闭'
-				},
-				'innerHTML_regexp': [
-					['h2.heading', /^Tag Nominations for (.*?)$/, '为 “$1” 提名标签'],
-					['ul.navigation.actions a[href*="/tag_sets/"]', /^Back To (.*?)$/, '返回 “$1”'],
-					['#modal .content.userstuff p',
-						/^\s*You only need to specify the fandom if your nomination is new or not in the fandom already -- for instance, if you're\s*submitting a character who has just appeared in the fandom\.\s*This information is just used to help the moderators sort out new tags\.\s*$/s,
-						'仅当您的提名为新标签或尚未存在于该同人圈时才需指定同人圈——例如，您提交的角色刚出现在该同人圈中。此信息仅用于帮助管理员整理新标签。'
-					]
-				],
-				'regexp': [
-					[/^You can nominate up to .*$/, translateNominationRule],
-
-					[/^Fandom (\d+)$/, '同人圈 $1'],
-					[/^Additional Tag (\d+)$/, '附加标签 $1']
-				],
-				'selector': []
-			},
-			'owned_tag_sets_show': {
-				'flexible': {
-					'Ratings': '分级',
-					'Additional Tags': '附加标签',
-					'Categories': '分类',
-					'Warnings': '预警',
-					'No Media': '无媒体',
-					'Unassociated Characters & Relationships': '未关联的角色与关系',
-				},
-				'static': {
-					'Nominate': '提名',
-					'All Tag Sets': '所有标签集',
-					'Created on:': '创建日期：',
-					'Maintainers:': '维护者：',
-					'Description:': '简介：',
-					'Status:': '状态：',
-					'Stats:': '统计数据：',
-					'Nominations allowed per person:': '每人可提名数量：',
-					'Expand All': '展开全部',
-					'Contract All': '收起全部',
-					'Medium: Fanfiction': '媒介：同人文',
-					'The following characters and relationships don\'t seem to be associated with any fandom in the tagset. You might need to add the fandom, or set up associations for them.': '以下角色与关系似乎尚未与标签集中的任何同人圈关联。您可能需要添加所属同人圈，或为其建立关联。',
-					'The moderators have chosen not to make the tags in this set visible to the public (possibly while nominations are underway).': '标签集管理员已选择暂不向公众展示此标签集中的标签（可能是因为提名正在进行中）。',
-					'Metadata': '元数据',
-					'Listing Tags': '标签列表',
-				},
-				'innerHTML_regexp': [
-					['h2.heading', /^About (.*)$/, '关于 “$1”'],
-					['dd', /<strong>Open<\/strong> to the public\./, '对公众开放。'],
-					['dl.stats', /(Fandoms:|Characters:|Relationships:|Freeforms:)/g, (match) => {
-						const translationMap = {
-							'Fandoms:': '同人圈：',
-							'Characters:': '角色：',
-							'Relationships:': '关系：',
-							'Freeforms:': '自由形式：'
-						};
-						return translationMap[match] || match;
-					}],
-				],
-				'regexp': [
-					[/^Medium: Art - Character$/, '媒介：画作-角色'],
-					[/^Medium: Fanvid - Character$/, '媒介：同人视频-角色'],
-					[/^Medium: Other - Character$/, '媒介：其她-角色'],
-				],
-				'selector': []
-			},
-			'tag_sets_new': {
-				'static': {
-					'Create A Tag Set': '创建标签集',
-					'Back to Tag Sets': '返回标签集',
-					'Management': '管理',
-					'Description': '简介',
-					'Nomination Limits': '提名限制',
-					'Tags In Set': '标签集内标签',
-					'Tags in Set': '标签集内标签',
-					'Tag Associations': '标签关联',
-					'Actions': '操作',
-					'Ratings': '评级',
-					'Tag sets are used for running a challenge.': '标签集用于举办挑战活动。',
-					'"Visible" tag sets are shown to all users.': '“可见”标签集会向所有用户展示。',
-					'"Usable" tag sets can be used by others in their challenges.': '“可用”标签集可供她人在其挑战中使用。',
-					'Tag sets that are open to nominations can take nominations from the public.': '开放提名的标签集可接受公众提名。',
-					'Tag names have to be unique. If necessary the archive may add on the tag type. (For instance, if you entered a character "Firefly", you\'d see "Firefly - Character" in your tag set instead since the tag Firefly is already used for the show.': '标签名称必须唯一。如有必要，Archive 会自动添加标签类型后缀。（例如，若您输入角色名“Firefly”，由于已有同名标签用于剧集，该标签会在您的标签集中显示为“Firefly - Character”。）',
-					'Current Owners': '当前所有者',
-					'Add/Remove Owners:': '添加/移除所有者：',
-					'Current Moderators': '当前管理员',
-					'Add/Remove Moderators:': '添加/移除管理员：',
-					'Title* (text only)': '标题*（仅限文本）',
-					'Brief Description': '简要描述',
-					'Visible tag list?': '可见标签列表？',
-					'Usable by others?': '可被她人使用？',
-					'Currently taking nominations?': '当前接受提名？',
-					'Fandom nomination limit': '同人圈提名限制',
-					'Character nomination limit': '角色提名限制',
-					'Relationship nomination limit': '关系提名限制',
-					'Freeform nomination limit': '自由标签提名限制',
-					'Add Fandoms:': '添加同人圈：',
-					'Add Characters:': '添加角色：',
-					'Add Relationships:': '添加关系：',
-					'All': '全选',
-					'None': '取消勾选',
-					'Tag Set Associations': '标签集关联',
-					'Tagset tag associations': '标签集：标签关联 帮助',
-					'Close': '关闭'
-				},
-				'innerHTML_regexp': [
-					['h4.heading > label[for*="freeform"]', /Add Additional Tags:/, '添加附加标签：'],
-					['form > fieldset:nth-of-type(1) > p.notes', /^\s*To add or remove an owner or moderator, enter their name\. If they are already on the list they will be removed; if not, they will be added\.\s*You can't remove the sole owner of a tag set\.\s*$/, '要添加或移除所有者或管理员，请输入其用户名。若已在列表中则移除，否则将被添加。无法移除唯一所有者。'],
-					['#nomination_limits .notes li:nth-of-type(1)', /If you allow <em>both<\/em> fandoms and characters\/relationships in the same tag set,\s*the number of characters\/relationships is <strong>per fandom<\/strong> 。/s, '如果您在同一标签集中同时允许提名同人圈和角色/关系，那么角色/关系的数量是<strong>按每个同人圈计算</strong>的。'],
-					['#nomination_limits .notes li:nth-of-type(2)', /If that's not what you want, you\s*can have users nominate fandoms in one tag set, and characters\/relationships in another tag set\. Then use both tag sets in your challenge settings\./s, '如果这不是您想要的效果，您可以让用户在一个标签集中提名同人圈，在另一个标签集中提名角色/关系。然后在您的挑战设置中同时使用这两个标签集。'],
-					['#modal .content.userstuff p:nth-of-type(1)', /Tag associations let you set up associations between the fandoms, characters, and relationships in your tag set, which then\s+lets your participants pick from only the characters and relationships in a given fandom\./s, '标签关联功能允许您在所选同人圈、角色和关系之间建立关联，从而让参与者仅从指定同人圈中的角色和关系中进行选择。'],
-					['#modal .content.userstuff p:nth-of-type(2)', /Note: if the wranglers have already set up these associations, then you can just add the additional\s+ones that you would like -- you don't have to \(and in fact aren't allowed\) to create copies of canonical\s+associations\. You can still limit your participants' choices to tags actually in your set\./s, '注意：如果标签管理员已经建立了这些关联，您只需添加想要的关联即可——无需（且实际上也不被允许）复制已有的规范关联。您仍可将参与者的选项限制在标签集中已有的标签范围内。'],
-					['#modal .content.userstuff p:nth-of-type(3)', /If you're not sure how this might work, try adding a few fandoms and characters and setting up some associations,\s+and then set up your challenge and try out the sign-up form!/s, '如果不确定此功能如何运作，请尝试添加一些同人圈和角色并建立关联，然后创建您的挑战活动并在报名表中进行测试！']
-				],
-				'regexp': [],
-				'selector': []
-			},
-			'collections_index': {
-				'flexible': {
-					'Moderated': '审核制',
-					'Fandoms': '同人圈',
-					'Works': '作品',
-					'Open,': '开放中,',
-					'Closed,': '已截止,',
-				},
-				'static': {
-					'Sign Up': '报名',
-				},
-				'innerHTML_regexp': [
-					['h3.heading', /(\d+\s*-\s*\d+)\s+of\s+([\d,]+)\s+Collections/s, '第 $1 个，共 $2 个合集']
-				],
-				'regexp': [
-					[/^You have applied to join (.*)\.$/, '您已申请加入 $1。'],
-					[/^Removed (\w+) from collection\.$/, '已将 $1 从合集中移除。']
-				],
-				'selector': []
-			},
-			'bookmarks_index': {
-				'static': {
-					'My Bookmarks': '我的书签',
-					'Recs': '推荐',
-					'Private': '私密',
-					'Public': '公开',
-					'Notes & Tags': '笔记和标签',
-					'Your tags': '标签',
-					'The creator\'s tags are added automatically.': '创建者的标签会自动添加',
-					'Comma separated, 150 characters per tag': '以逗号分隔，每个标签最多 150 字符',
-					'Add to collections': '添加到合集',
-					'Private bookmark': '私人书签',
-					'Create': '创建',
-				},
-				'innerHTML_regexp': [
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
-				],
-				'regexp': [],
-				'selector': []
-			},
-			'bookmarks_show': {
-				'static': {
-					'Bookmark by': '书签创建者：',
-					'Bookmarker\'s Tags': '书签创建者的标签',
-					'Bookmarker\'s Notes': '书签创建者的注释',
-				},
-				'regexp': [],
-				'selector': []
-			},
-			'collections_show': {
-				'static': {
-					'Collection by': '合集创建者',
-					'Maintainers': '维护者',
-					'Challenge': '挑战',
-					'Gift Exchange': '赠文交换',
-					'Prompt Meme': '接梗挑战',
-					'Rules': '规则',
-					'FAQ': '常见问题',
-					'Sign-up': '报名',
-					'Assignments': '任务中心',
-					'Post to Collection': '发布到此合集',
-				},
-				'regexp': [],
-				'selector': []
-			},
-			'collections_new': {
-				'static': {
-					'New Collection': '新建合集',
-					'Suggestions': '建议',
-					'New Collection Form': '新建合集表单',
-					'* Required information': '* 处为必填信息',
-					'Header': '页眉',
-					'Collection name*': '合集名称*',
-					'Display title*': '显示标题*',
-					'Parent collection (that you maintain)': '母合集（由您维护）',
-					'Collection email': '合集电子邮箱',
-					'Custom header URL': '自定义页眉 URL',
-					'Icon': '图标',
-					'Upload a new icon': '上传新图标',
-					'Icon alt text': '图标替代文本',
-					'Icon comment text': '图标注释文本',
-					'Brief description': '简要描述',
-					'Preferences': '偏好设置',
-					'This collection is moderated': '此合集需审核',
-					'This collection is closed': '此合集为关闭状态',
-					'This collection is unrevealed': '此合集为未公开状态',
-					'This collection is anonymous': '此合集为匿名状态',
-					'Show random works on the front page instead of the most recent': '在主页随机显示作品，而不是最新作品',
-					'Send a message to the collection email when a work is added': '作品添加时向合集电子邮箱发送通知',
-					'Type of challenge, if any': '活动类型（如有）',
-					'Gift Exchange': '赠文交换',
-					'Prompt Meme': '接梗挑战',
-					'Notice to challenge creators': '活动创建者须知',
-					'Profile': '概述',
-					'Plain text with limited HTML': '纯文本，支持有限 HTML',
-					'Introduction': '介绍',
-					'FAQ': '常见问题',
-					'Rules': '规则',
-					'Assignment notification message': '分配通知信息',
-					'Gift notification message': '赠文通知信息',
-					'Actions': '操作',
-				},
-				'innerHTML_regexp': [
-					['h3.heading + ul.notes li:nth-of-type(1)', /^\s*Only registered users can post, so you don't need to worry about spam: you can leave your collection unmoderated\. You can always reject works afterwards if there <em>is<\/em> a mistaken submission\.\s*$/, '只有注册用户可以发布，因此您无需担心垃圾信息：您可以让您的合集不受审核。如有误提交，您随时可以事后拒绝作品。'],
-					['h3.heading + ul.notes li:nth-of-type(2)', /^\s*The best way to set up a regular challenge \(e\.g\., an annual challenge like Yuletide,\s*or a weekly one like sga_flashfic\) is to create a closed parent collection and then add a new, open, subcollection for each challenge\.\s*$/, '设置常规活动（例如年度活动 Yuletide 或每周活动 sga_flashfic ）的最佳方式是创建一个封闭的母合集，然后为每次活动添加一个新的开放的子合集。'],
-					['h3.heading + ul.notes li:nth-of-type(3)', /^\s*If you limit membership for each challenge \(e\.g\., for a gift exchange\), people can sign\s*up for each subcollection separately\. If you just want the whole thing moderated, have people sign up as members of the parent collection; they'll then be able to post in every subcollection\.\s*$/, '如果您为每次活动限制成员资格（例如赠文交换），用户可以分别报名加入每个子合集。如果您只想对整个活动进行审核，请让用户报名成为母合集的成员；这样她们就可以在所有子合集中发布内容。'],
-					['p.footnote#name-field-notes', /^\s*1 to 255 characters \(A-Z, a-z, _, 0-9 only\), no spaces, cannot begin or end with underscore \(_\)\s*$/, '1 到 255 个字符（仅限 A–Z、a–z、_、0–9），禁止使用空格，且不能以下划线开头或结尾'],
-					['p.footnote#title-field-notes', /^\s*\(text only\)\s*$/, '（仅限文本）'],
-					['p.footnote#header-image-field-description', /^\s*JPG, GIF, PNG\s*$/, 'JPG、GIF、PNG'],
-					['fieldset > legend + p', /^\s*You can also individually\s+Manage Items\s+in your collection\.\s*$/, '您也可以单独管理合集中的作品。'],
-					['dd',
-						/^\s*<ul class="notes">\s*<li>Each collection can have one icon<\/li>\s*<li>Icons can be in png, jpeg or gif form<\/li>\s*<li>Icons should be sized 100x100 pixels for best results<\/li>\s*<\/ul>\s*$/,
-						'<ul class="notes"><li>每个合集可设置一个图标</li><li>图标可为 PNG、JPEG 或 GIF 格式</li><li>建议图标尺寸为 100×100 像素以获得最佳效果</li></ul>'],
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/g, '剩余 $1 字符'],
-					['dd',
-						/^\s*<ul class="notes">\s*<li>As a challenge owner, you may have access to challenge participants' email addresses\.<\/li>\s*<li>Use of those email addresses for any purpose other than running the challenge will lead to the termination of your account\.<\/li>\s*<\/ul>\s*$/,
-						'<ul class="notes"><li>作为活动主办方，您可能可以获得参与者的邮箱地址。</li><li>将这些邮箱用于除活动运营以外的其她任何用途，将导致您的账户被永久停用。</li></ul>'],
-					['fieldset.profile > p:first-of-type', /Plain text with limited HTML\s*(<a.*?<\/a>)/, '纯文本，支持有限 HTML $1'],
-					['fieldset.profile > p.note', /^\s*Tip: if this is a subcollection or challenge, you don't need to repeat yourself: fields left blank will copy from your parent collection\.\s*$/, '提示：如果这是子合集或活动，您无需重复填写：留空字段将从母合集复制。'],
-					['p#assignment-notification-field-description', /^\s*This will be sent out with assignments in a gift exchange challenge\. Plain text only\.\s*$/, '在赠文交换活动中，此信息将随分配一起发送。仅限纯文本。'],
-					['p#gift-notification-field-description', /^\s*This will be sent out with each work notification when you "reveal" a gift exchange or prompt meme\. Plain text only\.\s*$/, '当您“揭晓”赠文交换或接梗挑战时，此信息将随每个作品通知发送。仅限纯文本。'],
-				],
-				'selector': [
-					['input[name="commit"][value="Submit"]', '提交'],
-				],
-			},
-			'collections_dashboard_common': {
-				'flexible': {
-					'Open,': '开放中,',
-					'Closed,': '已截止,',
-				},
-				'static': {
-					'Open': '开放中',
-					'Sign Up': '报名',
-					'Post to Collection': '发布到此合集',
-					'Dashboard': '仪表盘',
-					'Profile': '概述',
-					'Sign-up Form': '报名表',
-					'Sign-up Summary': '报名概览',
-					'Random Items': '随机作品',
-					'People': '用户',
-					'Tags': '标签',
-					'Any Character': '任意角色',
-					'Any Relationship': '任意关系',
-					'Any Additional Tag': '任意附加标签',
-					'Any Category': '任意类别',
-					'Any Rating': '任意分级',
-					'Any Archive Warning': '任意 Archive 预警',
-					'Description:': '描述：',
-					'Optional Tags:': '可选标签：',
-					'Submit': '提交',
-					'Active since:': '活动开始于：',
-					'Maintainers:': '维护者：',
-					'Sign-up:': '报名状态：',
-					'Sign-up Closes:': '报名截止：',
-					'Assignments Due:': '分配截止：',
-					'Works Revealed:': '作品揭晓：',
-					'Signed up:': '已报名：',
-					'The summary is being generated. Please try again in a few minutes.': '概览正在生成，请几分钟后重试。',
-					'All Media Types': '所有媒体类型',
-					'Show': '显示',
-					'No fandoms found': '未找到同人圈',
-					'Find gifts for:': '查找赠文',
-					'There are no works or bookmarks in this collection yet.': '此合集尚无作品或书签。',
-					'These are some of the most popular tags used in the collection.': '以下是此合集中最常用的一些标签。',
-					'* Required information': '* 处为必填信息',
-					'Rules': '规则',
-					'Rules:': '规则:',
-					'Prompts:': '同人梗:',
-					'Intro': '简介',
-					'Intro:': '简介:',
-					'FAQ:': '常见问题:',
-					'Prompt Form': '同人梗表单',
-					'Semi-anonymous Prompt?': '半匿名同人梗？',
-					'(Note: This is not totally secure, and is still guessable in some places.)': '（注：此模式并非绝对安全，某些情况下仍可能被推测身份）',
-					'choose fandoms from canonical archive tags': '从规范 Archive 标签中选择同人圈',
-					'choose characters from canonical archive tags': '从规范 Archive 标签中选择角色',
-					'choose relationships from canonical archive tags': '从规范 Archive 标签中选择关系',
-					'choose additional tags from canonical archive tags': '从规范 Archive 标签中选择附加标签',
-					'(no time specified)': '（未设定具体时间）',
-					'Creators Revealed:': '创作者揭晓：',
-					'Claim': '认领',
-					'Request Fulfilled': '请求已完成',
-					'Request Unfulfilled': '请求未完成',
-					'Fulfilled By': '完成者',
-					'Claimed By': '认领者',
-					'> Fandoms': '> 同人圈',
-					'Random works': '随机作品',
-					'All Challenges': '所有活动',
-					'Top-Level Collections': '顶级合集',
-					'Sign-ups close at:': '报名截止于：',
-					'Requests Summary': '请求概览',
-					'Requested Fandoms': '请求的同人圈',
-					'Last generated at:': '最后生成于:',
-					'(Generated hourly on request while sign-ups are open.)': '（在报名开放期间，可按需每小时生成）',
-					'Requests': '请求',
-					'Offers': '提供',
-					'Fandoms:': '同人圈:',
-					'Works:': '作品:',
-					'Challenges/Subcollections:': '活动合集/子合集:',
-					'Listed by fewest offers and most requests.': '按提供最少、请求最多排序。',
-					'Contact:': '联系方式：',
-					'(See all...)': '（查看全部...）',
-					'(See fewer...)': '（收起...）',
-					'Title:': '标题：',
-					'Prompt URL:': '同人梗 URL：',
-					'Sign-ups close at: (no time specified)': '报名截止于：（未指定时间）',
-					'Remove?': '移除此项？',
-				},
-				'innerHTML_regexp': [
-					['h2.heading', /^Sign Up for (.+)$/, '报名 $1'],
-					['dd', /^\s*(\d+)\s+Too few sign-ups to display names\s*$/, '$1 人。报名人数过少，无法显示名称'],
-					['p.notes.notice', /^Challenge maintainers will have access to the email address associated with your AO3 account for the purpose of communicating with you about the challenge\.$/, '活动维护者将可使用与您 AO3 账户相关联的电子邮箱与您沟通活动相关事宜。'],
-					['h3.heading', /^Sign Up as\s*(<span class="byline">.*<\/span>)/, '作为 $1 报名'],
-					['dt > label.fandom', /^Fandoms? \(([\d\s-]+)\):(?:\s*\*)*$/, '同人圈（$1）：*'],
-					['dt > label.character', /^Characters? \(([\d\s-]+)\):(?:\s*\*)*$/, '角色（$1）：*'],
-					['dt > label.relationship', /^Relationships? \(([\d\s-]+)\):(?:\s*\*)*$/, '关系（$1）：*'],
-					['dt > label.freeform', /^Additional Tags \(([\d\s-]+)\):(?:\s*\*)*$/, '附加标签（$1）：*'],
-					['dt > label.category', /^Categories \(([\d\s-]+)\):(?:\s*\*)*$/, '类别（$1）：*'],
-					['dt > label.rating', /^Ratings \(([\d\s-]+)\):(?:\s*\*)*$/, '分级（$1）：*'],
-					['dt > label.warning', /^Archive Warnings \(([\d\s-]+)\):(?:\s*\*)*$/, 'Archive 预警（$1）：*'],
-					['h4.heading', /^Archive Warnings$/, 'Archive 预警'],
-					['div.flash.notice', /^Summary does not appear until at least 5 sign-ups have been made!$/, '至少 5 人报名后才会显示概览！'],
-					['h2.heading', /^Sign-up Summary for (.+)/, '$1 报名概览'],
-					['h2.heading', /^(<a href="\/collections\/.*?">.+<\/a>) > Fandoms$/, '$1 > 同人圈'],
-					['h2.heading', /^(\d+)\s+Works? in (<a href="\/collections\/.*?">.+<\/a>)/, '$2 中的作品：$1'],
-					['h2.heading', /^\s*(\d+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2 的已创建书签作品：$1'],
-					['h2.heading', /^Participants in (.+)/, '$1 的参与者'],
-					['h5.heading', /(\d+)\s*works?,\s*(\d+)\s*recs?/, '$1 篇作品，$2 条推荐'],
-					['h3.heading', /(\d+\s*-\s*\d+)\s+of\s+([\d,]+)\s+Collections/s, '第 $1 个，共 $2 个合集'],
-					['li a, li span.current', /^Prompts\s*\((\d+)\)$/, '同人梗 ($1)'],
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
-					['h2.heading', /^\s*Challenges\/Subcollections in\s*(.+?)\s*$/s, '$1 中的挑战/子合集'],
-					['h2.heading', /^\s*Prompts for\s+(.+?)\s*$/, '$1 的同人梗'],
-					['h3.heading', /^\s*Requests?(.*)\s*$/, '请求$1'],
-					['h3.heading', /^\s*Offers?(.*)\s*$/, '提供$1'],
-					['ul.commas.index.group', /^\s*(\d+)\s+anonymous\s+claimant(s?)\s*$/, '$1 位匿名认领者'],
-					['h4.heading', /^\s*Request\s+by\s+(?:Anonymous|匿名)\s*$/s, '请求 by 匿名'],
-					['p.actions a.showme', /^\s*Add another request\?\s*\(Up to (\d+) allowed\.\)\s*$/, '添加另一个请求项？（最多可添加 $1 个）'],
-					['p.actions a.showme', /^\s*Add another offer\?\s*\(Up to (\d+) allowed\.\)\s*$/, '添加另一个提供项？（最多可添加 $1 个）'],
-					['h2.heading', /^\s*(\d+)\s+Works? in\s*(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2 中的 $1 篇作品'],
-					['h2.heading', /^\s*Participants in\s+(.+?)\s*$/s, '$1 的参与者'],
-					['h4.heading', /^\s*Request\s+by\s+(.+?)\s*$/s, '请求 by $1'],
-				],
-				'regexp': [
-					[/^Subcollections \((\d+)\)$/, '子合集（$1）'],
-					[/^Fandoms \((\d+)\)$/, '同人圈（$1）'],
-					[/^Works \((\d+)\)$/, '作品（$1）'],
-					[/^Bookmarked Items \((\d+)\)$/, '已创建书签作品（$1）'],
-				],
-				'selector': []
-			},
-			'external_works_new': {
-				'static': {
-					'Bookmark an external work': '为外部作品创建书签',
-					'Bookmark': '书签',
-					'External Work': '外部作品',
-					'Creator\'s Tags': '创建者标签',
-					'Write Comments': '撰写评论',
-					'Choose Type and Post': '选择类型并发布',
-					'URL*': 'URL *',
-					'Creator*': '作者 *',
-					'Title*': '标题 *',
-					'Creator\'s Summary': '作者简介',
-					'(please copy and paste from original work)': '(请从原作复制并粘贴)',
-					'Fandoms*': '同人圈 *',
-					'Rating': '分级',
-					'Categories': '分类',
-					'Relationships': '关系',
-					'Characters': '角色',
-					'Your tags': '标签',
-					'Add to collections': '添加到合集',
-					'Private bookmark': '私人书签',
-					'Rec': '推荐',
-					'* Required information': '* 处为必填信息',
-					'If this URL has been bookmarked before, the work information will be filled in automatically.': '如果此 URL 之前已被创建书签，作品信息将自动填充。',
-					'Creator\'s Tags (comma separated, 150 characters per tag). Only a fandom is required. Fandom, relationship, and character tags must not add up to more than 75. Category and rating tags do not count toward this limit.': '创建者标签（逗号分隔，每个标签最多 150 字符）。仅需填写同人圈标签。同人圈、关系和角色标签总字符数不得超过 75 字符。分类和分级标签不计入此限制。',
-					'Plain text with limited HTML': '纯文本，支持有限 HTML',
-					'Comma separated, 150 characters per tag': '以逗号分隔，每个标签最多 150 字符',
-					'Create': '创建',
-					'My Bookmarks': '我的书签',
-				},
-				'innerHTML_regexp': [
-					[
-						'div.post.bookmark > p:first-of-type',
-						/Bookmark external works with the <a href="([^"]*)"[^>]*>AO3 External Bookmarklet<\/a>\. This is a simple bookmarklet that should work in any browser, if you have JavaScript enabled\. Just right-click and select <cite>Bookmark This Link<\/cite> \(or <cite>Bookmark Link<\/cite>\)\./s,
-						'使用 <a href="$1" title="右键单击并为此链接添加书签">AO3 外部书签工具</a>对外部作品创建书签。这个简单的书签工具只要启用 JavaScript 即可在任何浏览器中使用。只需右键单击并选择 <cite>将此链接加入书签</cite>（或 <cite>书签链接</cite> ）。'
-					],
-					[
-						'p.character_counter',
-						/(<span[^>]*>\d+<\/span>)\s*characters left/s,
-						'剩余 $1 字符'
-					],
-					[
-						'#modal .content p:has(a[href*="content#II.J"])',
-						/\(For more information, see the <a href="\/content#II.J">Ratings and Warnings section of the AO3 Terms of Service<\/a>\.\)/s,
-						'（要了解更多信息，请参阅 <a href="/content#II.J">AO3 服务条款的分级与预警部分</a>。）'
-					],
-				],
-				'regexp': [],
-				'selector': []
-			},
-
-			'media_index': {
-				'static': {},
-				'regexp': [],
-				'selector': [
-					['.media.fandom.index.group p.actions a', '全部']
-				]
-			},
-
-			'users_inbox': {
-				'static': {
-					'My Inbox': '收件箱'
-				},
-				'regexp': [
-					[/^My Inbox \((\d+) comment(?:s)?, (\d+) unread\)$/, '收件箱 ($1 条评论, $2 未读)']
-				],
-				'selector': []
-			},
-
-			'session_login': {
-				'static': {
-					'Log In': '用户登录',
-					'User name or email': '用户名或邮箱',
-					'Password': '密码',
-					'Remember Me': '记住我',
-					'Forgot password?': '忘记密码？',
-					'It seems you\'re using an ad blocker.': '您似乎使用了广告拦截器。',
-				},
-				'regexp': [],
-				'selector': []
-			},
-			'session_logout': {
-				'static': {
-					'You have been logged out.': '您已成功登出。',
-					'Log back in?': '重新登录？'
-				},
-				'regexp': [],
-				'selector': []
-			},
-			'admin_posts_show': {
-				'static': {
-					'AO3 News': 'AO3 最新动态',
-					'Previous Post': '上一篇',
-					'Next Post': '下一篇',
-					'Published:': '发布于：',
-					'Original:': '原文：',
-					'Tags:': '标签：',
-					'Translations:': '翻译版本：',
-					'↑ Top': '↑ 返回顶部',
-					'Back to AO3 News Index': '返回 AO3 动态总览',
-					'Reply': '回复',
-					'Thread': '评论串',
-					'Parent Thread': '主评论串',
-					'Block': '屏蔽',
-					'RSS Feed': 'RSS 订阅',
-					'Edit': '编辑',
-					'Comment': '评论',
-					'Comment on': '评论于：',
-					'Last Edited': '最后编辑',
-					'(Plain text with limited HTML': '(纯文本，支持有限 HTML',
-					'Sorry, this news post doesn\'t allow comments.': '抱歉，此动态帖不允许评论。',
-					'Sorry, comments are disabled for this post.': '抱歉，此动态贴不允许评论。',
-					'Comments on this news post are moderated. Your comment will not appear until it has been approved.': '此动态帖的评论需审核。您的评论在获得批准前不会显示。',
-					'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论必须包含文字内容。',
-				},
-				'innerHTML_regexp': [
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/, '剩余 $1 字符'],
-					[
-						'ul.actions a',
-						/^Read (\d+) Comments$/,
-						'阅读 $1 条评论'
-					],
-					[
-						'p.notice',
-						/^\s*Sorry, this news post doesn't allow non-Archive users to comment\.\s*You can however <a href="\/support">contact Support<\/a> with any feedback or questions\.\s*$/s,
-						'抱歉，此动态贴不允许非 Archive 用户发表评论。您仍可通过<a href="/support">联系支持团队</a>提供反馈或咨询。'
-					],
-				],
-				'regexp': [
-					[/^Comments \((\d+)\)$/, '评论（$1）'],
-					[/^Hide Comments \((\d+)\)$/, '收起评论（$1）'],
-					[/^View all (\d+) comments$/, '查看全部 $1 条评论']
-				],
-				'selector': [
-					[['input[name="commit"][value="Comment"]', '评论']]
-				]
-			},
-			'admin_posts_index': {
-				'static': {},
-				'innerHTML_regexp': [],
-				'regexp': [],
-				'selector': []
-			},
-			'works_chapters_show': {
-				'static': {
-					'Chapter by Chapter': '逐章阅读',
-					'Mark for Later': '稍后阅读',
-					'Mark as Read': '标记已读',
-					'Cancel Bookmark': '取消创建书签',
-					'Share': '分享',
-					'↑ Top': '↑ 回到顶部',
-					'Kudos': '点赞',
-					'Reply': '回复',
-					'Thread': '评论串',
-					'Parent Thread': '主评论串',
-					'←Previous Chapter': '← 上一章',
-					'← Previous Chapter': '← 上一章',
-					'Next Chapter →': '下一章 →',
-					'Next Chapter→': '下一章 →',
-					'← Previous Work': '← 上一作品',
-					'Next Work →': '下一作品 →',
-					'Download': '下载',
-					'Comment': '评论',
-					'Hide Comments': '隐藏评论',
-					'(Plain text with limited HTML': '(纯文本，支持有限 HTML',
-					'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论需要包含文字内容。',
-					'Thank you for leaving kudos!': '感谢您的点赞！',
-					'You have already left kudos here. :)': '您已经点赞过了 :)',
-					'Your tags': '标签',
-					'The creator\'s tags are added automatically.': '创作者的标签会自动添加',
-					'Comma separated, 150 characters per tag': '以逗号分隔，每个标签最多 150 字符',
-					'Add to collections': '添加到合集',
-					'Private bookmark': '私人书签',
-					'Create': '创建',
-					'Series this work belongs to:': '所属系列：',
-					'Works inspired by this one:': '衍生作品：',
-				},
-				'innerHTML_regexp': [
-					[
-						'div.flash.notice',
-						/^\s*This work was removed from your <a href="([^"]*)">Marked for Later list<\/a>\.\s*$/s,
-						'已将此作品移出<a href="$1">稍后阅读列表</a>。'
-					],
-					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/, '剩余 $1 字符'],
-					['h3.title', /<a (.*?)>Chapter (\d+)<\/a>:\s*(.*)/s, '<a $1>第 $2 章</a>: $3'],
-					['h3.title', /<a (.*?)>Chapter (\d+)<\/a>/s, '<a $1>第 $2 章</a>'],
-					['h4.heading.byline', /^\s*(<span>.+?<\/span>)\s*<span class="role">\s*\(Guest\)\s*<\/span>\s*<span class="parent">\s*on Chapter (\d+)\s*<\/span>[\s\S]*?$/, '$1（访客）于 第 $2 章'],
-					['h4.heading.byline', /^\s*(<a\s+href="\/users\/.+?">.+?<\/a>)\s*<span class="parent">\s*on Chapter (\d+)\s*<\/span>[\s\S]*?$/, '$1 于 第 $2 章'],
-					['p.jump', /\(See the end of the work for (<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在作品结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
-					['div.chapter div.notes > p', /\(See the end of the chapter for\s*(<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在本章结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
-					['p.jump', /\(See the end of the work for (<a href="[^"]*#children">)other works inspired by this one(<\/a>)\.\)/, '（在作品结尾查看$1相关衍生作品$2。）'],
-					[
-						'div.series span.position, dd.series span.position',
-						/^\s*Part (\d+) of (<a href="\/series\/.*?">.*?<\/a>)(.*)$/si,
-						'$2 第 $1 部分$3'
-					],
-					[
-						'p.notice',
-						/^\s*This work's creator has chosen to moderate comments on the work\.\s*Your comment will not appear until it has been approved by the creator\.\s*$/s,
-						'此作品的创作者已选择审核评论。您的评论将在创作者批准后显示。'
-					],
-					[
-						'p#notes-field-description',
-						/^\s*The creator's summary is added automatically\.\s*Plain text with limited HTML\s*(<a[^>]+>[\s\S]*?<\/a>)\s*$/s,
-						'创作者的简介会自动添加。纯文本，支持有限 HTML $1'
-					]
-				],
-				'regexp': [
-					[/^Comments \((\d+)\)$/, '评论（$1）'],
-					[/^Hide Comments \((\d+)\)$/, '隐藏评论（$1）']
-				],
-				'selector': []
-			},
-			'faq_page': {
-				'static': {
-					'Expand Categories': '展开分类',
-					'Collapse Categories': '折叠分类'
-				},
-				'innerHTML_regexp': [
-					['h2.heading', /^\s*Archive FAQ\s*$/, 'Archive 常见问题'],
-					[
-						'p.notice',
-						/^\s*The FAQs are currently being updated and translated by our volunteers\.\s*This is a work in progress and not all information will be up to date or available in languages other than English at this time\.\s*If your language doesn't list all FAQs yet, please consult the English list and check back later for updates\.\s*$/s,
-						'常见问题目前正在由我们的志愿者更新和翻译。此工作仍在进行中，目前并非所有信息都已更新或提供非英文版本。如果您的语言尚未列出所有常见问题，请查阅英文列表，并稍后回来查看更新。'
-					],
-					[
-						'p.notes',
-						/^\s*Some commonly asked questions about the Archive are answered here\.\s*Questions and answers about our Terms of Service can be found in the <a href="\/tos_faq\?language_id=[\w-]+">(?:TOS FAQ|服务条款常见问题)<\/a>\.\s*You may also like to check out our <a href="\/known_issues\?language_id=[\w-]+">(?:Known Issues|已知问题)<\/a>\.\s*If you need more help, please\s*<a href="\/support\?language_id=[\w-]+">(?:contact Support|联系支持团队)<\/a>[\.。]\s*$/s,
-						'此处解答了一些关于 Archive 的常见问题。有关我们服务条款的问题和答案，请查阅<a href="/tos_faq?language_id=en">服务条款常见问题</a>。您也可以查看我们的<a href="/known_issues?language_id=en">已知问题</a>。如果需要更多帮助，请<a href="/support?language_id=en">联系支持团队</a>。'
-					],
-					[
-						'h3.heading',
-						/^\s*Available Categories\s*(<ul class="showme hidden actions"[\s\S]*?<\/ul>)\s*$/s,
-						'可用分类 $1'
-					],
-				],
-				'regexp': [],
-				'selector': []
-			},
-			'site_map': {
-				'static': {
-					'Explore': '探索',
-					'Homepage': '主页',
-					'Additional Tags Cloud': '附加标签集',
-					'Languages': '语言',
-					'Collections and Challenges': '合集与挑战',
-					'About the Archive of Our Own': '关于 Archive of Our Own',
-					'Terms of Service FAQ': '服务条款常见问题',
-					'Archive FAQ': 'Archive 常见问题',
-					'AO3 News': 'AO3 最新动态',
-					'Access your account': '访问您的帐户',
-					'My Home': '我的主页',
-					'My Collections and Challenges': '我的合集与挑战',
-					'My Inbox': '我的收件箱',
-					'Change your account settings': '更改您的账户设置',
-					'My Profile': '个人资料',
-					'Donations': '捐赠',
-				},
-				'innerHTML_regexp': [
-					['li', /^\s*The Archive of Our Own is a project of the <a href="https:\/\/transformativeworks\.org"><acronym title="[^"]+">OTW<\/acronym><\/a>\s*$/s, 'Archive of Our Own 是再创作组织（OTW）旗下项目'],
-				],
-				'regexp': [],
-				'selector': []
-			},
-			'report_and_support_page': {
-				'static': {
-					'Your name or username (optional)': '您的姓名或用户名（可选）',
-					'Your name (optional)': '您的姓名（可选）',
-					'Your email (required)': '您的电子邮箱（必填）',
-					'We cannot contact you if the email address you provide is invalid.': '如果您提供的电子邮箱地址无效，我们将无法与您联系。',
-					'Select language (required)': '选择语言（必填）',
-					'Link to the page you are reporting (required)': '您要举报的页面链接（必填）',
-					'Please enter the link to the page you are reporting.': '请输入您要举报的页面链接。',
-					'Please ensure this link leads to the page you intend to report. Enter only one URL here and include any other links in the description field below.': '请确保该链接确实指向您希望举报的页面。此处仅填写一个网址，其她链接请填写在下方描述栏中。',
-					'Brief summary of Terms of Service violation (required)': '违反服务条款简述（必填）',
-					'Please enter a subject line for your report.': '请输入举报主题',
-					'Please specify why you are contacting us and/or what part of the Terms of Service is relevant to your complaint. (For example, "harassment", "not a fanwork", "commercial activities", etc.)': '请说明您联系我们的原因及/或涉及服务条款的相关内容。（例如：“骚扰行为”、“非同人作品”、“商业活动”等）',
-					'Description of the content you are reporting (required)': '举报内容描述（必填）',
-					'Please describe what you are reporting and why you are reporting it.': '请描述您要举报的内容及举报原因',
-					'Brief summary of your question or problem (required)': '问题简述（必填）',
-					'Please enter a brief summary of your message': '请输入您信息的简要说明',
-					'Your question or problem (required)': '您的问题或疑问（必填）',
-					'Please be as specific as possible, including error messages and/or links': '请尽可能具体，包括错误信息和/或相关链接',
-					'Please enter your feedback': '请输入您的反馈',
-					'Send': '发送',
-					'Submit': '提交',
-				},
-				'innerHTML_regexp': [
-					['p#comment-field-description', /Explain how the content you are reporting violates the <a href="\/content">(?:Content Policy|内容政策)<\/a> or other parts of the <a href="\/tos">(?:Terms of Service|服务条款)<\/a>\. Please be as specific as possible and <a href="\/abuse_reports\/new#reporthow">include all relevant links and other information in your report<\/a>\. All information provided will remain confidential\./s, '说明您所举报的内容如何违反了<a href="/content">内容政策</a>或<a href="/tos">服务条款</a>的其她部分。请尽可能具体，并在<a href="/abuse_reports/new#reporthow">反馈中包含所有相关链接及信息</a>。您提供的所有信息都将保密。'],
-					[
-						'h3.heading',
-						/^\s*Please use this form for questions about how to use the Archive and for reporting any technical problems\.\s*$/s,
-						'请使用此表单咨询有关如何使用 Archive 的问题，或报告任何技术问题。'
-					]
-				]
-			},
+			groq_ai: createStandardApiConfig({
+				name: 'Groq AI',
+				url: 'https://api.groq.com/openai/v1/chat/completions',
+			}),
+			together_ai: createStandardApiConfig({
+				name: 'Together AI',
+				url: 'https://api.together.xyz/v1/chat/completions',
+			}),
+			cerebras_ai: createStandardApiConfig({
+				name: 'Cerebras',
+				url: 'https://api.cerebras.ai/v1/chat/completions',
+			}),
+			modelscope_ai: createStandardApiConfig({
+				name: 'ModelScope',
+				url: 'https://api-inference.modelscope.cn/v1/chat/completions',
+			}),
 		}
 	};
+
+	/**
+	 * 文件保存函数
+	 */
+	function saveFile(content, filename, mimeType) {
+		const blob = new Blob([content], { type: mimeType });
+		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+		if (isIOS && blob.size < 2000000) {
+			const reader = new FileReader();
+			reader.onload = function () {
+				const dataUrl = reader.result;
+				const a = document.createElement('a');
+				a.href = dataUrl;
+				a.download = filename;
+				a.target = '_blank';
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+			};
+			reader.readAsDataURL(blob);
+			return;
+		}
+
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		setTimeout(() => URL.revokeObjectURL(url), 100);
+	}
+
+	/**
+	 * 日志管理系统
+	 */
+	const Logger = {
+		config: {
+			enabled: GM_getValue('enable_debug_mode', true),
+			history: [],
+			maxHistory: 2000
+		},
+
+		_sanitize(data) {
+			if (!data) return data;
+			if (typeof data !== 'object') return data;
+
+			try {
+				const cleanData = JSON.parse(JSON.stringify(data));
+				const sensitiveKeys = ['apikey', 'key', 'token', 'auth', 'authorization', 'x-api-key', 'user_prompt', 'system_prompt'];
+
+				const mask = (obj) => {
+					for (const key in obj) {
+						if (Object.prototype.hasOwnProperty.call(obj, key)) {
+							const lowerKey = key.toLowerCase();
+							if (typeof obj[key] === 'object' && obj[key] !== null) {
+								mask(obj[key]);
+							} else if (sensitiveKeys.some(k => lowerKey.includes(k))) {
+								obj[key] = '****** (已隐藏)';
+							} else if (key === 'url') {
+								const urlStr = String(obj[key]);
+								if (!urlStr.includes('microsoft') && !urlStr.includes('googleapis') && !urlStr.includes('qq.com') && !urlStr.includes('baidu.com')) {
+									obj[key] = 'Custom URL (已隐藏)';
+								}
+							} else if (key === 'originalHTML' || key === 'content') {
+								if (String(obj[key]).length > 100) {
+									obj[key] = String(obj[key]).substring(0, 100) + '... (内容过长已截断)';
+								}
+							}
+						}
+					}
+				};
+				mask(cleanData);
+				return cleanData;
+			} catch (e) {
+				return '[数据清洗失败]';
+			}
+		},
+
+		_record(level, module, message, data) {
+			const timestamp = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
+			const logEntry = { timestamp, level, module, message, data };
+
+			if (this.config.history.length >= this.config.maxHistory) {
+				this.config.history.shift();
+			}
+			this.config.history.push(logEntry);
+
+			if (this.config.enabled) {
+				const prefix = `%c[${module}]`;
+				let style = 'font-weight: bold;';
+				if (level === 'INFO') style += 'color: #2196F3;';
+				else if (level === 'WARN') style += 'color: #FF9800;';
+				else if (level === 'ERROR') style += 'color: #F44336;';
+
+				if (data) {
+					console.log(prefix, style, message, data);
+				} else {
+					console.log(prefix, style, message);
+				}
+			}
+		},
+
+		info(module, message, data = null) {
+			this._record('INFO', module, message, this._sanitize(data));
+		},
+
+		warn(module, message, data = null) {
+			this._record('WARN', module, message, this._sanitize(data));
+		},
+
+		error(module, message, error = null) {
+			let errorData = error;
+			if (error instanceof Error) {
+				errorData = { message: error.message, stack: error.stack, ...error };
+			}
+			this._record('ERROR', module, message, this._sanitize(errorData));
+		},
+
+		toggle() {
+			this.config.enabled = !this.config.enabled;
+			GM_setValue('enable_debug_mode', this.config.enabled);
+			return this.config.enabled;
+		},
+
+		export() {
+			const logText = this.config.history.map(entry => {
+				const dataStr = entry.data ? `\nData: ${JSON.stringify(entry.data, null, 2)}` : '';
+				return `[${entry.timestamp}] [${entry.level}] [${entry.module}] ${entry.message}${dataStr}`;
+			}).join('\n--------------------------------------------------\n');
+
+			const dateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).slice(0, 10);
+			saveFile(logText, `AO3-Translator-Log-${dateStr}.log`, 'text/plain');
+		}
+	};
+
+	/**
+	 * 文章排版相关存储键及默认值
+	 */
+	const FORMATTING_KEY = 'formatting_opts';
+	const FORMATTING_LAST_PROP_KEY = 'formatting_last_prop';
+	const DEFAULT_FORMATTING = {
+		indent: 'false',
+		fontSize: '100',
+		letterSpacing: '0',
+		lineHeight: '1.5',
+		margins: '0'
+	};
+
+	/**************************************************************************
+	 * Region 2: 特殊翻译函数与DOM操作
+	 **************************************************************************/
 
 	/****************** 特殊翻译函数 ******************/
 
@@ -2831,7 +592,7 @@
 		}
 		const translatedHTML = `
 	        <p>
-	        嗨！看起来您是第一次登录 AO3 。想要了解如何开始使用 AO3 ，请查看一些<a href="/first_login_help">新用户实用技巧</a>，或浏览<a href="/faq">我们的常见问题解答</a>。
+	        嗨！看起来这是您首次登录 AO3 。如需了解如何使用 AO3 ，请查看一些<a href="/first_login_help">新用户实用技巧</a>，或浏览<a href="/faq">我们的常见问题解答</a>。
 	        </p>
 	        <p>
 	        如果您需要技术支持，请<a href="/support">联系我们的支持团队</a>；如果您遇到骚扰或对我们的<a href="/tos">服务条款</a>（包括<a href="/content">内容政策</a>和<a href="/privacy">隐私政策</a>）有疑问，请<a href="/abuse_reports/new">联系我们的政策与滥用团队</a>。
@@ -3037,6 +798,52 @@
 				}
 			}
 
+			const statusH3 = inviteStatusDiv.querySelector('h3.heading');
+			if (statusH3 && !statusH3.hasAttribute('data-translated-by-custom-function')) {
+				const match = statusH3.textContent.match(/Invitation Status for\s+(.+)/);
+				if (match && match[1]) {
+					statusH3.textContent = `${match[1].trim()} 的邀请状态`;
+					statusH3.setAttribute('data-translated-by-custom-function', 'true');
+				}
+			}
+
+			const paragraphs = inviteStatusDiv.querySelectorAll('p');
+			paragraphs.forEach(p => {
+				if (p.hasAttribute('data-translated-by-custom-function')) return;
+				const text = p.textContent.trim();
+
+				const sentMatch = text.match(/Your invitation was emailed to this address on\s+([\d-]+)\.\s*If you can't find it, please check your email spam folder as your spam filters may have placed it there\./);
+				if (sentMatch) {
+					p.textContent = `您的邀请已于 ${sentMatch[1]} 发送至此邮箱地址。如果您无法找到它，请检查您的垃圾邮件文件夹，因为它可能被误判为垃圾邮件。`;
+					p.setAttribute('data-translated-by-custom-function', 'true');
+					return;
+				}
+
+				if (text.includes('Because your invitation was sent more than 24 hours ago, you can have your invitation resent.')) {
+					p.textContent = '由于您的邀请已发送超过 24 小时，您可以申请重新发送。';
+					p.setAttribute('data-translated-by-custom-function', 'true');
+					return;
+				}
+
+				const resentMatch = text.match(/Your invitation was emailed to this address on\s+([\d-]+)\s+and resent on\s+([\d-]+)\.\s*If you can't find it/);
+				if (resentMatch) {
+					p.textContent = `您的邀请已于 ${resentMatch[1]} 发送至此邮箱地址，并于 ${resentMatch[2]} 重新发送。如果您无法找到它，请检查您的垃圾邮件文件夹，因为它可能被误判为垃圾邮件。`;
+					p.setAttribute('data-translated-by-custom-function', 'true');
+					return;
+				}
+
+				if (text.includes('If it has been more than 24 hours since you should have received your invitation')) {
+					p.textContent = '如果距离您应该收到邀请的时间已超过 24 小时，且检查垃圾邮件文件夹后仍未找到，您可以访问此页面重新发送邀请。';
+					p.setAttribute('data-translated-by-custom-function', 'true');
+					return;
+				}
+			});
+
+			const resendBtn = inviteStatusDiv.querySelector('form button[type="submit"]');
+			if (resendBtn && resendBtn.textContent.trim() === 'Resend Invitation') {
+				resendBtn.textContent = '重新发送邀请';
+			}
+
 			const statusResultP = inviteStatusDiv.querySelector('p');
 			if (statusResultP && !statusResultP.hasAttribute('data-translated-by-custom-function')) {
 				const match = statusResultP.innerHTML.match(/You are currently number <strong>([\d,]+)<\/strong> on our waiting list!\s*At our current rate, you should receive an invitation on or around:\s*(.+)\./s);
@@ -3044,6 +851,9 @@
 					const englishDate = match[2].trim();
 					const translatedDate = translateEnglishDate(englishDate);
 					statusResultP.innerHTML = `您目前在等待名单上的位置是第 <strong>${match[1]}</strong> 位！按照当前速度，您应在 ${translatedDate} 前后收到邀请。`;
+					statusResultP.setAttribute('data-translated-by-custom-function', 'true');
+				} else if (/Sorry, we can't find the email address you entered/.test(statusResultP.textContent)) {
+					statusResultP.textContent = '抱歉，我们无法找到您输入的电子邮箱地址。';
 					statusResultP.setAttribute('data-translated-by-custom-function', 'true');
 				}
 			}
@@ -5671,7 +3481,7 @@
 	                <a href="https://www.transformativeworks.org">再创作组织（OTW）</a>是 Archive of Our Own（AO3）的上级组织。我们持续招募志愿者参与<a href="https://www.transformativeworks.org/our-projects">项目开发</a>。若您有意为 AO3 提供志愿服务，可关注以下委员会：无障碍、设计与技术委员会（AD&T）；AO3 文档委员会；政策与滥用委员会；支持团队；标签管理委员会；以及翻译委员会。
 	            </p>
 	            <p>
-	                同时诚邀您为我们的 <a href="https://github.com/otwcode/otwarchive">GitHub 代码库</a>贡献代码，开放任务详见 <a href="https://otwarchive.atlassian.net/browse/AO3">Jira项目</a>。欢迎浏览我们的<a href="https://www.transformativeworks.org/volunteer">志愿者职位列表</a>，<a href="https://www.transformativeworks.org/you-can-now-subscribe-to-otw-news-by-email">订阅邮件</a>以获取含志愿者招募的全面资讯，并申请符合您资历和兴趣的任何志愿者职位。
+	                同时诚邀您为我们的 <a href="https://github.com/otwcode/otwarchive">GitHub 代码库</a>贡献代码，开放任务详见 <a href="https://otwarchive.atlassian.net/browse/AO3">Jira 项目</a>。欢迎浏览我们的<a href="https://www.transformativeworks.org/volunteer">志愿者职位列表</a>，<a href="https://www.transformativeworks.org/you-can-now-subscribe-to-otw-news-by-email">订阅邮件</a>以获取含志愿者招募的全面资讯，并申请符合您资历和兴趣的任何志愿者职位。
 	            </p>
 	            <h3>捐赠资金</h3>
 	            <p>
@@ -6189,512 +3999,54 @@
 		}
 	}
 
-	/****************** 全局配置区 ******************/
-
-	// 功能开关
-	const FeatureSet = {
-		enable_RegExp: GM_getValue('enable_RegExp', true),
-		enable_transDesc: GM_getValue('enable_transDesc', false),
-		enable_ui_trans: GM_getValue('enable_ui_trans', true),
-	};
-
-	// 自定义服务存储键
-	const CUSTOM_SERVICES_LIST_KEY = 'custom_services_list';
-	const ACTIVE_MODEL_PREFIX_KEY = 'active_model_for_';
-	const ADD_NEW_CUSTOM_SERVICE_ID = 'add_new_custom';
+	/**************************************************************************
+	 * Region 3: UI面板逻辑与用户设置
+	 **************************************************************************/
 
 	/**
-	 * 语言选项常量
+	 * 应用排版样式至页面
 	 */
-	const ALL_LANG_OPTIONS = [
-		["zh-CN", "简体中文"],
-		["zh-TW", "繁體中文"],
-		["ar", "العربية"],
-		["bg", "Български"],
-		["bn", "বাংলা"],
-		["ca", "Català"],
-		["cs", "Čeština"],
-		["da", "Dansk"],
-		["de", "Deutsch"],
-		["el", "Ελληνικά"],
-		["en", "English"],
-		["es", "Español"],
-		["et", "Eesti"],
-		["fa", "فارسی"],
-		["fi", "Suomi"],
-		["fr", "Français"],
-		["gu", "ગુજરાતી"],
-		["he", "עברית"],
-		["hi", "हिन्दी"],
-		["hr", "Hrvatski"],
-		["hu", "Magyar"],
-		["id", "Indonesia"],
-		["is", "Íslenska"],
-		["it", "Italiano"],
-		["ja", "日本語"],
-		["kn", "ಕನ್ನಡ"],
-		["ko", "한국어"],
-		["lt", "Lietuvių"],
-		["lv", "Latviešu"],
-		["ml", "മലയാളം"],
-		["mr", "मराठी"],
-		["ms", "Melayu"],
-		["mt", "Malti"],
-		["nl", "Nederlands"],
-		["no", "Norsk"],
-		["pa", "ਪੰਜਾਬੀ"],
-		["pl", "Polski"],
-		["pt", "Português"],
-		["ro", "Română"],
-		["ru", "Русский"],
-		["sk", "Slovenčina"],
-		["sl", "Slovenščina"],
-		["sv", "Svenska"],
-		["sw", "Kiswahili"],
-		["ta", "தமிழ்"],
-		["te", "తెలుగు"],
-		["th", "ไทย"],
-		["tr", "Türkçe"],
-		["uk", "Українська"],
-		["ur", "اردو"],
-		["vi", "Tiếng Việt"],
-		["zu", "isiZulu"],
-	];
+	function applyFormatting() {
+		const opts = GM_getValue(FORMATTING_KEY, DEFAULT_FORMATTING);
+		const indent = opts.indent === 'true' ? '2em' : '0';
+		const fontSize = opts.fontSize + '%';
+		const letterSpacing = opts.letterSpacing + 'px';
+		const lineHeight = opts.lineHeight;
+		const margins = opts.margins + '%';
 
-    /**
-	 * 语言代码到自然语言名称的映射
-	 */
-	const LANG_CODE_TO_NAME = {
-		'auto': 'the original language',
-		'zh-CN': 'Simplified Chinese (简体中文)',
-		'zh-TW': 'Traditional Chinese (繁體中文)',
-		'ar': 'Arabic (العربية)',
-		'bg': 'Bulgarian (Български)',
-		'bn': 'Bengali (বাংলা)',
-		'ca': 'Catalan (Català)',
-		'cs': 'Czech (Čeština)',
-		'da': 'Danish (Dansk)',
-		'de': 'German (Deutsch)',
-		'el': 'Greek (Ελληνικά)',
-		'en': 'English',
-		'es': 'Spanish (Español)',
-		'et': 'Estonian (Eesti)',
-		'fa': 'Persian (فارسی)',
-		'fi': 'Finnish (Suomi)',
-		'fr': 'French (Français)',
-		'gu': 'Gujarati (ગુજરાતી)',
-		'he': 'Hebrew (עברית)',
-		'hi': 'Hindi (हिन्दी)',
-		'hr': 'Croatian (Hrvatski)',
-		'hu': 'Hungarian (Magyar)',
-		'id': 'Indonesian (Indonesia)',
-		'is': 'Icelandic (Íslenska)',
-		'it': 'Italian (Italiano)',
-		'ja': 'Japanese (日本語)',
-		'kn': 'Kannada (ಕನ್ನಡ)',
-		'ko': 'Korean (한국어)',
-		'lt': 'Lithuanian (Lietuvių)',
-		'lv': 'Latvian (Latviešu)',
-		'ml': 'Malayalam (മലയാളം)',
-		'mr': 'Marathi (मराठी)',
-		'ms': 'Malay (Melayu)',
-		'mt': 'Maltese (Malti)',
-		'nl': 'Dutch (Nederlands)',
-		'no': 'Norwegian (Norsk)',
-		'pa': 'Punjabi (ਪੰਜਾਬੀ)',
-		'pl': 'Polish (Polski)',
-		'pt': 'Portuguese (Português)',
-		'ro': 'Romanian (Română)',
-		'ru': 'Russian (Русский)',
-		'sk': 'Slovak (Slovenčina)',
-		'sl': 'Slovenian (Slovenščina)',
-		'sv': 'Swedish (Svenska)',
-		'sw': 'Swahili (Kiswahili)',
-		'ta': 'Tamil (தமிழ்)',
-		'te': 'Telugu (తెలుగు)',
-		'th': 'Thai (ไทย)',
-		'tr': 'Turkish (Türkçe)',
-		'uk': 'Ukrainian (Українська)',
-		'ur': 'Urdu (اردو)',
-		'vi': 'Vietnamese (Tiếng Việt)',
-		'zu': 'Zulu (isiZulu)',
-	};
+		const cssParts = [];
 
-	/**
-	 * 针对不同目标语言的输出示例数据
-	 */
-	const PROMPT_EXAMPLE_OUTPUTS = {
-		'zh-CN': `1. 这是<em>第一个</em>句子。\n2. ---\n3. 她的名字是 ph_123456。\n4. 这是第四个句子。`,
-		'zh-TW': `1. 這是<em>第一個</em>句子。\n2. ---\n3. 她的名字是 ph_123456。\n4. 這是第四個句子。`,
-		'ar': `1. هذه هي الجملة <em>الأولى</em>.\n2. ---\n3. اسمها هو ph_123456.\n4. هذه هي الجملة الرابعة.`,
-		'bg': `1. Това е <em>първото</em> изречение.\n2. ---\n3. Нейното име е ph_123456.\n4. Това е четвъртото изречение.`,
-		'bn': `1. এটি <em>প্রথম</em> বাক্য।\n2. ---\n3. তার নাম ph_123456।\n4. এটি চতুর্থ বাক্য।`,
-		'ca': `1. Aquesta és la <em>primera</em> frase.\n2. ---\n3. El seu nom és ph_123456.\n4. Aquesta és la quarta frase.`,
-		'cs': `1. Toto je <em>první</em> věta.\n2. ---\n3. Jmenuje se ph_123456.\n4. Toto je čtvrtá věta.`,
-		'da': `1. Dette er den <em>første</em> sætning.\n2. ---\n3. Hendes navn er ph_123456.\n4. Dette er den fjerde sætning.`,
-		'de': `1. Das ist der <em>erste</em> Satz.\n2. ---\n3. Ihr Name ist ph_123456.\n4. Das ist der vierte Satz.`,
-		'el': `1. Αυτή είναι η <em>πρώτη</em> πρόταση.\n2. ---\n3. Το όνομά της είναι ph_123456.\n4. Αυτή είναι η τέταρτη πρόταση.`,
-		'es': `1. Esta es la <em>primera</em> frase.\n2. ---\n3. Su nombre es ph_123456.\n4. Esta es la cuarta frase.`,
-		'et': `1. See on <em>esimene</em> lause.\n2. ---\n3. Tema nimi on ph_123456.\n4. See on neljas lause.`,
-		'fa': `1. این <em>اولین</em> جمله است.\n2. ---\n3. نام او ph_123456 است.\n4. این چهارمین جمله است.`,
-		'fi': `1. Tämä on <em>ensimmäinen</em> lause.\n2. ---\n3. Hänen nimensä on ph_123456.\n4. Tämä on neljäs lause.`,
-		'fr': `1. C'est la <em>première</em> phrase.\n2. ---\n3. Son nom est ph_123456.\n4. C'est la quatrième phrase.`,
-		'gu': `1. આ <em>પહેલું</em> વાક્ય છે।\n2. ---\n3. તેનું નામ ph_123456 છે।\n4. આ ચોથું વાક્ય છે।`,
-		'he': `1. זהו המשפט ה<em>ראשון</em>.\n2. ---\n3. שמה הוא ph_123456.\n4. זהו המשפט הרביעי.`,
-		'hi': `1. यह <em>पहला</em> वाक्य है।\n2. ---\n3. उसका नाम ph_123456 है।\n4. यह चौथा वाक्य है।`,
-		'hr': `1. Ovo je <em>prva</em> rečenica.\n2. ---\n3. Njeno ime je ph_123456.\n4. Ovo je četvrta rečenica.`,
-		'hu': `1. Ez az <em>első</em> mondat.\n2. ---\n3. A neve ph_123456.\n4. Ez a negyedik mondat.`,
-		'id': `1. Ini adalah kalimat <em>pertama</em>.\n2. ---\n3. Namanya adalah ph_123456.\n4. Ini adalah kalimat keempat.`,
-		'is': `1. Þetta er <em>fyrsta</em> setningin.\n2. ---\n3. Hún heitir ph_123456.\n4. Þetta er fjórða setningin.`,
-		'it': `1. Questa è la <em>prima</em> frase.\n2. ---\n3. Il suo nome è ph_123456.\n4. Questa è la quarta frase.`,
-		'ja': `1. これは<em>最初の</em>文です。\n2. ---\n3. 彼女の名前は ph_123456 です。\n4. これは4番目の文です。`,
-		'kn': `1. ಇದು <em>ಮೊದಲ</em> ವಾಕ್ಯ।\n2. ---\n3. ಅವಳ ಹೆಸರು ph_123456।\n4. ಇದು ನಾಲ್ಕನೇ ವಾಕ್ಯ।`,
-		'ko': `1. 이것은 <em>첫 번째</em> 문장입니다。\n2. ---\n3. 그녀의 이름은 ph_123456 입니다。\n4. 이것은 네 번째 문장입니다。`,
-		'lt': `1. Tai yra <em>pirmas</em> sakinys.\n2. ---\n3. Jos vardas yra ph_123456.\n4. Tai yra ketvirtas sakinys.`,
-		'lv': `1. Šis ir <em>pirmais</em> teikums.\n2. ---\n3. Viņas vārds ir ph_123456.\n4. Šis ir ceturtais teikums.`,
-		'ml': `1. ഇതാണ് <em>ഒന്നാമത്തെ</em> വാക്യം।\n2. ---\n3. അവളുടെ പേര് ph_123456 എന്നാണ്।\n4. ഇതാണ് നാലാമത്തെ വാക്യം।`,
-		'mr': `1. हे <em>पहिले</em> वाक्य आहे।\n2. ---\n3. तिचे नाव ph_123456 आहे।\n4. हे चौथे वाक्य आहे।`,
-		'ms': `1. Ini adalah ayat <em>pertama</em>.\n2. ---\n3. Namanya ialah ph_123456.\n4. Ini adalah ayat keempat.`,
-		'mt': `1. Din hija l-<em>ewwel</em> sentenza.\n2. ---\n3. Jisimha hu ph_123456.\n4. Din hija r-raba' sentenza.`,
-		'nl': `1. Dit is de <em>eerste</em> zin.\n2. ---\n3. Haar naam is ph_123456.\n4. Dit is de vierde zin.`,
-		'no': `1. Dette er den <em>første</em> setningen.\n2. ---\n3. Hennes navn er ph_123456.\n4. Dette er den fjerde setningen.`,
-		'pa': `1. ਇਹ <em>ਪਹਿਲਾ</em> ਵਾਕ ਹੈ।\n2. ---\n3. ਉਸਦਾ ਨਾਮ ph_123456 ਹੈ।\n4. ਇਹ ਚੌਥਾ ਵਾਕ ਹੈ।`,
-		'pl': `1. To jest <em>pierwsze</em> zdanie.\n2. ---\n3. Nazywa się ph_123456.\n4. To jest czwarte zdanie.`,
-		'pt': `1. Esta é a <em>primeira</em> frase.\n2. ---\n3. O nome dela é ph_123456.\n4. Esta é a quarta frase.`,
-		'ro': `1. Aceasta este <em>prima</em> propoziție.\n2. ---\n3. Numele ei este ph_123456.\n4. Aceasta este a patra propoziție.`,
-		'ru': `1. Это <em>первое</em> предложение.\n2. ---\n3. Её зовут ph_123456.\n4. Это четвёртое предложение.`,
-		'sk': `1. Toto je <em>prvá</em> veta.\n2. ---\n3. Volá sa ph_123456.\n4. Toto je štvrtá veta.`,
-		'sl': `1. To je <em>prvi</em> stavek.\n2. ---\n3. Ime ji je ph_123456.\n4. To je četrti stavek.`,
-		'sv': `1. Detta är den <em>första</em> meningen.\n2. ---\n3. Hennes namn är ph_123456.\n4. Detta är den fjärde meningen.`,
-		'sw': `1. Hii ni sentensi ya <em>kwanza</em>.\n2. ---\n3. Jina lake ni ph_123456.\n4. Hii ni sentensi ya nne.`,
-		'ta': `1. இது <em>முதல்</em> வாக்கியம்.\n2. ---\n3. அவள் பெயர் ph_123456.\n4. இது நான்காவது வாக்கியம்.`,
-		'te': `1. ఇది <em>మొదటి</em> వాక్యం.\n2. ---\n3. ఆమె పేరు ph_123456.\n4. ఇది నాల్గవ వాక్యం.`,
-		'th': `1. นี่คือประโยค<em>แรก</em>\n2. ---\n3. ชื่อของเธอคือ ph_123456\n4. นี่คือประโยคที่สี่`,
-		'tr': `1. Bu <em>birinci</em> cümledir.\n2. ---\n3. Onun adı ph_123456.\n4. Bu dördüncü cümledir.`,
-		'uk': `1. Це <em>перше</em> речення.\n2. ---\n3. Її звати ph_123456.\n4. Це четверте речення.`,
-		'ur': `1. یہ <em>پہلا</em> جملہ ہے۔\n2. ---\n3. اس کا نام ph_123456 ہے۔\n4. یہ چوتھا جملہ ہے۔`,
-		'vi': `1. Đây là câu <em>đầu tiên</em>.\n2. ---\n3. Tên cô ấy là ph_123456.\n4. Đây là câu thứ tư.`,
-		'zu': `1. Lona umusho <em>wokuqala</em>.\n2. ---\n3. Igama lakhe ngu-ph_123456.\n4. Lona umusho wesine.`,
-		'default': `1. This is the <em>first</em> sentence.\n2. ---\n3. Her name is ph_123456.\n4. This is the fourth sentence.`
-	};
-
-	/**
-		 * 根据目标语言动态生成完整的提示示例
-		 */
-	function generatePromptExample(toLang) {
-		const exampleOutputText = PROMPT_EXAMPLE_OUTPUTS[toLang] || PROMPT_EXAMPLE_OUTPUTS['zh-CN'];
-		return `### Example Output:\n${exampleOutputText}`;
-	}
-
-    /**
-	 * 获取 AI 翻译系统提示词模板
-	 */
-	function getSharedSystemPrompt() {
-		return `You are a professional translator fluent in {toLangName}, with particular expertise in translating web novels and online fanfiction from {fromLangName}.
-
-Your task is to translate a numbered list of text segments provided by the user. These segments can be anything from full paragraphs to single phrases or words. For each numbered item, you will follow an internal three-stage strategy to produce the final, polished translation.
-
-### Internal Translation Strategy (for each item):
-1.  **Stage 1 (Internal Thought Process):** Produce a literal, word-for-word translation of the original content.
-2.  **Stage 2 (Internal Thought Process):** Based on the literal translation, identify any phrasing that is unnatural or does not flow well in the target language.
-3.  **Stage 3 (Final Output):** Produce a polished, idiomatic translation that fully preserves the original meaning, tone, cultural nuances, and any specialized fandom terminology. The final translation must be natural-sounding, readable, and conform to standard usage in {toLangName}.
-
-### CRITICAL OUTPUT INSTRUCTIONS:
-- Your entire response MUST consist of *only* the polished translation from Stage 3, formatted as a numbered list that exactly matches the input's numbering.
-- Do NOT include any stage numbers, headers (e.g., "Polished Translation"), notes, or explanations in your final output.
-- **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original, including their positions around the translated text.
-- **Placeholder Preservation:** If an item contains special placeholders in the format \`ph_\` followed by six digits (e.g., \`ph_123456\`), you MUST preserve these placeholders exactly as they are.
-  - **DO NOT** change \`ph_\` to \`P_\`, \`Ph_\`, or any other variation.
-  - **DO NOT** add spaces inside the placeholder (e.g., \`ph_ 123456\` is WRONG).
-  - **DO NOT** translate, modify, or delete them.
-- **Untranslatable Content:** If an item is a separator, a meaningless symbol, or otherwise untranslatable, you MUST return the original item exactly as it is, preserving its number.
-
-### Example Input:
-1. This is the <em>first</em> sentence.
-2. ---
-3. Her name is ph_123456.
-4. This is the fourth sentence.
-
-{exampleOutput}
-		`;
-	}
-
-	// 创建一个标准的、兼容OpenAI API的服务配置对象
-	const createStandardApiConfig = ({ name, url }) => ({
-		name: name,
-		url_api: url,
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		responseIdentifier: 'choices[0].message.content',
-	});
-
-    /**
-	 * 微软翻译语言代码映射表 (基于 Edge API)
-	 */
-	const BING_LANG_CODE_MAP = {
-		'zh-CN': 'zh-Hans',
-		'zh-TW': 'zh-Hant',
-		'yue': 'yue',
-		'auto': 'auto-detect'
-	};
-
-    // 语言检测截取字符长度限制
-    const LANG_DETECT_MAX_LENGTH = 800;
-
-	// 底层实现配置
-	const CONFIG = {
-		LANG: 'zh-CN',
-		OBSERVER_CONFIG: {
-			childList: true,
-			subtree: true,
-			characterData: true,
-			attributeFilter: ['value', 'placeholder', 'aria-label', 'data-confirm', 'title']
-		},
-
-		// 将默认翻译服务设置为微软翻译
-		transEngine: GM_getValue('transEngine', 'bing_translator'),
-
-		// 默认文本分块、懒加载边距
-		CHUNK_SIZE: 1600,
-		PARAGRAPH_LIMIT: 8,
-		LAZY_LOAD_ROOT_MARGIN: '400px 0px 1000px 0px',
-
-		// 谷歌、微软翻译文本分块、懒加载边距
-		MODEL_SPECIFIC_LIMITS: {
-			'google_translate': {
-				CHUNK_SIZE: 4000,
-				PARAGRAPH_LIMIT: 20,
-				LAZY_LOAD_ROOT_MARGIN: '1200px 0px 3000px 0px',
-			},
-			'bing_translator': {
-				CHUNK_SIZE: 3000,
-				PARAGRAPH_LIMIT: 15,
-				LAZY_LOAD_ROOT_MARGIN: '1200px 0px 3000px 0px',
-			}
-		},
-
-        // 占位符校验阈值
-		VALIDATION_THRESHOLDS: {
-			google_translate: {
-				absolute_loss: 4,
-				proportional_loss: 0.8,
-				proportional_trigger_count: 5
-			},
-			bing_translator: {
-				absolute_loss: 4,
-				proportional_loss: 0.8,
-				proportional_trigger_count: 5
-			},
-			default: {
-				absolute_loss: 5,
-				proportional_loss: 0.8,
-				proportional_trigger_count: 5
-			}
-		},
-
-		// 翻译服务配置
-		TRANS_ENGINES: {
-			google_translate: {
-				name: '谷歌翻译',
-				url_api: 'https://translate-pa.googleapis.com/v1/translateHtml',
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json+protobuf' },
-				getRequestData: (paragraphs) => {
-					const sourceTexts = paragraphs.map(p => p.outerHTML);
-					return JSON.stringify([
-						[sourceTexts, "auto", "zh-CN"], "te"
-					]);
-				},
-			},
-			bing_translator: {
-				name: '微软翻译',
-				url_api: 'https://api-edge.cognitive.microsofttranslator.com/translate?api-version=3.0&includeSentenceLength=true',
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' }
-			},
-			openai: createStandardApiConfig({
-				name: 'OpenAI',
-				url: 'https://api.openai.com/v1/chat/completions',
-			}),
-			siliconflow: createStandardApiConfig({
-				name: 'SiliconFlow',
-				url: 'https://api.siliconflow.cn/v1/chat/completions',
-			}),
-			anthropic: {
-				name: 'Anthropic',
-				url_api: 'https://api.anthropic.com/v1/messages',
-				method: 'POST',
-				responseIdentifier: 'content[0].text',
-			},
-			zhipu_ai: createStandardApiConfig({
-				name: 'Zhipu AI',
-				url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
-			}),
-			deepseek_ai: createStandardApiConfig({
-				name: 'DeepSeek',
-				url: 'https://api.deepseek.com/chat/completions',
-			}),
-			google_ai: {
-				name: 'Google AI',
-				url_api: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				getRequestData: (paragraphs) => {
-					const numberedText = paragraphs
-						.map((p, i) => `${i + 1}. ${p.innerHTML}`)
-						.join('\n\n');
-
-					const userPrompt = `Translate the following numbered list to Simplified Chinese（简体中文）(output translation only):\n\n${numberedText}`;
-
-					return {
-						systemInstruction: {
-							role: "user",
-							parts: [{ text: getSharedSystemPrompt() }]
-						},
-						contents: [{
-							role: "user",
-							parts: [{ text: userPrompt }]
-						}],
-						generationConfig: {
-							temperature: 0,
-							candidateCount: 1,
-							thinkingConfig: {
-								thinkingBudget: -1
-							}
-						}
-					};
-				},
-				responseIdentifier: 'candidates[0].content.parts[0].text',
-			},
-			groq_ai: createStandardApiConfig({
-				name: 'Groq AI',
-				url: 'https://api.groq.com/openai/v1/chat/completions',
-			}),
-			together_ai: createStandardApiConfig({
-				name: 'Together AI',
-				url: 'https://api.together.xyz/v1/chat/completions',
-			}),
-			cerebras_ai: createStandardApiConfig({
-				name: 'Cerebras',
-				url: 'https://api.cerebras.ai/v1/chat/completions',
-			}),
-			modelscope_ai: createStandardApiConfig({
-				name: 'ModelScope',
-				url: 'https://api-inference.modelscope.cn/v1/chat/completions',
-			}),
+		if (opts.margins !== '0') {
+			cssParts.push(`#workskin { padding: 0 ${margins} !important; margin: 0 auto !important; }`);
 		}
-	};
 
-    /**
-	 * 日志管理系统
-	 */
-    const Logger = {
-        config: {
-            enabled: GM_getValue('enable_debug_mode', true),
-            history: [],
-            maxHistory: 2000
-        },
+		if (opts.fontSize !== '100' || opts.lineHeight !== '1.5' || opts.letterSpacing !== '0') {
+			const contentSelectors = '#workskin > .preface, #workskin > #chapters, #workskin > .userstuff, #workskin .userstuff.module';
 
-        _sanitize(data) {
-            if (!data) return data;
-            if (typeof data !== 'object') return data;
+			let fontRules = [];
+			if (opts.fontSize !== '100') fontRules.push(`font-size: ${fontSize} !important;`);
+			if (opts.lineHeight !== '1.5') fontRules.push(`line-height: ${lineHeight} !important;`);
+			if (opts.letterSpacing !== '0') fontRules.push(`letter-spacing: ${letterSpacing} !important;`);
 
-            try {
-                const cleanData = JSON.parse(JSON.stringify(data));
-                const sensitiveKeys = ['apikey', 'key', 'token', 'auth', 'authorization', 'x-api-key', 'user_prompt', 'system_prompt'];
+			if (fontRules.length > 0) {
+				cssParts.push(`${contentSelectors} { ${fontRules.join(' ')} }`);
+			}
+		}
 
-                const mask = (obj) => {
-                    for (const key in obj) {
-                        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-                            const lowerKey = key.toLowerCase();
-                            if (typeof obj[key] === 'object' && obj[key] !== null) {
-                                mask(obj[key]);
-                            } else if (sensitiveKeys.some(k => lowerKey.includes(k))) {
-                                obj[key] = '****** (已隐藏)';
-                            } else if (key === 'url') {
-                                const urlStr = String(obj[key]);
-                                if (!urlStr.includes('microsoft') && !urlStr.includes('googleapis') && !urlStr.includes('qq.com') && !urlStr.includes('baidu.com')) {
-                                    obj[key] = 'Custom URL (已隐藏)';
-                                }
-                            } else if (key === 'originalHTML' || key === 'content') {
-                                if (String(obj[key]).length > 100) {
-                                    obj[key] = String(obj[key]).substring(0, 100) + '... (内容过长已截断)';
-                                }
-                            }
-                        }
-                    }
-                };
-                mask(cleanData);
-                return cleanData;
-            } catch (e) {
-                return '[数据清洗失败]';
-            }
-        },
+		if (opts.indent === 'true') {
+			cssParts.push(`#workskin .userstuff p { text-indent: ${indent} !important; }`);
+		}
 
-        _record(level, module, message, data) {
-            const timestamp = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
-            const logEntry = { timestamp, level, module, message, data };
+		const css = cssParts.join('\n');
 
-            if (this.config.history.length >= this.config.maxHistory) {
-                this.config.history.shift();
-            }
-            this.config.history.push(logEntry);
-
-            if (this.config.enabled) {
-                const prefix = `%c[${module}]`;
-                let style = 'font-weight: bold;';
-                if (level === 'INFO') style += 'color: #2196F3;';
-                else if (level === 'WARN') style += 'color: #FF9800;';
-                else if (level === 'ERROR') style += 'color: #F44336;';
-
-                if (data) {
-                    console.log(prefix, style, message, data);
-                } else {
-                    console.log(prefix, style, message);
-                }
-            }
-        },
-
-        info(module, message, data = null) {
-            this._record('INFO', module, message, this._sanitize(data));
-        },
-
-        warn(module, message, data = null) {
-            this._record('WARN', module, message, this._sanitize(data));
-        },
-
-        error(module, message, error = null) {
-            let errorData = error;
-            if (error instanceof Error) {
-                errorData = { message: error.message, stack: error.stack, ...error };
-            }
-            this._record('ERROR', module, message, this._sanitize(errorData));
-        },
-
-        toggle() {
-            this.config.enabled = !this.config.enabled;
-            GM_setValue('enable_debug_mode', this.config.enabled);
-            return this.config.enabled;
-        },
-
-        export() {
-            const logText = this.config.history.map(entry => {
-                const dataStr = entry.data ? `\nData: ${JSON.stringify(entry.data, null, 2)}` : '';
-                return `[${entry.timestamp}] [${entry.level}] [${entry.module}] ${entry.message}${dataStr}`;
-            }).join('\n--------------------------------------------------\n');
-
-            const blob = new Blob([logText], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const dateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).slice(0, 10);
-            a.download = `AO3-Translator-Log-${dateStr}.log`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    };
+		let styleEl = document.getElementById('ao3-format-style');
+		if (!styleEl) {
+			styleEl = document.createElement('style');
+			styleEl.id = 'ao3-format-style';
+			document.head.appendChild(styleEl);
+		}
+		styleEl.textContent = css;
+	}
 
 	/**
 	 * 数据导出/导入的分类定义
@@ -6706,13 +4058,15 @@ Your task is to translate a numbered list of text segments provided by the user.
 		{ id: 'modelSelections', label: '内置模型偏好' },
 		{ id: 'customServices', label: '自定义服务配置' },
 		{ id: 'glossaries', label: '术语及替换规则' },
-		{ id: 'aiParameters', label: 'AI 参数设置' }
+		{ id: 'aiParameters', label: 'AI 参数设置' },
+		{ id: 'blockerSettings', label: '作品屏蔽设置' },
+		{ id: 'formatting', label: '文章排版设置' }
 	];
 
 	// 页面配置缓存
 	let pageConfig = {};
 
-    /**
+	/**
 	 * 菜单渲染函数
 	 */
 	function setupMenuCommands(fabLogic, panelLogic) {
@@ -6867,253 +4221,253 @@ Your task is to translate a numbered list of text segments provided by the user.
 		};
 	};
 
-    /**
-     * 悬浮球交互逻辑
-     */
-    function initializeFabInteraction(fabElements, panelLogic) {
-        const { fabContainer } = fabElements;
-        const FAB_POSITION_KEY = 'ao3_fab_position';
-        const DRAG_THRESHOLD = 5;
-        const SAFE_MARGIN = 16;
-        const RETRACT_MARGIN = 10;
-        const SNAP_THRESHOLD = 40;
+	/**
+	 * 悬浮球交互逻辑
+	 */
+	function initializeFabInteraction(fabElements, panelLogic) {
+		const { fabContainer } = fabElements;
+		const FAB_POSITION_KEY = 'ao3_fab_position';
+		const DRAG_THRESHOLD = 5;
+		const SAFE_MARGIN = 16;
+		const RETRACT_MARGIN = 10;
+		const SNAP_THRESHOLD = 40;
 
-        let isPointerDown = false;
-        let isDragging = false;
-        let startCoords = { x: 0, y: 0 };
-        let startPosition = { x: 0, y: 0 };
-        let fabSize = { width: 0, height: 0 };
+		let isPointerDown = false;
+		let isDragging = false;
+		let startCoords = { x: 0, y: 0 };
+		let startPosition = { x: 0, y: 0 };
+		let fabSize = { width: 0, height: 0 };
 
-        let lastWinWidth = document.documentElement.clientWidth;
-        let maxWinHeight = window.innerHeight;
+		let lastWinWidth = document.documentElement.clientWidth;
+		let maxWinHeight = window.innerHeight;
 
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-        const limitNumber = (num, min, max) => Math.max(min, Math.min(num, max));
+		const limitNumber = (num, min, max) => Math.max(min, Math.min(num, max));
 
-        const savePosition = debounce((pos) => GM_setValue(FAB_POSITION_KEY, pos), 500);
+		const savePosition = debounce((pos) => GM_setValue(FAB_POSITION_KEY, pos), 500);
 
-        const updateFabSize = () => {
-            const rect = fabContainer.getBoundingClientRect();
-            fabSize = { width: rect.width, height: rect.height };
-        };
+		const updateFabSize = () => {
+			const rect = fabContainer.getBoundingClientRect();
+			fabSize = { width: rect.width, height: rect.height };
+		};
 
-        const setPosition = (pos, useTransition = false) => {
-            fabContainer.style.transition = useTransition ? 'all 0.3s ease' : 'none';
-            fabContainer.style.left = `${pos.x}px`;
-            fabContainer.style.top = `${pos.y}px`;
-        };
+		const setPosition = (pos, useTransition = false) => {
+			fabContainer.style.transition = useTransition ? 'all 0.3s ease' : 'none';
+			fabContainer.style.left = `${pos.x}px`;
+			fabContainer.style.top = `${pos.y}px`;
+		};
 
-        const snapDecision = (forceRetract = false) => {
-            if (isDragging) return;
-            window.removeEventListener('mousemove', checkMouseLeave);
+		const snapDecision = (forceRetract = false) => {
+			if (isDragging) return;
+			window.removeEventListener('mousemove', checkMouseLeave);
 
-            const winW = document.documentElement.clientWidth;
-            const currentH = window.innerHeight;
+			const winW = document.documentElement.clientWidth;
+			const currentH = window.innerHeight;
 
-            if (currentH > maxWinHeight) maxWinHeight = currentH;
+			if (currentH > maxWinHeight) maxWinHeight = currentH;
 
-            const isKeyboardState = isTouchDevice &&
-                (Math.abs(winW - lastWinWidth) < 5) &&
-                (currentH < maxWinHeight * 0.80);
+			const isKeyboardState = isTouchDevice &&
+				(Math.abs(winW - lastWinWidth) < 5) &&
+				(currentH < maxWinHeight * 0.80);
 
-            const effectiveH = isKeyboardState ? maxWinHeight : currentH;
+			const effectiveH = isKeyboardState ? maxWinHeight : currentH;
 
-            const currentPos = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
+			const currentPos = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
 
-            const dist = {
-                left: currentPos.x,
-                right: winW - (currentPos.x + fabSize.width),
-                top: currentPos.y,
-                bottom: effectiveH - (currentPos.y + fabSize.height)
-            };
+			const dist = {
+				left: currentPos.x,
+				right: winW - (currentPos.x + fabSize.width),
+				top: currentPos.y,
+				bottom: effectiveH - (currentPos.y + fabSize.height)
+			};
 
-            const isNearLeft = dist.left < SNAP_THRESHOLD;
-            const isNearRight = dist.right < SNAP_THRESHOLD;
-            const isNearTop = dist.top < SNAP_THRESHOLD;
-            const isNearBottom = dist.bottom < SNAP_THRESHOLD;
+			const isNearLeft = dist.left < SNAP_THRESHOLD;
+			const isNearRight = dist.right < SNAP_THRESHOLD;
+			const isNearTop = dist.top < SNAP_THRESHOLD;
+			const isNearBottom = dist.bottom < SNAP_THRESHOLD;
 
-            let finalPos = { ...currentPos };
-            let shouldSnap = true;
+			let finalPos = { ...currentPos };
+			let shouldSnap = true;
 
-            if ((isNearLeft && isNearTop) || (isNearLeft && isNearBottom) || (isNearRight && isNearTop) || (isNearRight && isNearBottom)) {
-                finalPos.x = isNearLeft ? SAFE_MARGIN : winW - fabSize.width - SAFE_MARGIN;
-                finalPos.y = isNearTop ? SAFE_MARGIN : effectiveH - fabSize.height - SAFE_MARGIN;
-                fabContainer.classList.remove('snapped', 'is-active');
-            } else if (isNearLeft || isNearRight || isNearTop || isNearBottom) {
-                const minVertical = Math.min(dist.top, dist.bottom);
-                const minHorizontal = Math.min(dist.left, dist.right);
+			if ((isNearLeft && isNearTop) || (isNearLeft && isNearBottom) || (isNearRight && isNearTop) || (isNearRight && isNearBottom)) {
+				finalPos.x = isNearLeft ? SAFE_MARGIN : winW - fabSize.width - SAFE_MARGIN;
+				finalPos.y = isNearTop ? SAFE_MARGIN : effectiveH - fabSize.height - SAFE_MARGIN;
+				fabContainer.classList.remove('snapped', 'is-active');
+			} else if (isNearLeft || isNearRight || isNearTop || isNearBottom) {
+				const minVertical = Math.min(dist.top, dist.bottom);
+				const minHorizontal = Math.min(dist.left, dist.right);
 
-                if (minHorizontal < minVertical) {
-                    finalPos.x = isNearLeft ? -fabSize.width / 2 : winW - fabSize.width / 2;
-                } else {
-                    finalPos.y = isNearTop ? -fabSize.height / 2 : effectiveH - fabSize.height / 2;
-                }
-                fabContainer.classList.add('snapped');
-                fabContainer.classList.remove('is-active');
-            } else {
-                shouldSnap = false;
-                fabContainer.classList.remove('snapped', 'is-active');
-            }
+				if (minHorizontal < minVertical) {
+					finalPos.x = isNearLeft ? -fabSize.width / 2 : winW - fabSize.width / 2;
+				} else {
+					finalPos.y = isNearTop ? -fabSize.height / 2 : effectiveH - fabSize.height / 2;
+				}
+				fabContainer.classList.add('snapped');
+				fabContainer.classList.remove('is-active');
+			} else {
+				shouldSnap = false;
+				fabContainer.classList.remove('snapped', 'is-active');
+			}
 
-            if (shouldSnap || forceRetract) {
-                setPosition(finalPos, true);
-                savePosition(finalPos);
-            }
-        };
+			if (shouldSnap || forceRetract) {
+				setPosition(finalPos, true);
+				savePosition(finalPos);
+			}
+		};
 
-        const activateFab = () => {
-            if (isDragging || !fabContainer.classList.contains('snapped')) return;
+		const activateFab = () => {
+			if (isDragging || !fabContainer.classList.contains('snapped')) return;
 
-            window.removeEventListener('mousemove', checkMouseLeave);
-            fabContainer.classList.add('is-active');
+			window.removeEventListener('mousemove', checkMouseLeave);
+			fabContainer.classList.add('is-active');
 
-            const winW = document.documentElement.clientWidth;
-            const winH = window.innerHeight;
-            const currentPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
-            let newPos = { ...currentPos };
+			const winW = document.documentElement.clientWidth;
+			const winH = window.innerHeight;
+			const currentPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
+			let newPos = { ...currentPos };
 
-            if (currentPos.x < 0) newPos.x = RETRACT_MARGIN;
-            else if (currentPos.x > winW - fabSize.width) newPos.x = winW - fabSize.width - RETRACT_MARGIN;
+			if (currentPos.x < 0) newPos.x = RETRACT_MARGIN;
+			else if (currentPos.x > winW - fabSize.width) newPos.x = winW - fabSize.width - RETRACT_MARGIN;
 
-            if (currentPos.y < 0) newPos.y = RETRACT_MARGIN;
-            else if (currentPos.y > winH - fabSize.height) newPos.y = winH - fabSize.height - RETRACT_MARGIN;
+			if (currentPos.y < 0) newPos.y = RETRACT_MARGIN;
+			else if (currentPos.y > winH - fabSize.height) newPos.y = winH - fabSize.height - RETRACT_MARGIN;
 
-            setPosition(newPos, true);
-        };
+			setPosition(newPos, true);
+		};
 
-        const onPointerDown = (e) => {
-            if (e.button !== 0 && e.pointerType !== 'touch') return;
-            fabContainer.setPointerCapture(e.pointerId);
-            isPointerDown = true;
-            isDragging = false;
-            startCoords = { x: e.clientX, y: e.clientY };
-            startPosition = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
-            fabContainer.style.transition = 'none';
-        };
+		const onPointerDown = (e) => {
+			if (e.button !== 0 && e.pointerType !== 'touch') return;
+			fabContainer.setPointerCapture(e.pointerId);
+			isPointerDown = true;
+			isDragging = false;
+			startCoords = { x: e.clientX, y: e.clientY };
+			startPosition = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
+			fabContainer.style.transition = 'none';
+		};
 
-        const onPointerMove = (e) => {
-            if (!isPointerDown) return;
-            const dx = e.clientX - startCoords.x;
-            const dy = e.clientY - startCoords.y;
+		const onPointerMove = (e) => {
+			if (!isPointerDown) return;
+			const dx = e.clientX - startCoords.x;
+			const dy = e.clientY - startCoords.y;
 
-            if (!isDragging && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
-                isDragging = true;
-                fabContainer.classList.add('dragging');
-                fabContainer.classList.remove('snapped', 'is-active');
-            }
+			if (!isDragging && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+				isDragging = true;
+				fabContainer.classList.add('dragging');
+				fabContainer.classList.remove('snapped', 'is-active');
+			}
 
-            if (isDragging) {
-                const newX = startPosition.x + dx;
-                const newY = startPosition.y + dy;
-                setPosition({ x: newX, y: newY });
-            }
-        };
+			if (isDragging) {
+				const newX = startPosition.x + dx;
+				const newY = startPosition.y + dy;
+				setPosition({ x: newX, y: newY });
+			}
+		};
 
-        const onPointerUp = (e) => {
-            if (!isPointerDown) return;
-            fabContainer.releasePointerCapture(e.pointerId);
-            isPointerDown = false;
+		const onPointerUp = (e) => {
+			if (!isPointerDown) return;
+			fabContainer.releasePointerCapture(e.pointerId);
+			isPointerDown = false;
 
-            if (isDragging) {
-                isDragging = false;
-                fabContainer.classList.remove('dragging');
+			if (isDragging) {
+				isDragging = false;
+				fabContainer.classList.remove('dragging');
 
-                const winW = document.documentElement.clientWidth;
-                const winH = window.innerHeight;
-                let finalPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
-                finalPos.x = limitNumber(finalPos.x, 0, winW - fabSize.width);
-                finalPos.y = limitNumber(finalPos.y, 0, winH - fabSize.height);
-                setPosition(finalPos);
-                savePosition(finalPos);
+				const winW = document.documentElement.clientWidth;
+				const winH = window.innerHeight;
+				let finalPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
+				finalPos.x = limitNumber(finalPos.x, 0, winW - fabSize.width);
+				finalPos.y = limitNumber(finalPos.y, 0, winH - fabSize.height);
+				setPosition(finalPos);
+				savePosition(finalPos);
 
-                snapDecision();
-            } else {
-                if (fabContainer.classList.contains('snapped') && !fabContainer.classList.contains('is-active')) {
-                    activateFab();
-                }
-                panelLogic.togglePanel();
-            }
-        };
+				snapDecision();
+			} else {
+				if (fabContainer.classList.contains('snapped') && !fabContainer.classList.contains('is-active')) {
+					activateFab();
+				}
+				panelLogic.togglePanel();
+			}
+		};
 
-        const checkMouseLeave = (e) => {
-            const rect = fabContainer.getBoundingClientRect();
-            const extendedRect = {
-                left: rect.left - SAFE_MARGIN, top: rect.top - SAFE_MARGIN,
-                right: rect.right + SAFE_MARGIN, bottom: rect.bottom + SAFE_MARGIN
-            };
-            if (e.clientX < extendedRect.left || e.clientX > extendedRect.right || e.clientY < extendedRect.top || e.clientY > extendedRect.bottom) {
-                if (panelLogic.panel.style.display !== 'flex') {
-                    snapDecision(true);
-                }
-            }
-        };
+		const checkMouseLeave = (e) => {
+			const rect = fabContainer.getBoundingClientRect();
+			const extendedRect = {
+				left: rect.left - SAFE_MARGIN, top: rect.top - SAFE_MARGIN,
+				right: rect.right + SAFE_MARGIN, bottom: rect.bottom + SAFE_MARGIN
+			};
+			if (e.clientX < extendedRect.left || e.clientX > extendedRect.right || e.clientY < extendedRect.top || e.clientY > extendedRect.bottom) {
+				if (panelLogic.panel.style.display !== 'flex') {
+					snapDecision(true);
+				}
+			}
+		};
 
-        const onResize = debounce(() => {
-            const currentWidth = document.documentElement.clientWidth;
-            const currentHeight = window.innerHeight;
+		const onResize = debounce(() => {
+			const currentWidth = document.documentElement.clientWidth;
+			const currentHeight = window.innerHeight;
 
-            if (currentHeight > maxWinHeight) {
-                maxWinHeight = currentHeight;
-            }
+			if (currentHeight > maxWinHeight) {
+				maxWinHeight = currentHeight;
+			}
 
-            const isKeyboardState = isTouchDevice &&
-                (Math.abs(currentWidth - lastWinWidth) < 5) &&
-                (currentHeight < maxWinHeight * 0.80);
+			const isKeyboardState = isTouchDevice &&
+				(Math.abs(currentWidth - lastWinWidth) < 5) &&
+				(currentHeight < maxWinHeight * 0.80);
 
-            lastWinWidth = currentWidth;
+			lastWinWidth = currentWidth;
 
-            if (isKeyboardState) {
-                return;
-            }
+			if (isKeyboardState) {
+				return;
+			}
 
-            updateFabSize();
-            snapDecision(true);
-        }, 200);
+			updateFabSize();
+			snapDecision(true);
+		}, 200);
 
-        fabContainer.addEventListener('pointerdown', onPointerDown);
-        fabContainer.addEventListener('pointermove', onPointerMove);
-        fabContainer.addEventListener('pointerup', onPointerUp);
-        fabContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); panelLogic.togglePanel(); });
+		fabContainer.addEventListener('pointerdown', onPointerDown);
+		fabContainer.addEventListener('pointermove', onPointerMove);
+		fabContainer.addEventListener('pointerup', onPointerUp);
+		fabContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); panelLogic.togglePanel(); });
 
-        if (!isTouchDevice) {
-            fabContainer.addEventListener('mouseenter', activateFab);
-            fabContainer.addEventListener('mouseleave', () => {
-                if (panelLogic.panel.style.display !== 'flex') {
-                    window.addEventListener('mousemove', checkMouseLeave);
-                }
-            });
-        }
+		if (!isTouchDevice) {
+			fabContainer.addEventListener('mouseenter', activateFab);
+			fabContainer.addEventListener('mouseleave', () => {
+				if (panelLogic.panel.style.display !== 'flex') {
+					window.addEventListener('mousemove', checkMouseLeave);
+				}
+			});
+		}
 
-        window.addEventListener('resize', onResize);
+		window.addEventListener('resize', onResize);
 
-        const initializePosition = () => {
-            updateFabSize();
-            let initialPosition = GM_getValue(FAB_POSITION_KEY);
-            if (!initialPosition) {
-                const winW = document.documentElement.clientWidth;
-                const winH = window.innerHeight;
-                initialPosition = {
-                    x: winW - fabSize.width / 2,
-                    y: winH * 0.75 - fabSize.height / 2
-                };
-            }
-            setPosition(initialPosition);
-            setTimeout(() => snapDecision(true), 100);
-        };
+		const initializePosition = () => {
+			updateFabSize();
+			let initialPosition = GM_getValue(FAB_POSITION_KEY);
+			if (!initialPosition) {
+				const winW = document.documentElement.clientWidth;
+				const winH = window.innerHeight;
+				initialPosition = {
+					x: winW - fabSize.width / 2,
+					y: winH * 0.75 - fabSize.height / 2
+				};
+			}
+			setPosition(initialPosition);
+			setTimeout(() => snapDecision(true), 100);
+		};
 
-        initializePosition();
+		initializePosition();
 
-        return {
-            toggleFabVisibility: () => {
-                const showFab = GM_getValue('show_fab', true);
-                fabContainer.style.display = showFab ? 'block' : 'none';
-            },
-            retractFab: () => snapDecision(true)
-        };
-    }
+		return {
+			toggleFabVisibility: () => {
+				const showFab = GM_getValue('show_fab', true);
+				fabContainer.style.display = showFab ? 'block' : 'none';
+			},
+			retractFab: () => snapDecision(true)
+		};
+	}
 
-    /**
+	/**
 	 * 创建数据选择模态框
 	 */
 	function createSelectionModal(title, items, mode = 'import', storageKey = null) {
@@ -7212,9 +4566,9 @@ Your task is to translate a numbered list of text segments provided by the user.
 
 			items.forEach(item => {
 				let isChecked = true;
-                if (item.disabled) {
-                    isChecked = false;
-                } else if (hasSavedSelection) {
+				if (item.disabled) {
+					isChecked = false;
+				} else if (hasSavedSelection) {
 					isChecked = savedSelection.includes(item.id);
 				} else if (item.checked === false) {
 					isChecked = false;
@@ -7235,20 +4589,20 @@ Your task is to translate a numbered list of text segments provided by the user.
                     <div class="data-modal-footer">
             `;
 
-            if (mode === 'export') {
-                html += `
+			if (mode === 'export') {
+				html += `
                         <button class="data-modal-btn cancel">取消</button>
                         <button class="data-modal-btn confirm">确认</button>
                 `;
-            } else {
-                html += `
+			} else {
+				html += `
                         <button class="data-modal-btn cancel">取消导入</button>
                         <button class="data-modal-btn merge">数据合并</button>
                         <button class="data-modal-btn overwrite">数据覆盖</button>
                 `;
-            }
+			}
 
-            html += `
+			html += `
                     </div>
                 </div>
             `;
@@ -7278,39 +4632,39 @@ Your task is to translate a numbered list of text segments provided by the user.
 
 			const cleanup = () => overlay.remove();
 
-            const getSelectedIds = () => {
-                return Array.from(modal.querySelectorAll('input[type="checkbox"]'))
+			const getSelectedIds = () => {
+				return Array.from(modal.querySelectorAll('input[type="checkbox"]'))
 					.filter(cb => cb.checked)
 					.map(cb => cb.value);
-            };
+			};
 
 			modal.querySelector('.cancel').addEventListener('click', () => {
 				cleanup();
 				reject(new Error('User cancelled'));
 			});
 
-            if (mode === 'export') {
-                modal.querySelector('.confirm').addEventListener('click', () => {
-                    const selectedIds = getSelectedIds();
-                    if (storageKey) GM_setValue(storageKey, selectedIds);
-                    cleanup();
-                    resolve({ ids: selectedIds, mode: 'export' });
-                });
-            } else {
-                modal.querySelector('.merge').addEventListener('click', () => {
-                    const selectedIds = getSelectedIds();
-                    if (storageKey) GM_setValue(storageKey, selectedIds);
-                    cleanup();
-                    resolve({ ids: selectedIds, mode: 'merge' });
-                });
+			if (mode === 'export') {
+				modal.querySelector('.confirm').addEventListener('click', () => {
+					const selectedIds = getSelectedIds();
+					if (storageKey) GM_setValue(storageKey, selectedIds);
+					cleanup();
+					resolve({ ids: selectedIds, mode: 'export' });
+				});
+			} else {
+				modal.querySelector('.merge').addEventListener('click', () => {
+					const selectedIds = getSelectedIds();
+					if (storageKey) GM_setValue(storageKey, selectedIds);
+					cleanup();
+					resolve({ ids: selectedIds, mode: 'merge' });
+				});
 
-                modal.querySelector('.overwrite').addEventListener('click', () => {
-                    const selectedIds = getSelectedIds();
-                    if (storageKey) GM_setValue(storageKey, selectedIds);
-                    cleanup();
-                    resolve({ ids: selectedIds, mode: 'overwrite' });
-                });
-            }
+				modal.querySelector('.overwrite').addEventListener('click', () => {
+					const selectedIds = getSelectedIds();
+					if (storageKey) GM_setValue(storageKey, selectedIds);
+					cleanup();
+					resolve({ ids: selectedIds, mode: 'overwrite' });
+				});
+			}
 
 			overlay.addEventListener('click', (e) => {
 				if (e.target === overlay) {
@@ -7321,7 +4675,34 @@ Your task is to translate a numbered list of text segments provided by the user.
 		});
 	}
 
-    /**
+	/**
+	 * 屏蔽功能相关的所有键名集合
+	 */
+	const BLOCKER_KEYS = [
+		'ao3_blocker_enabled',
+		'ao3_blocker_show_reasons',
+		'ao3_blocker_tags_black',
+		'ao3_blocker_tags_white',
+		'ao3_blocker_content_author',
+		'ao3_blocker_content_title',
+		'ao3_blocker_content_summary',
+		'ao3_blocker_content_id',
+		'ao3_blocker_stats_min_words',
+		'ao3_blocker_stats_max_words',
+		'ao3_blocker_stats_min_chapters',
+		'ao3_blocker_stats_max_chapters',
+		'ao3_blocker_stats_update',
+		'ao3_blocker_stats_crossover',
+		'ao3_blocker_adv_pairing',
+		'ao3_blocker_adv_char',
+		'ao3_blocker_adv_lang',
+		'ao3_blocker_adv_scope_rel',
+		'ao3_blocker_adv_scope_char',
+		'ao3_blocker_current_view',
+		'ao3_blocker_current_sub_view'
+	];
+
+	/**
 	 * 聚合用户配置数据，支持按需导出
 	 */
 	async function exportAllData(selectedCategories = null) {
@@ -7330,7 +4711,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 
 		const allData = {
 			metadata: {
-				exportFormatVersion: "1.2",
+				exportFormatVersion: "1.4",
 				scriptVersion: GM_info.script.version,
 				exportDate: getShanghaiTimeString(),
 				selectedCategories: categories
@@ -7403,6 +4784,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 				customGlossaries: GM_getValue(CUSTOM_GLOSSARIES_KEY),
 				importedGlossaries: GM_getValue(IMPORTED_GLOSSARY_KEY),
 				metadata: GM_getValue(GLOSSARY_METADATA_KEY),
+				onlineOrder: GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []),
 				postReplace: postReplaceData,
 				postReplaceString: postReplaceString,
 				lastSelected: GM_getValue(LAST_SELECTED_GLOSSARY_KEY)
@@ -7429,245 +4811,321 @@ Your task is to translate a numbered list of text segments provided by the user.
 			};
 		}
 
+		if (isSelected('blockerSettings')) {
+			allData.data.blockerSettings = {};
+			for (const key of BLOCKER_KEYS) {
+				const value = GM_getValue(key);
+				if (value !== undefined) {
+					allData.data.blockerSettings[key] = value;
+				}
+			}
+		}
+
+		if (isSelected('formatting')) {
+			allData.data.formatting = {
+				[FORMATTING_KEY]: GM_getValue(FORMATTING_KEY),
+				[FORMATTING_LAST_PROP_KEY]: GM_getValue(FORMATTING_LAST_PROP_KEY)
+			};
+		}
+
 		return allData;
 	}
 
-    /**
+	/**
 	 * 导入用户配置数据，支持按需导入及合并/覆盖模式
 	 */
-    async function importAllData(jsonData, selectedCategories, importMode, syncPanelStateCallback) {
-        if (!jsonData || typeof jsonData !== 'object' || !jsonData.data || typeof jsonData.data !== 'object') {
-            return { success: false, message: "文件格式无效或文件已损坏：缺少核心 'data' 模块。" };
-        }
+	async function importAllData(jsonData, selectedCategories, importMode, syncPanelStateCallback) {
+		if (!jsonData || typeof jsonData !== 'object' || !jsonData.data || typeof jsonData.data !== 'object') {
+			return { success: false, message: "文件格式无效或文件已损坏：缺少核心 'data' 模块。" };
+		}
 
-        const data = jsonData.data;
-        const isSelected = (id) => selectedCategories.includes(id);
-        const isOverwrite = importMode === 'overwrite';
-        let importLog = [];
+		const data = jsonData.data;
+		const isSelected = (id) => selectedCategories.includes(id);
+		const isOverwrite = importMode === 'overwrite';
+		let importLog = [];
 
-        const serviceIdMap = new Map();
+		const serviceIdMap = new Map();
 
-        if (isSelected('customServices')) {
-            if (isOverwrite) {
-                GM_setValue(CUSTOM_SERVICES_LIST_KEY, []);
-            }
+		if (isSelected('customServices')) {
+			if (isOverwrite) {
+				GM_setValue(CUSTOM_SERVICES_LIST_KEY, []);
+			}
 
-            if (Array.isArray(data.customServices)) {
-                const existingServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
-                let addedCount = 0;
+			if (Array.isArray(data.customServices)) {
+				const existingServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+				let addedCount = 0;
 
-                for (const importedService of data.customServices) {
-                    if (!importedService || typeof importedService.id !== 'string') continue;
+				for (const importedService of data.customServices) {
+					if (!importedService || typeof importedService.id !== 'string') continue;
 
-                    const newServiceId = `custom_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-                    serviceIdMap.set(importedService.id, newServiceId);
+					const newServiceId = `custom_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+					serviceIdMap.set(importedService.id, newServiceId);
 
-                    let models = importedService.models || [];
-                    if (models.length === 0 && importedService.modelsRaw) {
-                        models = importedService.modelsRaw.replace(/[，]/g, ',').split(',').map(m => m.trim()).filter(Boolean);
-                    }
+					let models = importedService.models || [];
+					if (models.length === 0 && importedService.modelsRaw) {
+						models = importedService.modelsRaw.replace(/[，]/g, ',').split(',').map(m => m.trim()).filter(Boolean);
+					}
 
-                    const newServiceConfig = {
-                        id: newServiceId,
-                        name: importedService.name,
-                        url: importedService.url,
-                        modelsRaw: importedService.modelsRaw,
-                        models: models
-                    };
+					const newServiceConfig = {
+						id: newServiceId,
+						name: importedService.name,
+						url: importedService.url,
+						modelsRaw: importedService.modelsRaw,
+						models: models
+					};
 
-                    if (importedService.selectedModel !== undefined) {
-                        GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${newServiceId}`, importedService.selectedModel);
-                    }
+					if (importedService.selectedModel !== undefined) {
+						GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${newServiceId}`, importedService.selectedModel);
+					}
 
-                    if (isSelected('apiKeys') && data.apiKeys) {
-                        const oldKeyName = `${importedService.id}_keys_string`;
-                        const apiKeyVal = data.apiKeys[oldKeyName] || importedService.apiKey;
-                        if (apiKeyVal !== undefined) {
-                            GM_setValue(`${newServiceId}_keys_string`, apiKeyVal);
-                            const keysArray = apiKeyVal.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
-                            GM_setValue(`${newServiceId}_keys_array`, keysArray);
-                        }
-                    }
+					if (isSelected('apiKeys') && data.apiKeys) {
+						const oldKeyName = `${importedService.id}_keys_string`;
+						const apiKeyVal = data.apiKeys[oldKeyName] || importedService.apiKey;
+						if (apiKeyVal !== undefined) {
+							GM_setValue(`${newServiceId}_keys_string`, apiKeyVal);
+							const keysArray = apiKeyVal.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+							GM_setValue(`${newServiceId}_keys_array`, keysArray);
+						}
+					}
 
-                    existingServices.push(newServiceConfig);
-                    addedCount++;
-                }
-                GM_setValue(CUSTOM_SERVICES_LIST_KEY, existingServices);
-                if (addedCount > 0) importLog.push(`导入 ${addedCount} 个自定义服务`);
-            }
-        }
+					existingServices.push(newServiceConfig);
+					addedCount++;
+				}
+				GM_setValue(CUSTOM_SERVICES_LIST_KEY, existingServices);
+				if (addedCount > 0) importLog.push(`导入 ${addedCount} 个自定义服务`);
+			}
+		}
 
-        if (isSelected('staticKeys') && data.staticKeys) {
-            for (const [key, value] of Object.entries(data.staticKeys)) {
-                if (value !== undefined) {
-                    let finalValue = value;
-                    if (key === 'transEngine' && serviceIdMap.has(value)) {
-                        finalValue = serviceIdMap.get(value);
-                    }
-                    if (key === 'from_lang' && (value === 'auto' || value === 'script_auto')) {
-                        finalValue = 'auto';
-                    }
-                    GM_setValue(key, finalValue);
-                }
-            }
-            importLog.push("基础设置已更新");
-        }
+		if (isSelected('staticKeys') && data.staticKeys) {
+			for (const [key, value] of Object.entries(data.staticKeys)) {
+				if (value !== undefined) {
+					let finalValue = value;
+					if (key === 'transEngine' && serviceIdMap.has(value)) {
+						finalValue = serviceIdMap.get(value);
+					}
+					if (key === 'from_lang' && (value === 'auto' || value === 'script_auto')) {
+						finalValue = 'auto';
+					}
+					GM_setValue(key, finalValue);
+				}
+			}
+			importLog.push("基础设置已更新");
+		}
 
-        if (isSelected('apiKeys') && data.apiKeys) {
-            if (isOverwrite) {
-                const builtInServices = Object.keys(engineMenuConfig).filter(id => !id.startsWith('custom_') && id !== 'add_new_custom');
-                builtInServices.forEach(id => {
-                    GM_deleteValue(`${id}_keys_string`);
-                    GM_deleteValue(`${id}_keys_array`);
-                });
-            }
+		if (isSelected('apiKeys') && data.apiKeys) {
+			if (isOverwrite) {
+				const builtInServices = Object.keys(engineMenuConfig).filter(id => !id.startsWith('custom_') && id !== 'add_new_custom');
+				builtInServices.forEach(id => {
+					GM_deleteValue(`${id}_keys_string`);
+					GM_deleteValue(`${id}_keys_array`);
+				});
+			}
 
-            const builtInServices = Object.keys(engineMenuConfig).filter(id => !id.startsWith('custom_') && id !== 'add_new_custom');
-            for (const [key, value] of Object.entries(data.apiKeys)) {
-                const isBuiltInKey = builtInServices.some(id => key.startsWith(id));
-                if (value !== undefined && isBuiltInKey) {
-                    GM_setValue(key, value);
-                }
-            }
-            importLog.push("内置服务 API Key 已更新");
-        }
+			const builtInServices = Object.keys(engineMenuConfig).filter(id => !id.startsWith('custom_') && id !== 'add_new_custom');
+			for (const [key, value] of Object.entries(data.apiKeys)) {
+				const isBuiltInKey = builtInServices.some(id => key.startsWith(id));
+				if (value !== undefined && isBuiltInKey) {
+					GM_setValue(key, value);
+				}
+			}
+			importLog.push("内置服务 API Key 已更新");
+		}
 
-        if (isSelected('modelSelections') && data.modelSelections) {
-            for (const [key, value] of Object.entries(data.modelSelections)) {
-                if (value !== undefined) GM_setValue(key, value);
-            }
-        }
+		if (isSelected('modelSelections') && data.modelSelections) {
+			for (const [key, value] of Object.entries(data.modelSelections)) {
+				if (value !== undefined) GM_setValue(key, value);
+			}
+		}
 
-        if (isSelected('glossaries') && data.glossaries) {
-            const g = data.glossaries;
+		if (isSelected('glossaries') && data.glossaries) {
+			const g = data.glossaries;
 
-            if (isOverwrite) {
-                GM_setValue(CUSTOM_GLOSSARIES_KEY, []);
-                GM_setValue(IMPORTED_GLOSSARY_KEY, {});
-                GM_setValue(GLOSSARY_METADATA_KEY, {});
-                GM_setValue(POST_REPLACE_STRING_KEY, '');
-                GM_setValue(POST_REPLACE_MAP_KEY, { singleRules: {}, multiPartRules: [] });
-            }
+			if (isOverwrite) {
+				GM_setValue(CUSTOM_GLOSSARIES_KEY, []);
+				GM_setValue(IMPORTED_GLOSSARY_KEY, {});
+				GM_setValue(GLOSSARY_METADATA_KEY, {});
+				GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, []);
+				GM_setValue(POST_REPLACE_STRING_KEY, '');
+				GM_setValue(POST_REPLACE_MAP_KEY, { singleRules: {}, multiPartRules: [] });
+			}
 
-            if (g.local || g.forbidden) {
-                const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-                existingLocal.push({
-                    id: `local_migrated_${Date.now()}`,
-                    name: '默认术语表',
-                    sensitive: g.local || '',
-                    insensitive: '',
-                    forbidden: g.forbidden || '',
-                    enabled: true
-                });
-                GM_setValue(CUSTOM_GLOSSARIES_KEY, existingLocal);
-                importLog.push("旧版术语表已迁移");
-            }
+			if (g.local || g.forbidden) {
+				const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+				existingLocal.push({
+					id: `local_migrated_${Date.now()}`,
+					name: '默认',
+					sensitive: g.local || '',
+					insensitive: '',
+					forbidden: g.forbidden || '',
+					enabled: true
+				});
+				GM_setValue(CUSTOM_GLOSSARIES_KEY, existingLocal);
+				importLog.push("旧版术语表已迁移");
+			}
 
-            if (g.customGlossaries && Array.isArray(g.customGlossaries)) {
-                const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-                let localAdded = 0;
-                g.customGlossaries.forEach(importedLocal => {
-                    const newId = `local_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-                    existingLocal.push({
-                        ...importedLocal,
-                        id: newId,
-                        name: importedLocal.name
-                    });
-                    localAdded++;
-                });
-                GM_setValue(CUSTOM_GLOSSARIES_KEY, existingLocal);
-                if (localAdded > 0) importLog.push(`导入 ${localAdded} 个本地术语表`);
-            }
+			if (g.customGlossaries && Array.isArray(g.customGlossaries)) {
+				const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+				let localAdded = 0;
+				g.customGlossaries.forEach(importedLocal => {
+					const newId = `local_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+					existingLocal.push({
+						...importedLocal,
+						id: newId,
+						name: importedLocal.name
+					});
+					localAdded++;
+				});
+				GM_setValue(CUSTOM_GLOSSARIES_KEY, existingLocal);
+				if (localAdded > 0) importLog.push(`导入 ${localAdded} 个本地术语表`);
+			}
 
-            if (g.importedGlossaries) {
-                const existingImported = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-                const mergedImported = { ...existingImported, ...g.importedGlossaries };
-                GM_setValue(IMPORTED_GLOSSARY_KEY, mergedImported);
-            }
+			if (g.importedGlossaries) {
+				const existingImported = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
+				const mergedImported = { ...existingImported, ...g.importedGlossaries };
+				GM_setValue(IMPORTED_GLOSSARY_KEY, mergedImported);
+			}
 
-            if (g.metadata) {
-                const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
-                const mergedMeta = { ...existingMeta, ...g.metadata };
-                GM_setValue(GLOSSARY_METADATA_KEY, mergedMeta);
-            } else if (g.onlineMetadata) {
-                const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
-                const mergedMeta = { ...existingMeta, ...g.onlineMetadata };
-                GM_setValue(GLOSSARY_METADATA_KEY, mergedMeta);
-            }
+			if (g.metadata) {
+				const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
+				const mergedMeta = { ...existingMeta, ...g.metadata };
+				GM_setValue(GLOSSARY_METADATA_KEY, mergedMeta);
+			} else if (g.onlineMetadata) {
+				const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
+				const mergedMeta = { ...existingMeta, ...g.onlineMetadata };
+				GM_setValue(GLOSSARY_METADATA_KEY, mergedMeta);
+			}
 
-            let importedPostReplaceString = '';
-            if (typeof g.postReplaceString === 'string' && g.postReplaceString.trim()) {
-                importedPostReplaceString = g.postReplaceString;
-            } else if (g.postReplace && typeof g.postReplace === 'object') {
-                const parts = [];
-                if (g.postReplace.singleRules) {
-                    Object.entries(g.postReplace.singleRules).forEach(([k, v]) => parts.push(`${k}:${v}`));
-                }
-                if (Array.isArray(g.postReplace.multiPartRules)) {
-                    g.postReplace.multiPartRules.forEach(r => {
-                        if (r.source && r.target) parts.push(`${r.source}=${r.target}`);
-                    });
-                }
-                importedPostReplaceString = parts.join('，');
-            } else if (typeof g.postReplace === 'string') {
-                importedPostReplaceString = g.postReplace;
-            }
+			if (g.onlineOrder && Array.isArray(g.onlineOrder)) {
+				if (isOverwrite) {
+					GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, g.onlineOrder);
+				} else {
+					const currentOrder = GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []);
+					const currentSet = new Set(currentOrder);
+					const newItems = g.onlineOrder.filter(url => !currentSet.has(url));
+					GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, [...currentOrder, ...newItems]);
+				}
+			}
 
-            if (importedPostReplaceString) {
-                if (isOverwrite) {
-                    GM_setValue(POST_REPLACE_STRING_KEY, importedPostReplaceString);
-                    processAndSavePostReplaceRules(importedPostReplaceString);
-                    importLog.push("后处理替换规则已覆盖");
-                } else {
-                    const currentString = GM_getValue(POST_REPLACE_STRING_KEY, '');
-                    const separator = currentString.trim() ? '，' : '';
-                    const newString = currentString + separator + importedPostReplaceString;
-                    GM_setValue(POST_REPLACE_STRING_KEY, newString);
-                    processAndSavePostReplaceRules(newString);
-                    importLog.push("后处理替换规则已合并");
-                }
-            }
-        }
+			let importedPostReplaceString = '';
+			if (typeof g.postReplaceString === 'string' && g.postReplaceString.trim()) {
+				importedPostReplaceString = g.postReplaceString;
+			} else if (g.postReplace && typeof g.postReplace === 'object') {
+				const parts = [];
+				if (g.postReplace.singleRules) {
+					Object.entries(g.postReplace.singleRules).forEach(([k, v]) => parts.push(`${k}:${v}`));
+				}
+				if (Array.isArray(g.postReplace.multiPartRules)) {
+					g.postReplace.multiPartRules.forEach(r => {
+						if (r.source && r.target) parts.push(`${r.source}=${r.target}`);
+					});
+				}
+				importedPostReplaceString = parts.join('，');
+			} else if (typeof g.postReplace === 'string') {
+				importedPostReplaceString = g.postReplace;
+			}
 
-        if (isSelected('aiParameters') && data.aiParameters) {
-            for (const [key, value] of Object.entries(data.aiParameters)) {
-                if (value !== undefined) {
-                    let finalValue = value;
-                    if (key === 'custom_ai_system_prompt' && typeof value === 'string' && value.includes('${')) {
-                        finalValue = value.replace(/\$\{/g, '{');
-                    }
-                    GM_setValue(key, finalValue);
-                }
-            }
-        }
+			if (importedPostReplaceString) {
+				if (isOverwrite) {
+					GM_setValue(POST_REPLACE_STRING_KEY, importedPostReplaceString);
+					processAndSavePostReplaceRules(importedPostReplaceString);
+					importLog.push("后处理替换规则已覆盖");
+				} else {
+					const currentString = GM_getValue(POST_REPLACE_STRING_KEY, '');
+					const separator = currentString.trim() ? '，' : '';
+					const newString = currentString + separator + importedPostReplaceString;
+					GM_setValue(POST_REPLACE_STRING_KEY, newString);
+					processAndSavePostReplaceRules(newString);
+					importLog.push("后处理替换规则已合并");
+				}
+			}
+		}
 
-        if (isSelected('uiState') && data.uiState) {
-            if (data.uiState.fabPosition) GM_setValue('ao3_fab_position', data.uiState.fabPosition);
-            if (data.uiState.panelPosition) GM_setValue('ao3_panel_position', data.uiState.panelPosition);
-        }
+		if (isSelected('aiParameters') && data.aiParameters) {
+			for (const [key, value] of Object.entries(data.aiParameters)) {
+				if (value !== undefined) {
+					let finalValue = value;
+					if (key === 'custom_ai_system_prompt' && typeof value === 'string' && value.includes('${')) {
+						finalValue = value.replace(/\$\{/g, '{');
+					}
+					GM_setValue(key, finalValue);
+				}
+			}
+		}
 
-        synchronizeAllSettings(syncPanelStateCallback);
+		if (isSelected('uiState') && data.uiState) {
+			if (data.uiState.fabPosition) GM_setValue('ao3_fab_position', data.uiState.fabPosition);
+			if (data.uiState.panelPosition) GM_setValue('ao3_panel_position', data.uiState.panelPosition);
+		}
 
-        let syncSummary = "";
-        if (isSelected('glossaries')) {
-            const importedUrls = (data.glossaries?.importedGlossaries) ? Object.keys(data.glossaries.importedGlossaries) :
-            (data.glossaries?.onlineMetadata ? Object.keys(data.glossaries.onlineMetadata) : []);
-            if (importedUrls.length > 0) {
-                const downloadPromises = importedUrls.map(url => importOnlineGlossary(url, { silent: true }));
-                Promise.allSettled(downloadPromises).then(results => {
-                    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success);
-                    if (successful.length > 0) {
-                        Logger.info('数据', `后台同步了 ${successful.length} 个在线术语表`);
-                    }
-                });
-                syncSummary = `\n已触发 ${importedUrls.length} 个在线术语表的后台同步。`;
-            }
-        }
+		if (isSelected('blockerSettings') && data.blockerSettings) {
+			const bData = data.blockerSettings;
+			const listKeys = [
+				'ao3_blocker_tags_black', 'ao3_blocker_tags_white',
+				'ao3_blocker_content_author', 'ao3_blocker_content_title',
+				'ao3_blocker_content_summary', 'ao3_blocker_content_id',
+				'ao3_blocker_adv_pairing', 'ao3_blocker_adv_char',
+				'ao3_blocker_adv_lang'
+			];
 
-        const modeText = isOverwrite ? "覆盖" : "合并";
-        const finalMessage = importLog.length > 0 ? `${modeText}导入完成：${importLog.join('，')}。` : "数据导入完成。";
-        return { success: true, message: finalMessage + syncSummary };
-    }
+			for (const [key, value] of Object.entries(bData)) {
+				if (!BLOCKER_KEYS.includes(key)) continue;
+
+				if (isOverwrite) {
+					GM_setValue(key, value);
+				} else {
+					if (listKeys.includes(key) && typeof value === 'string') {
+						const localVal = GM_getValue(key, '');
+						const localSet = new Set(localVal.split(/[,，]/).map(s => s.trim()).filter(Boolean));
+						const importItems = value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+
+						const newItems = importItems.filter(item => !localSet.has(item));
+
+						if (newItems.length > 0) {
+							const separator = localVal.includes('，') ? '，' : ', ';
+							const prefix = (localVal && !/[,，]\s*$/.test(localVal)) ? separator : '';
+							GM_setValue(key, localVal + prefix + newItems.join(separator));
+						}
+					} else {
+						GM_setValue(key, value);
+					}
+				}
+			}
+			importLog.push("屏蔽规则已更新");
+		}
+
+		if (isSelected('formatting') && data.formatting) {
+			const fData = data.formatting;
+			if (fData[FORMATTING_KEY] !== undefined) {
+				GM_setValue(FORMATTING_KEY, fData[FORMATTING_KEY]);
+			}
+			if (fData[FORMATTING_LAST_PROP_KEY] !== undefined) {
+				GM_setValue(FORMATTING_LAST_PROP_KEY, fData[FORMATTING_LAST_PROP_KEY]);
+			}
+			importLog.push("文章排版设置已更新");
+		}
+
+		synchronizeAllSettings(syncPanelStateCallback);
+
+		let syncSummary = "";
+		if (isSelected('glossaries')) {
+			const importedUrls = (data.glossaries?.importedGlossaries) ? Object.keys(data.glossaries.importedGlossaries) :
+				(data.glossaries?.onlineMetadata ? Object.keys(data.glossaries.onlineMetadata) : []);
+			if (importedUrls.length > 0) {
+				const downloadPromises = importedUrls.map(url => importOnlineGlossary(url, { silent: true }));
+				Promise.allSettled(downloadPromises).then(results => {
+					const successful = results.filter(r => r.status === 'fulfilled' && r.value.success);
+					if (successful.length > 0) {
+						Logger.info('数据', `后台同步了 ${successful.length} 个在线术语表`);
+					}
+				});
+				syncSummary = `\n已触发 ${importedUrls.length} 个在线术语表的后台同步。`;
+			}
+		}
+
+		const modeText = isOverwrite ? "覆盖" : "合并";
+		const finalMessage = importLog.length > 0 ? `${modeText}导入完成：${importLog.join('，')}。` : "数据导入完成。";
+		return { success: true, message: finalMessage + syncSummary };
+	}
 
 	/**
 	 * 同步函数，用于在设置变更后激活所有数据和状态
@@ -7675,10 +5133,6 @@ Your task is to translate a numbered list of text segments provided by the user.
 	function synchronizeAllSettings(syncPanelStateCallback) {
 		const postReplaceRaw = GM_getValue(POST_REPLACE_STRING_KEY, '');
 		processAndSavePostReplaceRules(postReplaceRaw);
-
-		const forbiddenRaw = GM_getValue(LOCAL_FORBIDDEN_STRING_KEY, '');
-		const forbiddenArray = forbiddenRaw.split(/[，,]/).map(t => t.trim()).filter(Boolean);
-		GM_setValue(LOCAL_FORBIDDEN_TERMS_KEY, forbiddenArray);
 
 		const allServiceIds = [
 			...Object.keys(engineMenuConfig),
@@ -7703,9 +5157,15 @@ Your task is to translate a numbered list of text segments provided by the user.
 
 		const displayMode = GM_getValue('translation_display_mode', 'bilingual');
 		applyDisplayModeChange(displayMode);
+		if (typeof refreshBlocker === 'function') {
+			refreshBlocker();
+		}
+		if (typeof applyFormatting === 'function') {
+			applyFormatting();
+		}
 	}
 
-    /**
+	/**
 	 * 设置面板的结构与样式
 	 */
 	function createSettingsPanelUI() {
@@ -7761,832 +5221,1113 @@ Your task is to translate a numbered list of text segments provided by the user.
 				postReplaceInput: existing.querySelector('#setting-input-post-replace'),
 				postReplaceSaveBtn: existing.querySelector('#setting-btn-post-replace-save'),
 				dataSyncActionsContainer: existing.querySelector('#data-sync-actions-container'),
+				debugActionsContainer: existing.querySelector('#debug-actions-container'),
+				toggleDebugBtn: existing.querySelector('#btn-toggle-debug'),
+				exportLogBtn: existing.querySelector('#btn-export-log'),
 				importDataBtn: existing.querySelector('#btn-import-data'),
 				exportDataBtn: existing.querySelector('#btn-export-data'),
+				blockerSection: existing.querySelector('#editable-section-blocker'),
+				blockerDimensionSelect: existing.querySelector('#blocker-dimension-select'),
+				blockerSubDimensionSelect: existing.querySelector('#blocker-sub-dimension-select'),
+				blockerInputArea: existing.querySelector('#blocker-input-area'),
+				blockerActionsContainer: existing.querySelector('#blocker-actions-container'),
+				toggleBlockerBtn: existing.querySelector('#btn-toggle-blocker'),
+				toggleReasonsBtn: existing.querySelector('#btn-toggle-reasons'),
 			};
 		}
 
-		GM_addStyle(`
-            #ao3-trans-settings-panel {
-                display: none;
-                position: fixed;
-                z-index: 2147483647;
-                width: 300px;
-                background-color: #ffffff;
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-                color: #000000DE;
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                overflow: hidden;
-                border: 1px solid rgba(0, 0, 0, 0.12);
-                --ao3-trans-primary-color: #1976d2;
-                --ao3-trans-border-color: rgba(0, 0, 0, 0.23);
-                --ao3-trans-border-hover: rgba(0, 0, 0, 0.87);
-                --ao3-trans-label-color: rgba(0, 0, 0, 0.6);
-                --ao3-trans-danger-color: #d32f2f;
-                flex-direction: column;
-                max-height: 85vh;
-            }
-            #ao3-trans-settings-panel.dragging {
-                opacity: 0.8;
-                transition: opacity 0.2s ease-in-out;
-			}
-            #ao3-trans-settings-panel.mobile-fixed-center {
-                top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%;
-            }
-            .settings-panel-header {
-                padding: 0px 4px 0px 16px;
-                border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-                cursor: move;
-                user-select: none;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                height: 40px;
-                flex-shrink: 0;
-            }
-            .settings-panel-header-title {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .settings-panel-header-title .home-icon-link {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-decoration: none;
-                border-bottom: none;
-            }
-            .settings-panel-header-title .home-icon-link:focus {
-                outline: none;
-            }
-            .settings-panel-header-title .home-icon-link svg {
-                width: 24px;
-                height: 24px;
-                fill: #000000DE;
-            }
-            .settings-panel-header-title h2 {
-                margin: 0; font-size: 16px; font-weight: bold;
-                font-family: inherit;
-            }
-            .settings-panel-close-btn {
-                cursor: pointer; width: 40px; height: 40px; border-radius: 50%;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 24px; color: rgba(0, 0, 0, 0.54);
-            }
-            .settings-panel-body {
-                padding: 16px;
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-                overflow-y: auto;
-                flex: 1;
-                min-height: 0;
-            }
-            .settings-panel-body::-webkit-scrollbar,
-            .custom-dropdown-menu ul::-webkit-scrollbar,
-            .settings-group textarea.settings-control::-webkit-scrollbar {
-                width: 5px;
-            }
-            .settings-panel-body::-webkit-scrollbar-track,
-            .custom-dropdown-menu ul::-webkit-scrollbar-track,
-            .settings-group textarea.settings-control::-webkit-scrollbar-track {
-                background: transparent;
-            }
-            .settings-panel-body::-webkit-scrollbar-thumb,
-            .custom-dropdown-menu ul::-webkit-scrollbar-thumb,
-            .settings-group textarea.settings-control::-webkit-scrollbar-thumb {
-                background: rgba(0, 0, 0, 0.2);
-                border-radius: 3px;
-            }
-
-            .settings-switch-group { display: flex; justify-content: space-between; align-items: center; padding: 0; }
-            .settings-panel-body > .settings-switch-group:first-child {
-                padding-left: 14px;
-            }
-            .settings-panel-body > .settings-switch-group:first-child .settings-label {
-                font-size: 15px;
-            }
-            .settings-switch-group .settings-label { font-size: 13px; font-weight: 400; color: #000000DE; }
-            .settings-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-            .settings-switch input { opacity: 0; width: 0; height: 0; }
-            .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
-            .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-            input:checked + .slider { background-color: #209CEE; }
-            input:checked + .slider:before { transform: translateX(20px); }
-
-            .language-swap-container {
-                display: flex;
-                align-items: center;
-                gap: 2px;
-            }
-            .language-swap-container .settings-group {
-                flex: 1;
-                min-width: 0;
-            }
-            #swap-lang-btn {
-                background: transparent !important;
-                background-color: transparent !important;
-                background-image: none !important;
-                box-shadow: none !important;
-                border: none !important;
-                border-radius: 0 !important;
-                -webkit-appearance: none !important;
-                appearance: none !important;
-                cursor: pointer;
-                font-size: 18px;
-                color: #555;
-                padding: 0 4px;
-                line-height: 1;
-                transition: color 0.2s ease;
-                flex-shrink: 0;
-            }
-            #swap-lang-btn:disabled {
-                color: #a9a9a9;
-                cursor: default;
-            }
-            #swap-lang-btn:focus {
-                outline: none;
-            }
-
-            .settings-group { position: relative; }
-
-            .settings-group.ao3-trans-control-disabled {
-                pointer-events: none;
-                opacity: 0.5;
-            }
-            .settings-group .settings-control:disabled {
-                background-color: #fff;
-                color: #000000DE;
-                opacity: 1;
-                -webkit-text-fill-color: #000000DE;
-            }
-            .settings-group .settings-control::placeholder {
-                color: #757575;
-                opacity: 1;
-                -webkit-text-fill-color: #757575;
-            }
-            .settings-group .settings-control:disabled::placeholder {
-                color: #757575;
-                -webkit-text-fill-color: #757575;
-            }
-
-            .settings-group .settings-control {
-                -webkit-appearance: none;
-                appearance: none;
-                width: 100%;
-                height: 40px;
-                padding: 0 12px;
-                border-radius: 6px;
-                border: 1px solid #ccc;
-                background-color: #fff;
-                font-size: 15px;
-                font-family: inherit;
-                box-sizing: border-box;
-                line-height: 40px;
-                color: #000000DE;
-                box-shadow: none;
-                min-width: 0;
-            }
-            .settings-group textarea.settings-control {
-                height: 72px !important;
-                min-height: 72px !important;
-                max-height: 72px !important;
-                line-height: 1.5;
-                padding-top: 8px;
-                padding-bottom: 8px;
-                resize: none;
-            }
-            .settings-group input[type="number"] {
-                -moz-appearance: textfield;
-            }
-            .settings-group input[type="number"]::-webkit-inner-spin-button,
-            .settings-group input[type="number"]::-webkit-outer-spin-button {
-                -webkit-appearance: none;
-                margin: 0;
-            }
-            .settings-group .settings-control:hover { border-color: var(--ao3-trans-border-hover); }
-            .settings-group .settings-control:focus {
-                border-color: var(--ao3-trans-primary-color);
-                border-width: 1px;
-                outline: none;
-            }
-            .settings-group .settings-label {
-                position: absolute;
-                top: 50%;
-                transform: translateY(-50%);
-                left: 12px;
-                font-size: 14px;
-                color: var(--ao3-trans-label-color);
-                pointer-events: none;
-                transition: all 0.2s ease;
-                background-color: #ffffff;
-                padding: 0 4px;
-            }
-            .settings-group .settings-control:focus + .settings-label,
-            .settings-group .settings-control.has-value + .settings-label {
-                top: 0;
-                left: 10px;
-                font-size: 12px;
-                color: var(--ao3-trans-primary-color);
-            }
-            .settings-group .settings-control:not(:focus).has-value + .settings-label {
-                color: var(--ao3-trans-label-color);
-            }
-            .settings-group.static-label .settings-label {
-                top: 0; left: 10px; font-size: 12px; transform: translateY(-50%); color: var(--ao3-trans-label-color);
-            }
-            .settings-group.static-label .settings-control {
-                line-height: normal;
-                padding-top: 4px;
-                padding-bottom: 4px;
-                height: 40px;
-            }
-            .settings-group.settings-group-select .settings-control.settings-select {
-                padding-right: 40px;
-            }
-            .settings-group.settings-group-select::after {
-                content: '';
-                position: absolute;
-                right: 14px;
-                top: 20px;
-                transform: translateY(-50%) rotate(0deg);
-                width: .65em;
-                height: .65em;
-                background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-13%200-5-1.9-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E');
-                background-repeat: no-repeat;
-                background-position: center;
-                background-size: contain;
-                pointer-events: none;
-            }
-            .settings-group.settings-group-select.dropdown-active::after {
-                transform: translateY(-50%) rotate(180deg);
-            }
-			.settings-action-button-inline:focus,
-            .online-glossary-delete-btn:focus,
-            .custom-dropdown-menu li .item-action-btn:focus {
-                outline: none;
-            }
-
-            .input-wrapper { position: relative; }
-            .input-wrapper .settings-input { padding-right: 52px !important; }
-            #ai-param-input-area .input-wrapper textarea.settings-input {
-                padding-right: 12px !important;
-            }
-            .settings-action-button-inline {
-                position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-                background: none; border: none; color: var(--ao3-trans-primary-color);
-                font-size: 14px; font-weight: 500; cursor: pointer; padding: 4px;
-                display: flex; align-items: center;
-            }
-
-            .editable-section {
-                display: none;
-                flex-direction: column;
-                gap: 16px;
-            }
-            .online-glossary-manager { display: flex; flex-direction: column; gap: 0px; }
-            .online-glossary-details {
-                width: 100%;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                font-size: 12px;
-                color: #666;
-                padding: 4px 12px;
-                overflow: hidden;
-            }
-			#online-glossary-details-container {
-                margin-top: -10px;
-                margin-bottom: -10px;
-            }
-            #online-glossary-info {
-                flex-grow: 1;
-                text-align: left;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                padding-right: 8px;
-                min-width: 0;
-            }
-            .online-glossary-delete-btn {
-                flex-shrink: 0;
-                background: none;
-                border: none;
-                color: var(--ao3-trans-primary-color);
-                font-size: 13px;
-                font-weight: 500;
-                cursor: pointer;
-                padding: 2px 4px;
-                text-align: right;
-            }
-            .online-glossary-delete-btn[data-confirming="true"] {
-                color: var(--ao3-trans-danger-color);
-            }
-
-            .custom-dropdown-backdrop {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: transparent;
-                z-index: 2147483647;
-            }
-            .custom-dropdown-menu {
-                position: fixed;
-                background-color: #ffffff;
-                border-radius: 8px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-                border: 1px solid rgba(0, 0, 0, 0.08);
-                z-index: 2147483647;
-                overflow: hidden;
-                opacity: 0;
-                transform: scale(0.95) translateY(-10px);
-                transform-origin: top center;
-                transition: opacity 0.15s ease-out, transform 0.15s ease-out;
-                box-sizing: border-box;
-                --ao3-trans-primary-color: #1976d2;
-                --ao3-trans-danger-color: #d32f2f;
-            }
-            .custom-dropdown-menu.visible {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-            .custom-dropdown-menu ul {
-                list-style: none;
-                margin: 0;
-                padding: 8px 0;
-                max-height: 250px;
-                overflow-y: auto;
-            }
-            .custom-dropdown-menu li {
-                padding: 8px 16px;
-                cursor: pointer;
-                font-size: 15px;
-                transition: background-color 0.2s ease;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 8px;
-            }
-            .custom-dropdown-menu li:hover {
-                background-color: #f5f5f5;
-            }
-            .custom-dropdown-menu li.selected {
-                background-color: #e3f2fd;
-            }
-            .custom-dropdown-menu li .item-text {
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: clip;
-                flex-grow: 1;
-            }
-            .custom-dropdown-menu li .item-actions {
-                display: flex;
-                gap: 8px;
-                flex-shrink: 0;
-            }
-            .custom-dropdown-menu li .item-action-btn {
-                font-size: 13px;
-                font-weight: 500;
-                background: none;
-                border: none;
-                padding: 0;
-                cursor: pointer;
-            }
-            .custom-dropdown-menu li .item-action-btn.edit {
-                color: var(--ao3-trans-primary-color);
-            }
-            .custom-dropdown-menu li .item-action-btn.delete,
-            .custom-dropdown-menu li .item-action-btn.toggle-glossary {
-                color: var(--ao3-trans-primary-color);
-            }
-            .custom-dropdown-menu li .item-action-btn.toggle-local {
-                color: var(--ao3-trans-primary-color);
-            }
-            .custom-dropdown-menu li .item-action-btn.delete[data-confirming="true"] {
-                color: var(--ao3-trans-danger-color);
-            }
-            #custom-service-url-notice {
-                font-size: 12px;
-                color: #555;
-                padding: 8px 12px;
-                background-color: #f0f0f0;
-                border-radius: 4px;
-                margin-top: -8px;
-            }
-            #custom-service-url-notice a {
-                color: var(--ao3-trans-primary-color);
-                text-decoration: none;
-            }
-            #custom-service-url-notice a:hover {
-                text-decoration: underline;
-            }
-            #glossary-manage-list {
-                display: flex;
-                flex-direction: column;
-                gap: 8px;
-                border: 1px solid #ccc;
-                border-radius: 6px;
-                padding: 8px;
-                max-height: 150px;
-                overflow-y: auto;
-            }
-            .glossary-manage-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                font-size: 14px;
-            }
-            .glossary-manage-item .name {
-                flex-grow: 1;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                margin-right: 8px;
-            }
-            .glossary-manage-item .actions {
-                display: flex;
-                gap: 8px;
-                flex-shrink: 0;
-            }
-            .glossary-manage-item .actions button {
-                font-size: 13px;
-                font-weight: 500;
-                background: none;
-                border: none;
-                padding: 2px 4px;
-                cursor: pointer;
-                color: var(--ao3-trans-primary-color);
-            }
-            .glossary-manage-item .actions .delete-btn[data-confirming="true"] {
-                color: var(--ao3-trans-danger-color);
-            }
-            .data-sync-actions-container {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 8px 12px 0;
-                margin-top: -8px;
-            }
-            .data-sync-action-btn {
-                background: none;
-                border: none;
-                color: var(--ao3-trans-primary-color);
-                font-size: 13px;
-                font-weight: 500;
-                cursor: pointer;
-                padding: 2px 4px;
-                text-align: center;
-            }
-            .data-sync-action-btn:focus {
-                outline: none;
-            }
-            .service-details-toggle-container {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 0;
-                width: 12.5%;
-                margin: -8px auto;
-                z-index: 10;
-                overflow: visible;
-                cursor: pointer;
-                position: relative;
-            }
-            .service-details-toggle-container::before {
-                content: "";
-                position: absolute;
-                top: -15px;
-                bottom: -15px;
-                left: 0;
-                right: 0;
-            }
-            .service-details-toggle-container::after {
-                content: none !important;
-            }
-            .service-details-toggle-btn {
-                width: 0;
-                height: 0;
-                border-left: 6px solid transparent;
-                border-right: 6px solid transparent;
-                border-bottom: 8px solid var(--ao3-trans-primary-color);
-                border-top: 0;
-                transition: transform 0.3s ease;
-            }
-            .service-details-toggle-btn::after,
-            .service-details-toggle-btn::before {
-                content: none !important;
+		const BLOCKER_STYLE = `
+            .ao3-blocker-hidden {
                 display: none !important;
             }
-            .service-details-toggle-btn.collapsed {
-                transform: rotate(180deg);
+            .ao3-blocker-work {
+                padding: 0 !important;
+                min-height: auto !important;
             }
-            #local-edit-container-translation {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-            }
+            .ao3-blocker-fold {
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                padding: 0.6em 1em !important;
 
-            .settings-action-button-inline,
-            .online-glossary-delete-btn,
-            .custom-dropdown-menu li .item-action-btn,
-            .data-sync-action-btn,
-            #swap-lang-btn,
-            div.translate-me-ao3-wrapper > div,
-            .service-details-toggle-container,
-            .settings-switch,
-            .slider,
-            .settings-panel-close-btn,
-            .home-icon-link,
-            .custom-dropdown-menu li,
-            .settings-control,
-            .settings-label {
-                -webkit-tap-highlight-color: transparent;
-                outline: none;
-            }
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                opacity: 1 !important;
 
-            /* 深色模式适配 */
-            @media (prefers-color-scheme: dark) {
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            .ao3-blocker-note {
+                font-size: 13px !important;
+                color: inherit !important;
+                font-style: normal !important;
+                font-weight: normal !important;
+                flex: 1 !important;
+                margin-right: 10px !important;
+                word-break: break-all !important;
+            }
+            .ao3-blocker-toggle {
+                padding: 4px !important;
+                margin: 0 !important;
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+                color: inherit !important;
+                cursor: pointer !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                user-select: none !important;
+                flex-shrink: 0 !important;
+                -webkit-tap-highlight-color: transparent !important;
+                outline: none !important;
+            }
+            .ao3-blocker-toggle svg {
+                width: 20px;
+                height: 20px;
+                fill: currentColor;
+            }
+            .ao3-blocker-cut {
+                display: none !important;
+            }
+            .ao3-blocker-unhide > .ao3-blocker-fold {
+                border-bottom: 1px solid currentColor !important;
+                border-bottom-color: rgba(127, 127, 127, 0.25) !important;
+                margin-bottom: 0 !important;
+            }
+            .ao3-blocker-unhide > .ao3-blocker-cut {
+                display: block !important;
+                padding: 10px !important;
+            }
+        `;
+
+		GM_addStyle(`
                 #ao3-trans-settings-panel {
-                    background-color: #1e1e1e;
-                    color: #e0e0e0;
-                    border-color: rgba(255, 255, 255, 0.12);
-                    --ao3-trans-primary-color: #64b5f6;
-                    --ao3-trans-border-color: rgba(255, 255, 255, 0.12);
-                    --ao3-trans-border-hover: rgba(255, 255, 255, 0.87);
-                    --ao3-trans-label-color: #a0a0a0;
-                    --ao3-trans-danger-color: #e57373;
+                    display: none;
+                    position: fixed;
+                    z-index: 2147483647;
+                    width: 300px;
+                    background-color: #ffffff;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+                    color: #000000DE;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                    overflow: hidden;
+                    border: 1px solid rgba(0, 0, 0, 0.12);
+                    --ao3-trans-primary-color: #1976d2;
+                    --ao3-trans-border-color: rgba(0, 0, 0, 0.23);
+                    --ao3-trans-border-hover: rgba(0, 0, 0, 0.87);
+                    --ao3-trans-label-color: rgba(0, 0, 0, 0.6);
+                    --ao3-trans-danger-color: #d32f2f;
+                    flex-direction: column;
+                    max-height: 85vh;
+                }
+                #ao3-trans-settings-panel.dragging {
+                    opacity: 0.8;
+                    transition: opacity 0.2s ease-in-out;
+                }
+                #ao3-trans-settings-panel.mobile-fixed-center {
+                    top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%;
+                    max-height: 90vh !important;
                 }
                 .settings-panel-header {
-                    border-bottom-color: rgba(255, 255, 255, 0.12);
+                    padding: 0px 4px 0px 16px;
+                    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+                    cursor: move;
+                    user-select: none;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    height: 40px;
+                    flex-shrink: 0;
+                }
+                .settings-panel-header-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .settings-panel-header-title .home-icon-link {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    text-decoration: none;
+                    border-bottom: none;
+                }
+                .settings-panel-header-title .home-icon-link:focus {
+                    outline: none;
                 }
                 .settings-panel-header-title .home-icon-link svg {
-                    fill: #e0e0e0;
+                    width: 24px;
+                    height: 24px;
+                    fill: #000000DE;
+                }
+                .settings-panel-header-title h2 {
+                    margin: 0; font-size: 16px; font-weight: bold;
+                    font-family: inherit;
                 }
                 .settings-panel-close-btn {
-                    color: rgba(255, 255, 255, 0.7);
+                    cursor: pointer; width: 40px; height: 40px; border-radius: 50%;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 24px; color: rgba(0, 0, 0, 0.54);
                 }
-                .settings-switch-group .settings-label,
-                .online-glossary-details {
-                    color: #e0e0e0;
+                .settings-panel-body {
+                    padding: 16px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                    overflow-y: auto;
+                    flex: 1;
+                    min-height: 0;
                 }
-                .settings-group .settings-control {
-                    background-color: #2d2d2d;
-                    border-color: rgba(255, 255, 255, 0.12);
-                    color: #e0e0e0;
+                .settings-panel-body::-webkit-scrollbar,
+                .custom-dropdown-menu ul::-webkit-scrollbar,
+                .settings-group textarea.settings-control::-webkit-scrollbar {
+                    width: 5px;
                 }
-                .settings-group .settings-control:disabled {
-                    background-color: #2d2d2d;
-                    color: #e0e0e0;
-                    -webkit-text-fill-color: #e0e0e0;
-                }
-                .settings-group .settings-control::placeholder {
-                    color: #666 !important;
-                    -webkit-text-fill-color: #666 !important;
-                }
-                .settings-group .settings-control:disabled::placeholder {
-                    color: #666;
-                    -webkit-text-fill-color: #666;
-                    opacity: 1;
-                }
-                .settings-group .settings-control::placeholder {
-                    color: #666 !important;
-                    -webkit-text-fill-color: #666 !important;
-                }
-                .settings-group .settings-label {
-                    background-color: #1e1e1e;
-                }
-                .settings-group.settings-group-select::after {
-                    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a0a0a0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-13%200-5-1.9-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E');
-                }
-                #custom-service-url-notice {
-                    background-color: #2d2d2d;
-                    color: #a0a0a0;
-                }
-                #swap-lang-btn {
-                    color: #a0a0a0;
-                }
-                #swap-lang-btn:disabled {
-                    color: #444;
+                .settings-panel-body::-webkit-scrollbar-track,
+                .custom-dropdown-menu ul::-webkit-scrollbar-track,
+                .settings-group textarea.settings-control::-webkit-scrollbar-track {
+                    background: transparent;
                 }
                 .settings-panel-body::-webkit-scrollbar-thumb,
                 .custom-dropdown-menu ul::-webkit-scrollbar-thumb,
                 .settings-group textarea.settings-control::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.2);
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 3px;
                 }
-                #glossary-manage-list {
-                    border-color: rgba(255, 255, 255, 0.12);
+
+                .settings-switch-group { display: flex; justify-content: space-between; align-items: center; padding: 0; }
+                .settings-panel-body > .settings-switch-group:first-child {
+                    padding-left: 14px;
+                }
+                .settings-panel-body > .settings-switch-group:first-child .settings-label {
+                    font-size: 15px;
+                }
+                .settings-switch-group .settings-label { font-size: 13px; font-weight: 400; color: #000000DE; }
+                .settings-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+                .settings-switch input { opacity: 0; width: 0; height: 0; }
+                .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+                .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+                input:checked + .slider { background-color: #209CEE; }
+                input:checked + .slider:before { transform: translateX(20px); }
+
+                .language-swap-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 2px;
+                }
+                .language-swap-container .settings-group {
+                    flex: 1;
+                    min-width: 0;
+                }
+                #swap-lang-btn {
+                    background: transparent !important;
+                    background-color: transparent !important;
+                    background-image: none !important;
+                    box-shadow: none !important;
+                    border: none !important;
+                    border-radius: 0 !important;
+                    -webkit-appearance: none !important;
+                    appearance: none !important;
+                    cursor: pointer;
+                    font-size: 18px;
+                    color: #555;
+                    padding: 0 4px;
+                    line-height: 1;
+                    transition: color 0.2s ease;
+                    flex-shrink: 0;
+                }
+                #swap-lang-btn:disabled {
+                    color: #a9a9a9;
+                    cursor: default;
+                }
+                #swap-lang-btn:focus {
+                    outline: none;
+                }
+
+                .settings-group { position: relative; }
+
+                .settings-group.ao3-trans-control-disabled {
+                    pointer-events: none;
+                    opacity: 0.5;
+                }
+                .settings-group .settings-control:disabled {
+                    background-color: #fff;
+                    color: #000000DE;
+                    opacity: 1;
+                    -webkit-text-fill-color: #000000DE;
+                }
+                .settings-group .settings-control::placeholder {
+                    color: #757575;
+                    opacity: 1;
+                    -webkit-text-fill-color: #757575;
+                }
+                .settings-group .settings-control:disabled::placeholder {
+                    color: #757575;
+                    -webkit-text-fill-color: #757575;
+                }
+
+                .settings-group .settings-control {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 100%;
+                    height: 40px;
+                    padding: 0 12px;
+                    border-radius: 6px;
+                    border: 1px solid #ccc;
+                    background-color: #fff;
+                    font-size: 15px;
+                    font-family: inherit;
+                    box-sizing: border-box;
+                    line-height: 40px;
+                    color: #000000DE;
+                    box-shadow: none;
+                    min-width: 0;
+                }
+                .settings-group textarea.settings-control {
+                    height: 72px !important;
+                    min-height: 72px !important;
+                    max-height: 72px !important;
+                    line-height: 1.5;
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                    resize: none;
+                }
+                .settings-group input[type="number"] {
+                    -moz-appearance: textfield;
+                }
+                .settings-group input[type="number"]::-webkit-inner-spin-button,
+                .settings-group input[type="number"]::-webkit-outer-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
+                .settings-group .settings-control:hover { border-color: var(--ao3-trans-border-hover); }
+                .settings-group .settings-control:focus {
+                    border-color: var(--ao3-trans-primary-color);
+                    border-width: 1px;
+                    outline: none;
+                }
+                .settings-group .settings-label {
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    left: 12px;
+                    font-size: 14px;
+                    color: var(--ao3-trans-label-color);
+                    pointer-events: none;
+                    transition: all 0.2s ease;
+                    background-color: #ffffff;
+                    padding: 0 4px;
+                }
+                .settings-group .settings-control:focus + .settings-label,
+                .settings-group .settings-control.has-value + .settings-label {
+                    top: 0;
+                    left: 10px;
+                    font-size: 12px;
+                    color: var(--ao3-trans-primary-color);
+                }
+                .settings-group .settings-control:not(:focus).has-value + .settings-label {
+                    color: var(--ao3-trans-label-color);
+                }
+                .settings-group.static-label .settings-label {
+                    top: 0; left: 10px; font-size: 12px; transform: translateY(-50%); color: var(--ao3-trans-label-color);
+                }
+                .settings-group.static-label .settings-control {
+                    line-height: normal;
+                    padding-top: 4px;
+                    padding-bottom: 4px;
+                    height: 40px;
+                }
+                .settings-group.settings-group-select .settings-control.settings-select {
+                    padding-right: 40px;
+                }
+                .settings-group.settings-group-select::after {
+                    content: '';
+                    position: absolute;
+                    right: 14px;
+                    top: 20px;
+                    transform: translateY(-50%) rotate(0deg);
+                    width: .65em;
+                    height: .65em;
+                    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-13%200-5-1.9-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E');
+                    background-repeat: no-repeat;
+                    background-position: center;
+                    background-size: contain;
+                    pointer-events: none;
+                }
+                .settings-group.settings-group-select.dropdown-active::after {
+                    transform: translateY(-50%) rotate(180deg);
+                }
+                .settings-action-button-inline:focus,
+                .online-glossary-delete-btn:focus,
+                .custom-dropdown-menu li .item-action-btn:focus {
+                    outline: none;
+                }
+
+                .input-wrapper { position: relative; }
+                .input-wrapper .settings-input { padding-right: 52px !important; }
+                #ai-param-input-area .input-wrapper textarea.settings-input {
+                    padding-right: 12px !important;
+                }
+                .settings-action-button-inline {
+                    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+                    background: none; border: none; color: var(--ao3-trans-primary-color);
+                    font-size: 14px; font-weight: 500; cursor: pointer; padding: 4px;
+                    display: flex; align-items: center;
+                }
+
+                .editable-section {
+                    display: none;
+                    flex-direction: column;
+                    gap: 16px;
+                }
+                .online-glossary-manager { display: flex; flex-direction: column; gap: 0px; }
+                .online-glossary-details {
+                    width: 100%;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-size: 12px;
+                    color: #666;
+                    padding: 4px 12px;
+                    overflow: hidden;
+                }
+                #online-glossary-details-container {
+                    margin-top: -10px;
+                    margin-bottom: -10px;
+                }
+                #online-glossary-info {
+                    flex-grow: 1;
+                    text-align: left;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    padding-right: 8px;
+                    min-width: 0;
+                }
+                .online-glossary-delete-btn {
+                    flex-shrink: 0;
+                    background: none;
+                    border: none;
+                    color: var(--ao3-trans-primary-color);
+                    font-size: 13px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    padding: 2px 4px;
+                    text-align: right;
+                }
+                .online-glossary-delete-btn[data-confirming="true"] {
+                    color: var(--ao3-trans-danger-color);
+                }
+
+                .custom-dropdown-backdrop {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: transparent;
+                    z-index: 2147483647;
                 }
                 .custom-dropdown-menu {
-                    background-color: #2d2d2d;
-                    border-color: rgba(255, 255, 255, 0.12);
-                    --ao3-trans-primary-color: #64b5f6;
-                    --ao3-trans-danger-color: #e57373;
+                    position: fixed;
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                    border: 1px solid rgba(0, 0, 0, 0.08);
+                    z-index: 2147483647;
+                    overflow: hidden;
+                    opacity: 0;
+                    transform: scale(0.95) translateY(-10px);
+                    transform-origin: top center;
+                    transition: opacity 0.15s ease-out, transform 0.15s ease-out;
+                    box-sizing: border-box;
+                    --ao3-trans-primary-color: #1976d2;
+                    --ao3-trans-danger-color: #d32f2f;
+                }
+                .custom-dropdown-menu.visible {
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+                .custom-dropdown-menu ul {
+                    list-style: none;
+                    margin: 0;
+                    padding: 8px 0;
+                    max-height: 250px;
+                    overflow-y: auto;
                 }
                 .custom-dropdown-menu li {
-                    color: #e0e0e0;
+                    padding: 8px 16px;
+                    cursor: pointer;
+                    font-size: 15px;
+                    transition: background-color 0.2s ease;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 8px;
                 }
                 .custom-dropdown-menu li:hover {
-                    background-color: rgba(255, 255, 255, 0.08);
+                    background-color: #f5f5f5;
                 }
                 .custom-dropdown-menu li.selected {
-                    background-color: rgba(100, 181, 246, 0.16);
+                    background-color: #e3f2fd;
                 }
-            }
-        `);
+                .custom-dropdown-menu li .item-text {
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: clip;
+                    flex-grow: 1;
+                }
+                .custom-dropdown-menu li .item-actions {
+                    display: flex;
+                    gap: 8px;
+                    flex-shrink: 0;
+                }
+                .custom-dropdown-menu li .item-action-btn {
+                    font-size: 13px;
+                    font-weight: 500;
+                    background: none;
+                    border: none;
+                    padding: 0;
+                    cursor: pointer;
+                }
+                .custom-dropdown-menu li .item-action-btn.edit {
+                    color: var(--ao3-trans-primary-color);
+                }
+                .custom-dropdown-menu li .item-action-btn.delete,
+                .custom-dropdown-menu li .item-action-btn.toggle-glossary {
+                    color: var(--ao3-trans-primary-color);
+                }
+                .custom-dropdown-menu li .item-action-btn.toggle-local {
+                    color: var(--ao3-trans-primary-color);
+                }
+                .custom-dropdown-menu li .item-action-btn.delete[data-confirming="true"] {
+                    color: var(--ao3-trans-danger-color);
+                }
+
+	/* 拖拽排序相关样式 */
+				.drag-ghost {
+					position: fixed !important;
+					z-index: 2147483648 !important;
+					box-shadow: 0 8px 20px rgba(0,0,0,0.3) !important;
+					opacity: 1 !important; /* 确保不透明 */
+					pointer-events: none !important;
+					transition: none !important;
+					list-style: none !important;
+					border-radius: 4px !important;
+					cursor: grabbing !important;
+					white-space: nowrap !important;
+					overflow: hidden !important;
+					box-sizing: border-box !important;
+					margin: 0 !important;
+
+					/* 移除边框 */
+					border: none !important;
+
+					/* 重新定义变量 */
+					--ao3-trans-primary-color: #1976d2;
+					--ao3-trans-danger-color: #d32f2f;
+
+					/* 强制 Flex 布局 */
+					display: flex !important;
+					justify-content: space-between !important;
+					align-items: center !important;
+					padding: 8px 16px !important;
+					font-size: 15px !important;
+					font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+					color: #000000DE !important;
+
+					/* 核心修复：浅色模式下强制白色背景，防止透明 */
+					background-color: #ffffff !important;
+				}
+
+				.drag-ghost .item-text {
+					flex-grow: 1 !important;
+					white-space: nowrap !important;
+					overflow: hidden !important;
+					text-overflow: clip !important;
+				}
+				.drag-ghost .item-actions {
+					display: flex !important;
+					gap: 8px !important;
+					flex-shrink: 0 !important;
+				}
+
+				/* 按钮样式 */
+				.drag-ghost .item-action-btn {
+					font-size: 13px !important;
+					font-weight: 500 !important;
+					background: none !important;
+					border: none !important;
+					padding: 0 !important;
+					color: var(--ao3-trans-primary-color) !important;
+					-webkit-text-fill-color: var(--ao3-trans-primary-color) !important;
+				}
+
+				.drag-ghost .item-action-btn[data-confirming="true"] {
+					color: var(--ao3-trans-danger-color) !important;
+					-webkit-text-fill-color: var(--ao3-trans-danger-color) !important;
+				}
+
+				.drag-ghost.selected {
+					background-color: #e3f2fd !important;
+				}
+
+				/* 排序时禁用 Hover */
+				ul.is-sorting li:hover {
+					background-color: transparent !important;
+				}
+				ul.is-sorting li.selected:hover {
+					background-color: #e3f2fd !important;
+				}
+
+				/* 全局拖拽状态 */
+				body.ao3-dragging-active {
+					cursor: grabbing !important;
+					user-select: none !important;
+				}
+				body.ao3-dragging-active .custom-dropdown-menu {
+					pointer-events: none !important;
+				}
+				body.ao3-dragging-active .custom-dropdown-menu li.selected {
+					background-color: #e3f2fd !important;
+				}
+
+				/* 深色模式适配 */
+				@media (prefers-color-scheme: dark) {
+					.drag-ghost {
+						--ao3-trans-primary-color: #64b5f6;
+						--ao3-trans-danger-color: #e57373;
+
+						box-shadow: 0 8px 20px rgba(0,0,0,0.6) !important;
+						color: #e0e0e0 !important;
+
+						/* 核心修复：深色模式下强制深灰背景，防止透明 */
+						background-color: #2d2d2d !important;
+					}
+					.drag-ghost.selected {
+						background-color: rgba(100, 181, 246, 0.16) !important;
+					}
+					ul.is-sorting li.selected:hover {
+						background-color: rgba(100, 181, 246, 0.16) !important;
+					}
+					body.ao3-dragging-active .custom-dropdown-menu li.selected {
+						background-color: rgba(100, 181, 246, 0.16) !important;
+					}
+					.custom-dropdown-menu li.drag-placeholder {
+						background: #444 !important;
+						border-color: #666 !important;
+					}
+				}
+
+				.custom-dropdown-menu li.drag-placeholder {
+					opacity: 0.3 !important;
+					background: #e0e0e0 !important;
+					border: 1px dashed #999 !important;
+					color: transparent !important;
+				}
+				.custom-dropdown-menu li.drag-placeholder * {
+					visibility: hidden !important;
+				}
+
+                .custom-dropdown-menu li.drag-placeholder {
+                    opacity: 0.3 !important;
+                    background: #e0e0e0 !important;
+                    border: 1px dashed #999 !important;
+                    color: transparent !important;
+                }
+                .custom-dropdown-menu li.drag-placeholder * {
+                    visibility: hidden !important;
+                }
+
+                .custom-dropdown-menu li.drag-placeholder {
+                    opacity: 0.3 !important;
+                    background: #e0e0e0 !important;
+                    border: 1px dashed #999 !important;
+                    color: transparent !important;
+                }
+                .custom-dropdown-menu li.drag-placeholder * {
+                    visibility: hidden !important;
+                }
+
+                .custom-dropdown-menu li.drag-placeholder {
+                    opacity: 0.3 !important;
+                    background: #e0e0e0 !important;
+                    border: 1px dashed #999 !important;
+                    color: transparent !important;
+                }
+                .custom-dropdown-menu li.drag-placeholder * {
+                    visibility: hidden !important;
+                }
+
+                #custom-service-url-notice {
+                    font-size: 12px;
+                    color: #555;
+                    padding: 8px 12px;
+                    background-color: #f0f0f0;
+                    border-radius: 4px;
+                    margin-top: -8px;
+                }
+                #custom-service-url-notice a {
+                    color: var(--ao3-trans-primary-color);
+                    text-decoration: none;
+                }
+                #custom-service-url-notice a:hover {
+                    text-decoration: underline;
+                }
+                #glossary-manage-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    border: 1px solid #ccc;
+                    border-radius: 6px;
+                    padding: 8px;
+                    max-height: 150px;
+                    overflow-y: auto;
+                }
+                .glossary-manage-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-size: 14px;
+                }
+                .glossary-manage-item .name {
+                    flex-grow: 1;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    margin-right: 8px;
+                }
+                .glossary-manage-item .actions {
+                    display: flex;
+                    gap: 8px;
+                    flex-shrink: 0;
+                }
+                .glossary-manage-item .actions button {
+                    font-size: 13px;
+                    font-weight: 500;
+                    background: none;
+                    border: none;
+                    padding: 2px 4px;
+                    cursor: pointer;
+                    color: var(--ao3-trans-primary-color);
+                }
+                .glossary-manage-item .actions .delete-btn[data-confirming="true"] {
+                    color: var(--ao3-trans-danger-color);
+                }
+                .data-sync-actions-container {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 8px 12px 0;
+                    margin-top: -8px;
+                }
+                .data-sync-action-btn {
+                    background: none;
+                    border: none;
+                    color: var(--ao3-trans-primary-color);
+                    font-size: 13px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    padding: 2px 4px;
+                    text-align: center;
+                }
+                .data-sync-action-btn:focus {
+                    outline: none;
+                }
+                .service-details-toggle-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 0;
+                    width: 12.5%;
+                    margin: -8px auto;
+                    z-index: 10;
+                    overflow: visible;
+                    cursor: pointer;
+                    position: relative;
+                }
+                .service-details-toggle-container::before {
+                    content: "";
+                    position: absolute;
+                    top: -15px;
+                    bottom: -15px;
+                    left: 0;
+                    right: 0;
+                }
+                .service-details-toggle-container::after {
+                    content: none !important;
+                }
+                .service-details-toggle-btn {
+                    width: 0;
+                    height: 0;
+                    border-left: 6px solid transparent;
+                    border-right: 6px solid transparent;
+                    border-bottom: 8px solid var(--ao3-trans-primary-color);
+                    border-top: 0;
+                    transition: transform 0.3s ease;
+                }
+                .service-details-toggle-btn::after,
+                .service-details-toggle-btn::before {
+                    content: none !important;
+                    display: none !important;
+                }
+                .service-details-toggle-btn.collapsed {
+                    transform: rotate(180deg);
+                }
+                #local-edit-container-translation {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                }
+
+                .settings-action-button-inline,
+                .online-glossary-delete-btn,
+                .custom-dropdown-menu li .item-action-btn,
+                .data-sync-action-btn,
+                #swap-lang-btn,
+                div.translate-me-ao3-wrapper > div,
+                .service-details-toggle-container,
+                .settings-switch,
+                .slider,
+                .settings-panel-close-btn,
+                .home-icon-link,
+                .custom-dropdown-menu li,
+                .settings-control,
+                .settings-label {
+                    -webkit-tap-highlight-color: transparent;
+                    outline: none;
+                }
+
+                /* 深色模式适配 */
+                @media (prefers-color-scheme: dark) {
+                    #ao3-trans-settings-panel {
+                        background-color: #1e1e1e;
+                        color: #e0e0e0;
+                        border-color: rgba(255, 255, 255, 0.12);
+                        --ao3-trans-primary-color: #64b5f6;
+                        --ao3-trans-border-color: rgba(255, 255, 255, 0.12);
+                        --ao3-trans-border-hover: rgba(255, 255, 255, 0.87);
+                        --ao3-trans-label-color: #a0a0a0;
+                        --ao3-trans-danger-color: #e57373;
+                    }
+                    .settings-panel-header {
+                        border-bottom-color: rgba(255, 255, 255, 0.12);
+                    }
+                    .settings-panel-header-title .home-icon-link svg {
+                        fill: #e0e0e0;
+                    }
+                    .settings-panel-close-btn {
+                        color: rgba(255, 255, 255, 0.7);
+                    }
+                    .settings-switch-group .settings-label,
+                    .online-glossary-details {
+                        color: #e0e0e0;
+                    }
+                    .settings-group .settings-control {
+                        background-color: #2d2d2d;
+                        border-color: rgba(255, 255, 255, 0.12);
+                        color: #e0e0e0;
+                    }
+                    .settings-group .settings-control:disabled {
+                        background-color: #2d2d2d;
+                        color: #e0e0e0;
+                        -webkit-text-fill-color: #e0e0e0;
+                    }
+                    .settings-group .settings-control::placeholder {
+                        color: #666 !important;
+                        -webkit-text-fill-color: #666 !important;
+                    }
+                    .settings-group .settings-control:disabled::placeholder {
+                        color: #666;
+                        -webkit-text-fill-color: #666;
+                        opacity: 1;
+                    }
+                    .settings-group .settings-control::placeholder {
+                        color: #666 !important;
+                        -webkit-text-fill-color: #666 !important;
+                    }
+                    .settings-group .settings-label {
+                        background-color: #1e1e1e;
+                    }
+                    .settings-group.settings-group-select::after {
+                        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a0a0a0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-13%200-5-1.9-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E');
+                    }
+                    #custom-service-url-notice {
+                        background-color: #2d2d2d;
+                        color: #a0a0a0;
+                    }
+                    #swap-lang-btn {
+                        color: #a0a0a0;
+                    }
+                    #swap-lang-btn:disabled {
+                        color: #444;
+                    }
+                    .settings-panel-body::-webkit-scrollbar-thumb,
+                    .custom-dropdown-menu ul::-webkit-scrollbar-thumb,
+                    .settings-group textarea.settings-control::-webkit-scrollbar-thumb {
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+                    #glossary-manage-list {
+                        border-color: rgba(255, 255, 255, 0.12);
+                    }
+                    .custom-dropdown-menu {
+                        background-color: #2d2d2d;
+                        border-color: rgba(255, 255, 255, 0.12);
+                        --ao3-trans-primary-color: #64b5f6;
+                        --ao3-trans-danger-color: #e57373;
+                    }
+                    .custom-dropdown-menu li {
+                        color: #e0e0e0;
+                    }
+                    .custom-dropdown-menu li:hover {
+                        background-color: rgba(255, 255, 255, 0.08);
+                    }
+                    .custom-dropdown-menu li.selected {
+                        background-color: rgba(100, 181, 246, 0.16);
+                    }
+                    /* 深色模式下的 Ghost 样式 */
+                    .drag-ghost {
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+                    }
+                }
+                ${BLOCKER_STYLE}
+            `);
 
 		const panel = document.createElement('div');
 		panel.id = 'ao3-trans-settings-panel';
 		const scriptVersion = GM_info.script.version.split('-')[0];
 
 		panel.innerHTML = `
-            <div class="settings-panel-header">
-                <div class="settings-panel-header-title">
-                    <a href="https://github.com/V-Lipset/ao3-chinese" target="_blank" class="home-icon-link" title="访问项目主页">
-                        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z"/></svg>
-                    </a>
-                    <h2>AO3 Translator v${scriptVersion}</h2>
+                <div class="settings-panel-header">
+                    <div class="settings-panel-header-title">
+                        <a href="https://github.com/V-Lipset/ao3-chinese" target="_blank" class="home-icon-link" title="访问项目主页">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z"/></svg>
+                        </a>
+                        <h2>AO3 Translator v${scriptVersion}</h2>
+                    </div>
+                    <span class="settings-panel-close-btn" title="关闭">&times;</span>
                 </div>
-                <span class="settings-panel-close-btn" title="关闭">&times;</span>
-            </div>
-            <div class="settings-panel-body">
-                <div class="settings-switch-group">
-                    <span class="settings-label">启用翻译功能</span>
-                    <label class="settings-switch">
-                        <input type="checkbox" id="setting-master-switch">
-                        <span class="slider"></span>
-                    </label>
-                </div>
+                <div class="settings-panel-body">
+                    <div class="settings-switch-group">
+                        <span class="settings-label">启用翻译功能</span>
+                        <label class="settings-switch">
+                            <input type="checkbox" id="setting-master-switch">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
 
-                <div class="language-swap-container">
+                    <div class="language-swap-container">
+                        <div class="settings-group settings-group-select">
+                            <select id="setting-from-lang" class="settings-control settings-select custom-styled-select"></select>
+                            <label for="setting-from-lang" class="settings-label">原文语言</label>
+                        </div>
+                        <button id="swap-lang-btn" title="互换">⇄</button>
+                        <div class="settings-group settings-group-select">
+                            <select id="setting-to-lang" class="settings-control settings-select custom-styled-select"></select>
+                            <label for="setting-to-lang" class="settings-label">目标语言</label>
+                        </div>
+                    </div>
+
                     <div class="settings-group settings-group-select">
-                        <select id="setting-from-lang" class="settings-control settings-select custom-styled-select"></select>
-                        <label for="setting-from-lang" class="settings-label">原文语言</label>
+                        <select id="setting-display-mode" class="settings-control settings-select custom-styled-select">
+                            <option value="bilingual">双语对照</option>
+                            <option value="translation_only">仅译文</option>
+                        </select>
+                        <label for="setting-display-mode" class="settings-label">显示模式</label>
                     </div>
-                    <button id="swap-lang-btn" title="互换">⇄</button>
+
                     <div class="settings-group settings-group-select">
-                        <select id="setting-to-lang" class="settings-control settings-select custom-styled-select"></select>
-                        <label for="setting-to-lang" class="settings-label">目标语言</label>
+                        <select id="setting-trans-engine" class="settings-control settings-select custom-styled-select"></select>
+                        <label for="setting-trans-engine" class="settings-label">翻译服务</label>
                     </div>
-                </div>
 
-                <div class="settings-group settings-group-select">
-                    <select id="setting-display-mode" class="settings-control settings-select custom-styled-select">
-                        <option value="bilingual">双语对照</option>
-                        <option value="translation_only">仅译文</option>
-                    </select>
-                    <label for="setting-display-mode" class="settings-label">显示模式</label>
-                </div>
-
-                <div class="settings-group settings-group-select">
-                    <select id="setting-trans-engine" class="settings-control settings-select custom-styled-select"></select>
-                    <label for="setting-trans-engine" class="settings-label">翻译服务</label>
-                </div>
-
-                <div id="service-details-toggle-container" class="service-details-toggle-container" style="display: none;">
-                    <div class="service-details-toggle-btn"></div>
-                </div>
-
-                <div id="custom-service-container" style="display: none; flex-direction: column; gap: 16px;"></div>
-
-                <div class="settings-group settings-group-select" id="setting-model-group" style="display: none;">
-                    <select id="setting-trans-model" class="settings-control settings-select custom-styled-select"></select>
-                    <label for="setting-trans-model" class="settings-label">使用模型</label>
-                </div>
-
-                <div class="settings-group static-label" id="api-key-group">
-                    <div class="input-wrapper">
-                        <input type="text" id="setting-input-apikey" class="settings-control settings-input" spellcheck="false">
-                        <label for="setting-input-apikey" class="settings-label">设置 API Key</label>
-                        <button id="setting-btn-apikey-save" class="settings-action-button-inline">保存</button>
+                    <div id="service-details-toggle-container" class="service-details-toggle-container" style="display: none;">
+                        <div class="service-details-toggle-btn"></div>
                     </div>
-                </div>
 
-                <div class="settings-group static-label settings-group-select">
-                    <select id="setting-glossary-actions" class="settings-control settings-select custom-styled-select">
-                        <option value="">请选择一个功能</option>
-                        <option value="local_manage">设置本地术语表</option>
-                        <option value="online_manage">管理在线术语表</option>
-                        <option value="post_replace">译文后处理替换</option>
-                        <option value="ai_settings">翻译参数自定义</option>
-                        <option value="lang_detect">原文语言检测项</option>
-                        <option value="debug_mode">调试模式与日志</option>
-                        <option value="data_sync">数据导入与导出</option>
-                    </select>
-                    <label for="setting-glossary-actions" class="settings-label">更多功能</label>
-                </div>
+                    <div id="custom-service-container" style="display: none; flex-direction: column; gap: 16px;"></div>
 
-                <div id="debug-actions-container" class="data-sync-actions-container" style="display: none;">
-                    <button id="btn-toggle-debug" class="data-sync-action-btn"></button>
-                    <button id="btn-export-log" class="data-sync-action-btn">导出运行日志</button>
-                </div>
+                    <div class="settings-group settings-group-select" id="setting-model-group" style="display: none;">
+                        <select id="setting-trans-model" class="settings-control settings-select custom-styled-select"></select>
+                        <label for="setting-trans-model" class="settings-label">使用模型</label>
+                    </div>
 
-                <div id="data-sync-actions-container" class="data-sync-actions-container" style="display: none;">
-                    <button id="btn-import-data" class="data-sync-action-btn">数据导入</button>
-                    <button id="btn-export-data" class="data-sync-action-btn">数据导出</button>
-                </div>
+                    <div class="settings-group static-label" id="api-key-group">
+                        <div class="input-wrapper">
+                            <input type="text" id="setting-input-apikey" class="settings-control settings-input" spellcheck="false">
+                            <label for="setting-input-apikey" class="settings-label">设置 API Key</label>
+                            <button id="setting-btn-apikey-save" class="settings-action-button-inline">保存</button>
+                        </div>
+                    </div>
 
-                <div id="editable-section-ai-settings" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
                     <div class="settings-group static-label settings-group-select">
-                        <select id="ai-param-select" class="settings-control settings-select custom-styled-select">
-                            <option value="system_prompt">System Prompt</option>
-                            <option value="user_prompt">User Prompt</option>
-                            <option value="temperature">Temperature</option>
-                            <option value="chunk_size">每次翻译文本量</option>
-                            <option value="para_limit">每次翻译段落数</option>
-                            <option value="lazy_load_margin">懒加载参数设置</option>
-                            <option value="validation_thresholds">占位符校验阈值</option>
+                        <select id="setting-glossary-actions" class="settings-control settings-select custom-styled-select">
+                            <option value="">请选择一个功能</option>
+                            <option value="local_manage">设置本地术语表</option>
+                            <option value="online_manage">管理在线术语表</option>
+                            <option value="post_replace">译文后处理替换</option>
+                            <option value="ai_settings">翻译参数自定义</option>
+                            <option value="lang_detect">原文语言检测项</option>
+                            <option value="blocker_manage">作品屏蔽配置项</option>
+                            <option value="formatting">文章格式调整项</option>
+                            <option value="debug_mode">调试模式与日志</option>
+                            <option value="data_sync">数据导入与导出</option>
                         </select>
-                        <label for="ai-param-select" class="settings-label">参数选择</label>
+                        <label for="setting-glossary-actions" class="settings-label">更多功能</label>
                     </div>
-                    <div id="ai-param-input-area"></div>
-                </div>
 
-                <div id="editable-section-lang-detect" class="settings-group static-label editable-section">
-                    <div class="settings-group settings-group-select">
-                        <select id="setting-lang-detector" class="settings-control settings-select custom-styled-select">
-                            <option value="microsoft">Microsoft</option>
-                            <option value="google">Google</option>
-                            <option value="tencent">Tencent</option>
-                            <option value="baidu">Baidu</option>
-                        </select>
-                        <label for="setting-lang-detector" class="settings-label">语言检测引擎</label>
+                    <div id="debug-actions-container" class="data-sync-actions-container" style="display: none;">
+                        <button id="btn-toggle-debug" class="data-sync-action-btn"></button>
+                        <button id="btn-export-log" class="data-sync-action-btn">导出运行日志</button>
                     </div>
-                </div>
 
-                <div id="editable-section-local-manage" class="editable-section" style="display: none;">
-                    <div class="settings-group settings-group-select static-label"">
-                        <select id="setting-local-glossary-select" class="settings-control settings-select custom-styled-select"></select>
-                        <label for="setting-local-glossary-select" class="settings-label">当前术语表</label>
+                    <div id="data-sync-actions-container" class="data-sync-actions-container" style="display: none;">
+                        <button id="btn-import-data" class="data-sync-action-btn">数据导入</button>
+                        <button id="btn-export-data" class="data-sync-action-btn">数据导出</button>
                     </div>
-                    <div class="settings-group settings-group-select static-label"">
-                        <select id="setting-local-edit-mode" class="settings-control settings-select custom-styled-select">
-                            <option value="name">术语表名称</option>
-                            <option value="translation">翻译术语表</option>
-                            <option value="forbidden">禁翻术语表</option>
-                            <option value="delete">删除术语表</option>
-                        </select>
-                        <label for="setting-local-edit-mode" class="settings-label">本地术语表</label>
+
+                    <div id="editable-section-ai-settings" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+                        <div class="settings-group static-label settings-group-select">
+                            <select id="ai-param-select" class="settings-control settings-select custom-styled-select">
+                                <option value="system_prompt">System Prompt</option>
+                                <option value="user_prompt">User Prompt</option>
+                                <option value="temperature">Temperature</option>
+                                <option value="chunk_size">每次翻译文本量</option>
+                                <option value="para_limit">每次翻译段落数</option>
+                                <option value="lazy_load_margin">懒加载参数设置</option>
+                                <option value="validation_thresholds">占位符校验阈值</option>
+                            </select>
+                            <label for="ai-param-select" class="settings-label">参数选择</label>
+                        </div>
+                        <div id="ai-param-input-area"></div>
                     </div>
-                    <div id="local-edit-container-name" class="settings-group static-label">
-                        <div class="input-wrapper">
-                            <input type="text" id="setting-local-glossary-name" class="settings-control settings-input" placeholder="术语表名称" spellcheck="false">
-                            <label for="setting-local-glossary-name" class="settings-label">术语表名称</label>
-                            <button id="setting-btn-local-glossary-save-name" class="settings-action-button-inline">保存</button>
+
+                    <div id="editable-section-formatting" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+                        <div class="settings-group settings-group-select static-label">
+                            <select id="setting-fmt-property" class="settings-control settings-select custom-styled-select">
+                                <option value="indent">首行缩进</option>
+                                <option value="fontSize">文字大小</option>
+                                <option value="letterSpacing">字间距</option>
+                                <option value="lineHeight">行间距</option>
+                                <option value="margins">页边距</option>
+                            </select>
+                            <label for="setting-fmt-property" class="settings-label">调整项目</label>
+                        </div>
+                        <div class="settings-group settings-group-select static-label">
+                            <select id="setting-fmt-value" class="settings-control settings-select custom-styled-select"></select>
+                            <label for="setting-fmt-value" class="settings-label" id="setting-fmt-value-label">首行缩进</label>
                         </div>
                     </div>
-                    <div id="local-edit-container-translation" style="display: none;">
-                        <div class="settings-group static-label">
+
+                    <div id="editable-section-lang-detect" class="settings-group static-label editable-section">
+                        <div class="settings-group settings-group-select">
+                            <select id="setting-lang-detector" class="settings-control settings-select custom-styled-select">
+                                <option value="microsoft">Microsoft</option>
+                                <option value="google">Google</option>
+                                <option value="tencent">Tencent</option>
+                                <option value="baidu">Baidu</option>
+                            </select>
+                            <label for="setting-lang-detector" class="settings-label">语言检测引擎</label>
+                        </div>
+                    </div>
+
+                    <div id="editable-section-local-manage" class="editable-section" style="display: none;">
+                        <div class="settings-group settings-group-select static-label"">
+                            <select id="setting-local-glossary-select" class="settings-control settings-select custom-styled-select"></select>
+                            <label for="setting-local-glossary-select" class="settings-label">当前术语表</label>
+                        </div>
+                        <div class="settings-group settings-group-select static-label"">
+                            <select id="setting-local-edit-mode" class="settings-control settings-select custom-styled-select">
+                                <option value="name">术语表名称</option>
+                                <option value="translation">翻译术语表</option>
+                                <option value="forbidden">禁翻术语表</option>
+                                <option value="delete">删除术语表</option>
+                            </select>
+                            <label for="setting-local-edit-mode" class="settings-label">本地术语表</label>
+                        </div>
+                        <div id="local-edit-container-name" class="settings-group static-label">
                             <div class="input-wrapper">
-                                <input type="text" id="setting-input-local-sensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
-                                <label for="setting-input-local-sensitive" class="settings-label">区分大小写</label>
-                                <button id="setting-btn-local-sensitive-save" class="settings-action-button-inline">保存</button>
+                                <input type="text" id="setting-local-glossary-name" class="settings-control settings-input" placeholder="术语表名称" spellcheck="false">
+                                <label for="setting-local-glossary-name" class="settings-label">术语表名称</label>
+                                <button id="setting-btn-local-glossary-save-name" class="settings-action-button-inline">保存</button>
                             </div>
                         </div>
-                        <div class="settings-group static-label">
+                        <div id="local-edit-container-translation" style="display: none;">
+                            <div class="settings-group static-label">
+                                <div class="input-wrapper">
+                                    <input type="text" id="setting-input-local-sensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
+                                    <label for="setting-input-local-sensitive" class="settings-label">区分大小写</label>
+                                    <button id="setting-btn-local-sensitive-save" class="settings-action-button-inline">保存</button>
+                                </div>
+                            </div>
+                            <div class="settings-group static-label">
+                                <div class="input-wrapper">
+                                    <input type="text" id="setting-input-local-insensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
+                                    <label for="setting-input-local-insensitive" class="settings-label">不区分大小写</label>
+                                    <button id="setting-btn-local-insensitive-save" class="settings-action-button-inline">保存</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="local-edit-container-forbidden" class="settings-group static-label" style="display: none;">
                             <div class="input-wrapper">
-                                <input type="text" id="setting-input-local-insensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
-                                <label for="setting-input-local-insensitive" class="settings-label">不区分大小写</label>
-                                <button id="setting-btn-local-insensitive-save" class="settings-action-button-inline">保存</button>
+                                <input type="text" id="setting-input-local-forbidden" class="settings-control settings-input" placeholder="原文1，原文2，原文3，原文4" spellcheck="false">
+                                <label for="setting-input-local-forbidden" class="settings-label">区分大小写</label>
+                                <button id="setting-btn-local-forbidden-save" class="settings-action-button-inline">保存</button>
                             </div>
                         </div>
                     </div>
-                    <div id="local-edit-container-forbidden" class="settings-group static-label" style="display: none;">
-                        <div class="input-wrapper">
-                            <input type="text" id="setting-input-local-forbidden" class="settings-control settings-input" placeholder="原文1，原文2，原文3，原文4" spellcheck="false">
-                            <label for="setting-input-local-forbidden" class="settings-label">区分大小写</label>
-                            <button id="setting-btn-local-forbidden-save" class="settings-action-button-inline">保存</button>
-                        </div>
-                    </div>
-                </div>
 
-                <div id="editable-section-online-manage" class="editable-section" style="display: none;">
-                    <div class="settings-group static-label"">
-                        <div class="input-wrapper">
-                            <input type="text" id="setting-input-glossary-import-url" class="settings-control settings-input" placeholder="请输入 GitHub/jsDelivr 链接" spellcheck="false">
-                            <label for="setting-input-glossary-import-url" class="settings-label">导入在线术语表</label>
-                            <button id="setting-btn-glossary-import-save" class="settings-action-button-inline">导入</button>
+                    <div id="editable-section-online-manage" class="editable-section" style="display: none;">
+                        <div class="settings-group static-label"">
+                            <div class="input-wrapper">
+                                <input type="text" id="setting-input-glossary-import-url" class="settings-control settings-input" placeholder="请输入 GitHub/jsDelivr 链接" spellcheck="false">
+                                <label for="setting-input-glossary-import-url" class="settings-label">导入在线术语表</label>
+                                <button id="setting-btn-glossary-import-save" class="settings-action-button-inline">导入</button>
+                            </div>
+                        </div>
+                        <div class="settings-group settings-group-select static-label">
+                            <select id="setting-select-glossary-manage" class="settings-control settings-select custom-styled-select"></select>
+                            <label for="setting-select-glossary-manage" class="settings-label">已导入的术语表</label>
+                        </div>
+                        <div id="online-glossary-details-container" style="display: none;">
+                            <div class="online-glossary-details">
+                                <span id="online-glossary-info"></span>
+                                <button id="online-glossary-delete-btn" class="online-glossary-delete-btn">删除</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="settings-group settings-group-select static-label">
-                        <select id="setting-select-glossary-manage" class="settings-control settings-select custom-styled-select"></select>
-                        <label for="setting-select-glossary-manage" class="settings-label">已导入的术语表</label>
-                    </div>
-                    <div id="online-glossary-details-container" style="display: none;">
-                        <div class="online-glossary-details">
-                            <span id="online-glossary-info"></span>
-                            <button id="online-glossary-delete-btn" class="online-glossary-delete-btn">删除</button>
-                        </div>
-                    </div>
-                </div>
 
-                <div id="editable-section-post-replace" class="settings-group static-label editable-section">
-                    <div class="input-wrapper">
-                        <input type="text" id="setting-input-post-replace" class="settings-control settings-input" placeholder="译文1：替换1，译文2：替换2" spellcheck="false">
-                        <label for="setting-input-post-replace" class="settings-label">译文后处理替换</label>
-                        <button id="setting-btn-post-replace-save" class="settings-action-button-inline">保存</button>
+                    <div id="editable-section-post-replace" class="settings-group static-label editable-section" style="display: none;">
+                        <div class="input-wrapper">
+                            <input type="text" id="setting-input-post-replace" class="settings-control settings-input" placeholder="译文1：替换1，译文2：替换2" spellcheck="false">
+                            <label for="setting-input-post-replace" class="settings-label">译文后处理替换</label>
+                            <button id="setting-btn-post-replace-save" class="settings-action-button-inline">保存</button>
+                        </div>
+                    </div>
+
+                    <div id="editable-section-blocker" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+                        <div class="settings-group static-label settings-group-select">
+                            <select id="blocker-dimension-select" class="settings-control settings-select custom-styled-select">
+                                <option value="tags">标签过滤</option>
+                                <option value="content">内容过滤</option>
+                                <option value="stats">统计过滤</option>
+                                <option value="advanced">高级筛选</option>
+                            </select>
+                            <label for="blocker-dimension-select" class="settings-label">屏蔽维度</label>
+                        </div>
+                        <div class="settings-group static-label settings-group-select">
+                            <select id="blocker-sub-dimension-select" class="settings-control settings-select custom-styled-select"></select>
+                            <label for="blocker-sub-dimension-select" class="settings-label">具体配置项</label>
+                        </div>
+                        <div id="blocker-input-area" style="display: flex; flex-direction: column; gap: 16px;"></div>
+                    </div>
+
+                    <div id="blocker-actions-container" class="data-sync-actions-container" style="display: none;">
+                        <button id="btn-toggle-blocker" class="data-sync-action-btn"></button>
+                        <button id="btn-toggle-reasons" class="data-sync-action-btn"></button>
                     </div>
                 </div>
             </div>
@@ -8649,13 +6390,24 @@ Your task is to translate a numbered list of text segments provided by the user.
 			exportLogBtn: panel.querySelector('#btn-export-log'),
 			importDataBtn: panel.querySelector('#btn-import-data'),
 			exportDataBtn: panel.querySelector('#btn-export-data'),
+			blockerSection: panel.querySelector('#editable-section-blocker'),
+			blockerDimensionSelect: panel.querySelector('#blocker-dimension-select'),
+			blockerSubDimensionSelect: panel.querySelector('#blocker-sub-dimension-select'),
+			blockerInputArea: panel.querySelector('#blocker-input-area'),
+			blockerActionsContainer: panel.querySelector('#blocker-actions-container'),
+			toggleBlockerBtn: panel.querySelector('#btn-toggle-blocker'),
+			toggleReasonsBtn: panel.querySelector('#btn-toggle-reasons'),
+			formattingSection: panel.querySelector('#editable-section-formatting'),
+			fmtPropertySelect: panel.querySelector('#setting-fmt-property'),
+			fmtValueSelect: panel.querySelector('#setting-fmt-value'),
+			fmtValueLabel: panel.querySelector('#setting-fmt-value-label'),
 		};
 	}
 
-    /**
+	/**
 	 * 显示一个自定义的确认模态框
 	 */
-    function showCustomConfirm(message, title = '提示', options = {}) {
+	function showCustomConfirm(message, title = '提示', options = {}) {
 		const { textAlign = 'left', useTextIndent = false } = options;
 		return new Promise((resolve, reject) => {
 			if (document.getElementById('ao3-custom-confirm-overlay')) {
@@ -8724,7 +6476,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 			const modal = document.createElement('div');
 			modal.id = 'ao3-custom-confirm-modal';
 
-            const indentClass = useTextIndent ? ' with-indent' : '';
+			const indentClass = useTextIndent ? ' with-indent' : '';
 
 			modal.innerHTML = `
                 <div class="ao3-custom-confirm-header"><h3>${title}</h3></div>
@@ -8745,10 +6497,10 @@ Your task is to translate a numbered list of text segments provided by the user.
 			const confirmBtn = modal.querySelector('.confirm');
 			const cancelBtn = modal.querySelector('.cancel');
 
-            confirmBtn.addEventListener('click', () => {
-                cleanup();
-                resolve(true);
-            });
+			confirmBtn.addEventListener('click', () => {
+				cleanup();
+				resolve(true);
+			});
 
 			cancelBtn.addEventListener('click', () => {
 				cleanup();
@@ -8764,7 +6516,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		});
 	}
 
-    /**
+	/**
 	 * 创建并管理自定义翻译服务的 UI 和逻辑
 	 */
 	function createCustomServiceManager(panelElements, syncPanelStateCallback) {
@@ -9120,786 +6872,1038 @@ Your task is to translate a numbered list of text segments provided by the user.
 				}
 				modelGroup.style.display = 'block';
 			},
-            deleteService: (serviceId) => {
-                let services = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
-                services = services.filter(s => s.id !== serviceId);
-                setServices(services);
+			deleteService: (serviceId) => {
+				let services = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+				services = services.filter(s => s.id !== serviceId);
+				setServices(services);
 
-                GM_deleteValue(`${serviceId}_keys_string`);
-                GM_deleteValue(`${serviceId}_keys_array`);
-                GM_deleteValue(`${serviceId}_key_index`);
-                GM_deleteValue(`${ACTIVE_MODEL_PREFIX_KEY}${serviceId}`);
-                GM_deleteValue(`custom_service_last_action_${serviceId}`);
+				GM_deleteValue(`${serviceId}_keys_string`);
+				GM_deleteValue(`${serviceId}_keys_array`);
+				GM_deleteValue(`${serviceId}_key_index`);
+				GM_deleteValue(`${ACTIVE_MODEL_PREFIX_KEY}${serviceId}`);
+				GM_deleteValue(`custom_service_last_action_${serviceId}`);
 
-                const currentEngine = getValidEngineName();
-                if (currentEngine === serviceId) {
-                    GM_setValue('transEngine', 'bing_translator');
-                }
+				const currentEngine = getValidEngineName();
+				if (currentEngine === serviceId) {
+					GM_setValue('transEngine', 'google_translate');
+				}
 
-                if (syncPanelStateCallback) {
-                    syncPanelStateCallback();
-                }
-            }
+				if (syncPanelStateCallback) {
+					syncPanelStateCallback();
+				}
+			}
 		};
 	}
 
 	/**
 	 * 清理无效的自定义服务配置
 	 */
-    function cleanupAllEmptyCustomServices() {
-        const services = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
-        const servicesToKeep = services.filter(s => {
-            const hasName = s.name && s.name.trim() !== '';
-            const hasUrl = s.url && s.url.trim() !== '';
-            const hasModels = s.models && s.models.length > 0;
-            const hasApiKey = GM_getValue(`${s.id}_keys_string`, '').trim() !== '';
+	function cleanupAllEmptyCustomServices() {
+		const services = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+		const servicesToKeep = services.filter(s => {
+			const hasName = s.name && s.name.trim() !== '';
+			const hasUrl = s.url && s.url.trim() !== '';
+			const hasModels = s.models && s.models.length > 0;
+			const hasApiKey = GM_getValue(`${s.id}_keys_string`, '').trim() !== '';
 
-            return hasName || hasUrl || hasModels || hasApiKey;
-        });
+			return hasName || hasUrl || hasModels || hasApiKey;
+		});
 
-        if (services.length !== servicesToKeep.length) {
-            GM_setValue(CUSTOM_SERVICES_LIST_KEY, servicesToKeep);
-            const currentEngine = GM_getValue('transEngine');
-            const isCurrentEngineRemoved = !servicesToKeep.some(s => s.id === currentEngine);
+		if (services.length !== servicesToKeep.length) {
+			GM_setValue(CUSTOM_SERVICES_LIST_KEY, servicesToKeep);
+			const currentEngine = GM_getValue('transEngine');
+			const isCurrentEngineRemoved = !servicesToKeep.some(s => s.id === currentEngine);
 
-            if (isCurrentEngineRemoved && currentEngine && currentEngine.startsWith('custom_')) {
-                GM_setValue('transEngine', 'bing_translator');
-            }
-        }
-    }
+			if (isCurrentEngineRemoved && currentEngine && currentEngine.startsWith('custom_')) {
+				GM_setValue('transEngine', 'google_translate');
+			}
+		}
+	}
 
-    /**
+	/**
 	 * 设置面板的内部逻辑
 	 */
-    function initializeSettingsPanelLogic(panelElements, rerenderMenuCallback, onPanelCloseCallback) {
-        const {
-            panel, closeBtn, header, masterSwitch, swapLangBtn, engineSelect, fromLangSelect, toLangSelect,
-            modelGroup, modelSelect, displayModeSelect,
-            apiKeyGroup, apiKeyInput, apiKeySaveBtn, customServiceContainer,
-            serviceDetailsToggleContainer, serviceDetailsToggleBtn,
-            glossaryActionsSelect, editableSections,
-            aiSettingsSection, aiParamSelect, aiParamInputArea,
-            langDetectSection, langDetectSelect,
-            localManageSection, localGlossarySelect, localEditModeSelect,
-            localContainerName, localContainerTranslation, localContainerForbidden,
-            localGlossaryNameInput, localGlossarySaveNameBtn,
-            localSensitiveInput, localSensitiveSaveBtn,
-            localInsensitiveInput, localInsensitiveSaveBtn,
-            localForbiddenInput, localForbiddenSaveBtn,
-            onlineManageSection, glossaryImportUrlInput, glossaryImportSaveBtn,
-            glossaryManageSelect, glossaryManageDetailsContainer, glossaryManageInfo, glossaryManageDeleteBtn,
-            postReplaceSection, postReplaceInput, postReplaceSaveBtn,
-            dataSyncActionsContainer, importDataBtn, exportDataBtn,
-            debugActionsContainer, toggleDebugBtn, exportLogBtn
-        } = panelElements;
+	function initializeSettingsPanelLogic(panelElements, rerenderMenuCallback, onPanelCloseCallback) {
+		const {
+			panel, closeBtn, header, masterSwitch, swapLangBtn, engineSelect, fromLangSelect, toLangSelect,
+			modelGroup, modelSelect, displayModeSelect,
+			apiKeyGroup, apiKeyInput, apiKeySaveBtn, customServiceContainer,
+			serviceDetailsToggleContainer, serviceDetailsToggleBtn,
+			glossaryActionsSelect, editableSections,
+			aiSettingsSection, aiParamSelect, aiParamInputArea,
+			langDetectSection, langDetectSelect,
+			localManageSection, localGlossarySelect, localEditModeSelect,
+			localContainerName, localContainerTranslation, localContainerForbidden,
+			localGlossaryNameInput, localGlossarySaveNameBtn,
+			localSensitiveInput, localSensitiveSaveBtn,
+			localInsensitiveInput, localInsensitiveSaveBtn,
+			localForbiddenInput, localForbiddenSaveBtn,
+			onlineManageSection, glossaryImportUrlInput, glossaryImportSaveBtn,
+			glossaryManageSelect, glossaryManageDetailsContainer, glossaryManageInfo, glossaryManageDeleteBtn,
+			postReplaceSection, postReplaceInput, postReplaceSaveBtn,
+			dataSyncActionsContainer, importDataBtn, exportDataBtn,
+			debugActionsContainer, toggleDebugBtn, exportLogBtn,
+			blockerSection, blockerDimensionSelect, blockerSubDimensionSelect, blockerInputArea, blockerActionsContainer, toggleBlockerBtn, toggleReasonsBtn,
+			formattingSection, fmtPropertySelect, fmtValueSelect, fmtValueLabel
+		} = panelElements;
 
-        const PANEL_POSITION_KEY = 'ao3_panel_position';
-        const GLOSSARY_ACTION_KEY = 'ao3_glossary_last_action';
-        const AI_PARAM_ACTION_KEY = 'ao3_ai_param_last_action';
-        const LOCAL_GLOSSARY_SELECTED_ID_KEY = 'ao3_local_glossary_selected_id';
-        const LOCAL_GLOSSARY_EDIT_MODE_KEY = 'ao3_local_glossary_edit_mode';
+		const PANEL_POSITION_KEY = 'ao3_panel_position';
+		const GLOSSARY_ACTION_KEY = 'ao3_glossary_last_action';
+		const AI_PARAM_ACTION_KEY = 'ao3_ai_param_last_action';
+		const LOCAL_GLOSSARY_SELECTED_ID_KEY = 'ao3_local_glossary_selected_id';
+		const LOCAL_GLOSSARY_EDIT_MODE_KEY = 'ao3_local_glossary_edit_mode';
+		const BLOCKER_VIEW_KEY = 'ao3_blocker_current_view';
+		const BLOCKER_SUB_VIEW_KEY = 'ao3_blocker_current_sub_view';
 
-        let isDragging = false;
-        let origin = { x: 0, y: 0 }, startPosition = { x: 0, y: 0 };
-        let activeDropdown = null;
+		let isDragging = false;
+		let origin = { x: 0, y: 0 }, startPosition = { x: 0, y: 0 };
+		let activeDropdown = null;
 
-        const customServiceManager = createCustomServiceManager(panelElements, syncPanelState);
+		const customServiceManager = createCustomServiceManager(panelElements, syncPanelState);
 
-        function renderAiParamEditor() {
-            const param = aiParamSelect.value;
-            aiParamInputArea.innerHTML = '';
-            const paramConfig = {
-                system_prompt: { type: 'textarea', key: 'custom_ai_system_prompt', autoSave: true },
-                user_prompt: { type: 'textarea', key: 'custom_ai_user_prompt', autoSave: true },
-                temperature: { type: 'number', key: 'custom_ai_temperature', attrs: { min: 0, max: 2, step: 0.1 }, hint: ' (0-2)' },
-                chunk_size: { type: 'number', key: 'custom_ai_chunk_size', attrs: { min: 100, step: 100 } },
-                para_limit: { type: 'number', key: 'custom_ai_para_limit', attrs: { min: 1, step: 1 } },
-                lazy_load_margin: { type: 'text', key: 'custom_ai_lazy_load_margin', hint: ' (px)' },
-                validation_thresholds: { type: 'text', key: 'custom_ai_validation_thresholds', hint: ' (数量 比例 基数)' }
-            };
-            const defaults = {
-                system_prompt: () => getSharedSystemPrompt(),
-                user_prompt: () => `Translate the following numbered list to {toLangName} (output translation only):\n\n{numberedText}`,
-                temperature: () => 0,
-                chunk_size: () => CONFIG.CHUNK_SIZE,
-                para_limit: () => CONFIG.PARAGRAPH_LIMIT,
-                lazy_load_margin: () => CONFIG.LAZY_LOAD_ROOT_MARGIN,
-                validation_thresholds: () => {
-                    const d = CONFIG.VALIDATION_THRESHOLDS.default;
-                    return `${d.absolute_loss}, ${d.proportional_loss}, ${d.proportional_trigger_count}`;
-                }
-            };
-            const config = paramConfig[param];
-            if (!config) return;
-            const defaultValue = defaults[param]();
-            let displayValue = GM_getValue(config.key, defaultValue);
-            const section = document.createElement('div');
-            section.className = 'settings-group static-label';
-            const inputWrapper = document.createElement('div');
-            inputWrapper.className = 'input-wrapper';
-            const inputElement = document.createElement(config.type === 'textarea' ? 'textarea' : 'input');
-            inputElement.id = `ai-param-input-${param}`;
-            inputElement.className = 'settings-control settings-input';
-            inputElement.setAttribute('spellcheck', 'false');
-            if (config.type !== 'textarea') {
-                inputElement.type = config.type;
-            }
-            if (config.attrs) {
-                Object.entries(config.attrs).forEach(([attr, val]) => inputElement.setAttribute(attr, val));
-            }
-            inputElement.value = displayValue;
-            const label = document.createElement('label');
-            label.htmlFor = inputElement.id;
-            label.className = 'settings-label';
-            let labelText = aiParamSelect.options[aiParamSelect.selectedIndex].text;
-            if (config.hint) {
-                labelText += config.hint;
-            }
-            label.textContent = labelText;
-            inputWrapper.appendChild(inputElement);
-            inputWrapper.appendChild(label);
-            if (!config.autoSave) {
-                const saveBtn = document.createElement('button');
-                saveBtn.className = 'settings-action-button-inline';
-                saveBtn.textContent = '保存';
-                inputWrapper.appendChild(saveBtn);
-                saveBtn.addEventListener('click', () => {
-                    let valueToSave = inputElement.value;
-                    if (config.type === 'number') {
-                        const numValue = parseInt(valueToSave, 10);
-                        if (isNaN(numValue) || (config.attrs.min !== undefined && numValue < config.attrs.min)) {
-                            valueToSave = config.attrs.min;
-                        } else {
-                            valueToSave = numValue;
-                        }
-                        inputElement.value = valueToSave;
-                    }
-                    GM_setValue(config.key, valueToSave);
-                    updateInputLabel(inputElement);
-                });
-            } else {
-                inputElement.addEventListener('blur', () => {
-                    let valueToSave = inputElement.value;
-                    GM_setValue(config.key, valueToSave);
-                });
-            }
-            section.appendChild(inputWrapper);
-            aiParamInputArea.appendChild(section);
-            updateInputLabel(inputElement);
-        }
+		const blockerConfig = {
+			tags: {
+				black: { label: '标签黑名单', keys: ['ao3_blocker_tags_black'], ph: "'*标签 1*', '标签 2'-'标签 3'" },
+				white: { label: '标签白名单', keys: ['ao3_blocker_tags_white'], ph: "'*标签 1*', '标签 2'+'标签 3'" }
+			},
+			content: {
+				author: { label: '作者黑名单', keys: ['ao3_blocker_content_author'], ph: '作者名 1, 作者名 2, 作者名 3' },
+				id: { label: '作品黑名单', keys: ['ao3_blocker_content_id'], ph: '作品 ID 1, 作品 ID 2, 作品 ID 3' },
+				title: { label: '标题黑名单', keys: ['ao3_blocker_content_title'], ph: '关键词 1, 关键词 2, 关键词 3' },
+				summary: { label: '简介黑名单', keys: ['ao3_blocker_content_summary'], ph: '关键词 1, 关键词 2, 关键词 3' }
+			},
+			stats: {
+				words: { label: '字数范围', keys: ['ao3_blocker_stats_min_words', 'ao3_blocker_stats_max_words'], ph: '1000-10000', isRange: true },
+				chapters: { label: '章节范围', keys: ['ao3_blocker_stats_min_chapters', 'ao3_blocker_stats_max_chapters'], ph: '2-50', isRange: true },
+				update: { label: '更新时间', inputLabel: 'x 月内未更新 (连载)', keys: ['ao3_blocker_stats_update'], ph: '6' },
+				crossover: { label: '同人圈数', inputLabel: '最大数量限制', keys: ['ao3_blocker_stats_crossover'], ph: '5' },
+				lang: { label: '语言过滤', inputLabel: '仅显示的语言', keys: ['ao3_blocker_adv_lang'], ph: "'中文-普通话 國語', 'English'" }
+			},
+			advanced: {
+				pairing: {
+					label: '主要关系筛选',
+					getInputLabel: () => {
+						const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_rel', '1')) || 1;
+						return scope === 1 ? '第 1 个关系标签' : `前 ${scope} 个关系标签`;
+					},
+					keys: ['ao3_blocker_adv_pairing'],
+					ph: "'关系 1', '关系 2', '关系 3'"
+				},
+				char: {
+					label: '主要角色筛选',
+					getInputLabel: () => {
+						const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_char', '5')) || 5;
+						return scope === 1 ? '第 1 个角色标签' : `前 ${scope} 个角色标签`;
+					},
+					keys: ['ao3_blocker_adv_char'],
+					ph: "'角色 1', '角色 2', '角色 3'"
+				},
+				scope: {
+					label: '调整检索范围',
+					isDual: true,
+					keys: ['ao3_blocker_adv_scope_rel', 'ao3_blocker_adv_scope_char'],
+					labels: ['主要关系检索范围', '主要角色检索范围'],
+					phs: ['1', '5']
+				}
+			}
+		};
 
-        function updateModelSelect(engineId) {
-            const config = engineMenuConfig[engineId];
-            modelGroup.style.display = 'none';
-            if (config && config.modelMapping) {
-                modelSelect.innerHTML = '';
-                Object.keys(config.modelMapping).forEach(modelId => {
-                    const option = document.createElement('option');
-                    option.value = modelId;
-                    option.textContent = config.modelMapping[modelId];
-                    modelSelect.appendChild(option);
-                });
-                modelSelect.disabled = false;
-                modelSelect.value = GM_getValue(config.modelGmKey, Object.keys(config.modelMapping)[0]);
-                modelGroup.style.display = 'block';
-            } else if (engineId.startsWith('custom_')) {
-                customServiceManager.renderDisplayModeModelSelect(engineId);
-            }
-        }
+		function renderAiParamEditor() {
+			const param = aiParamSelect.value;
+			aiParamInputArea.innerHTML = '';
+			const paramConfig = {
+				system_prompt: { type: 'textarea', key: 'custom_ai_system_prompt', autoSave: true },
+				user_prompt: { type: 'textarea', key: 'custom_ai_user_prompt', autoSave: true },
+				temperature: { type: 'number', key: 'custom_ai_temperature', attrs: { min: 0, max: 2, step: 0.1 }, hint: ' (0-2)' },
+				chunk_size: { type: 'number', key: 'custom_ai_chunk_size', attrs: { min: 100, step: 100 } },
+				para_limit: { type: 'number', key: 'custom_ai_para_limit', attrs: { min: 1, step: 1 } },
+				lazy_load_margin: { type: 'text', key: 'custom_ai_lazy_load_margin', hint: ' (px)' },
+				validation_thresholds: { type: 'text', key: 'custom_ai_validation_thresholds', hint: ' (数量 比例 基数)' }
+			};
+			const defaults = {
+				system_prompt: () => getSharedSystemPrompt(),
+				user_prompt: () => `Translate the following numbered list to {toLangName} (output translation only):\n\n{numberedText}`,
+				temperature: () => 0,
+				chunk_size: () => CONFIG.CHUNK_SIZE,
+				para_limit: () => CONFIG.PARAGRAPH_LIMIT,
+				lazy_load_margin: () => CONFIG.LAZY_LOAD_ROOT_MARGIN,
+				validation_thresholds: () => {
+					const d = CONFIG.VALIDATION_THRESHOLDS.default;
+					return `${d.absolute_loss}, ${d.proportional_loss}, ${d.proportional_trigger_count}`;
+				}
+			};
+			const config = paramConfig[param];
+			if (!config) return;
+			const defaultValue = defaults[param]();
+			let displayValue = GM_getValue(config.key, defaultValue);
+			const section = document.createElement('div');
+			section.className = 'settings-group static-label';
+			const inputWrapper = document.createElement('div');
+			inputWrapper.className = 'input-wrapper';
+			const inputElement = document.createElement(config.type === 'textarea' ? 'textarea' : 'input');
+			inputElement.id = `ai-param-input-${param}`;
+			inputElement.className = 'settings-control settings-input';
+			inputElement.setAttribute('spellcheck', 'false');
+			if (config.type !== 'textarea') {
+				inputElement.type = config.type;
+			}
+			if (config.attrs) {
+				Object.entries(config.attrs).forEach(([attr, val]) => inputElement.setAttribute(attr, val));
+			}
+			inputElement.value = displayValue;
+			const label = document.createElement('label');
+			label.htmlFor = inputElement.id;
+			label.className = 'settings-label';
+			let labelText = aiParamSelect.options[aiParamSelect.selectedIndex].text;
+			if (config.hint) {
+				labelText += config.hint;
+			}
+			label.textContent = labelText;
+			inputWrapper.appendChild(inputElement);
+			inputWrapper.appendChild(label);
+			if (!config.autoSave) {
+				const saveBtn = document.createElement('button');
+				saveBtn.className = 'settings-action-button-inline';
+				saveBtn.textContent = '保存';
+				inputWrapper.appendChild(saveBtn);
+				saveBtn.addEventListener('click', () => {
+					let valueToSave = inputElement.value;
+					if (config.type === 'number') {
+						const numValue = parseInt(valueToSave, 10);
+						if (isNaN(numValue) || (config.attrs.min !== undefined && numValue < config.attrs.min)) {
+							valueToSave = config.attrs.min;
+						} else {
+							valueToSave = numValue;
+						}
+						inputElement.value = valueToSave;
+					}
+					GM_setValue(config.key, valueToSave);
+					updateInputLabel(inputElement);
+				});
+			} else {
+				inputElement.addEventListener('blur', () => {
+					let valueToSave = inputElement.value;
+					GM_setValue(config.key, valueToSave);
+				});
+			}
+			section.appendChild(inputWrapper);
+			aiParamInputArea.appendChild(section);
+			updateInputLabel(inputElement);
+		}
 
-        function updateApiKeySection(engineId) {
-            const config = engineMenuConfig[engineId];
-            if (config && config.requiresApiKey) {
-                apiKeyGroup.style.display = 'block';
-                const stringKeyName = `${engineId}_keys_string`;
-                apiKeyInput.value = GM_getValue(stringKeyName, '');
-                apiKeyGroup.querySelector('.settings-label').textContent = `设置 ${config.displayName} API Key`;
-                apiKeyInput.placeholder = 'Key 1，Key 2，Key 3';
-                updateInputLabel(apiKeyInput);
-            } else {
-                apiKeyGroup.style.display = 'none';
-            }
-        }
+		function updateModelSelect(engineId) {
+			const config = engineMenuConfig[engineId];
+			modelGroup.style.display = 'none';
+			if (config && config.modelMapping) {
+				modelSelect.innerHTML = '';
+				Object.keys(config.modelMapping).forEach(modelId => {
+					const option = document.createElement('option');
+					option.value = modelId;
+					option.textContent = config.modelMapping[modelId];
+					modelSelect.appendChild(option);
+				});
+				modelSelect.disabled = false;
+				modelSelect.value = GM_getValue(config.modelGmKey, Object.keys(config.modelMapping)[0]);
+				modelGroup.style.display = 'block';
+			} else if (engineId.startsWith('custom_')) {
+				customServiceManager.renderDisplayModeModelSelect(engineId);
+			}
+		}
 
-        function updateUiForEngine(engineId) {
-            customServiceContainer.style.display = 'none';
-            modelGroup.style.display = 'none';
-            apiKeyGroup.style.display = 'none';
-            serviceDetailsToggleContainer.style.display = 'none';
+		function updateApiKeySection(engineId) {
+			const config = engineMenuConfig[engineId];
+			if (config && config.requiresApiKey) {
+				apiKeyGroup.style.display = 'block';
+				const stringKeyName = `${engineId}_keys_string`;
+				apiKeyInput.value = GM_getValue(stringKeyName, '');
+				apiKeyGroup.querySelector('.settings-label').textContent = `设置 ${config.displayName} API Key`;
+				apiKeyInput.placeholder = 'Key 1，Key 2，Key 3';
+				updateInputLabel(apiKeyInput);
+			} else {
+				apiKeyGroup.style.display = 'none';
+			}
+		}
 
-            if (engineId.startsWith('custom_')) {
-                customServiceManager.enterEditMode(engineId);
-                serviceDetailsToggleContainer.style.display = 'flex';
-            } else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
-                serviceDetailsToggleContainer.style.display = 'flex';
-                customServiceContainer.style.display = 'flex';
-            } else {
-                const isBuiltInSimple = engineId === 'google_translate' || engineId === 'bing_translator';
-                if (!isBuiltInSimple) {
-                    serviceDetailsToggleContainer.style.display = 'flex';
-                    updateModelSelect(engineId);
-                    updateApiKeySection(engineId);
-                }
-            }
+		function updateUiForEngine(engineId) {
+			customServiceContainer.style.display = 'none';
+			modelGroup.style.display = 'none';
+			apiKeyGroup.style.display = 'none';
+			serviceDetailsToggleContainer.style.display = 'none';
 
-            if (serviceDetailsToggleContainer.style.display === 'flex') {
-                const isCollapsed = GM_getValue(`service_collapsed_${engineId}`, false);
-                serviceDetailsToggleBtn.classList.toggle('collapsed', isCollapsed);
-                if (isCollapsed) {
-                    modelGroup.style.display = 'none';
-                    apiKeyGroup.style.display = 'none';
-                    if (engineId.startsWith('custom_') || engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
-                        customServiceContainer.style.display = 'none';
-                    }
-                }
-            }
+			if (engineId.startsWith('custom_')) {
+				customServiceManager.enterEditMode(engineId);
+				serviceDetailsToggleContainer.style.display = 'flex';
+			} else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
+				serviceDetailsToggleContainer.style.display = 'flex';
+				customServiceContainer.style.display = 'flex';
+			} else {
+				const isBuiltInSimple = engineId === 'google_translate' || engineId === 'bing_translator';
+				if (!isBuiltInSimple) {
+					serviceDetailsToggleContainer.style.display = 'flex';
+					updateModelSelect(engineId);
+					updateApiKeySection(engineId);
+				}
+			}
 
-            updateAllLabels();
-        }
+			if (serviceDetailsToggleContainer.style.display === 'flex') {
+				const isCollapsed = GM_getValue(`service_collapsed_${engineId}`, false);
+				serviceDetailsToggleBtn.classList.toggle('collapsed', isCollapsed);
+				if (isCollapsed) {
+					modelGroup.style.display = 'none';
+					apiKeyGroup.style.display = 'none';
+					if (engineId.startsWith('custom_') || engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
+						customServiceContainer.style.display = 'none';
+					}
+				}
+			}
 
-        const populateEngineSelect = () => {
-            engineSelect.innerHTML = '';
-            const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
-            const createOption = (engineId, config) => {
-                const option = document.createElement('option');
-                option.value = engineId;
-                option.textContent = config.displayName;
-                return option;
-            };
-            engineSelect.appendChild(createOption('bing_translator', engineMenuConfig['bing_translator']));
-            engineSelect.appendChild(createOption('google_translate', engineMenuConfig['google_translate']));
-            const sortedBuiltInServices = Object.keys(engineMenuConfig)
-                .filter(id => id !== 'google_translate' && id !== 'bing_translator' && id !== ADD_NEW_CUSTOM_SERVICE_ID)
-                .sort((a, b) => engineMenuConfig[a].displayName.localeCompare(engineMenuConfig[b].displayName));
-            sortedBuiltInServices.forEach(id => {
-                engineSelect.appendChild(createOption(id, engineMenuConfig[id]));
-            });
-            customServices.forEach(service => {
-                const option = document.createElement('option');
-                option.value = service.id;
-                option.textContent = service.name || `默认 ${customServices.indexOf(service) + 1}`;
-                option.dataset.isCustom = 'true';
-                engineSelect.appendChild(option);
-            });
-            engineSelect.appendChild(createOption(ADD_NEW_CUSTOM_SERVICE_ID, engineMenuConfig[ADD_NEW_CUSTOM_SERVICE_ID]));
-        };
+			updateAllLabels();
+		}
 
-        function syncPanelState() {
-            const isEnabled = GM_getValue('enable_transDesc', false);
-            masterSwitch.checked = isEnabled;
-            populateEngineSelect();
-            const currentEngine = getValidEngineName();
-            engineSelect.value = currentEngine;
-            updateUiForEngine(currentEngine);
-            fromLangSelect.value = GM_getValue('from_lang', 'auto');
-            toLangSelect.value = GM_getValue('to_lang', 'zh-CN');
-            updateSwapButtonState();
-            displayModeSelect.value = GM_getValue('translation_display_mode', 'bilingual');
-            panel.querySelectorAll('.settings-control, .settings-input, .settings-action-button-inline, .online-glossary-delete-btn, .data-sync-action-btn').forEach(el => {
-                el.disabled = !isEnabled;
-            });
-            updateAllLabels();
-        }
+		const populateEngineSelect = () => {
+			engineSelect.innerHTML = '';
+			const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+			const createOption = (engineId, config) => {
+				const option = document.createElement('option');
+				option.value = engineId;
+				option.textContent = config.displayName;
+				return option;
+			};
+			engineSelect.appendChild(createOption('google_translate', engineMenuConfig['google_translate']));
+			engineSelect.appendChild(createOption('bing_translator', engineMenuConfig['bing_translator']));
+			const sortedBuiltInServices = Object.keys(engineMenuConfig)
+				.filter(id => id !== 'google_translate' && id !== 'bing_translator' && id !== ADD_NEW_CUSTOM_SERVICE_ID)
+				.sort((a, b) => engineMenuConfig[a].displayName.localeCompare(engineMenuConfig[b].displayName));
+			sortedBuiltInServices.forEach(id => {
+				engineSelect.appendChild(createOption(id, engineMenuConfig[id]));
+			});
+			customServices.forEach(service => {
+				const option = document.createElement('option');
+				option.value = service.id;
+				option.textContent = service.name || `默认 ${customServices.indexOf(service) + 1}`;
+				option.dataset.isCustom = 'true';
+				engineSelect.appendChild(option);
+			});
+			engineSelect.appendChild(createOption(ADD_NEW_CUSTOM_SERVICE_ID, engineMenuConfig[ADD_NEW_CUSTOM_SERVICE_ID]));
+		};
 
-        const isMobile = () => window.innerWidth < 768;
-        const ensureOnScreen = (pos, size) => {
-            const newPos = { ...pos };
-            const winW = document.documentElement.clientWidth;
-            const winH = window.innerHeight;
-            const margin = 10;
-            newPos.x = Math.max(margin, Math.min(newPos.x, winW - size.width - margin));
-            newPos.y = Math.max(margin, Math.min(newPos.y, winH - size.height - margin));
-            return newPos;
-        };
-        const updatePanelPosition = () => {
-            if (panel.style.display !== 'flex') return;
-            if (isMobile()) {
-                panel.classList.add('mobile-fixed-center');
-                panel.style.left = '';
-                panel.style.top = '';
-            } else {
-                panel.classList.remove('mobile-fixed-center');
-                panel.style.visibility = 'hidden';
-                const panelRect = panel.getBoundingClientRect();
-                panel.style.visibility = 'visible';
-                let savedPos = GM_getValue(PANEL_POSITION_KEY);
-                const hasBeenOpened = GM_getValue('panel_has_been_opened_once', false);
-                if (!hasBeenOpened) {
-                    const winW = document.documentElement.clientWidth;
-                    const winH = window.innerHeight;
-                    savedPos = {
-                        x: (winW - panelRect.width) / 2,
-                        y: (winH - panelRect.height) / 2
-                    };
-                    GM_setValue(PANEL_POSITION_KEY, savedPos);
-                    GM_setValue('panel_has_been_opened_once', true);
-                } else if (!savedPos || isDragging) {
-                    savedPos = { x: panel.offsetLeft, y: panel.offsetTop };
-                }
-                const correctedPos = ensureOnScreen(savedPos, { width: panelRect.width, height: panelRect.height });
-                panel.style.left = `${correctedPos.x}px`;
-                panel.style.top = `${correctedPos.y}px`;
-            }
-            repositionActiveDropdown();
-        };
-        const updateInputLabel = (input) => {
-            if (!input) return;
-            if (input.value && (input.tagName !== 'SELECT' || input.options[input.selectedIndex]?.disabled !== true)) {
-                input.classList.add('has-value');
-            } else {
-                input.classList.remove('has-value');
-            }
-        };
-        const updateAllLabels = () => {
-            panel.querySelectorAll('.settings-control').forEach(updateInputLabel);
-        };
+		function syncPanelState() {
+			const isEnabled = GM_getValue('enable_transDesc', false);
+			masterSwitch.checked = isEnabled;
+			populateEngineSelect();
+			const currentEngine = getValidEngineName();
+			engineSelect.value = currentEngine;
+			updateUiForEngine(currentEngine);
+			fromLangSelect.value = GM_getValue('from_lang', 'auto');
+			toLangSelect.value = GM_getValue('to_lang', 'zh-CN');
+			updateSwapButtonState();
+			displayModeSelect.value = GM_getValue('translation_display_mode', 'bilingual');
 
-        function populateLocalGlossarySelect() {
-            const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-            localGlossarySelect.innerHTML = '';
-            glossaries.forEach(g => {
-                const option = document.createElement('option');
-                option.value = g.id;
-                option.textContent = g.name;
-                option.dataset.isLocalGlossary = 'true';
-                localGlossarySelect.appendChild(option);
-            });
-            const createOption = document.createElement('option');
-            createOption.value = 'create_new';
-            createOption.textContent = '新建术语表';
-            localGlossarySelect.appendChild(createOption);
-        }
+			masterSwitch.disabled = false;
+			glossaryActionsSelect.disabled = false;
 
-        function loadLocalGlossaryData(id) {
-            const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-            const glossary = glossaries.find(g => g.id === id);
-            if (glossary) {
-                localGlossaryNameInput.value = glossary.name;
-                localSensitiveInput.value = glossary.sensitive || '';
-                localInsensitiveInput.value = glossary.insensitive || '';
-                localForbiddenInput.value = glossary.forbidden || '';
-                updateAllLabels();
-            }
-        }
+			const translationControls = [
+				fromLangSelect, toLangSelect, swapLangBtn,
+				displayModeSelect, engineSelect, modelSelect,
+				apiKeyInput, apiKeySaveBtn
+			];
 
-        function generateNewGlossaryName(glossaries) {
-            const prefix = "术语表 ";
-            let maxNum = 0;
-            glossaries.forEach(g => {
-                if (g.name.startsWith(prefix)) {
-                    const num = parseInt(g.name.slice(prefix.length), 10);
-                    if (!isNaN(num) && num > maxNum) maxNum = num;
-                }
-            });
-            return prefix + (maxNum + 1);
-        }
+			const currentAction = glossaryActionsSelect.value;
+			const independentActions = ['formatting', 'blocker_manage', 'debug_mode', 'data_sync'];
+			const isIndependent = independentActions.includes(currentAction);
 
-        function handleDeleteLocalGlossary(id) {
-            let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-            glossaries = glossaries.filter(g => g.id !== id);
-            if (glossaries.length === 0) {
-                glossaries.push({
-                    id: `local_${Date.now()}`,
-                    name: '默认术语表',
-                    sensitive: '',
-                    insensitive: '',
-                    forbidden: '',
-                    enabled: true
-                });
-            }
-            GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+			panel.querySelectorAll('.settings-control, .settings-input, .settings-action-button-inline, .online-glossary-delete-btn, .data-sync-action-btn').forEach(el => {
+				if (el === masterSwitch || el === glossaryActionsSelect) {
+					el.disabled = false;
+					return;
+				}
 
-            const currentSelected = localGlossarySelect.value;
-            let nextId = glossaries[0].id;
-            if (id === currentSelected) {
-                GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, nextId);
-            }
+				if (translationControls.includes(el)) {
+					el.disabled = !isEnabled;
+					return;
+				}
 
-            populateLocalGlossarySelect();
-            const newSelected = (id === currentSelected) ? nextId : currentSelected;
-            localGlossarySelect.value = newSelected;
-            loadLocalGlossaryData(newSelected);
+				if (isIndependent) {
+					el.disabled = false;
+				} else {
+					el.disabled = !isEnabled;
+				}
+			});
 
-            localEditModeSelect.value = 'name';
-            updateLocalEditVisibility();
-            GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
+			updateAllLabels();
+		}
 
-            synchronizeAllSettings();
-        }
+		const isMobile = () => window.innerWidth < 768;
+		const ensureOnScreen = (pos, size) => {
+			const newPos = { ...pos };
+			const winW = document.documentElement.clientWidth;
+			const winH = window.innerHeight;
+			const margin = 10;
+			newPos.x = Math.max(margin, Math.min(newPos.x, winW - size.width - margin));
+			newPos.y = Math.max(margin, Math.min(newPos.y, winH - size.height - margin));
+			return newPos;
+		};
+		const updatePanelPosition = () => {
+			if (panel.style.display !== 'flex') return;
+			if (isMobile()) {
+				panel.classList.add('mobile-fixed-center');
+				panel.style.left = '';
+				panel.style.top = '';
+			} else {
+				panel.classList.remove('mobile-fixed-center');
+				panel.style.visibility = 'hidden';
+				const panelRect = panel.getBoundingClientRect();
+				panel.style.visibility = 'visible';
+				let savedPos = GM_getValue(PANEL_POSITION_KEY);
+				const hasBeenOpened = GM_getValue('panel_has_been_opened_once', false);
+				if (!hasBeenOpened) {
+					const winW = document.documentElement.clientWidth;
+					const winH = window.innerHeight;
+					savedPos = {
+						x: (winW - panelRect.width) / 2,
+						y: (winH - panelRect.height) / 2
+					};
+					GM_setValue(PANEL_POSITION_KEY, savedPos);
+					GM_setValue('panel_has_been_opened_once', true);
+				} else if (!savedPos || isDragging) {
+					savedPos = { x: panel.offsetLeft, y: panel.offsetTop };
+				}
+				const correctedPos = ensureOnScreen(savedPos, { width: panelRect.width, height: panelRect.height });
+				panel.style.left = `${correctedPos.x}px`;
+				panel.style.top = `${correctedPos.y}px`;
+			}
+			repositionActiveDropdown();
+		};
+		const updateInputLabel = (input) => {
+			if (!input) return;
+			if (input.value && (input.tagName !== 'SELECT' || input.options[input.selectedIndex]?.disabled !== true)) {
+				input.classList.add('has-value');
+			} else {
+				input.classList.remove('has-value');
+			}
+		};
+		const updateAllLabels = () => {
+			panel.querySelectorAll('.settings-control').forEach(updateInputLabel);
+		};
 
-        function updateLocalEditVisibility() {
-            const mode = localEditModeSelect.value;
-            localContainerName.style.display = 'none';
-            localContainerTranslation.style.display = 'none';
-            localContainerForbidden.style.display = 'none';
+		function populateLocalGlossarySelect() {
+			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+			localGlossarySelect.innerHTML = '';
+			glossaries.forEach(g => {
+				const option = document.createElement('option');
+				option.value = g.id;
+				option.textContent = g.name;
+				option.dataset.isLocalGlossary = 'true';
+				localGlossarySelect.appendChild(option);
+			});
+			const createOption = document.createElement('option');
+			createOption.value = 'create_new';
+			createOption.textContent = '新建术语表';
+			localGlossarySelect.appendChild(createOption);
+		}
 
-            if (mode === 'name') {
-                localContainerName.style.display = 'block';
-            } else if (mode === 'translation') {
-                localContainerTranslation.style.display = 'flex';
-            } else if (mode === 'forbidden') {
-                localContainerForbidden.style.display = 'block';
-            }
-        }
+		function loadLocalGlossaryData(id) {
+			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+			const glossary = glossaries.find(g => g.id === id);
+			if (glossary) {
+				localGlossaryNameInput.value = glossary.name;
+				localSensitiveInput.value = glossary.sensitive || '';
+				localInsensitiveInput.value = glossary.insensitive || '';
+				localForbiddenInput.value = glossary.forbidden || '';
+				updateAllLabels();
+			}
+		}
 
-        const toggleEditableSection = (sectionToShow) => {
-            editableSections.forEach(s => s.style.display = 'none');
-            dataSyncActionsContainer.style.display = 'none';
-            debugActionsContainer.style.display = 'none';
-            if (sectionToShow) {
-                sectionToShow.style.display = 'flex';
-                const input = sectionToShow.querySelector('.settings-control');
-                if (input) updateInputLabel(input);
-            }
-        };
+		function generateNewGlossaryName(glossaries) {
+			const prefix = "术语表 ";
+			let maxNum = 0;
+			glossaries.forEach(g => {
+				if (g.name.startsWith(prefix)) {
+					const num = parseInt(g.name.slice(prefix.length), 10);
+					if (!isNaN(num) && num > maxNum) maxNum = num;
+				}
+			});
+			return prefix + (maxNum + 1);
+		}
 
-        const updateDebugButtonText = () => {
-            toggleDebugBtn.textContent = Logger.config.enabled ? '禁用调试模式' : '启用调试模式';
-        };
+		function handleDeleteLocalGlossary(id) {
+			let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+			glossaries = glossaries.filter(g => g.id !== id);
+			if (glossaries.length === 0) {
+				glossaries.push({
+					id: `local_${Date.now()}`,
+					name: '默认',
+					sensitive: '',
+					insensitive: '',
+					forbidden: '',
+					enabled: true
+				});
+			}
+			GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
 
-        const saveApiKey = () => {
-            const engineId = engineSelect.value;
-            const value = apiKeyInput.value;
-            let serviceIdToUpdate;
-            if (engineId.startsWith('custom_')) {
-                serviceIdToUpdate = engineId;
-            } else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID && customServiceManager.isPending()) {
-                serviceIdToUpdate = customServiceManager.ensureServiceExists();
-            } else {
-                serviceIdToUpdate = engineId;
-            }
-            if (!serviceIdToUpdate) {
-                return;
-            }
-            const stringKeyName = `${serviceIdToUpdate}_keys_string`;
-            const arrayKeyName = `${serviceIdToUpdate}_keys_array`;
-            GM_setValue(stringKeyName, value);
-            const keysArray = value.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
-            GM_setValue(arrayKeyName, keysArray);
-            GM_deleteValue(`${serviceIdToUpdate}_key_index`);
-        };
+			const currentSelected = localGlossarySelect.value;
+			let nextId = glossaries[0].id;
+			if (id === currentSelected) {
+				GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, nextId);
+			}
 
-        const resetDeleteButton = () => {
-            glossaryManageDeleteBtn.textContent = '删除';
-            glossaryManageDeleteBtn.removeAttribute('data-confirming');
-        };
+			populateLocalGlossarySelect();
+			const newSelected = (id === currentSelected) ? nextId : currentSelected;
+			localGlossarySelect.value = newSelected;
+			loadLocalGlossaryData(newSelected);
 
-        const populateManageGlossary = () => {
-            const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-            const urls = Object.keys(metadata);
-            const lastSelectedUrl = GM_getValue(LAST_SELECTED_GLOSSARY_KEY, null);
-            glossaryManageSelect.innerHTML = '';
-            if (urls.length === 0) {
-                glossaryManageSelect.innerHTML = '<option value="" disabled selected>暂无术语表</option>';
-                glossaryManageSelect.disabled = true;
-                glossaryManageDetailsContainer.style.display = 'none';
-            } else {
-                urls.forEach(url => {
-                    const filename = url.split('/').pop();
-                    const lastDotIndex = filename.lastIndexOf('.');
-                    const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
-                    const name = decodeURIComponent(baseName);
-                    const option = document.createElement('option');
-                    option.value = url;
-                    option.textContent = name;
-                    option.title = name;
-                    glossaryManageSelect.appendChild(option);
-                });
-                glossaryManageSelect.disabled = false;
-                if (lastSelectedUrl && urls.includes(lastSelectedUrl)) {
-                    glossaryManageSelect.value = lastSelectedUrl;
-                } else {
-                    glossaryManageSelect.selectedIndex = 0;
-                }
-            }
-            glossaryManageSelect.dispatchEvent(new Event('change'));
-            resetDeleteButton();
-        };
+			localEditModeSelect.value = 'name';
+			updateLocalEditVisibility();
+			GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
 
-        const handleExport = async () => {
-            try {
-                const availableItems = DATA_CATEGORIES.map(cat => ({
-                    ...cat,
-                    checked: true,
-                    disabled: false
-                }));
+			synchronizeAllSettings();
+		}
 
-                const selectionResult = await createSelectionModal(
-                    '数据导出',
-                    availableItems,
-                    'export',
-                    'ao3_export_selection_memory'
-                );
+		function updateLocalEditVisibility() {
+			const mode = localEditModeSelect.value;
+			localContainerName.style.display = 'none';
+			localContainerTranslation.style.display = 'none';
+			localContainerForbidden.style.display = 'none';
 
-                const data = await exportAllData(selectionResult.ids);
-                const jsonString = JSON.stringify(data, null, 2);
-                const blob = new Blob([jsonString], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                const shanghaiDate = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).slice(0, 10);
-                a.download = `AO3-Translator-Config-${shanghaiDate}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            } catch (e) {
-                if (e.message !== 'User cancelled') {
-                    notifyAndLog(`导出失败: ${e.message}`, '操作失败', 'error');
-                }
-            }
-        };
+			if (mode === 'name') {
+				localContainerName.style.display = 'block';
+			} else if (mode === 'translation') {
+				localContainerTranslation.style.display = 'flex';
+			} else if (mode === 'forbidden') {
+				localContainerForbidden.style.display = 'block';
+			}
+		}
 
-        const handleImport = () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+		const toggleEditableSection = (sectionToShow) => {
+			editableSections.forEach(s => s.style.display = 'none');
+			dataSyncActionsContainer.style.display = 'none';
+			debugActionsContainer.style.display = 'none';
+			blockerActionsContainer.style.display = 'none';
+			if (sectionToShow) {
+				sectionToShow.style.display = 'flex';
+				if (sectionToShow.id === 'editable-section-blocker') {
+					blockerActionsContainer.style.display = 'flex';
+				}
+				const input = sectionToShow.querySelector('.settings-control');
+				if (input) updateInputLabel(input);
+			}
+		};
 
-                const reader = new FileReader();
-                reader.onload = async (event) => {
-                    try {
-                        const jsonData = JSON.parse(event.target.result);
-                        if (!jsonData.data) throw new Error("文件缺少 data 字段");
+		const updateDebugButtonText = () => {
+			toggleDebugBtn.textContent = Logger.config.enabled ? '禁用调试模式' : '启用调试模式';
+		};
 
-                        const hasData = (catId, data) => {
-                            if (!data) return false;
-                            const hasContent = (val) => {
-                                if (!val) return false;
-                                if (typeof val === 'string') return val.trim() !== '';
-                                if (Array.isArray(val)) return val.length > 0;
-                                if (typeof val === 'object') return Object.keys(val).length > 0;
-                                return false;
-                            };
+		const updateBlockerButtonText = () => {
+			toggleBlockerBtn.textContent = GM_getValue('ao3_blocker_enabled', false) ? '禁用作品屏蔽' : '启用作品屏蔽';
+			toggleReasonsBtn.textContent = GM_getValue('ao3_blocker_show_reasons', true) ? '隐藏屏蔽原因' : '显示屏蔽原因';
+		};
 
-                            switch (catId) {
-                                case 'staticKeys':
-                                case 'apiKeys':
-                                case 'modelSelections':
-                                case 'aiParameters':
-                                    return Object.keys(data).length > 0;
-                                case 'uiState':
-                                    return !!(data.fabPosition || data.panelPosition);
-                                case 'customServices':
-                                    return Array.isArray(data) && data.length > 0;
-                                case 'glossaries':
-                                    return hasContent(data.customGlossaries) ||
-                                        hasContent(data.importedGlossaries) ||
-                                        hasContent(data.postReplaceString) ||
-                                        hasContent(data.postReplace) ||
-                                        hasContent(data.local) ||
-                                        hasContent(data.forbidden) ||
-                                        hasContent(data.onlineMetadata);
-                                default:
-                                    return false;
-                            }
-                        };
+		const renderBlockerSubDimensions = () => {
+			const dimension = blockerDimensionSelect.value;
+			const subConfig = blockerConfig[dimension];
+			blockerSubDimensionSelect.innerHTML = '';
+			Object.keys(subConfig).forEach(key => {
+				const option = document.createElement('option');
+				option.value = key;
+				option.textContent = subConfig[key].label;
+				blockerSubDimensionSelect.appendChild(option);
+			});
+			const savedSub = GM_getValue(BLOCKER_SUB_VIEW_KEY);
+			if (savedSub && subConfig[savedSub]) {
+				blockerSubDimensionSelect.value = savedSub;
+			} else {
+				blockerSubDimensionSelect.selectedIndex = 0;
+			}
+			renderBlockerInput();
+		};
 
-                        const availableItems = DATA_CATEGORIES.map(cat => {
-                            const dataExists = hasData(cat.id, jsonData.data[cat.id]);
-                            return {
-                                ...cat,
-                                checked: dataExists,
-                                label: cat.label,
-                                disabled: !dataExists
-                            };
-                        });
+		const renderBlockerInput = () => {
+			const dimension = blockerDimensionSelect.value;
+			const subDimension = blockerSubDimensionSelect.value;
+			const config = blockerConfig[dimension][subDimension];
+			blockerInputArea.innerHTML = '';
 
-                        const validItems = availableItems.filter(item => !item.disabled);
+			if (config.isDual) {
+				config.keys.forEach((key, index) => {
+					const group = document.createElement('div');
+					group.className = 'settings-group static-label';
+					const labelText = config.labels[index];
+					const placeholder = config.phs[index];
+					const inputId = `input-blocker-val-${index}`;
 
-                        if (validItems.length === 0) {
-                            notifyAndLog('该文件中没有可导入的有效数据。', '导入失败', 'error');
-                            return;
-                        }
+					group.innerHTML = `
+                        <div class="input-wrapper">
+                            <input type="text" id="${inputId}" class="settings-control settings-input" placeholder="${placeholder}" spellcheck="false">
+                            <label for="${inputId}" class="settings-label">${labelText}</label>
+                            <button class="settings-action-button-inline">保存</button>
+                        </div>
+                    `;
+					const input = group.querySelector('input');
+					input.value = GM_getValue(key, '');
 
-                        const selectionResult = await createSelectionModal(
-                            '数据导入',
-                            availableItems,
-                            'import',
-                            null
-                        );
+					group.querySelector('button').addEventListener('click', () => {
+						const val = input.value.trim();
+						GM_setValue(key, val);
+						updateInputLabel(input);
+						refreshBlocker();
+					});
 
-                        if (selectionResult && selectionResult.ids.length > 0) {
-                            const result = await importAllData(jsonData, selectionResult.ids, selectionResult.mode, syncPanelState);
-                            Logger.info('数据', result.message);
-                        }
-                    } catch (err) {
-                        if (err.message !== 'User cancelled') {
-                            notifyAndLog(`导入失败: ${err.message}`, '导入错误', 'error');
-                        }
-                    }
-                };
-                reader.readAsText(file);
-            };
-            input.click();
-        };
+					blockerInputArea.appendChild(group);
+					updateInputLabel(input);
+				});
+			} else {
+				const group = document.createElement('div');
+				group.className = 'settings-group static-label';
 
-        const togglePanel = () => {
-            const isOpening = panel.style.display !== 'flex';
-            if (isOpening) {
-                editableSections.forEach(s => s.style.display = 'none');
-                dataSyncActionsContainer.style.display = 'none';
-                debugActionsContainer.style.display = 'none';
-                syncPanelState();
-                const lastAction = GM_getValue(GLOSSARY_ACTION_KEY, '');
-                glossaryActionsSelect.value = lastAction;
-                if (lastAction) {
-                    glossaryActionsSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                } else {
-                    glossaryActionsSelect.value = "";
-                }
-                panel.style.display = 'flex';
-                updatePanelPosition();
-            } else {
-                if (customServiceManager.isPending()) {
-                    customServiceManager.cancelPending();
-                }
-                cleanupAllEmptyCustomServices();
-                panel.style.display = 'none';
-                if (onPanelCloseCallback) onPanelCloseCallback();
-            }
-            if (rerenderMenuCallback) rerenderMenuCallback();
-        };
+				let displayLabel = config.label;
+				if (config.getInputLabel) {
+					displayLabel = config.getInputLabel();
+				} else if (config.inputLabel) {
+					displayLabel = config.inputLabel;
+				}
 
-        const updateSwapButtonState = () => {
-            const val = fromLangSelect.value;
-            const isAutoDetect = val === 'auto' || val === 'script_auto';
-            swapLangBtn.disabled = isAutoDetect;
-        };
+				group.innerHTML = `
+                    <div class="input-wrapper">
+                        <input type="text" id="input-blocker-val" class="settings-control settings-input" placeholder="${config.ph}" spellcheck="false">
+                        <label for="input-blocker-val" class="settings-label">${displayLabel}</label>
+                        <button class="settings-action-button-inline">保存</button>
+                    </div>
+                `;
+				const input = group.querySelector('input');
 
-        const handleLanguageChange = () => {
-            if (glossaryActionsSelect.value === 'ai_settings') {
-                const currentParam = aiParamSelect.value;
-                if (currentParam === 'system_prompt' || currentParam === 'user_prompt') {
-                    renderAiParamEditor();
-                }
-            }
-        };
+				if (config.isRange) {
+					const min = GM_getValue(config.keys[0], '');
+					const max = GM_getValue(config.keys[1], '');
+					if (min && max) input.value = `${min}-${max}`;
+					else if (min) input.value = min;
+					else if (max) input.value = `-${max}`;
+				} else {
+					input.value = GM_getValue(config.keys[0], '');
+				}
 
-        panel.addEventListener('change', (e) => {
-            if (e.target.classList.contains('settings-control')) {
-                updateInputLabel(e.target);
-            }
-        });
-        panel.addEventListener('input', (e) => {
-            if (e.target.classList.contains('settings-control')) {
-                updateInputLabel(e.target);
-            }
-        });
+				group.querySelector('button').addEventListener('click', () => {
+					const val = input.value.trim();
+					if (config.isRange) {
+						const parts = val.split(/[-－—]/);
+						if (parts.length >= 2) {
+							GM_setValue(config.keys[0], parts[0].trim());
+							GM_setValue(config.keys[1], parts[1].trim());
+						} else {
+							GM_setValue(config.keys[0], val);
+							GM_setValue(config.keys[1], '');
+						}
+					} else {
+						GM_setValue(config.keys[0], val);
+					}
+					updateInputLabel(input);
+					refreshBlocker();
+				});
 
-        masterSwitch.addEventListener('change', () => {
-            const isEnabled = masterSwitch.checked;
-            GM_setValue('enable_transDesc', isEnabled);
-            FeatureSet.enable_transDesc = isEnabled;
-            syncPanelState();
-            if (typeof fabLogic !== 'undefined' && fabLogic.toggleFabVisibility) {
-                fabLogic.toggleFabVisibility();
-            }
-            if (isEnabled) transDesc();
-            else {
-                document.querySelectorAll('.translate-me-ao3-wrapper, .translated-by-ao3-script, .translated-by-ao3-script-error, .translated-tags-container').forEach(el => el.remove());
-                document.querySelectorAll('[data-translation-handled="true"], [data-state="translated"]').forEach(el => {
-                    delete el.dataset.translationHandled;
-                    delete el.dataset.state;
-                    el.style.display = '';
-                });
-            }
-        });
+				blockerInputArea.appendChild(group);
+				updateInputLabel(input);
+			}
+		};
 
-        swapLangBtn.addEventListener('click', () => {
-            if (swapLangBtn.disabled) return;
-            const fromLang = fromLangSelect.value;
-            const toLang = toLangSelect.value;
-            fromLangSelect.value = toLang;
-            toLangSelect.value = fromLang;
-            GM_setValue('from_lang', toLang);
-            GM_setValue('to_lang', fromLang);
-            fromLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
-            toLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
-        });
+		const saveApiKey = () => {
+			const engineId = engineSelect.value;
+			const value = apiKeyInput.value;
+			let serviceIdToUpdate;
+			if (engineId.startsWith('custom_')) {
+				serviceIdToUpdate = engineId;
+			} else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID && customServiceManager.isPending()) {
+				serviceIdToUpdate = customServiceManager.ensureServiceExists();
+			} else {
+				serviceIdToUpdate = engineId;
+			}
+			if (!serviceIdToUpdate) {
+				return;
+			}
+			const stringKeyName = `${serviceIdToUpdate}_keys_string`;
+			const arrayKeyName = `${serviceIdToUpdate}_keys_array`;
+			GM_setValue(stringKeyName, value);
+			const keysArray = value.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+			GM_setValue(arrayKeyName, keysArray);
+			GM_deleteValue(`${serviceIdToUpdate}_key_index`);
+		};
 
-        fromLangSelect.addEventListener('change', () => {
-            const newLang = fromLangSelect.value;
-            GM_setValue('from_lang', newLang);
-            updateSwapButtonState();
-            handleLanguageChange();
-        });
+		const resetDeleteButton = () => {
+			glossaryManageDeleteBtn.textContent = '删除';
+			glossaryManageDeleteBtn.removeAttribute('data-confirming');
+		};
 
-        toLangSelect.addEventListener('change', () => {
-            const newLang = toLangSelect.value;
-            GM_setValue('to_lang', newLang);
-            handleLanguageChange();
-        });
+		const populateManageGlossary = () => {
+			const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+			const urls = Object.keys(metadata);
+			const lastSelectedUrl = GM_getValue(LAST_SELECTED_GLOSSARY_KEY, null);
+			glossaryManageSelect.innerHTML = '';
+			if (urls.length === 0) {
+				glossaryManageSelect.innerHTML = '<option value="" disabled selected>暂无术语表</option>';
+				glossaryManageSelect.disabled = true;
+				glossaryManageDetailsContainer.style.display = 'none';
+			} else {
+				urls.forEach(url => {
+					const filename = url.split('/').pop();
+					const lastDotIndex = filename.lastIndexOf('.');
+					const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
+					const name = decodeURIComponent(baseName);
+					const option = document.createElement('option');
+					option.value = url;
+					option.textContent = name;
+					option.title = name;
+					glossaryManageSelect.appendChild(option);
+				});
+				glossaryManageSelect.disabled = false;
+				if (lastSelectedUrl && urls.includes(lastSelectedUrl)) {
+					glossaryManageSelect.value = lastSelectedUrl;
+				} else {
+					glossaryManageSelect.selectedIndex = 0;
+				}
+			}
+			glossaryManageSelect.dispatchEvent(new Event('change'));
+			resetDeleteButton();
+		};
 
-        engineSelect.addEventListener('change', () => {
-            if (customServiceManager.isPending()) {
-                customServiceManager.cancelPending();
-            }
-            const newEngine = engineSelect.value;
-            if (newEngine === ADD_NEW_CUSTOM_SERVICE_ID) {
-                customServiceManager.startPendingCreation();
-                updateUiForEngine(newEngine);
-            } else {
-                GM_setValue('transEngine', newEngine);
-                updateUiForEngine(newEngine);
-            }
-        });
+		const handleExport = async () => {
+			try {
+				const availableItems = DATA_CATEGORIES.map(cat => ({
+					...cat,
+					checked: true,
+					disabled: false
+				}));
 
-        modelSelect.addEventListener('change', () => {
-            const engineId = engineSelect.value;
-            if (engineId.startsWith('custom_')) {
-                if (!modelSelect.disabled) {
-                    GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${engineId}`, modelSelect.value);
-                }
-            } else {
-                const config = engineMenuConfig[engineId];
-                if (config && config.modelGmKey) {
-                    GM_setValue(config.modelGmKey, modelSelect.value);
-                }
-            }
-        });
+				const selectionResult = await createSelectionModal(
+					'数据导出',
+					availableItems,
+					'export',
+					'ao3_export_selection_memory'
+				);
 
-        displayModeSelect.addEventListener('change', () => {
-            const newMode = displayModeSelect.value;
-            GM_setValue('translation_display_mode', newMode);
-            applyDisplayModeChange(newMode);
-        });
+				const data = await exportAllData(selectionResult.ids);
+				const jsonString = JSON.stringify(data, null, 2);
+				const shanghaiDate = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).slice(0, 10);
+				saveFile(jsonString, `AO3-Translator-Config-${shanghaiDate}.json`, 'application/json');
+			} catch (e) {
+				if (e.message !== 'User cancelled') {
+					notifyAndLog(`导出失败: ${e.message}`, '操作失败', 'error');
+				}
+			}
+		};
 
-        apiKeySaveBtn.addEventListener('click', saveApiKey);
+		const handleImport = () => {
+			const input = document.createElement('input');
+			input.type = 'file';
+			input.accept = '.json';
+			input.onchange = (e) => {
+				const file = e.target.files[0];
+				if (!file) return;
 
-        serviceDetailsToggleContainer.addEventListener('click', () => {
-            if (!masterSwitch.checked) return;
-            const engineId = engineSelect.value;
-            const isCollapsed = serviceDetailsToggleBtn.classList.contains('collapsed');
-            const newState = !isCollapsed;
-            serviceDetailsToggleBtn.classList.toggle('collapsed', newState);
-            GM_setValue(`service_collapsed_${engineId}`, newState);
-            updateUiForEngine(engineId);
-        });
+				const reader = new FileReader();
+				reader.onload = async (event) => {
+					try {
+						const jsonData = JSON.parse(event.target.result);
+						if (!jsonData.data) throw new Error("文件缺少 data 字段");
 
-        glossaryActionsSelect.addEventListener('change', () => {
-            const action = glossaryActionsSelect.value;
-            GM_setValue(GLOSSARY_ACTION_KEY, action);
-            toggleEditableSection(null);
-            switch (action) {
-                case 'ai_settings':
-                    toggleEditableSection(aiSettingsSection);
-                    const lastAiAction = GM_getValue(AI_PARAM_ACTION_KEY, 'system_prompt');
-                    aiParamSelect.value = lastAiAction;
-                    renderAiParamEditor();
-                    break;
-                case 'lang_detect':
-                    langDetectSelect.value = GM_getValue('lang_detector', 'microsoft');
-                    toggleEditableSection(langDetectSection);
-                    break;
+						const hasData = (catId, data) => {
+							if (!data) return false;
+							const hasContent = (val) => {
+								if (!val) return false;
+								if (typeof val === 'string') return val.trim() !== '';
+								if (Array.isArray(val)) return val.length > 0;
+								if (typeof val === 'object') return Object.keys(val).length > 0;
+								return false;
+							};
+
+							switch (catId) {
+								case 'staticKeys':
+								case 'apiKeys':
+								case 'modelSelections':
+								case 'aiParameters':
+								case 'blockerSettings':
+									return Object.keys(data).length > 0;
+								case 'uiState':
+									return !!(data.fabPosition || data.panelPosition);
+								case 'customServices':
+									return Array.isArray(data) && data.length > 0;
+								case 'glossaries':
+									return hasContent(data.customGlossaries) ||
+										hasContent(data.importedGlossaries) ||
+										hasContent(data.postReplaceString) ||
+										hasContent(data.postReplace) ||
+										hasContent(data.local) ||
+										hasContent(data.forbidden) ||
+										hasContent(data.onlineMetadata);
+								case 'formatting':
+									return Object.keys(data).length > 0;
+								default:
+									return false;
+							}
+						};
+
+						const availableItems = DATA_CATEGORIES.map(cat => {
+							const dataExists = hasData(cat.id, jsonData.data[cat.id]);
+							return {
+								...cat,
+								checked: dataExists,
+								label: cat.label,
+								disabled: !dataExists
+							};
+						});
+
+						const validItems = availableItems.filter(item => !item.disabled);
+
+						if (validItems.length === 0) {
+							notifyAndLog('该文件中没有可导入的有效数据。', '导入失败', 'error');
+							return;
+						}
+
+						const selectionResult = await createSelectionModal(
+							'数据导入',
+							availableItems,
+							'import',
+							null
+						);
+
+						if (selectionResult && selectionResult.ids.length > 0) {
+							const result = await importAllData(jsonData, selectionResult.ids, selectionResult.mode, syncPanelState);
+							Logger.info('数据', result.message);
+						}
+					} catch (err) {
+						if (err.message !== 'User cancelled') {
+							notifyAndLog(`导入失败: ${err.message}`, '导入错误', 'error');
+						}
+					}
+				};
+				reader.readAsText(file);
+			};
+			input.click();
+		};
+
+		const togglePanel = () => {
+			const isOpening = panel.style.display !== 'flex';
+			if (isOpening) {
+				editableSections.forEach(s => s.style.display = 'none');
+				dataSyncActionsContainer.style.display = 'none';
+				debugActionsContainer.style.display = 'none';
+				blockerActionsContainer.style.display = 'none';
+				syncPanelState();
+				const lastAction = GM_getValue(GLOSSARY_ACTION_KEY, '');
+				glossaryActionsSelect.value = lastAction;
+				if (lastAction) {
+					glossaryActionsSelect.dispatchEvent(new Event('change', { bubbles: true }));
+				} else {
+					glossaryActionsSelect.value = "";
+				}
+				panel.style.display = 'flex';
+				updatePanelPosition();
+			} else {
+				if (customServiceManager.isPending()) {
+					customServiceManager.cancelPending();
+				}
+				cleanupAllEmptyCustomServices();
+				panel.style.display = 'none';
+				if (onPanelCloseCallback) onPanelCloseCallback();
+			}
+			if (rerenderMenuCallback) rerenderMenuCallback();
+		};
+
+		const updateSwapButtonState = () => {
+			const val = fromLangSelect.value;
+			const isAutoDetect = val === 'auto' || val === 'script_auto';
+			swapLangBtn.disabled = isAutoDetect;
+		};
+
+		const handleLanguageChange = () => {
+			if (glossaryActionsSelect.value === 'ai_settings') {
+				const currentParam = aiParamSelect.value;
+				if (currentParam === 'system_prompt' || currentParam === 'user_prompt') {
+					renderAiParamEditor();
+				}
+			} else if (glossaryActionsSelect.value === 'formatting') {
+				renderFormattingEditor();
+			}
+		};
+
+		applyFormatting();
+
+		const renderFormattingEditor = () => {
+			const prop = fmtPropertySelect.value;
+			const opts = GM_getValue(FORMATTING_KEY, DEFAULT_FORMATTING);
+
+			fmtValueSelect.innerHTML = '';
+
+			const saveOpt = (key, value) => {
+				const current = GM_getValue(FORMATTING_KEY, DEFAULT_FORMATTING);
+				current[key] = value;
+				GM_setValue(FORMATTING_KEY, current);
+				applyFormatting();
+			};
+
+			const addOpt = (val, text, selectedVal) => {
+				const opt = document.createElement('option');
+				opt.value = val;
+				opt.textContent = text;
+				if (String(val) === String(selectedVal)) opt.selected = true;
+				fmtValueSelect.appendChild(opt);
+			};
+
+			if (prop === 'indent') {
+				fmtValueLabel.textContent = '首行缩进';
+				addOpt('true', '启用', opts.indent);
+				addOpt('false', '禁用', opts.indent);
+			} else if (prop === 'fontSize') {
+				fmtValueLabel.textContent = '文字大小';
+				for (let i = 50; i <= 200; i += 10) {
+					addOpt(i, i + '%', opts.fontSize);
+				}
+			} else if (prop === 'letterSpacing') {
+				fmtValueLabel.textContent = '字间距';
+				for (let i = 0; i <= 5; i += 0.5) {
+					addOpt(i, i + 'px', opts.letterSpacing);
+				}
+			} else if (prop === 'lineHeight') {
+				fmtValueLabel.textContent = '行间距';
+				for (let i = 0.8; i <= 2.0; i = parseFloat((i + 0.1).toFixed(1))) {
+					addOpt(i, i, opts.lineHeight);
+				}
+			} else if (prop === 'margins') {
+				fmtValueLabel.textContent = '页边距';
+				for (let i = 0; i <= 40; i += 5) {
+					addOpt(i, i + '%', opts.margins);
+				}
+			}
+
+			fmtValueSelect.onchange = (e) => {
+				saveOpt(prop, e.target.value);
+			};
+		};
+
+		fmtPropertySelect.addEventListener('change', (e) => {
+			GM_setValue(FORMATTING_LAST_PROP_KEY, e.target.value);
+			renderFormattingEditor();
+		});
+
+		panel.addEventListener('change', (e) => {
+			if (e.target.classList.contains('settings-control')) {
+				updateInputLabel(e.target);
+			}
+		});
+		panel.addEventListener('input', (e) => {
+			if (e.target.classList.contains('settings-control')) {
+				updateInputLabel(e.target);
+			}
+		});
+
+		masterSwitch.addEventListener('change', () => {
+			const isEnabled = masterSwitch.checked;
+			GM_setValue('enable_transDesc', isEnabled);
+			FeatureSet.enable_transDesc = isEnabled;
+			syncPanelState();
+			if (typeof fabLogic !== 'undefined' && fabLogic.toggleFabVisibility) {
+				fabLogic.toggleFabVisibility();
+			}
+			if (isEnabled) transDesc();
+			else {
+				document.querySelectorAll('.translate-me-ao3-wrapper, .translated-by-ao3-script, .translated-by-ao3-script-error, .translated-tags-container').forEach(el => el.remove());
+				document.querySelectorAll('[data-translation-handled="true"], [data-state="translated"]').forEach(el => {
+					delete el.dataset.translationHandled;
+					delete el.dataset.state;
+					el.style.display = '';
+				});
+			}
+		});
+
+		swapLangBtn.addEventListener('click', () => {
+			if (swapLangBtn.disabled) return;
+			const fromLang = fromLangSelect.value;
+			const toLang = toLangSelect.value;
+			fromLangSelect.value = toLang;
+			toLangSelect.value = fromLang;
+			GM_setValue('from_lang', toLang);
+			GM_setValue('to_lang', fromLang);
+			fromLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
+			toLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+
+		fromLangSelect.addEventListener('change', () => {
+			const newLang = fromLangSelect.value;
+			GM_setValue('from_lang', newLang);
+			updateSwapButtonState();
+			handleLanguageChange();
+		});
+
+		toLangSelect.addEventListener('change', () => {
+			const newLang = toLangSelect.value;
+			GM_setValue('to_lang', newLang);
+			handleLanguageChange();
+		});
+
+		engineSelect.addEventListener('change', () => {
+			if (customServiceManager.isPending()) {
+				customServiceManager.cancelPending();
+			}
+			const newEngine = engineSelect.value;
+			if (newEngine === ADD_NEW_CUSTOM_SERVICE_ID) {
+				customServiceManager.startPendingCreation();
+				updateUiForEngine(newEngine);
+			} else {
+				GM_setValue('transEngine', newEngine);
+				updateUiForEngine(newEngine);
+			}
+		});
+
+		modelSelect.addEventListener('change', () => {
+			const engineId = engineSelect.value;
+			if (engineId.startsWith('custom_')) {
+				if (!modelSelect.disabled) {
+					GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${engineId}`, modelSelect.value);
+				}
+			} else {
+				const config = engineMenuConfig[engineId];
+				if (config && config.modelGmKey) {
+					GM_setValue(config.modelGmKey, modelSelect.value);
+				}
+			}
+		});
+
+		displayModeSelect.addEventListener('change', () => {
+			const newMode = displayModeSelect.value;
+			GM_setValue('translation_display_mode', newMode);
+			applyDisplayModeChange(newMode);
+		});
+
+		apiKeySaveBtn.addEventListener('click', saveApiKey);
+
+		serviceDetailsToggleContainer.addEventListener('click', () => {
+			if (!masterSwitch.checked) return;
+			const engineId = engineSelect.value;
+			const isCollapsed = serviceDetailsToggleBtn.classList.contains('collapsed');
+			const newState = !isCollapsed;
+			serviceDetailsToggleBtn.classList.toggle('collapsed', newState);
+			GM_setValue(`service_collapsed_${engineId}`, newState);
+			updateUiForEngine(engineId);
+		});
+
+		glossaryActionsSelect.addEventListener('change', () => {
+			const action = glossaryActionsSelect.value;
+			GM_setValue(GLOSSARY_ACTION_KEY, action);
+			toggleEditableSection(null);
+			switch (action) {
+				case 'ai_settings':
+					toggleEditableSection(aiSettingsSection);
+					const lastAiAction = GM_getValue(AI_PARAM_ACTION_KEY, 'system_prompt');
+					aiParamSelect.value = lastAiAction;
+					renderAiParamEditor();
+					break;
+				case 'lang_detect':
+					langDetectSelect.value = GM_getValue('lang_detector', 'microsoft');
+					toggleEditableSection(langDetectSection);
+					break;
 				case 'local_manage':
 					let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
 					if (glossaries.length === 0) {
 						const defaultGlossary = {
 							id: `local_${Date.now()}`,
-							name: '默认术语表',
+							name: '默认',
 							sensitive: '',
 							insensitive: '',
 							forbidden: '',
@@ -9929,99 +7933,114 @@ Your task is to translate a numbered list of text segments provided by the user.
 					updateLocalEditVisibility();
 					toggleEditableSection(localManageSection);
 					break;
-                case 'online_manage':
-                    populateManageGlossary();
-                    toggleEditableSection(onlineManageSection);
-                    break;
-                case 'post_replace':
-                    postReplaceInput.value = GM_getValue(POST_REPLACE_STRING_KEY, '');
-                    toggleEditableSection(postReplaceSection);
-                    break;
-                case 'debug_mode':
-                    updateDebugButtonText();
-                    debugActionsContainer.style.display = 'flex';
-                    break;
-                case 'data_sync':
-                    dataSyncActionsContainer.style.display = 'flex';
-                    break;
-                default:
-                    break;
-            }
-        });
+				case 'online_manage':
+					populateManageGlossary();
+					toggleEditableSection(onlineManageSection);
+					break;
+				case 'post_replace':
+					postReplaceInput.value = GM_getValue(POST_REPLACE_STRING_KEY, '');
+					toggleEditableSection(postReplaceSection);
+					break;
+				case 'debug_mode':
+					updateDebugButtonText();
+					debugActionsContainer.style.display = 'flex';
+					break;
+				case 'data_sync':
+					dataSyncActionsContainer.style.display = 'flex';
+					break;
+				case 'blocker_manage':
+					blockerDimensionSelect.value = GM_getValue(BLOCKER_VIEW_KEY, 'tags');
+					renderBlockerSubDimensions();
+					updateBlockerButtonText();
+					toggleEditableSection(blockerSection);
+					break;
+				case 'formatting':
+					const lastProp = GM_getValue(FORMATTING_LAST_PROP_KEY, 'indent');
+					if (fmtPropertySelect) {
+						fmtPropertySelect.value = lastProp;
+					}
+					toggleEditableSection(formattingSection);
+					renderFormattingEditor();
+					break;
+				default:
+					break;
+			}
+			syncPanelState();
+		});
 
-        aiParamSelect.addEventListener('change', () => {
-            GM_setValue(AI_PARAM_ACTION_KEY, aiParamSelect.value);
-            renderAiParamEditor();
-        });
+		aiParamSelect.addEventListener('change', () => {
+			GM_setValue(AI_PARAM_ACTION_KEY, aiParamSelect.value);
+			renderAiParamEditor();
+		});
 
-        langDetectSelect.addEventListener('change', () => {
-            GM_setValue('lang_detector', langDetectSelect.value);
-        });
+		langDetectSelect.addEventListener('change', () => {
+			GM_setValue('lang_detector', langDetectSelect.value);
+		});
 
-        localGlossarySelect.addEventListener('change', () => {
-            if (localGlossarySelect.value === 'create_new') {
-                const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-                const newId = `local_${Date.now()}`;
-                const newName = generateNewGlossaryName(glossaries);
-                const newGlossary = {
-                    id: newId,
-                    name: newName,
-                    sensitive: '',
-                    insensitive: '',
-                    forbidden: '',
-                    enabled: true
-                };
-                glossaries.push(newGlossary);
-                GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-                populateLocalGlossarySelect();
-                localGlossarySelect.value = newId;
-                loadLocalGlossaryData(newId);
-                synchronizeAllSettings();
-                GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, newId);
-                localEditModeSelect.value = 'name';
-                GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
-            } else {
-                loadLocalGlossaryData(localGlossarySelect.value);
-                GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, localGlossarySelect.value);
-            }
-            updateLocalEditVisibility();
-        });
+		localGlossarySelect.addEventListener('change', () => {
+			if (localGlossarySelect.value === 'create_new') {
+				const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+				const newId = `local_${Date.now()}`;
+				const newName = generateNewGlossaryName(glossaries);
+				const newGlossary = {
+					id: newId,
+					name: newName,
+					sensitive: '',
+					insensitive: '',
+					forbidden: '',
+					enabled: true
+				};
+				glossaries.push(newGlossary);
+				GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+				populateLocalGlossarySelect();
+				localGlossarySelect.value = newId;
+				loadLocalGlossaryData(newId);
+				synchronizeAllSettings();
+				GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, newId);
+				localEditModeSelect.value = 'name';
+				GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
+			} else {
+				loadLocalGlossaryData(localGlossarySelect.value);
+				GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, localGlossarySelect.value);
+			}
+			updateLocalEditVisibility();
+		});
 
-        localEditModeSelect.addEventListener('change', () => {
-            const mode = localEditModeSelect.value;
-            if (mode === 'delete') {
-                const glossaryName = localGlossarySelect.options[localGlossarySelect.selectedIndex].text;
-                const confirmMessage = `您确定要删除 ${glossaryName} 术语表吗？\n\n注意：此操作无法撤销。</span>`;
+		localEditModeSelect.addEventListener('change', () => {
+			const mode = localEditModeSelect.value;
+			if (mode === 'delete') {
+				const glossaryName = localGlossarySelect.options[localGlossarySelect.selectedIndex].text;
+				const confirmMessage = `您确定要删除 ${glossaryName} 术语表吗？\n\n注意：此操作无法撤销。</span>`;
 
-                showCustomConfirm(confirmMessage, '提示', { textAlign: 'center' })
-                    .then(() => {
-                        handleDeleteLocalGlossary(localGlossarySelect.value);
-                    })
-                    .catch(() => {
-                        const previousMode = GM_getValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
-                        localEditModeSelect.value = previousMode;
-                    });
-            } else {
-                updateLocalEditVisibility();
-                GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, mode);
-            }
-        });
+				showCustomConfirm(confirmMessage, '提示', { textAlign: 'center' })
+					.then(() => {
+						handleDeleteLocalGlossary(localGlossarySelect.value);
+					})
+					.catch(() => {
+						const previousMode = GM_getValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
+						localEditModeSelect.value = previousMode;
+					});
+			} else {
+				updateLocalEditVisibility();
+				GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, mode);
+			}
+		});
 
-        localGlossarySaveNameBtn.addEventListener('click', () => {
-            const id = localGlossarySelect.value;
-            const newName = localGlossaryNameInput.value.trim();
-            if (id && newName) {
-                const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-                const index = glossaries.findIndex(g => g.id === id);
-                if (index !== -1) {
-                    glossaries[index].name = newName;
-                    GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-                    const currentSelection = localGlossarySelect.value;
-                    populateLocalGlossarySelect();
-                    localGlossarySelect.value = currentSelection;
-                }
-            }
-        });
+		localGlossarySaveNameBtn.addEventListener('click', () => {
+			const id = localGlossarySelect.value;
+			const newName = localGlossaryNameInput.value.trim();
+			if (id && newName) {
+				const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+				const index = glossaries.findIndex(g => g.id === id);
+				if (index !== -1) {
+					glossaries[index].name = newName;
+					GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+					const currentSelection = localGlossarySelect.value;
+					populateLocalGlossarySelect();
+					localGlossarySelect.value = currentSelection;
+				}
+			}
+		});
 
 		const saveLocalContent = (field, inputElement) => {
 			const id = localGlossarySelect.value;
@@ -10034,358 +8053,653 @@ Your task is to translate a numbered list of text segments provided by the user.
 			}
 		};
 
-        localSensitiveSaveBtn.addEventListener('click', () => saveLocalContent('sensitive', localSensitiveInput));
-        localInsensitiveSaveBtn.addEventListener('click', () => saveLocalContent('insensitive', localInsensitiveInput));
-        localForbiddenSaveBtn.addEventListener('click', () => saveLocalContent('forbidden', localForbiddenInput));
+		localSensitiveSaveBtn.addEventListener('click', () => saveLocalContent('sensitive', localSensitiveInput));
+		localInsensitiveSaveBtn.addEventListener('click', () => saveLocalContent('insensitive', localInsensitiveInput));
+		localForbiddenSaveBtn.addEventListener('click', () => saveLocalContent('forbidden', localForbiddenInput));
 
-        glossaryImportSaveBtn.addEventListener('click', async () => {
-            const url = glossaryImportUrlInput.value.trim();
-            if (url) {
-                const result = await importOnlineGlossary(url);
-                if (result.success) {
-                    invalidateGlossaryCache();
-                    GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
-                    if (glossaryActionsSelect.value === 'online_manage') {
-                        populateManageGlossary();
-                    }
-                }
-            }
-        });
+		glossaryImportSaveBtn.addEventListener('click', async () => {
+			const url = glossaryImportUrlInput.value.trim();
+			if (url) {
+				const result = await importOnlineGlossary(url);
+				if (result.success) {
+					invalidateGlossaryCache();
+					GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
+					if (glossaryActionsSelect.value === 'online_manage') {
+						populateManageGlossary();
+					}
+				}
+			}
+		});
 
-        glossaryManageSelect.addEventListener('change', () => {
-            const url = glossaryManageSelect.value;
-            if (url) {
-                GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
-                const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-                const currentMeta = metadata[url] || {};
-                glossaryManageInfo.textContent = `版本号：${currentMeta.version || '未知'} ，维护者：${currentMeta.maintainer || '未知'}`;
-                glossaryManageDetailsContainer.style.display = 'flex';
-            } else {
-                glossaryManageDetailsContainer.style.display = 'none';
-            }
-            resetDeleteButton();
-        });
+		glossaryManageSelect.addEventListener('change', () => {
+			const url = glossaryManageSelect.value;
+			if (url) {
+				GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
+				const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+				const currentMeta = metadata[url] || {};
+				glossaryManageInfo.textContent = `版本号：${currentMeta.version || '未知'} ，维护者：${currentMeta.maintainer || '未知'}`;
+				glossaryManageDetailsContainer.style.display = 'flex';
+			} else {
+				glossaryManageDetailsContainer.style.display = 'none';
+			}
+			resetDeleteButton();
+		});
 
-        glossaryManageDeleteBtn.addEventListener('click', () => {
-            if (glossaryManageDeleteBtn.dataset.confirming) {
-                const urlToRemove = glossaryManageSelect.value;
-                if (urlToRemove) {
-                    const allGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-                    const allMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-                    delete allGlossaries[urlToRemove];
-                    delete allMetadata[urlToRemove];
-                    GM_setValue(IMPORTED_GLOSSARY_KEY, allGlossaries);
-                    GM_setValue(GLOSSARY_METADATA_KEY, allMetadata);
-                    invalidateGlossaryCache();
-                    populateManageGlossary();
-                    updateInputLabel(glossaryManageSelect);
-                }
-            } else {
-                glossaryManageDeleteBtn.textContent = '确认删除';
-                glossaryManageDeleteBtn.setAttribute('data-confirming', 'true');
-            }
-        });
+		glossaryManageDeleteBtn.addEventListener('click', () => {
+			if (glossaryManageDeleteBtn.dataset.confirming) {
+				const urlToRemove = glossaryManageSelect.value;
+				if (urlToRemove) {
+					const allGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
+					const allMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+					delete allGlossaries[urlToRemove];
+					delete allMetadata[urlToRemove];
+					GM_setValue(IMPORTED_GLOSSARY_KEY, allGlossaries);
+					GM_setValue(GLOSSARY_METADATA_KEY, allMetadata);
+					invalidateGlossaryCache();
+					populateManageGlossary();
+					updateInputLabel(glossaryManageSelect);
+				}
+			} else {
+				glossaryManageDeleteBtn.textContent = '确认删除';
+				glossaryManageDeleteBtn.setAttribute('data-confirming', 'true');
+			}
+		});
 
-        postReplaceSaveBtn.addEventListener('click', () => {
-            GM_setValue(POST_REPLACE_STRING_KEY, postReplaceInput.value);
-            synchronizeAllSettings();
-        });
+		postReplaceSaveBtn.addEventListener('click', () => {
+			GM_setValue(POST_REPLACE_STRING_KEY, postReplaceInput.value);
+			synchronizeAllSettings();
+		});
 
-        toggleDebugBtn.addEventListener('click', () => {
-            Logger.toggle();
-            updateDebugButtonText();
-        });
+		toggleDebugBtn.addEventListener('click', () => {
+			Logger.toggle();
+			updateDebugButtonText();
+		});
 
-        exportLogBtn.addEventListener('click', () => {
-            Logger.export();
-        });
+		exportLogBtn.addEventListener('click', () => {
+			Logger.export();
+		});
 
-        importDataBtn.addEventListener('click', () => handleImport());
-        exportDataBtn.addEventListener('click', handleExport);
+		importDataBtn.addEventListener('click', () => handleImport());
+		exportDataBtn.addEventListener('click', handleExport);
 
-        closeBtn.addEventListener('click', togglePanel);
+		closeBtn.addEventListener('click', togglePanel);
 
-        header.addEventListener('mousedown', (e) => {
-            if (isMobile()) return;
-            isDragging = true;
-            panel.classList.add('dragging');
-            origin = { x: e.clientX, y: e.clientY };
-            startPosition = { x: panel.offsetLeft, y: panel.offsetTop };
-        });
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            const newPos = {
-                x: startPosition.x + e.clientX - origin.x,
-                y: startPosition.y + e.clientY - origin.y
-            };
-            const correctedPos = ensureOnScreen(newPos, panel.getBoundingClientRect());
-            panel.style.left = `${correctedPos.x}px`;
-            panel.style.top = `${correctedPos.y}px`;
-            repositionActiveDropdown();
-        });
-        document.addEventListener('mouseup', () => {
-            if (!isDragging) return;
-            isDragging = false;
-            panel.classList.remove('dragging');
-            const finalPos = { x: panel.offsetLeft, y: panel.offsetTop };
-            GM_setValue(PANEL_POSITION_KEY, finalPos);
-        });
+		header.addEventListener('mousedown', (e) => {
+			if (isMobile()) return;
+			isDragging = true;
+			panel.classList.add('dragging');
+			origin = { x: e.clientX, y: e.clientY };
+			startPosition = { x: panel.offsetLeft, y: panel.offsetTop };
+		});
+		document.addEventListener('mousemove', (e) => {
+			if (!isDragging) return;
+			const newPos = {
+				x: startPosition.x + e.clientX - origin.x,
+				y: startPosition.y + e.clientY - origin.y
+			};
+			const correctedPos = ensureOnScreen(newPos, panel.getBoundingClientRect());
+			panel.style.left = `${correctedPos.x}px`;
+			panel.style.top = `${correctedPos.y}px`;
+			repositionActiveDropdown();
+		});
+		document.addEventListener('mouseup', () => {
+			if (!isDragging) return;
+			isDragging = false;
+			panel.classList.remove('dragging');
+			const finalPos = { x: panel.offsetLeft, y: panel.offsetTop };
+			GM_setValue(PANEL_POSITION_KEY, finalPos);
+		});
 
-        const debouncedResizeHandler = debounce(() => {
-            updatePanelPosition();
-        }, 150);
-        window.addEventListener('resize', debouncedResizeHandler);
+		const debouncedResizeHandler = debounce(() => {
+			updatePanelPosition();
+		}, 150);
+		window.addEventListener('resize', debouncedResizeHandler);
 
-        const handleClickOutside = (event) => {
-            if (panel.style.display !== 'flex') {
-                return;
-            }
-            if (document.getElementById('ao3-custom-confirm-overlay')) {
-                return;
-            }
-            if (document.getElementById('ao3-data-selection-overlay')) {
-                return;
-            }
-            if (document.querySelector('.custom-dropdown-backdrop')) {
-                return;
-            }
-            const fabContainer = document.getElementById('ao3-trans-fab-container');
-            if (!panel.contains(event.target) && !(fabContainer && fabContainer.contains(event.target))) {
-                togglePanel();
-            }
-        };
+		const handleClickOutside = (event) => {
+			if (panel.style.display !== 'flex') {
+				return;
+			}
+			if (document.getElementById('ao3-custom-confirm-overlay')) {
+				return;
+			}
+			if (document.getElementById('ao3-data-selection-overlay')) {
+				return;
+			}
+			if (document.querySelector('.custom-dropdown-backdrop')) {
+				return;
+			}
+			const fabContainer = document.getElementById('ao3-trans-fab-container');
+			if (!panel.contains(event.target) && !(fabContainer && fabContainer.contains(event.target))) {
+				togglePanel();
+			}
+		};
 
-        document.addEventListener('mousedown', handleClickOutside, true);
+		document.addEventListener('mousedown', handleClickOutside, true);
 
-        const populateLangSelects = () => {
-            const fromOptions = [
-                { value: 'auto', text: '自主判断' },
-                { value: 'script_auto', text: '自动检测' },
-                ...ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }))
-            ];
-            const toOptions = ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }));
-            const createOptions = (select, options) => {
-                select.innerHTML = '';
-                options.forEach(({ value, text }) => {
-                    const option = document.createElement('option');
-                    option.value = value;
-                    option.textContent = text;
-                    select.appendChild(option);
-                });
-            };
-            createOptions(fromLangSelect, fromOptions);
-            createOptions(toLangSelect, toOptions);
-        };
+		const populateLangSelects = () => {
+			const fromOptions = [
+				{ value: 'auto', text: '自主判断' },
+				{ value: 'script_auto', text: '自动检测' },
+				...ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }))
+			];
+			const toOptions = ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }));
+			const createOptions = (select, options) => {
+				select.innerHTML = '';
+				options.forEach(({ value, text }) => {
+					const option = document.createElement('option');
+					option.value = value;
+					option.textContent = text;
+					select.appendChild(option);
+				});
+			};
+			createOptions(fromLangSelect, fromOptions);
+			createOptions(toLangSelect, toOptions);
+		};
 
-        populateLangSelects();
-        populateEngineSelect();
-        syncPanelState();
+		populateLangSelects();
+		populateEngineSelect();
+		syncPanelState();
 
-        const repositionActiveDropdown = () => {
-            if (!activeDropdown || !activeDropdown.menu || !activeDropdown.trigger) {
-                return;
-            }
-            const { menu, trigger } = activeDropdown;
-            const rect = trigger.getBoundingClientRect();
-            menu.style.width = `${rect.width}px`;
-            menu.style.top = `${rect.bottom + 4}px`;
-            menu.style.left = `${rect.left}px`;
-            const menuRect = menu.getBoundingClientRect();
-            if (menuRect.right > window.innerWidth - 10) {
-                menu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
-            }
-            if (menuRect.bottom > window.innerHeight - 10) {
-                menu.style.top = `${rect.top - menuRect.height - 4}px`;
-                menu.style.transformOrigin = 'bottom center';
-            } else {
-                menu.style.transformOrigin = 'top center';
-            }
-        };
+		const repositionActiveDropdown = () => {
+			if (!activeDropdown || !activeDropdown.menu || !activeDropdown.trigger) {
+				return;
+			}
+			const { menu, trigger } = activeDropdown;
+			const rect = trigger.getBoundingClientRect();
+			menu.style.width = `${rect.width}px`;
+			menu.style.top = `${rect.bottom + 4}px`;
+			menu.style.left = `${rect.left}px`;
+			const menuRect = menu.getBoundingClientRect();
+			if (menuRect.right > window.innerWidth - 10) {
+				menu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
+			}
+			if (menuRect.bottom > window.innerHeight - 10) {
+				menu.style.top = `${rect.top - menuRect.height - 4}px`;
+				menu.style.transformOrigin = 'bottom center';
+			} else {
+				menu.style.transformOrigin = 'top center';
+			}
+		};
 
-        function createCustomDropdown(triggerElement) {
-            if (document.querySelector('.custom-dropdown-backdrop')) {
-                return;
-            }
-            if (triggerElement.disabled || triggerElement.options.length === 0 || (triggerElement.options.length === 1 && triggerElement.options[0].disabled)) {
-                return;
-            }
-            triggerElement.parentElement.classList.add('dropdown-active');
-            const backdrop = document.createElement('div');
-            backdrop.className = 'custom-dropdown-backdrop';
-            document.body.appendChild(backdrop);
-            const menu = document.createElement('div');
-            menu.className = 'custom-dropdown-menu';
-            const list = document.createElement('ul');
-            menu.appendChild(list);
-            const metadata = (triggerElement.id === 'setting-select-glossary-manage') ? GM_getValue(GLOSSARY_METADATA_KEY, {}) : null;
-            const createListItem = (option) => {
-                if (option.disabled) {
-                    const separatorItem = document.createElement('li');
-                    separatorItem.style.textAlign = 'center';
-                    separatorItem.style.color = '#ccc';
-                    separatorItem.style.cursor = 'default';
-                    separatorItem.textContent = option.textContent;
-                    return separatorItem;
-                }
-                const listItem = document.createElement('li');
-                listItem.dataset.value = option.value;
-                if (option.selected) {
-                    listItem.classList.add('selected');
-                }
-                const textSpan = document.createElement('span');
-                textSpan.className = 'item-text';
-                textSpan.textContent = option.textContent;
-                textSpan.title = option.textContent;
-                listItem.appendChild(textSpan);
-                const actionsDiv = document.createElement('div');
-                actionsDiv.className = 'item-actions';
-                if (triggerElement.id === 'setting-select-glossary-manage' && metadata && metadata[option.value]) {
-                    const toggleBtn = document.createElement('button');
-                    toggleBtn.className = 'item-action-btn toggle-glossary';
-                    const isEnabled = metadata[option.value].enabled !== false;
-                    toggleBtn.textContent = isEnabled ? '禁用' : '启用';
-                    toggleBtn.dataset.url = option.value;
-                    actionsDiv.appendChild(toggleBtn);
-                }
-                if (option.dataset.isCustom === 'true') {
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'item-action-btn delete';
-                    deleteBtn.textContent = '删除';
-                    deleteBtn.dataset.value = option.value;
-                    actionsDiv.appendChild(deleteBtn);
-                } else if (option.dataset.isLocalGlossary === 'true') {
-                    const toggleBtn = document.createElement('button');
-                    toggleBtn.className = 'item-action-btn toggle-local';
-                    const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-                    const glossary = glossaries.find(g => g.id === option.value);
-                    const isEnabled = glossary ? (glossary.enabled !== false) : true;
-                    toggleBtn.textContent = isEnabled ? '禁用' : '启用';
-                    toggleBtn.dataset.value = option.value;
-                    actionsDiv.appendChild(toggleBtn);
-                }
-                listItem.appendChild(actionsDiv);
-                return listItem;
-            };
-            Array.from(triggerElement.options).forEach(option => {
-                const item = createListItem(option);
-                if (item) list.appendChild(item);
-            });
-            document.body.appendChild(menu);
-            activeDropdown = { menu: menu, trigger: triggerElement };
-            repositionActiveDropdown();
-            const selectedItem = list.querySelector('.selected');
-            if (selectedItem) {
-                selectedItem.scrollIntoView({ block: 'center', behavior: 'instant' });
-            }
-            requestAnimationFrame(() => {
-                menu.classList.add('visible');
-            });
-            const closeMenu = () => {
-                triggerElement.parentElement.classList.remove('dropdown-active');
-                menu.classList.remove('visible');
-                backdrop.remove();
-                setTimeout(() => menu.remove(), 200);
-                activeDropdown = null;
-            };
-            list.addEventListener('click', (e) => {
-                const target = e.target;
-                e.stopPropagation();
-                if (target.classList.contains('toggle-glossary')) {
-                    const url = target.dataset.url;
-                    const currentMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-                    if (currentMetadata[url]) {
-                        const currentState = currentMetadata[url].enabled !== false;
-                        currentMetadata[url].enabled = !currentState;
-                        GM_setValue(GLOSSARY_METADATA_KEY, currentMetadata);
-                        invalidateGlossaryCache();
-                        target.textContent = !currentState ? '禁用' : '启用';
-                    }
-                } else if (target.classList.contains('toggle-local')) {
-                    const id = target.dataset.value;
-                    const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-                    const index = glossaries.findIndex(g => g.id === id);
-                    if (index !== -1) {
-                        const currentState = glossaries[index].enabled !== false;
-                        glossaries[index].enabled = !currentState;
-                        GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-                        synchronizeAllSettings();
-                        target.textContent = !currentState ? '禁用' : '启用';
-                    }
-                } else if (target.classList.contains('delete')) {
-                    if (target.dataset.confirming) {
-                        const value = target.dataset.value;
-                        if (triggerElement.id === 'setting-trans-engine') {
-                            customServiceManager.deleteService(value);
-                        }
-                        closeMenu();
-                    } else {
-                        list.querySelectorAll('.delete[data-confirming]').forEach(btn => {
-                            btn.textContent = '删除';
-                            delete btn.dataset.confirming;
-                        });
-                        target.textContent = '确认删除';
-                        target.dataset.confirming = 'true';
-                    }
-                } else {
-                    const li = target.closest('li');
-                    if (li && typeof li.dataset.value !== 'undefined') {
-                        triggerElement.value = li.dataset.value;
-                        triggerElement.dispatchEvent(new Event('change', { bubbles: true }));
-                        closeMenu();
-                    }
-                }
-            });
-            backdrop.addEventListener('mousedown', closeMenu);
-        }
+		/**
+		 * 启用列表拖拽排序功能 (防闪烁 + 样式修复版)
+		 */
+		function enableDragSort(ulElement, onOrderChange) {
+			let dragTimer = null;
+			let isDragging = false;
+			let dragItem = null;
+			let ghostItem = null;
+			let startY = 0;
+			let ghostHeight = 0;
+			let touchId = null;
 
-        panel.addEventListener('mousedown', (e) => {
-            const select = e.target.closest('.settings-select.custom-styled-select');
-            if (select) {
-                e.preventDefault();
-                createCustomDropdown(select);
-            }
-        });
+			let containerRect = null;
 
-        customServiceContainer.addEventListener('mousedown', (e) => {
-            const select = e.target.closest('.settings-select.custom-styled-select');
-            if (select) {
-                e.preventDefault();
-                createCustomDropdown(select);
-            }
-        });
+			const clearTimer = () => {
+				if (dragTimer) {
+					clearTimeout(dragTimer);
+					dragTimer = null;
+				}
+			};
 
-        customServiceContainer.addEventListener('change', (e) => {
-            if (e.target.id === 'custom-service-action-select') {
-                const serviceId = engineSelect.value;
-                const newAction = e.target.value;
-                if (serviceId && serviceId.startsWith('custom_')) {
-                    const lastActionKey = `custom_service_last_action_${serviceId}`;
-                    GM_setValue(lastActionKey, newAction);
-                    customServiceManager.enterEditMode(serviceId);
-                } else if (customServiceManager.isPending()) {
-                    customServiceManager.updatePendingSection(newAction);
-                }
-            }
-        });
+			const handleStart = (e) => {
+				if (e.target.tagName === 'BUTTON') return;
 
-        return { togglePanel, panel };
-    }
+				const li = e.target.closest('li');
+				if (!li || li.dataset.value === 'create_new' || li.classList.contains('disabled')) return;
 
-    /**
+				const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+				touchId = e.type.startsWith('touch') ? e.touches[0].identifier : null;
+
+				startY = clientY;
+
+				clearTimer();
+				dragTimer = setTimeout(() => {
+					startDrag(li, clientY);
+				}, 300);
+
+				if (e.type.startsWith('touch')) {
+					li.addEventListener('touchmove', checkMoveTolerance, { passive: false });
+					li.addEventListener('touchend', cancelDrag);
+				} else {
+					li.addEventListener('mousemove', checkMoveTolerance);
+					li.addEventListener('mouseup', cancelDrag);
+					li.addEventListener('mouseleave', cancelDrag);
+				}
+			};
+
+			const checkMoveTolerance = (e) => {
+				const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+				if (Math.abs(clientY - startY) > 5) {
+					cancelDrag(e);
+				}
+			};
+
+			const cancelDrag = (e) => {
+				clearTimer();
+				const li = e.target.closest('li');
+				if (li) {
+					li.removeEventListener('touchmove', checkMoveTolerance);
+					li.removeEventListener('touchend', cancelDrag);
+					li.removeEventListener('mousemove', checkMoveTolerance);
+					li.removeEventListener('mouseup', cancelDrag);
+					li.removeEventListener('mouseleave', cancelDrag);
+				}
+			};
+
+			const startDrag = (li, clientY) => {
+				isDragging = true;
+				dragItem = li;
+
+				ulElement.classList.add('is-sorting');
+
+				containerRect = ulElement.getBoundingClientRect();
+				const itemRect = dragItem.getBoundingClientRect();
+				ghostHeight = itemRect.height;
+
+				if (navigator.vibrate) navigator.vibrate(50);
+
+				const computedStyle = window.getComputedStyle(dragItem);
+				let bgColor = computedStyle.backgroundColor;
+				if (bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
+					bgColor = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? '#2d2d2d' : '#ffffff';
+				}
+
+				ghostItem = dragItem.cloneNode(true);
+				ghostItem.classList.add('drag-ghost');
+				ghostItem.classList.remove('drag-placeholder');
+
+				ghostItem.style.width = `${itemRect.width}px`;
+				ghostItem.style.height = `${itemRect.height}px`;
+				ghostItem.style.top = `${itemRect.top}px`;
+				ghostItem.style.left = `${itemRect.left}px`;
+				ghostItem.style.backgroundColor = bgColor;
+
+				document.body.appendChild(ghostItem);
+
+				dragItem.classList.add('drag-placeholder');
+
+				document.body.classList.add('ao3-dragging-active');
+
+				document.addEventListener('mousemove', handleMove, { passive: false });
+				document.addEventListener('mouseup', handleEnd);
+				document.addEventListener('touchmove', handleMove, { passive: false });
+				document.addEventListener('touchend', handleEnd);
+			};
+
+			const handleMove = (e) => {
+				if (!isDragging || !ghostItem) return;
+				e.preventDefault();
+
+				let clientY;
+				if (e.type.startsWith('touch')) {
+					const touch = Array.from(e.touches).find(t => t.identifier === touchId);
+					if (!touch) return;
+					clientY = touch.clientY;
+				} else {
+					clientY = e.clientY;
+				}
+
+				let ghostTop = clientY - (ghostHeight / 2);
+				const minTop = containerRect.top;
+				const maxTop = containerRect.bottom - ghostHeight;
+
+				if (ghostTop < minTop) ghostTop = minTop;
+				if (ghostTop > maxTop) ghostTop = maxTop;
+
+				ghostItem.style.top = `${ghostTop}px`;
+
+				const ghostCenterY = ghostTop + (ghostHeight / 2);
+
+				const siblings = Array.from(ulElement.children).filter(el =>
+					el !== dragItem &&
+					el !== ghostItem &&
+					el.dataset.value !== 'create_new' &&
+					!el.classList.contains('disabled')
+				);
+
+				const hitSibling = siblings.find(sibling => {
+					const rect = sibling.getBoundingClientRect();
+					return ghostCenterY >= rect.top && ghostCenterY <= rect.bottom;
+				});
+
+				if (hitSibling) {
+					const rect = hitSibling.getBoundingClientRect();
+					const siblingCenterY = rect.top + (rect.height / 2);
+
+					if (ghostCenterY < siblingCenterY) {
+						if (dragItem.nextElementSibling !== hitSibling) {
+							ulElement.insertBefore(dragItem, hitSibling);
+						}
+					} else {
+						if (dragItem.previousElementSibling !== hitSibling) {
+							ulElement.insertBefore(dragItem, hitSibling.nextElementSibling);
+						}
+					}
+				} else {
+					if (siblings.length > 0) {
+						const firstRect = siblings[0].getBoundingClientRect();
+						const lastRect = siblings[siblings.length - 1].getBoundingClientRect();
+
+						if (ghostCenterY < firstRect.top) {
+							ulElement.insertBefore(dragItem, siblings[0]);
+						} else if (ghostCenterY > lastRect.bottom) {
+							ulElement.insertBefore(dragItem, siblings[siblings.length - 1].nextElementSibling);
+						}
+					}
+				}
+			};
+
+			const handleEnd = () => {
+				if (!isDragging) return;
+				isDragging = false;
+
+				ulElement.classList.remove('is-sorting');
+
+				if (ghostItem) ghostItem.remove();
+
+				if (dragItem) {
+					dragItem.style.transition = 'none';
+					dragItem.classList.remove('drag-placeholder');
+					setTimeout(() => {
+						dragItem.style.transition = '';
+					}, 50);
+				}
+
+				document.body.classList.remove('ao3-dragging-active');
+
+				document.removeEventListener('mousemove', handleMove);
+				document.removeEventListener('mouseup', handleEnd);
+				document.removeEventListener('touchmove', handleMove);
+				document.removeEventListener('touchend', handleEnd);
+
+				const newOrder = Array.from(ulElement.children)
+					.map(li => li.dataset.value)
+					.filter(val => val && val !== 'create_new');
+
+				if (onOrderChange) onOrderChange(newOrder);
+			};
+
+			ulElement.addEventListener('mousedown', handleStart);
+			ulElement.addEventListener('touchstart', handleStart, { passive: false });
+		}
+
+		function createCustomDropdown(triggerElement) {
+			if (document.querySelector('.custom-dropdown-backdrop')) {
+				return;
+			}
+			if (triggerElement.disabled || triggerElement.options.length === 0 || (triggerElement.options.length === 1 && triggerElement.options[0].disabled)) {
+				return;
+			}
+			triggerElement.parentElement.classList.add('dropdown-active');
+			const backdrop = document.createElement('div');
+			backdrop.className = 'custom-dropdown-backdrop';
+			document.body.appendChild(backdrop);
+			const menu = document.createElement('div');
+			menu.className = 'custom-dropdown-menu';
+			const list = document.createElement('ul');
+			menu.appendChild(list);
+			const metadata = (triggerElement.id === 'setting-select-glossary-manage') ? GM_getValue(GLOSSARY_METADATA_KEY, {}) : null;
+
+			const createListItem = (option) => {
+				if (option.disabled) {
+					const separatorItem = document.createElement('li');
+					separatorItem.style.textAlign = 'center';
+					separatorItem.style.color = '#ccc';
+					separatorItem.style.cursor = 'default';
+					separatorItem.classList.add('disabled');
+					separatorItem.textContent = option.textContent;
+					return separatorItem;
+				}
+				const listItem = document.createElement('li');
+				listItem.dataset.value = option.value;
+				if (option.selected) {
+					listItem.classList.add('selected');
+				}
+				const textSpan = document.createElement('span');
+				textSpan.className = 'item-text';
+				textSpan.textContent = option.textContent;
+				textSpan.title = option.textContent;
+				listItem.appendChild(textSpan);
+				const actionsDiv = document.createElement('div');
+				actionsDiv.className = 'item-actions';
+				if (triggerElement.id === 'setting-select-glossary-manage' && metadata && metadata[option.value]) {
+					const toggleBtn = document.createElement('button');
+					toggleBtn.className = 'item-action-btn toggle-glossary';
+					const isEnabled = metadata[option.value].enabled !== false;
+					toggleBtn.textContent = isEnabled ? '禁用' : '启用';
+					toggleBtn.dataset.url = option.value;
+					actionsDiv.appendChild(toggleBtn);
+				}
+				if (option.dataset.isCustom === 'true') {
+					const deleteBtn = document.createElement('button');
+					deleteBtn.className = 'item-action-btn delete';
+					deleteBtn.textContent = '删除';
+					deleteBtn.dataset.value = option.value;
+					actionsDiv.appendChild(deleteBtn);
+				} else if (option.dataset.isLocalGlossary === 'true') {
+					const toggleBtn = document.createElement('button');
+					toggleBtn.className = 'item-action-btn toggle-local';
+					const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+					const glossary = glossaries.find(g => g.id === option.value);
+					const isEnabled = glossary ? (glossary.enabled !== false) : true;
+					toggleBtn.textContent = isEnabled ? '禁用' : '启用';
+					toggleBtn.dataset.value = option.value;
+					actionsDiv.appendChild(toggleBtn);
+				}
+				listItem.appendChild(actionsDiv);
+				return listItem;
+			};
+
+			Array.from(triggerElement.options).forEach(option => {
+				const item = createListItem(option);
+				if (item) list.appendChild(item);
+			});
+
+			document.body.appendChild(menu);
+
+			if (triggerElement.id === 'setting-local-glossary-select') {
+				enableDragSort(list, (newOrderIds) => {
+					const currentGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+					const glossaryMap = new Map(currentGlossaries.map(g => [g.id, g]));
+					const newGlossaries = newOrderIds.map(id => glossaryMap.get(id)).filter(Boolean);
+
+					if (newGlossaries.length === currentGlossaries.length) {
+
+						/**************************************************************************
+						 * Region 4: 内容屏蔽功能系统
+						 **************************************************************************/
+
+						GM_setValue(CUSTOM_GLOSSARIES_KEY, newGlossaries);
+
+						const select = document.getElementById('setting-local-glossary-select');
+						if (select) {
+							const savedValue = select.value;
+
+							const createOption = select.querySelector('option[value="create_new"]');
+							select.innerHTML = '';
+							newGlossaries.forEach(g => {
+								const opt = document.createElement('option');
+								opt.value = g.id;
+								opt.textContent = g.name;
+								opt.dataset.isLocalGlossary = 'true';
+								select.appendChild(opt);
+							});
+							if (createOption) select.appendChild(createOption);
+
+							select.value = savedValue;
+						}
+						synchronizeAllSettings();
+					}
+				});
+			} else if (triggerElement.id === 'setting-select-glossary-manage') {
+				enableDragSort(list, (newOrderUrls) => {
+					GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, newOrderUrls);
+
+					const select = document.getElementById('setting-select-glossary-manage');
+					if (select) {
+						const savedValue = select.value;
+
+						select.innerHTML = '';
+						newOrderUrls.forEach(url => {
+							const filename = url.split('/').pop();
+							const lastDotIndex = filename.lastIndexOf('.');
+							const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
+							const name = decodeURIComponent(baseName);
+							const opt = document.createElement('option');
+							opt.value = url;
+							opt.textContent = name;
+							opt.title = name;
+							select.appendChild(opt);
+						});
+
+						select.value = savedValue;
+					}
+					synchronizeAllSettings();
+				});
+			}
+
+			activeDropdown = { menu: menu, trigger: triggerElement };
+			repositionActiveDropdown();
+			const selectedItem = list.querySelector('.selected');
+			if (selectedItem) {
+				selectedItem.scrollIntoView({ block: 'center', behavior: 'instant' });
+			}
+			requestAnimationFrame(() => {
+				menu.classList.add('visible');
+			});
+			const closeMenu = () => {
+				triggerElement.parentElement.classList.remove('dropdown-active');
+				menu.classList.remove('visible');
+				backdrop.remove();
+				setTimeout(() => menu.remove(), 200);
+				activeDropdown = null;
+			};
+			list.addEventListener('click', (e) => {
+				const target = e.target;
+				e.stopPropagation();
+				if (target.classList.contains('toggle-glossary')) {
+					const url = target.dataset.url;
+					const currentMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+					if (currentMetadata[url]) {
+						const currentState = currentMetadata[url].enabled !== false;
+						currentMetadata[url].enabled = !currentState;
+						GM_setValue(GLOSSARY_METADATA_KEY, currentMetadata);
+						invalidateGlossaryCache();
+						target.textContent = !currentState ? '禁用' : '启用';
+					}
+				} else if (target.classList.contains('toggle-local')) {
+					const id = target.dataset.value;
+					const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+					const index = glossaries.findIndex(g => g.id === id);
+					if (index !== -1) {
+						const currentState = glossaries[index].enabled !== false;
+						glossaries[index].enabled = !currentState;
+						GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+						synchronizeAllSettings();
+						target.textContent = !currentState ? '禁用' : '启用';
+					}
+				} else if (target.classList.contains('delete')) {
+					if (target.dataset.confirming) {
+						const value = target.dataset.value;
+						if (triggerElement.id === 'setting-trans-engine') {
+							if (typeof customServiceManager !== 'undefined') {
+								customServiceManager.deleteService(value);
+							}
+						}
+						closeMenu();
+					} else {
+						list.querySelectorAll('.delete[data-confirming]').forEach(btn => {
+							btn.textContent = '删除';
+							delete btn.dataset.confirming;
+						});
+						target.textContent = '确认删除';
+						target.dataset.confirming = 'true';
+					}
+				} else {
+					const li = target.closest('li');
+					if (li && typeof li.dataset.value !== 'undefined') {
+						triggerElement.value = li.dataset.value;
+						triggerElement.dispatchEvent(new Event('change', { bubbles: true }));
+						closeMenu();
+					}
+				}
+			});
+			backdrop.addEventListener('mousedown', closeMenu);
+		}
+
+		panel.addEventListener('mousedown', (e) => {
+			const select = e.target.closest('.settings-select.custom-styled-select');
+			if (select) {
+				e.preventDefault();
+				createCustomDropdown(select);
+			}
+		});
+
+		customServiceContainer.addEventListener('mousedown', (e) => {
+			const select = e.target.closest('.settings-select.custom-styled-select');
+			if (select) {
+				e.preventDefault();
+				createCustomDropdown(select);
+			}
+		});
+
+		customServiceContainer.addEventListener('change', (e) => {
+			if (e.target.id === 'custom-service-action-select') {
+				const serviceId = engineSelect.value;
+				const newAction = e.target.value;
+				if (serviceId && serviceId.startsWith('custom_')) {
+					const lastActionKey = `custom_service_last_action_${serviceId}`;
+					GM_setValue(lastActionKey, newAction);
+					customServiceManager.enterEditMode(serviceId);
+				} else if (customServiceManager.isPending()) {
+					customServiceManager.updatePendingSection(newAction);
+				}
+			}
+		});
+
+		blockerDimensionSelect.addEventListener('change', () => {
+			GM_setValue(BLOCKER_VIEW_KEY, blockerDimensionSelect.value);
+			renderBlockerSubDimensions();
+		});
+
+		blockerSubDimensionSelect.addEventListener('change', () => {
+			GM_setValue(BLOCKER_SUB_VIEW_KEY, blockerSubDimensionSelect.value);
+			renderBlockerInput();
+		});
+
+		toggleBlockerBtn.addEventListener('click', () => {
+			const newState = !GM_getValue('ao3_blocker_enabled', false);
+			GM_setValue('ao3_blocker_enabled', newState);
+			updateBlockerButtonText();
+			refreshBlocker();
+		});
+
+		toggleReasonsBtn.addEventListener('click', () => {
+			const newState = !GM_getValue('ao3_blocker_show_reasons', true);
+			GM_setValue('ao3_blocker_show_reasons', newState);
+			updateBlockerButtonText();
+			refreshBlocker();
+		});
+
+		return { togglePanel, panel };
+	}
+
+	/**
 	 * 设置面板的模型 UI 配置
 	 */
 	const engineMenuConfig = {
-		'bing_translator': {
-			displayName: '微软翻译',
-			modelGmKey: null,
-			requiresApiKey: false
-		},
 		'google_translate': {
 			displayName: '谷歌翻译',
 			modelGmKey: null,
 			requiresApiKey: false
 		},
-        'anthropic': {
+		'bing_translator': {
+			displayName: '微软翻译',
+			modelGmKey: null,
+			requiresApiKey: false
+		},
+		'anthropic': {
 			displayName: 'Anthropic',
 			modelGmKey: 'anthropic_model',
 			modelMapping: {
@@ -10454,18 +8768,18 @@ Your task is to translate a numbered list of text segments provided by the user.
 			displayName: 'ModelScope',
 			modelGmKey: 'modelscope_model',
 			modelMapping: {
-                'deepseek-ai/DeepSeek-V3.2': 'DeepSeek V3.2',
-                'deepseek-ai/DeepSeek-V3.2-Exp': 'DeepSeek V3.2-Exp',
+				'deepseek-ai/DeepSeek-V3.2': 'DeepSeek V3.2',
+				'deepseek-ai/DeepSeek-V3.2-Exp': 'DeepSeek V3.2-Exp',
 				'deepseek-ai/DeepSeek-V3.1': 'DeepSeek V3.1',
-                'deepseek-ai/DeepSeek-R1-0528': 'DeepSeek R1',
+				'deepseek-ai/DeepSeek-R1-0528': 'DeepSeek R1',
 				'Qwen/Qwen3-235B-A22B-Instruct-2507': 'Qwen3 235B',
-                'MiniMax/MiniMax-M1-80k': 'MiniMax M1-80k',
+				'MiniMax/MiniMax-M1-80k': 'MiniMax M1-80k',
 				'XiaomiMiMo/MiMo-V2-Flash': 'MiMo V2-Flash',
 				'mistralai/Mistral-Large-Instruct-2407': 'Mistral Large'
 			},
 			requiresApiKey: true
 		},
-        'openai': {
+		'openai': {
 			displayName: 'OpenAI',
 			modelGmKey: 'openai_model',
 			modelMapping: {
@@ -10518,21 +8832,20 @@ Your task is to translate a numbered list of text segments provided by the user.
 				'ascend-tribe/pangu-pro-moe': 'Pangu Pro MoE',
 				'baidu/ERNIE-4.5-300B-A47B': 'ERNIE 4.5 300B',
 				'ByteDance-Seed/Seed-OSS-36B-Instruct': 'Seed OSS 36B',
-				'deepseek-ai/DeepSeek-V3.2-Exp': 'DeepSeek V3.2 Exp',
+				'deepseek-ai/DeepSeek-V3.2': 'DeepSeek V3.2',
+				'Pro/deepseek-ai/DeepSeek-V3.2': 'DeepSeek V3.2 (Pro)',
 				'deepseek-ai/DeepSeek-V3.1-Terminus': 'DeepSeek V3.1 Terminus',
-				'deepseek-ai/DeepSeek-R1': 'DeepSeek R1',
-				'deepseek-ai/DeepSeek-V3': 'DeepSeek V3',
-				'Pro/deepseek-ai/DeepSeek-V3.2-Exp': 'DeepSeek V3.2 Exp (Pro)',
 				'Pro/deepseek-ai/DeepSeek-V3.1-Terminus': 'DeepSeek V3.1 Terminus (Pro)',
-				'Pro/deepseek-ai/DeepSeek-R1': 'DeepSeek R1 (Pro)',
+				'deepseek-ai/DeepSeek-V3': 'DeepSeek V3',
 				'Pro/deepseek-ai/DeepSeek-V3': 'DeepSeek V3 (Pro)',
-				'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B': 'DeepSeek R1 (Qwen3 8B)',
+				'deepseek-ai/DeepSeek-R1': 'DeepSeek R1',
+				'Pro/deepseek-ai/DeepSeek-R1': 'DeepSeek R1 (Pro)',
 				'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B': 'DeepSeek R1 Distill (Qwen 32B)',
 				'deepseek-ai/DeepSeek-R1-Distill-Qwen-14B': 'DeepSeek R1 Distill (Qwen 14B)',
 				'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B': 'DeepSeek R1 Distill (Qwen 7B)',
 				'Pro/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B': 'DeepSeek R1 Distill (Qwen 7B) (Pro)',
+				'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B': 'DeepSeek R1 (Qwen3 8B)',
 				'deepseek-ai/DeepSeek-V2.5': 'DeepSeek V2.5',
-				'inclusionAI/Ling-1T': 'Ling 1T',
 				'inclusionAI/Ring-flash-2.0': 'Ring Flash 2.0',
 				'inclusionAI/Ling-flash-2.0': 'Ling Flash 2.0',
 				'inclusionAI/Ling-mini-2.0': 'Ling Mini 2.0',
@@ -10540,13 +8853,13 @@ Your task is to translate a numbered list of text segments provided by the user.
 				'Kwaipilot/KAT-Dev': 'KAT Dev',
 				'MiniMaxAI/MiniMax-M2': 'MiniMax M2',
 				'MiniMaxAI/MiniMax-M1-80k': 'MiniMax M1 80k',
-				'Pro/moonshotai/Kimi-K2-Thinking': 'Kimi K2 Thinking (Pro)',
 				'moonshotai/Kimi-K2-Thinking': 'Kimi K2 Thinking',
+				'Pro/moonshotai/Kimi-K2-Thinking': 'Kimi K2 Thinking (Pro)',
 				'moonshotai/Kimi-K2-Instruct-0905': 'Kimi K2 Instruct',
-				'Qwen/Qwen3-Next-80B-A3B-Instruct': 'Qwen3 Next 80B Instruct',
+				'Pro/moonshotai/Kimi-K2-Instruct-0905': 'Kimi K2 Instruct (Pro)',
+				'moonshotai/Kimi-Dev-72B': 'Kimi Dev 72B',
 				'Qwen/Qwen3-Next-80B-A3B-Thinking': 'Qwen3 Next 80B Thinking',
-				'Qwen/Qwen3-Coder-30B-A3B-Instruct': 'Qwen3 Coder 30B',
-				'Qwen/Qwen3-Coder-480B-A35B-Instruct': 'Qwen3 Coder 480B',
+				'Qwen/Qwen3-Next-80B-A3B-Instruct': 'Qwen3 Next 80B Instruct',
 				'Qwen/Qwen3-30B-A3B-Thinking-2507': 'Qwen3 30B Thinking',
 				'Qwen/Qwen3-30B-A3B-Instruct-2507': 'Qwen3 30B Instruct',
 				'Qwen/Qwen3-235B-A22B-Thinking-2507': 'Qwen3 235B Thinking',
@@ -10555,30 +8868,42 @@ Your task is to translate a numbered list of text segments provided by the user.
 				'Qwen/Qwen3-32B': 'Qwen3 32B',
 				'Qwen/Qwen3-14B': 'Qwen3 14B',
 				'Qwen/Qwen3-8B': 'Qwen3 8B',
-				'Qwen/Qwen3-235B-A22B': 'Qwen3 235B',
+				'Qwen/Qwen3-Coder-480B-A35B-Instruct': 'Qwen3 Coder 480B',
+				'Qwen/Qwen3-Coder-30B-A3B-Instruct': 'Qwen3 Coder 30B',
+				'Qwen/Qwen3-Omni-30B-A3B-Thinking': 'Qwen3 Omni 30B Thinking',
+				'Qwen/Qwen3-Omni-30B-A3B-Instruct': 'Qwen3 Omni 30B Instruct',
 				'Qwen/QwQ-32B': 'QwQ 32B',
+				'Qwen/QVQ-72B-Preview': 'QVQ 72B Preview',
 				'Qwen/Qwen2.5-72B-Instruct-128K': 'Qwen 2.5 72B (128K)',
 				'Qwen/Qwen2.5-72B-Instruct': 'Qwen 2.5 72B',
+				'LoRA/Qwen/Qwen2.5-72B-Instruct': 'Qwen 2.5 72B (LoRA)',
 				'Qwen/Qwen2.5-32B-Instruct': 'Qwen 2.5 32B',
+				'LoRA/Qwen/Qwen2.5-32B-Instruct': 'Qwen 2.5 32B (LoRA)',
 				'Qwen/Qwen2.5-14B-Instruct': 'Qwen 2.5 14B',
+				'LoRA/Qwen/Qwen2.5-14B-Instruct': 'Qwen 2.5 14B (LoRA)',
 				'Qwen/Qwen2.5-7B-Instruct': 'Qwen 2.5 7B',
+				'Pro/Qwen/Qwen2.5-7B-Instruct': 'Qwen 2.5 7B (Pro)',
+				'LoRA/Qwen/Qwen2.5-7B-Instruct': 'Qwen 2.5 7B (LoRA)',
 				'Qwen/Qwen2.5-Coder-32B-Instruct': 'Qwen 2.5 Coder 32B',
 				'Qwen/Qwen2.5-Coder-7B-Instruct': 'Qwen 2.5 Coder 7B',
+				'Pro/Qwen/Qwen2.5-Coder-7B-Instruct': 'Qwen 2.5 Coder 7B (Pro)',
 				'Qwen/Qwen2-7B-Instruct': 'Qwen 2 7B',
-				'Pro/Qwen/Qwen2.5-7B-Instruct': 'Qwen 2.5 7B (Pro)',
 				'Pro/Qwen/Qwen2-7B-Instruct': 'Qwen 2 7B (Pro)',
+				'Tongyi-Zhiwen/QwenLong-L1-32B': 'QwenLong L1 32B',
 				'stepfun-ai/step3': 'Step-3',
 				'tencent/Hunyuan-A13B-Instruct': 'Hunyuan A13B',
-				'THUDM/GLM-Z1-32B-0414': 'GLM Z1 32B',
+				'tencent/Hunyuan-MT-7B': 'Hunyuan MT 7B',
+				'Pro/zai-org/GLM-4.7': 'GLM 4.7 (Pro)',
+				'zai-org/GLM-4.6': 'GLM 4.6',
+				'zai-org/GLM-4.5': 'GLM 4.5',
+				'zai-org/GLM-4.5-Air': 'GLM 4.5 Air',
 				'THUDM/GLM-4-32B-0414': 'GLM-4 32B',
-				'THUDM/GLM-Z1-Rumination-32B-0414': 'GLM Z1 Rumination 32B',
 				'THUDM/GLM-4-9B-0414': 'GLM-4 9B',
 				'THUDM/glm-4-9b-chat': 'GLM-4 9B Chat',
 				'Pro/THUDM/glm-4-9b-chat': 'GLM-4 9B Chat (Pro)',
-				'Tongyi-Zhiwen/QwenLong-L1-32B': 'QwenLong L1 32B',
-				'zai-org/GLM-4.6': 'GLM 4.6',
-				'zai-org/GLM-4.5-Air': 'GLM 4.5 Air',
-				'zai-org/GLM-4.5': 'GLM 4.5'
+				'THUDM/GLM-Z1-32B-0414': 'GLM Z1 32B',
+				'THUDM/GLM-Z1-Rumination-32B-0414': 'GLM Z1 Rumination 32B',
+				'THUDM/GLM-Z1-9B-0414': 'GLM Z1 9B'
 			},
 			requiresApiKey: true
 		},
@@ -10589,9 +8914,9 @@ Your task is to translate a numbered list of text segments provided by the user.
 				'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8': 'Llama 4 Maverick',
 				'deepseek-ai/DeepSeek-V3': 'DeepSeek V3',
 				'moonshotai/Kimi-K2-Instruct': 'Kimi K2',
-                'zai-org/GLM-4.6': 'GLM 4.6',
+				'zai-org/GLM-4.6': 'GLM 4.6',
 				'Qwen/Qwen3-235B-A22B-Instruct-2507-tput': 'Qwen3 235B',
-                'openai/gpt-oss-120b': 'GPT-OSS 120B'
+				'openai/gpt-oss-120b': 'GPT-OSS 120B'
 			},
 			requiresApiKey: true
 		},
@@ -10611,7 +8936,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		}
 	};
 
-    /**
+	/**
 	 * 动态应用翻译显示模式的更改
 	 */
 	function applyDisplayModeChange(mode) {
@@ -10814,7 +9139,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 						headers: headers,
 						data: body,
 						responseType: 'text',
-						timeout: 45000,
+						timeout: 120000,
 						onload: (res) => {
 							const duration = Date.now() - startTime;
 							let responseData;
@@ -10923,7 +9248,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		}
 	}
 
-    /**
+	/**
 	 * API 客户端工厂
 	 */
 	const ApiClientFactory = {
@@ -11100,7 +9425,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 						headers: headers,
 						data: body,
 						responseType: 'text',
-						timeout: 45000,
+						timeout: 120000,
 						onload: (res) => {
 							const duration = Date.now() - startTime;
 							let responseData;
@@ -11206,67 +9531,67 @@ Your task is to translate a numbered list of text segments provided by the user.
 	};
 
 	/**
-     * 解析 JWT Token 获取过期时间
-     */
-    function getJwtExpiration(token) {
-        try {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = atob(base64);
-            return JSON.parse(jsonPayload).exp * 1000;
-        } catch (e) {
-            return 0;
-        }
-    }
+	 * 解析 JWT Token 获取过期时间
+	 */
+	function getJwtExpiration(token) {
+		try {
+			const base64Url = token.split('.')[1];
+			const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+			const jsonPayload = atob(base64);
+			return JSON.parse(jsonPayload).exp * 1000;
+		} catch (e) {
+			return 0;
+		}
+	}
 
-    /**
-     * 微软翻译鉴权辅助对象
-     */
-    const BingTranslateHelper = {
-        authPromise: null,
-        getToken: async function () {
-            if (this.authPromise) return this.authPromise;
-            const now = Date.now();
-            const savedToken = GM_getValue('bing_access_token');
-            if (savedToken) {
-                const exp = getJwtExpiration(savedToken);
-                if (exp > now + 60000) {
-                    return savedToken;
-                }
-            }
-            this.authPromise = this.fetchToken();
-            try {
-                const newToken = await this.authPromise;
-                return newToken;
-            } finally {
-                this.authPromise = null;
-            }
-        },
-        fetchToken: function () {
-            return new Promise((resolve, reject) => {
-                GM_xmlhttpRequest({
-                    method: "GET",
-                    url: "https://edge.microsoft.com/translate/auth",
-                    headers: {
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    },
-                    onload: (response) => {
-                        if (response.status === 200 && response.responseText) {
-                            const token = response.responseText;
-                            GM_setValue('bing_access_token', token);
-                            resolve(token);
-                        } else {
-                            reject(new Error("Failed to fetch Bing token"));
-                        }
-                    },
-                    onerror: (err) => reject(err)
-                });
-            });
-        },
-        clearToken: function () {
-            GM_deleteValue('bing_access_token');
-        }
-    };
+	/**
+	 * 微软翻译鉴权辅助对象
+	 */
+	const BingTranslateHelper = {
+		authPromise: null,
+		getToken: async function () {
+			if (this.authPromise) return this.authPromise;
+			const now = Date.now();
+			const savedToken = GM_getValue('bing_access_token');
+			if (savedToken) {
+				const exp = getJwtExpiration(savedToken);
+				if (exp > now + 60000) {
+					return savedToken;
+				}
+			}
+			this.authPromise = this.fetchToken();
+			try {
+				const newToken = await this.authPromise;
+				return newToken;
+			} finally {
+				this.authPromise = null;
+			}
+		},
+		fetchToken: function () {
+			return new Promise((resolve, reject) => {
+				GM_xmlhttpRequest({
+					method: "GET",
+					url: "https://edge.microsoft.com/translate/auth",
+					headers: {
+						"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+					},
+					onload: (response) => {
+						if (response.status === 200 && response.responseText) {
+							const token = response.responseText;
+							GM_setValue('bing_access_token', token);
+							resolve(token);
+						} else {
+							reject(new Error("Failed to fetch Bing token"));
+						}
+					},
+					onerror: (err) => reject(err)
+				});
+			});
+		},
+		clearToken: function () {
+			GM_deleteValue('bing_access_token');
+		}
+	};
 
 	/**
 	 * 获取当前有效翻译引擎的名称
@@ -11279,132 +9604,131 @@ Your task is to translate a numbered list of text segments provided by the user.
 		return CONFIG.transEngine;
 	}
 
-    /**
-     * 语言代码标准化映射表
-     * 将百度/腾讯等不同服务商的非标准代码统一转换为 ISO 639-1 标准代码
-     */
-    const LANG_CODE_MAP = {
-        // 百度翻译
-        'jp': 'ja',
-        'kor': 'ko',
-        'fra': 'fr',
-        'spa': 'es',
-        'may': 'ms',
-        'rom': 'ro',
-        'vie': 'vi',
-        'dan': 'da',
-        'swe': 'sv',
-        'zh': 'zh-CN',
+	/**
+	 * 语言代码标准化映射表
+	 */
+	const LANG_CODE_MAP = {
+		// 百度翻译
+		'jp': 'ja',
+		'kor': 'ko',
+		'fra': 'fr',
+		'spa': 'es',
+		'may': 'ms',
+		'rom': 'ro',
+		'vie': 'vi',
+		'dan': 'da',
+		'swe': 'sv',
+		'zh': 'zh-CN',
 
-        // 常见 ISO 639-2/3 三字母代码兼容
-        'jpn': 'ja', 'deu': 'de', 'ger': 'de', 'rus': 'ru', 'por': 'pt',
-        'tha': 'th', 'ara': 'ar', 'ita': 'it', 'ell': 'el', 'nld': 'nl',
-        'pol': 'pl', 'bul': 'bg', 'est': 'et', 'fin': 'fi', 'ces': 'cs',
-        'slv': 'sl', 'hun': 'hu',
+		// 常见 ISO 639-2/3 三字母代码兼容
+		'jpn': 'ja', 'deu': 'de', 'ger': 'de', 'rus': 'ru', 'por': 'pt',
+		'tha': 'th', 'ara': 'ar', 'ita': 'it', 'ell': 'el', 'nld': 'nl',
+		'pol': 'pl', 'bul': 'bg', 'est': 'et', 'fin': 'fi', 'ces': 'cs',
+		'slv': 'sl', 'hun': 'hu',
 
-        // 中文变体处理
-        'cht': 'zh-TW',
-        'yue': 'zh-TW',
-        'wyw': 'zh-TW',
-        'zh-hk': 'zh-TW',
-        'zh-sg': 'zh-CN'
-    };
+		// 中文变体处理
+		'cht': 'zh-TW',
+		'yue': 'zh-TW',
+		'wyw': 'zh-TW',
+		'zh-hk': 'zh-TW',
+		'zh-sg': 'zh-CN'
+	};
 
-    /**
-     * 标准化语言代码函数
-     * @param {string} lang - 原始语言代码
-     * @returns {string} - 标准化后的 ISO 639-1 代码
-     */
-    function normalizeLanguageCode(lang) {
-        if (!lang) return "";
-        lang = lang.toLowerCase().trim();
-        if (LANG_CODE_MAP[lang]) return LANG_CODE_MAP[lang];
-        if (lang === 'zh-cn') return 'zh-CN';
-        if (lang === 'zh-tw') return 'zh-TW';
-        if (lang.length === 2) return lang;
-        if (lang.startsWith("zh")) return "zh-CN";
-        return lang;
-    }
+	/**
+	 * 标准化语言代码函数
+	 * @param {string} lang - 原始语言代码
+	 * @returns {string} - 标准化后的 ISO 639-1 代码
+	 */
+	function normalizeLanguageCode(lang) {
+		if (!lang) return "";
+		lang = lang.toLowerCase().trim();
+		if (LANG_CODE_MAP[lang]) return LANG_CODE_MAP[lang];
+		if (lang === 'zh-cn') return 'zh-CN';
+		if (lang === 'zh-tw') return 'zh-TW';
+		if (lang.length === 2) return lang;
+		if (lang.startsWith("zh")) return "zh-CN";
+		return lang;
+	}
 
-    /**
-     * 简单的内存缓存，用于存储语言检测结果
-     */
-    const LanguageDetectionCache = {
-        cache: new Map(),
-        get(text) {
-            return this.cache.get(text);
-        },
-        set(text, lang) {
-            if (this.cache.size > 2000) this.cache.clear();
-            this.cache.set(text, lang);
-        }
-    };
+	/**
+	 * 简单的内存缓存，用于存储语言检测结果
+	 */
+	const LanguageDetectionCache = {
+		cache: new Map(),
+		get(text) {
+			return this.cache.get(text);
+		},
+		set(text, lang) {
+			if (this.cache.size > 2000) this.cache.clear();
+			this.cache.set(text, lang);
+		}
+	};
 
-    /**
-     * 通用批处理队列，用于合并高频请求
-     */
-    class BatchQueue {
-        constructor(processor, options = {}) {
-            this.processor = processor;
-            this.interval = options.interval || 200;
-            this.limit = options.limit || 20;
-            this.queue = [];
-            this.timer = null;
-        }
+	/**
+	 * 通用批处理队列，用于合并高频请求
+	 */
+	class BatchQueue {
+		constructor(processor, options = {}) {
+			this.processor = processor;
+			this.interval = options.interval || 200;
+			this.limit = options.limit || 20;
+			this.queue = [];
+			this.timer = null;
+		}
 
-        add(item) {
-            return new Promise((resolve, reject) => {
-                this.queue.push({
-                    item,
-                    resolve,
-                    reject
-                });
-                if (this.queue.length >= this.limit) {
-                    this.flush();
-                } else if (!this.timer) {
-                    this.timer = setTimeout(() => this.flush(), this.interval);
-                }
-            });
-        }
+		add(item) {
+			return new Promise((resolve, reject) => {
+				this.queue.push({
+					item,
+					resolve,
+					reject
+				});
+				if (this.queue.length >= this.limit) {
+					this.flush();
+				} else if (!this.timer) {
+					this.timer = setTimeout(() => this.flush(), this.interval);
+				}
+			});
+		}
 
-        async flush() {
-            if (this.timer) {
-                clearTimeout(this.timer);
-                this.timer = null;
-            }
-            if (this.queue.length === 0) return;
+		async flush() {
+			if (this.timer) {
+				clearTimeout(this.timer);
+				this.timer = null;
+			}
+			if (this.queue.length === 0) return;
 
-            const currentBatch = this.queue.splice(0, this.limit);
-            const items = currentBatch.map(t => t.item);
+			const currentBatch = this.queue.splice(0, this.limit);
+			const items = currentBatch.map(t => t.item);
 
-            try {
-                const results = await this.processor(items);
-                currentBatch.forEach((task, index) => {
-                    task.resolve(results && results[index] ? results[index] : null);
-                });
-            } catch (error) {
-                currentBatch.forEach(task => task.reject(error));
-            }
-        }
-    }
+			try {
+				const results = await this.processor(items);
+				currentBatch.forEach((task, index) => {
+					task.resolve(results && results[index] ? results[index] : null);
+				});
+			} catch (error) {
+				currentBatch.forEach(task => task.reject(error));
+			}
+		}
+	}
 
-    /**
-     * 获取微软翻译 API 的认证 Token
-     */
-    async function apiMsAuth() {
-        return new Promise((resolve) => {
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: "https://edge.microsoft.com/translate/auth",
-                onload: (res) => resolve(res.responseText),
-                onerror: () => resolve("")
-            });
-        });
-    }
+	/**
+	 * 获取微软翻译 API 的认证 Token
+	 */
+	async function apiMsAuth() {
+		return new Promise((resolve) => {
+			GM_xmlhttpRequest({
+				method: "GET",
+				url: "https://edge.microsoft.com/translate/auth",
+				onload: (res) => resolve(res.responseText),
+				onerror: () => resolve("")
+			});
+		});
+	}
 
-    /**
-     * 微软语言检测批处理
-     */
+	/**
+	 * 微软语言检测批处理
+	 */
 	async function handleMicrosoftBatchDetect(texts) {
 		Logger.info('网络', `语言检测 (Microsoft): 批量处理 ${texts.length} 段`);
 		const token = await apiMsAuth();
@@ -11441,18 +9765,18 @@ Your task is to translate a numbered list of text segments provided by the user.
 		});
 	}
 
-    const msBatchQueue = new BatchQueue(handleMicrosoftBatchDetect, { interval: 200, limit: 20 });
+	const msBatchQueue = new BatchQueue(handleMicrosoftBatchDetect, { interval: 200, limit: 20 });
 
-    /**
-     * 微软语言检测入口函数
-     */
-    async function apiMicrosoftLangdetect(text) {
-        return msBatchQueue.add(text);
-    }
+	/**
+	 * 微软语言检测入口函数
+	 */
+	async function apiMicrosoftLangdetect(text) {
+		return msBatchQueue.add(text);
+	}
 
-    /**
-     * Google 语言检测
-     */
+	/**
+	 * Google 语言检测
+	 */
 	function apiGoogleLangdetect(text) {
 		return new Promise((resolve) => {
 			const sample = text.substring(0, LANG_DETECT_MAX_LENGTH);
@@ -11479,9 +9803,9 @@ Your task is to translate a numbered list of text segments provided by the user.
 		});
 	}
 
-    /**
-     * 百度语言检测
-     */
+	/**
+	 * 百度语言检测
+	 */
 	function apiBaiduLangdetect(text) {
 		return new Promise((resolve) => {
 			Logger.info('网络', `语言检测 (Baidu)`);
@@ -11508,9 +9832,9 @@ Your task is to translate a numbered list of text segments provided by the user.
 		});
 	}
 
-    /**
-     * 腾讯语言检测
-     */
+	/**
+	 * 腾讯语言检测
+	 */
 	function apiTencentLangdetect(text) {
 		return new Promise((resolve) => {
 			Logger.info('网络', `语言检测 (Tencent)`);
@@ -11540,127 +9864,127 @@ Your task is to translate a numbered list of text segments provided by the user.
 		});
 	}
 
-    /**
-     * 核心语言检测服务，默认使用 Microsoft
-     */
-    const LanguageDetectService = {
-        async detect(text) {
-            if (!text || !text.trim()) return "auto";
-            const cached = LanguageDetectionCache.get(text);
-            if (cached) return cached;
-            const strategy = GM_getValue("lang_detector", "microsoft");
-            let detectedLang = "";
-            if (strategy === "google") {
-                detectedLang = await apiGoogleLangdetect(text);
-            } else if (strategy === "baidu") {
-                detectedLang = await apiBaiduLangdetect(text);
-            } else if (strategy === "tencent") {
-                detectedLang = await apiTencentLangdetect(text);
-            } else {
-                detectedLang = await apiMicrosoftLangdetect(text);
-            }
-            const finalLang = normalizeLanguageCode(detectedLang);
-            if (finalLang) {
-                LanguageDetectionCache.set(text, finalLang);
-                return finalLang;
-            }
-            return "auto";
-        }
-    };
+	/**
+	 * 核心语言检测服务，默认使用 Microsoft
+	 */
+	const LanguageDetectService = {
+		async detect(text) {
+			if (!text || !text.trim()) return "auto";
+			const cached = LanguageDetectionCache.get(text);
+			if (cached) return cached;
+			const strategy = GM_getValue("lang_detector", "microsoft");
+			let detectedLang = "";
+			if (strategy === "google") {
+				detectedLang = await apiGoogleLangdetect(text);
+			} else if (strategy === "baidu") {
+				detectedLang = await apiBaiduLangdetect(text);
+			} else if (strategy === "tencent") {
+				detectedLang = await apiTencentLangdetect(text);
+			} else {
+				detectedLang = await apiMicrosoftLangdetect(text);
+			}
+			const finalLang = normalizeLanguageCode(detectedLang);
+			if (finalLang) {
+				LanguageDetectionCache.set(text, finalLang);
+				return finalLang;
+			}
+			return "auto";
+		}
+	};
 
-    /**
+	/**
 	 * 远程翻译请求函数
 	 */
-    async function requestRemoteTranslation(paragraphs, { retryCount = 0, maxRetries = 5, isCancelled = () => false, knownFromLang = null } = {}) {
-        const createCancellationError = () => {
-            const error = new Error('用户已取消翻译。');
-            error.type = 'user_cancelled';
-            error.noRetry = true;
-            return error;
-        };
+	async function requestRemoteTranslation(paragraphs, { retryCount = 0, maxRetries = 5, isCancelled = () => false, knownFromLang = null } = {}) {
+		const createCancellationError = () => {
+			const error = new Error('用户已取消翻译。');
+			error.type = 'user_cancelled';
+			error.noRetry = true;
+			return error;
+		};
 
-        if (isCancelled()) throw createCancellationError();
+		if (isCancelled()) throw createCancellationError();
 
-        const engineName = getValidEngineName();
-        const toLang = GM_getValue('to_lang', 'zh-CN');
-        let fromLang;
+		const engineName = getValidEngineName();
+		const toLang = GM_getValue('to_lang', 'zh-CN');
+		let fromLang;
 
-        if (knownFromLang) {
-            fromLang = knownFromLang;
-        } else {
-            const userSelectedFromLang = GM_getValue('from_lang', 'auto');
-            if (userSelectedFromLang === 'script_auto') {
-                const textToDetect = paragraphs.map(p => p.textContent).join(' ').substring(0, 200);
-                fromLang = await LanguageDetectService.detect(textToDetect);
-            } else {
-                fromLang = userSelectedFromLang;
-            }
-        }
+		if (knownFromLang) {
+			fromLang = knownFromLang;
+		} else {
+			const userSelectedFromLang = GM_getValue('from_lang', 'auto');
+			if (userSelectedFromLang === 'script_auto') {
+				const textToDetect = paragraphs.map(p => p.textContent).join(' ').substring(0, 200);
+				fromLang = await LanguageDetectService.detect(textToDetect);
+			} else {
+				fromLang = userSelectedFromLang;
+			}
+		}
 
-        if (isCancelled()) throw createCancellationError();
+		if (isCancelled()) throw createCancellationError();
 
-        if (engineName === 'bing_translator') {
-            try {
-                const translatedTexts = await _handleBingRequest(CONFIG.TRANS_ENGINES.bing_translator, paragraphs, fromLang, toLang);
-                return translatedTexts.map((content, index) => `${index + 1}. ${content}`).join('\n\n');
-            } catch (error) {
-                Logger.error('网络', '微软翻译错误', error);
-                throw error;
-            }
-        }
+		if (engineName === 'bing_translator') {
+			try {
+				const translatedTexts = await _handleBingRequest(CONFIG.TRANS_ENGINES.bing_translator, paragraphs, fromLang, toLang);
+				return translatedTexts.map((content, index) => `${index + 1}. ${content}`).join('\n\n');
+			} catch (error) {
+				Logger.error('网络', '微软翻译错误', error);
+				throw error;
+			}
+		}
 
-        if (engineName === 'google_translate') {
-            try {
-                const translatedHtmlSnippets = await _handleGoogleRequest(CONFIG.TRANS_ENGINES.google_translate, paragraphs, fromLang, toLang);
-                if (!Array.isArray(translatedHtmlSnippets)) {
-                    throw new Error('谷歌翻译接口未返回预期的数组格式');
-                }
-                const innerContents = translatedHtmlSnippets.map(html => {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = html;
-                    return tempDiv.firstElementChild ? tempDiv.firstElementChild.innerHTML : '';
-                });
-                return innerContents.map((content, index) => `${index + 1}. ${content}`).join('\n\n');
-            } catch (error) {
-                Logger.error('网络', '谷歌翻译错误', error);
-                throw error;
-            }
-        }
+		if (engineName === 'google_translate') {
+			try {
+				const translatedHtmlSnippets = await _handleGoogleRequest(CONFIG.TRANS_ENGINES.google_translate, paragraphs, fromLang, toLang);
+				if (!Array.isArray(translatedHtmlSnippets)) {
+					throw new Error('谷歌翻译接口未返回预期的数组格式');
+				}
+				const innerContents = translatedHtmlSnippets.map(html => {
+					const tempDiv = document.createElement('div');
+					tempDiv.innerHTML = html;
+					return tempDiv.firstElementChild ? tempDiv.firstElementChild.innerHTML : '';
+				});
+				return innerContents.map((content, index) => `${index + 1}. ${content}`).join('\n\n');
+			} catch (error) {
+				Logger.error('网络', '谷歌翻译错误', error);
+				throw error;
+			}
+		}
 
-        try {
-            const provider = getProviderById(engineName);
-            if (!provider) {
-                const error = new Error(`未能找到服务 "${engineName}" 的配置信息。`);
-                error.noRetry = true;
-                throw error;
-            }
-            const client = ApiClientFactory.create(provider);
-            const translatedText = await client.translate(paragraphs, fromLang, toLang);
-            if (typeof translatedText !== 'string' || !translatedText.trim()) {
-                throw new Error('API 未返回有效文本。');
-            }
-            return translatedText;
-        } catch (error) {
-            if (isCancelled()) throw createCancellationError();
-            const retriableErrorTypes = new Set([
-                'server_overloaded',
-                'rate_limit',
-                'network',
-                'timeout',
-                'invalid_json'
-            ]);
-            const errorMessage = error.message || '';
-            const isRetriable = !error.noRetry && (retriableErrorTypes.has(error.type) || errorMessage.includes('API 未返回有效文本'));
+		try {
+			const provider = getProviderById(engineName);
+			if (!provider) {
+				const error = new Error(`未能找到服务 "${engineName}" 的配置信息。`);
+				error.noRetry = true;
+				throw error;
+			}
+			const client = ApiClientFactory.create(provider);
+			const translatedText = await client.translate(paragraphs, fromLang, toLang);
+			if (typeof translatedText !== 'string' || !translatedText.trim()) {
+				throw new Error('API 未返回有效文本。');
+			}
+			return translatedText;
+		} catch (error) {
+			if (isCancelled()) throw createCancellationError();
+			const retriableErrorTypes = new Set([
+				'server_overloaded',
+				'rate_limit',
+				'network',
+				'timeout',
+				'invalid_json'
+			]);
+			const errorMessage = error.message || '';
+			const isRetriable = !error.noRetry && (retriableErrorTypes.has(error.type) || errorMessage.includes('API 未返回有效文本'));
 
-            if (retryCount < maxRetries && isRetriable) {
-                const delay = Math.pow(2, retryCount) * 1500 + Math.random() * 1000;
-                await sleep(delay);
-                if (isCancelled()) throw createCancellationError();
-                return await requestRemoteTranslation(paragraphs, { retryCount: retryCount + 1, maxRetries, isCancelled, knownFromLang });
-            }
-            throw error;
-        }
-    }
+			if (retryCount < maxRetries && isRetriable) {
+				const delay = Math.pow(2, retryCount) * 1500 + Math.random() * 1000;
+				await sleep(delay);
+				if (isCancelled()) throw createCancellationError();
+				return await requestRemoteTranslation(paragraphs, { retryCount: retryCount + 1, maxRetries, isCancelled, knownFromLang });
+			}
+			throw error;
+		}
+	}
 
 	/**
 	 * 为指定服务获取下一个可用的 API Key
@@ -11671,7 +9995,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		const keys = GM_getValue(arrayKey, []);
 
 		if (keys.length === 0) {
-			const error = new Error(`请先在设置面板中为 ${provider.name} 翻译服务设置至少一个 API Key`);
+			const error = new Error(`请先在设置面板中为 ${provider.name} 翻译服务设置至少一个 API Key。各项翻译服务的 API Key 获取地址：https://v-lipset.github.io/docs/support/service`);
 			error.noRetry = true;
 			throw error;
 		}
@@ -11686,6 +10010,11 @@ Your task is to translate a numbered list of text segments provided by the user.
 				const currentLock = GM_getValue(lockKey, null);
 				if (!currentLock || (Date.now() - currentLock.timestamp > LOCK_TIMEOUT)) {
 					GM_setValue(lockKey, { id: myLockId, timestamp: Date.now() });
+
+					/**************************************************************************
+					 * Region 5: 翻译核心引擎与API调用
+					 **************************************************************************/
+
 					await sleep(50);
 					const confirmedLock = GM_getValue(lockKey, null);
 					if (confirmedLock && confirmedLock.id === myLockId) {
@@ -11775,8 +10104,8 @@ Your task is to translate a numbered list of text segments provided by the user.
 	}
 
 	/**
-     * 处理对微软翻译接口的特定请求流程
-     */
+	 * 处理对微软翻译接口的特定请求流程
+	 */
 	async function _handleBingRequest(engineConfig, paragraphs, fromLang, toLang, isRetry = false) {
 		const token = await BingTranslateHelper.getToken();
 		const bingFrom = BING_LANG_CODE_MAP[fromLang] || fromLang;
@@ -12101,7 +10430,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		return error;
 	}
 
-    /**
+	/**
 	 * SiliconFlow 的专属错误处理策略
 	 */
 	function _handleSiliconFlowError(res, name, responseData) {
@@ -12150,7 +10479,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		return error;
 	}
 
-    /**
+	/**
 	 * Groq AI 的专属错误处理策略
 	 */
 	function _handleGroqAiError(res, name, responseData) {
@@ -12217,7 +10546,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		return error;
 	}
 
-    /**
+	/**
 	 * Cerebras AI 的专属错误处理策略
 	 */
 	function _handleCerebrasAiError(res, name, responseData) {
@@ -12332,7 +10661,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		return error;
 	}
 
-    /**
+	/**
 	 * API 错误处理策略注册表
 	 */
 	const API_ERROR_HANDLERS = {
@@ -12633,10 +10962,10 @@ Your task is to translate a numbered list of text segments provided by the user.
 	/**
 	 * 预处理单个段落DOM节点，应用所有术语表规则并替换为占位符
 	 */
-	function _preprocessParagraph(p, rules, placeholders, placeholderCache, engineName) {
+	function _preprocessParagraph(p, preparedRules, placeholders, placeholderCache, engineName) {
 		const clone = p.cloneNode(true);
+		const { domRules, groupedRegexRules } = preparedRules;
 
-		const domRules = rules.filter(r => r.matchStrategy === 'dom');
 		if (domRules.length > 0) {
 			let domReplaced;
 			do {
@@ -12683,17 +11012,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 			} while (domReplaced);
 		}
 
-		const regexRules = rules.filter(r => r.matchStrategy === 'regex');
-		if (regexRules.length > 0) {
-			const groupedRules = regexRules.reduce((acc, rule) => {
-				const flags = rule.regex.flags;
-				if (!acc[flags]) {
-					acc[flags] = [];
-				}
-				acc[flags].push(rule);
-				return acc;
-			}, {});
-
+		if (Object.keys(groupedRegexRules).length > 0) {
 			const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, {
 				acceptNode: (node) => {
 					if (node.parentElement.closest('[data-glossary-applied="true"]')) {
@@ -12715,14 +11034,14 @@ Your task is to translate a numbered list of text segments provided by the user.
 
 				let nodeWasReplaced = false;
 
-				for (const flags in groupedRules) {
-					const rulesInGroup = groupedRules[flags];
-					const combinedPattern = rulesInGroup.map(r => `(${r.regex.source})`).join('|');
-					const combinedRegex = new RegExp(combinedPattern, flags);
+				for (const flags in groupedRegexRules) {
+					const group = groupedRegexRules[flags];
+					const { rules: rulesInGroup, combinedRegex } = group;
 
 					const text = currentNode.nodeValue;
 					if (!text) continue;
 
+					combinedRegex.lastIndex = 0;
 					const match = combinedRegex.exec(text);
 					if (match) {
 						const fragment = document.createDocumentFragment();
@@ -12873,257 +11192,320 @@ Your task is to translate a numbered list of text segments provided by the user.
 		return applyPostTranslationReplacements(processedText);
 	}
 
-    /**
-     * 段落翻译主函数
-     */
-    async function translateParagraphs(paragraphs, { maxRetries = 3, isCancelled = () => false, knownFromLang = null } = {}) {
-        const createCancellationError = () => {
-            const error = new Error('用户已取消翻译。');
-            error.type = 'user_cancelled';
-            error.noRetry = true;
-            return error;
-        };
+	/**
+	 * 特殊字符标准化工具
+	 */
+	const TextNormalizer = {
+		smallCapsMap: {
+			'ᴀ': 'A', 'ʙ': 'B', 'ᴄ': 'C', 'ᴅ': 'D', 'ᴇ': 'E', 'ғ': 'F', 'ɢ': 'G', 'ʜ': 'H', 'ɪ': 'I',
+			'ᴊ': 'J', 'ᴋ': 'K', 'ʟ': 'L', 'ᴍ': 'M', 'ɴ': 'N', 'ᴏ': 'O', 'ᴘ': 'P', 'ǫ': 'Q', 'ʀ': 'R',
+			'ꜱ': 'S', 'ᴛ': 'T', 'ᴜ': 'U', 'ᴠ': 'V', 'ᴡ': 'W', 'ʏ': 'Y', 'ᴢ': 'Z',
+			'Ɪ': 'I', 'Ɡ': 'G', 'Ʞ': 'K', 'Ɬ': 'L', 'Ɜ': 'E', 'Ꞷ': 'W'
+		},
+		regex: null,
+		init() {
+			if (this.regex) return;
+			const chars = Object.keys(this.smallCapsMap).join('');
+			this.regex = new RegExp(`[${chars}]`, 'g');
+		},
+		normalizeNode(rootNode) {
+			this.init();
+			const walker = document.createTreeWalker(
+				rootNode,
+				NodeFilter.SHOW_TEXT,
+				null,
+				false
+			);
+			let node;
+			const nodes = [];
+			while (node = walker.nextNode()) {
+				nodes.push(node);
+			}
+			nodes.forEach(textNode => {
+				const text = textNode.nodeValue;
+				if (!text) return;
+				if (this.regex.test(text)) {
+					this.regex.lastIndex = 0;
+					const newText = text.replace(this.regex, (char) => this.smallCapsMap[char] || char);
+					textNode.nodeValue = newText;
+				}
+			});
+		}
+	};
 
-        if (isCancelled()) {
-            throw createCancellationError();
-        }
+	/**
+	 * 段落翻译主函数
+	 */
+	async function translateParagraphs(paragraphs, { maxRetries = 3, isCancelled = () => false, knownFromLang = null } = {}) {
+		const createCancellationError = () => {
+			const error = new Error('用户已取消翻译。');
+			error.type = 'user_cancelled';
+			error.noRetry = true;
+			return error;
+		};
 
-        if (!paragraphs || paragraphs.length === 0) {
-            return new Map();
-        }
+		if (isCancelled()) {
+			throw createCancellationError();
+		}
 
-        const indexedParagraphs = paragraphs.map((p, index) => ({
-            original: p,
-            index: index,
-            isSeparator: p.tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(p.textContent),
-            content: p.innerHTML
-        }));
+		if (!paragraphs || paragraphs.length === 0) {
+			return new Map();
+		}
 
-        const contentToTranslate = indexedParagraphs.filter(p => !p.isSeparator);
-        if (contentToTranslate.length === 0) {
-            const results = new Map();
-            indexedParagraphs.forEach(p => {
-                results.set(p.original, { status: 'success', content: p.content });
-            });
-            return results;
-        }
+		const indexedParagraphs = paragraphs.map((p, index) => ({
+			original: p,
+			index: index,
+			isSeparator: p.tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(p.textContent),
+			content: p.innerHTML
+		}));
 
-        let lastTranslationAttempt = '';
-        let lastPlaceholdersMap = new Map();
-        const engineName = getValidEngineName();
+		const contentToTranslate = indexedParagraphs.filter(p => !p.isSeparator);
+		if (contentToTranslate.length === 0) {
+			const results = new Map();
+			indexedParagraphs.forEach(p => {
+				results.set(p.original, { status: 'success', content: p.content });
+			});
+			return results;
+		}
 
-        for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
-            try {
-                const rules = getGlossaryRules();
-                const placeholders = new Map();
-                const placeholderCache = new Map();
+		let lastTranslationAttempt = '';
+		let lastPlaceholdersMap = new Map();
+		const engineName = getValidEngineName();
 
-                const preprocessedParagraphs = [];
-                const CHUNK_PROCESSING_SIZE = 5;
-                for (let i = 0; i < contentToTranslate.length; i++) {
-                    if (isCancelled()) throw createCancellationError();
-                    const p = contentToTranslate[i];
-                    preprocessedParagraphs.push(_preprocessParagraph(p.original, rules, placeholders, placeholderCache, engineName));
-                    if ((i + 1) % CHUNK_PROCESSING_SIZE === 0) {
-                        await sleep(0);
-                    }
-                }
+		for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
+			try {
+				const rules = getGlossaryRules();
+				const domRules = rules.filter(r => r.matchStrategy === 'dom');
+				const regexRules = rules.filter(r => r.matchStrategy === 'regex');
+				const groupedRegexRules = regexRules.reduce((acc, rule) => {
+					const flags = rule.regex.flags;
+					if (!acc[flags]) acc[flags] = { rules: [], combinedRegex: null };
+					acc[flags].rules.push(rule);
+					return acc;
+				}, {});
 
-                if (retryCount === 0) {
-                    Logger.info('翻译', `任务开始`, {
-                        paragraphs: contentToTranslate.length,
-                        placeholders: placeholders.size
-                    });
-                } else {
-                    Logger.warn('翻译', `任务重试 (${retryCount}/${maxRetries})`);
-                }
+				for (const flags in groupedRegexRules) {
+					const group = groupedRegexRules[flags];
+					const combinedPattern = group.rules.map(r => {
+						const sanitizedSource = r.regex.source.replace(/\\.|(\((?:\?<[^>]+>)?(?!\?(?:[:=!]|<[=!])))/g, (m, g) => g ? '(?:' : m);
+						return `(${sanitizedSource})`;
+					}).join('|');
+					group.combinedRegex = new RegExp(combinedPattern, flags);
+				}
 
-                let combinedTranslation = await requestRemoteTranslation(preprocessedParagraphs, { retryCount: 0, maxRetries: 3, isCancelled, knownFromLang });
+				const preparedRules = { domRules, groupedRegexRules };
+				const placeholders = new Map();
+				const placeholderCache = new Map();
 
-                combinedTranslation = combinedTranslation.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
+				const preprocessedParagraphs = [];
+				const CHUNK_PROCESSING_SIZE = 5;
+				for (let i = 0; i < contentToTranslate.length; i++) {
+					if (isCancelled()) throw createCancellationError();
+					const p = contentToTranslate[i];
+					const processedNode = _preprocessParagraph(p.original, preparedRules, placeholders, placeholderCache, engineName);
+					TextNormalizer.normalizeNode(processedNode);
+					preprocessedParagraphs.push(processedNode);
 
-                lastTranslationAttempt = combinedTranslation;
-                lastPlaceholdersMap = placeholders;
+					if ((i + 1) % CHUNK_PROCESSING_SIZE === 0) {
+						await sleep(0);
+					}
+				}
 
-                const fuzzyPlaceholderRegex = /(?:ph|p)[\s\-_]*(\d{6})/gi;
-                const suspectedPlaceholders = [];
-                let match;
-                while ((match = fuzzyPlaceholderRegex.exec(combinedTranslation)) !== null) {
-                    suspectedPlaceholders.push(`ph_${match[1]}`);
-                }
+				if (retryCount === 0) {
+					Logger.info('翻译', `任务开始`, {
+						paragraphs: contentToTranslate.length,
+						placeholders: placeholders.size
+					});
+				} else {
+					Logger.warn('翻译', `任务重试 (${retryCount}/${maxRetries})`);
+				}
 
-                const legalPlaceholders = new Set(placeholders.keys());
-                const actualCounts = {};
-                legalPlaceholders.forEach(key => actualCounts[key] = 0);
+				let combinedTranslation = await requestRemoteTranslation(preprocessedParagraphs, { retryCount: 0, maxRetries: 3, isCancelled, knownFromLang });
 
-                let shouldRetryForUnknown = false;
+				combinedTranslation = combinedTranslation.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
 
-                for (const suspected of suspectedPlaceholders) {
-                    if (legalPlaceholders.has(suspected)) {
-                        actualCounts[suspected]++;
-                    } else {
-                        shouldRetryForUnknown = true;
-                    }
-                }
+				lastTranslationAttempt = combinedTranslation;
+				lastPlaceholdersMap = placeholders;
 
-                let absoluteLossThreshold, proportionalLossThreshold, proportionalTriggerCount;
+				const fuzzyPlaceholderRegex = /(?:ph|p)[\s\-_]*(\d{6})/gi;
+				const suspectedPlaceholders = [];
+				let match;
+				while ((match = fuzzyPlaceholderRegex.exec(combinedTranslation)) !== null) {
+					suspectedPlaceholders.push(`ph_${match[1]}`);
+				}
 
-                if (engineName === 'google_translate' || engineName === 'bing_translator') {
-                    const thresholds = CONFIG.VALIDATION_THRESHOLDS[engineName];
-                    absoluteLossThreshold = thresholds.absolute_loss;
-                    proportionalLossThreshold = thresholds.proportional_loss;
-                    proportionalTriggerCount = thresholds.proportional_trigger_count;
-                } else {
-                    const customThresholdsStr = GM_getValue('custom_ai_validation_thresholds');
-                    let parts = [];
-                    if (customThresholdsStr) {
-                        parts = customThresholdsStr.split(/[,，]/).map(s => parseFloat(s.trim()));
-                    }
+				const legalPlaceholders = new Set(placeholders.keys());
+				const actualCounts = {};
+				legalPlaceholders.forEach(key => actualCounts[key] = 0);
 
-                    if (parts.length === 3 && !parts.some(isNaN)) {
-                        absoluteLossThreshold = parts[0];
-                        proportionalLossThreshold = parts[1];
-                        proportionalTriggerCount = parts[2];
-                    } else {
-                        const defaults = CONFIG.VALIDATION_THRESHOLDS.default;
-                        absoluteLossThreshold = defaults.absolute_loss;
-                        proportionalLossThreshold = defaults.proportional_loss;
-                        proportionalTriggerCount = defaults.proportional_trigger_count;
-                    }
-                }
+				let shouldRetryForUnknown = false;
 
-                let shouldRetryForMissing = false;
-                let totalLoss = 0;
-                const expectedCounts = {};
-                const preprocessedText = preprocessedParagraphs.map(p => p.innerHTML).join(' ');
-                for (const key of placeholders.keys()) {
-                    expectedCounts[key] = (preprocessedText.match(new RegExp(key, 'g')) || []).length;
-                }
+				for (const suspected of suspectedPlaceholders) {
+					if (legalPlaceholders.has(suspected)) {
+						actualCounts[suspected]++;
+					} else {
+						shouldRetryForUnknown = true;
+					}
+				}
 
-                for (const key of legalPlaceholders) {
-                    const expected = expectedCounts[key];
-                    const actual = actualCounts[key];
-                    const loss = expected - actual;
+				let absoluteLossThreshold, proportionalLossThreshold, proportionalTriggerCount;
 
-                    if (loss > 0) {
-                        totalLoss += loss;
-                        const isCatastrophicLoss = expected > 2 && actual === 0;
-                        const isAbsoluteLoss = loss >= absoluteLossThreshold;
-                        const isProportionalLoss = expected >= proportionalTriggerCount && (loss / expected) >= proportionalLossThreshold;
+				if (engineName === 'google_translate' || engineName === 'bing_translator') {
+					const thresholds = CONFIG.VALIDATION_THRESHOLDS[engineName];
+					absoluteLossThreshold = thresholds.absolute_loss;
+					proportionalLossThreshold = thresholds.proportional_loss;
+					proportionalTriggerCount = thresholds.proportional_trigger_count;
+				} else {
+					const customThresholdsStr = GM_getValue('custom_ai_validation_thresholds');
+					let parts = [];
+					if (customThresholdsStr) {
+						parts = customThresholdsStr.split(/[,，]/).map(s => parseFloat(s.trim()));
+					}
 
-                        if (isCatastrophicLoss || isAbsoluteLoss || isProportionalLoss) {
-                            shouldRetryForMissing = true;
-                            break;
-                        }
-                    }
-                }
+					if (parts.length === 3 && !parts.some(isNaN)) {
+						absoluteLossThreshold = parts[0];
+						proportionalLossThreshold = parts[1];
+						proportionalTriggerCount = parts[2];
+					} else {
+						const defaults = CONFIG.VALIDATION_THRESHOLDS.default;
+						absoluteLossThreshold = defaults.absolute_loss;
+						proportionalLossThreshold = defaults.proportional_loss;
+						proportionalTriggerCount = defaults.proportional_trigger_count;
+					}
+				}
 
-                if (shouldRetryForMissing || shouldRetryForUnknown) {
-                    const errorReason = shouldRetryForUnknown ? "检测到未知占位符" : "占位符大量缺失";
-                    Logger.warn('翻译', `占位符校验失败: ${errorReason}`, { totalLoss });
-                    throw new Error(`占位符校验失败 (${errorReason})！`);
-                }
+				let shouldRetryForMissing = false;
+				let totalLoss = 0;
+				const expectedCounts = {};
+				const preprocessedText = preprocessedParagraphs.map(p => p.innerHTML).join(' ');
+				for (const key of placeholders.keys()) {
+					expectedCounts[key] = (preprocessedText.match(new RegExp(key, 'g')) || []).length;
+				}
 
-                const restoredTranslation = _postprocessAndRestoreText(combinedTranslation, placeholders, engineName);
+				for (const key of legalPlaceholders) {
+					const expected = expectedCounts[key];
+					const actual = actualCounts[key];
+					const loss = expected - actual;
 
-                let translatedParts = [];
-                if (contentToTranslate.length === 1 && !restoredTranslation.trim().startsWith('1.')) {
-                    translatedParts.push(restoredTranslation.trim());
-                } else {
-                    const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
-                    let match;
-                    while ((match = regex.exec(restoredTranslation)) !== null) {
-                        translatedParts.push(match[1].trim());
-                    }
+					if (loss > 0) {
+						totalLoss += loss;
+						const isCatastrophicLoss = expected > 2 && actual === 0;
+						const isAbsoluteLoss = loss >= absoluteLossThreshold;
+						const isProportionalLoss = expected >= proportionalTriggerCount && (loss / expected) >= proportionalLossThreshold;
 
-                    if (translatedParts.length !== contentToTranslate.length && restoredTranslation.includes('\n')) {
-                        const potentialParts = restoredTranslation.split('\n').filter(p => p.trim().length > 0);
-                        if (potentialParts.length === contentToTranslate.length) {
-                            translatedParts = potentialParts.map(p => p.replace(/^\d+\.\s*/, '').trim());
-                        }
-                    }
-                }
+						if (isCatastrophicLoss || isAbsoluteLoss || isProportionalLoss) {
+							shouldRetryForMissing = true;
+							break;
+						}
+					}
+				}
 
-                if (translatedParts.length !== contentToTranslate.length) {
-                    Logger.warn('翻译', `分段数量不匹配`, { expected: contentToTranslate.length, actual: translatedParts.length });
-                    throw new Error('AI 响应格式不一致，分段数量不匹配');
-                }
+				if (shouldRetryForMissing || shouldRetryForUnknown) {
+					const errorReason = shouldRetryForUnknown ? "检测到未知占位符" : "占位符大量缺失";
+					Logger.warn('翻译', `占位符校验失败: ${errorReason}`, { totalLoss });
+					throw new Error(`占位符校验失败 (${errorReason})！`);
+				}
 
-                const finalResults = new Map();
-                indexedParagraphs.forEach(p => {
-                    if (p.isSeparator) {
-                        finalResults.set(p.original, { status: 'success', content: p.content });
-                    } else {
-                        const originalPara = contentToTranslate.find(item => item.index === p.index);
-                        if (originalPara) {
-                            const transIndex = contentToTranslate.indexOf(originalPara);
-                            const cleanedContent = AdvancedTranslationCleaner.clean(translatedParts[transIndex] || p.content);
-                            finalResults.set(p.original, { status: 'success', content: cleanedContent });
-                        }
-                    }
-                });
-                return finalResults;
+				const restoredTranslation = _postprocessAndRestoreText(combinedTranslation, placeholders, engineName);
 
-            } catch (e) {
-                if (isCancelled() || e.type === 'user_cancelled') {
-                    throw createCancellationError();
-                }
+				let translatedParts = [];
+				if (contentToTranslate.length === 1 && !restoredTranslation.trim().startsWith('1.')) {
+					translatedParts.push(restoredTranslation.trim());
+				} else {
+					const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
+					let match;
+					while ((match = regex.exec(restoredTranslation)) !== null) {
+						translatedParts.push(match[1].trim());
+					}
 
-                if (e.noRetry) {
-                    Logger.error('翻译', `发生不可重试错误`, e.message);
-                    throw e;
-                }
+					if (translatedParts.length !== contentToTranslate.length && restoredTranslation.includes('\n')) {
+						const potentialParts = restoredTranslation.split('\n').filter(p => p.trim().length > 0);
+						if (potentialParts.length === contentToTranslate.length) {
+							translatedParts = potentialParts.map(p => p.replace(/^\d+\.\s*/, '').trim());
+						}
+					}
+				}
 
-                if (retryCount < maxRetries) {
-                    const delay = 500 * (retryCount + 1);
-                    await sleep(delay);
-                    if (isCancelled()) {
-                        throw createCancellationError();
-                    }
-                    continue;
-                }
+				if (translatedParts.length !== contentToTranslate.length) {
+					Logger.warn('翻译', `分段数量不匹配`, { expected: contentToTranslate.length, actual: translatedParts.length });
+					throw new Error('AI 响应格式不一致，分段数量不匹配');
+				}
 
-                Logger.error('翻译', `重试次数耗尽，任务失败`);
+				const finalResults = new Map();
+				indexedParagraphs.forEach(p => {
+					if (p.isSeparator) {
+						finalResults.set(p.original, { status: 'success', content: p.content });
+					} else {
+						const originalPara = contentToTranslate.find(item => item.index === p.index);
+						if (originalPara) {
+							const transIndex = contentToTranslate.indexOf(originalPara);
+							const cleanedContent = AdvancedTranslationCleaner.clean(translatedParts[transIndex] || p.content);
+							finalResults.set(p.original, { status: 'success', content: cleanedContent });
+						}
+					}
+				});
+				return finalResults;
 
-                if (e.message.includes('分段数量不匹配') && paragraphs.length > 1) {
-                    if (isCancelled()) throw createCancellationError();
-                    const fallbackResults = new Map();
-                    for (const p of paragraphs) {
-                        if (isCancelled()) {
-                            break;
-                        }
-                        const singleResultMap = await translateParagraphs([p], { maxRetries: 0, isCancelled, knownFromLang });
-                        const singleResult = singleResultMap.get(p);
-                        fallbackResults.set(p, singleResult || { status: 'error', content: '逐段翻译失败' });
-                    }
-                    return fallbackResults;
-                }
+			} catch (e) {
+				if (isCancelled() || e.type === 'user_cancelled') {
+					throw createCancellationError();
+				}
 
-                const restoredTranslation = _postprocessAndRestoreText(lastTranslationAttempt, lastPlaceholdersMap, engineName);
-                let translatedParts = [];
-                const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
-                let match;
-                while ((match = regex.exec(restoredTranslation)) !== null) {
-                    translatedParts.push(match[1].trim());
-                }
-                const finalResults = new Map();
-                indexedParagraphs.forEach(p => {
-                    if (p.isSeparator) {
-                        finalResults.set(p.original, { status: 'success', content: p.content });
-                    } else {
-                        const originalPara = contentToTranslate.find(item => item.index === p.index);
-                        if (originalPara) {
-                            const transIndex = contentToTranslate.indexOf(originalPara);
-                            const content = translatedParts[transIndex] || `翻译失败：${e.message}`;
-                            const cleanedContent = AdvancedTranslationCleaner.clean(content);
-                            finalResults.set(p.original, { status: 'success', content: cleanedContent });
-                        }
-                    }
-                });
-                return finalResults;
-            }
-        }
-    }
+				if (e.noRetry) {
+					Logger.error('翻译', `发生不可重试错误`, e.message);
+					throw e;
+				}
+
+				if (retryCount < maxRetries) {
+					const delay = 500 * (retryCount + 1);
+					await sleep(delay);
+					if (isCancelled()) {
+						throw createCancellationError();
+					}
+					continue;
+				}
+
+				Logger.error('翻译', `重试次数耗尽，任务失败`);
+
+				if (e.message.includes('分段数量不匹配') && paragraphs.length > 1) {
+					if (isCancelled()) throw createCancellationError();
+					const fallbackResults = new Map();
+					for (const p of paragraphs) {
+						if (isCancelled()) {
+							break;
+						}
+						const singleResultMap = await translateParagraphs([p], { maxRetries: 0, isCancelled, knownFromLang });
+						const singleResult = singleResultMap.get(p);
+						fallbackResults.set(p, singleResult || { status: 'error', content: '逐段翻译失败' });
+					}
+					return fallbackResults;
+				}
+
+				const restoredTranslation = _postprocessAndRestoreText(lastTranslationAttempt, lastPlaceholdersMap, engineName);
+				let translatedParts = [];
+				const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
+				let match;
+				while ((match = regex.exec(restoredTranslation)) !== null) {
+					translatedParts.push(match[1].trim());
+				}
+				const finalResults = new Map();
+				indexedParagraphs.forEach(p => {
+					if (p.isSeparator) {
+						finalResults.set(p.original, { status: 'success', content: p.content });
+					} else {
+						const originalPara = contentToTranslate.find(item => item.index === p.index);
+						if (originalPara) {
+							const transIndex = contentToTranslate.indexOf(originalPara);
+							const content = translatedParts[transIndex] || `翻译失败：${e.message}`;
+							const cleanedContent = AdvancedTranslationCleaner.clean(content);
+							finalResults.set(p.original, { status: 'success', content: cleanedContent });
+						}
+					}
+				});
+				return finalResults;
+			}
+		}
+	}
 
 	/**
 	 * 通用翻译控制器基座：管理状态切换、RunID 校验及 UI 更新
@@ -13215,7 +11597,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		const { containerElement, buttonWrapper, originalButtonText, isLazyLoad } = options;
 		let activeTask = null;
 
-		return createBaseController({
+		const controller = createBaseController({
 			buttonWrapper,
 			originalButtonText,
 			onStart: async (isCancelled, onDone) => {
@@ -13224,22 +11606,32 @@ Your task is to translate a numbered list of text segments provided by the user.
 					isFirstTranslationChunk: true,
 				};
 
-				if (isLazyLoad) {
-					activeTask = runTranslationEngineWithObserver({
-						containerElement,
-						isCancelled,
-						onComplete: onDone,
-						instanceState
-					});
-				} else {
-					await runTranslationEngineForBlock(containerElement, isCancelled, onDone);
-				}
+				activeTask = runUniversalTranslationEngine({
+					containerElement,
+					isCancelled,
+					onComplete: onDone,
+					instanceState,
+					useObserver: isLazyLoad,
+					onRetry: (units) => {
+						if (controller.state === 'complete') {
+							controller.state = 'running';
+							controller.updateButtonState('翻译中…', 'state-running');
+						}
+						if (activeTask) {
+							if (activeTask.addUnits) activeTask.addUnits(units);
+							if (activeTask.scheduleProcessing) activeTask.scheduleProcessing(true);
+						}
+					}
+				});
 			},
 			onPause: () => {
 				if (activeTask && activeTask.disconnect) {
 					activeTask.disconnect();
-					activeTask = null;
 				}
+				activeTask = null;
+				containerElement.querySelectorAll('[data-translation-state="translating"]').forEach(unit => {
+					delete unit.dataset.translationState;
+				});
 			},
 			onClear: () => {
 				const translationNodes = containerElement.querySelectorAll('.translated-by-ao3-script, .translated-by-ao3-script-error');
@@ -13250,6 +11642,8 @@ Your task is to translate a numbered list of text segments provided by the user.
 				});
 			}
 		});
+
+		return controller;
 	}
 
 	/**
@@ -13321,14 +11715,38 @@ Your task is to translate a numbered list of text segments provided by the user.
 		const { summaryElement, tagsElement, buttonWrapper, originalButtonText } = options;
 		let translatedTagsElement = null;
 		let errorElement = null;
+		let activeSummaryTask = null;
 
-		return createBaseController({
+		const controller = createBaseController({
 			buttonWrapper,
 			originalButtonText,
 			onStart: async (isCancelled, onDone) => {
 				try {
 					const tagsPromise = runTagsTranslationEngine(tagsElement, isCancelled);
-					const summaryPromise = runTranslationEngineForBlock(summaryElement, isCancelled, null);
+
+					const summaryPromise = new Promise((resolve) => {
+						const instanceState = {
+							elementState: new WeakMap(),
+							isFirstTranslationChunk: true,
+						};
+						activeSummaryTask = runUniversalTranslationEngine({
+							containerElement: summaryElement,
+							isCancelled,
+							onComplete: resolve,
+							instanceState,
+							useObserver: false,
+							onRetry: (units) => {
+								if (controller.state === 'complete') {
+									controller.state = 'running';
+									controller.updateButtonState('翻译中…', 'state-running');
+								}
+								if (activeSummaryTask) {
+									if (activeSummaryTask.addUnits) activeSummaryTask.addUnits(units);
+									if (activeSummaryTask.scheduleProcessing) activeSummaryTask.scheduleProcessing(true);
+								}
+							}
+						});
+					});
 
 					const [tagsResult] = await Promise.all([tagsPromise, summaryPromise]);
 					if (isCancelled()) return;
@@ -13348,6 +11766,15 @@ Your task is to translate a numbered list of text segments provided by the user.
 
 					Logger.error('翻译', 'Blurb 翻译失败', error);
 				}
+			},
+			onPause: () => {
+				if (activeSummaryTask && activeSummaryTask.disconnect) {
+					activeSummaryTask.disconnect();
+				}
+				activeSummaryTask = null;
+				summaryElement.querySelectorAll('[data-translation-state="translating"]').forEach(unit => {
+					delete unit.dataset.translationState;
+				});
 			},
 			onClear: () => {
 				const internalTranslationNodes = summaryElement.querySelectorAll('.translated-by-ao3-script, .translated-by-ao3-script-error');
@@ -13386,6 +11813,8 @@ Your task is to translate a numbered list of text segments provided by the user.
 				}
 			}
 		});
+
+		return controller;
 	}
 
 	/**
@@ -13470,113 +11899,25 @@ Your task is to translate a numbered list of text segments provided by the user.
 	}
 
 	/**
-	 * 块级翻译执行引擎
+	 * 通用翻译执行引擎：支持懒加载观察模式和立即执行的分块模式
 	 */
-	async function runTranslationEngineForBlock(containerElement, isCancelled, onComplete) {
-		containerElement.querySelectorAll('li').forEach(li => {
-			if (li.querySelector('ul, ol')) {
-				const childNodes = Array.from(li.childNodes);
-				let contentBuffer = [];
-				const flushBuffer = () => {
-					if (contentBuffer.length === 0) return;
-					const hasText = contentBuffer.some(n => (n.nodeType === Node.TEXT_NODE && n.nodeValue.trim().length > 0) || (n.nodeType === Node.ELEMENT_NODE && n.textContent.trim().length > 0));
-					if (hasText) {
-						const p = document.createElement('p');
-						p.style.margin = '0'; p.style.padding = '0'; p.style.display = 'inline-block'; p.style.width = '100%';
-						contentBuffer[0].parentNode.insertBefore(p, contentBuffer[0]);
-						contentBuffer.forEach(n => p.appendChild(n));
-					}
-					contentBuffer = [];
-				};
-				childNodes.forEach(node => {
-					if (node.nodeType === Node.ELEMENT_NODE && (node.tagName === 'UL' || node.tagName === 'OL')) flushBuffer();
-					else contentBuffer.push(node);
-				});
-				flushBuffer();
-			}
-		});
-
-		const translatableSelectors = 'p, blockquote, li, h1, h2, h3:not(.landmark), h4, h5, h6';
-		let allPotentialUnits = Array.from(containerElement.querySelectorAll(translatableSelectors));
-		allPotentialUnits = allPotentialUnits.filter(el => !el.closest('.translated-by-ao3-script, .translated-by-ao3-script-error'));
-
-		if (allPotentialUnits.length === 0 && containerElement.textContent.trim() && !containerElement.querySelector(translatableSelectors)) {
-			allPotentialUnits = [containerElement];
-		}
-
-		const skippableHeaders = ['Summary', 'Notes', 'Work Text'];
-		const units = allPotentialUnits.filter(p => !skippableHeaders.includes(p.textContent.trim()) && !p.querySelector(translatableSelectors));
-
-		if (units.length === 0) {
-			if (onComplete) onComplete();
-			return;
-		}
-
-		units.forEach(unit => unit.dataset.translationState = 'translating');
-
-		try {
-			const translationResults = await translateParagraphs(units, { isCancelled });
-			if (isCancelled()) {
-				units.forEach(unit => delete unit.dataset.translationState);
-				return;
-			}
-
-			const currentMode = GM_getValue('translation_display_mode', 'bilingual');
-			units.forEach(unit => {
-				const result = translationResults.get(unit);
-				if (result) {
-					const transNode = document.createElement('div');
-					const newTranslatedElement = unit.cloneNode(false);
-					newTranslatedElement.innerHTML = result.content;
-
-					if (result.status === 'success') {
-						transNode.className = 'translated-by-ao3-script';
-						unit.dataset.translationState = 'translated';
-						if (currentMode === 'translation_only') unit.style.display = 'none';
-					} else {
-						transNode.className = 'translated-by-ao3-script-error';
-						newTranslatedElement.innerHTML = `翻译失败：${result.content.replace('翻译失败：', '')}`;
-						unit.dataset.translationState = 'error';
-					}
-					transNode.appendChild(newTranslatedElement);
-					unit.after(transNode);
-				} else {
-					unit.dataset.translationState = 'error';
-				}
-			});
-
-			if (onComplete) onComplete();
-		} catch (error) {
-			if (isCancelled() || (error && error.type === 'user_cancelled')) {
-				units.forEach(unit => delete unit.dataset.translationState);
-				return;
-			}
-
-			units.forEach(unit => {
-				const transNode = document.createElement('div');
-				transNode.className = 'translated-by-ao3-script-error';
-				const newTranslatedElement = unit.cloneNode(false);
-				newTranslatedElement.innerHTML = `翻译失败：${error.message || '未知错误'}`;
-				transNode.appendChild(newTranslatedElement);
-				unit.after(transNode);
-				unit.dataset.translationState = 'error';
-			});
-
-			if (onComplete) onComplete();
-		}
-	}
-
-	/**
-	 * 懒加载翻译执行引擎
-	 */
-	function runTranslationEngineWithObserver(options) {
-		const { containerElement, isCancelled, onComplete, instanceState, onProgress = () => { } } = options;
+	function runUniversalTranslationEngine(options) {
+		const { containerElement, isCancelled, onComplete, instanceState, onProgress = () => { }, useObserver = true, onRetry = () => { } } = options;
 		const { elementState } = instanceState;
 		let isProcessing = false;
 		const translationQueue = new Set();
 		let scheduleTimeout = null;
 		let flushTimeout = null;
 		let detectedLanguageForSession = null;
+		let translatedUnits = 0;
+
+		const addUnits = (units) => {
+			if (isCancelled()) return;
+			units.forEach(unit => {
+				translationQueue.add(unit);
+			});
+			translatedUnits = Math.max(0, translatedUnits - units.length);
+		};
 
 		async function initializeLanguageDetection() {
 			const userSelectedFromLang = GM_getValue('from_lang', 'auto');
@@ -13596,18 +11937,47 @@ Your task is to translate a numbered list of text segments provided by the user.
 			const brSplitSelectors = 'p, blockquote';
 			const elementsToProcessForSplit = Array.from(container.querySelectorAll(brSplitSelectors)).filter(el => !el.closest('.translated-by-ao3-script, .translated-by-ao3-script-error'));
 
+			const SPLIT_THRESHOLD = 800;
 			elementsToProcessForSplit.forEach(el => {
 				if (elementState.has(el)) return;
-				if (el.innerHTML.match(/(?:<br\s*\/?>\s*)+/i)) {
-					const fragmentsHTML = el.innerHTML.split(/(?:\s*<br\s*\/?>\s*)+/ig);
-					const newElements = fragmentsHTML.map(f => f.trim()).filter(f => f).map(f => {
-						const newP = document.createElement(el.tagName);
-						newP.innerHTML = f; elementState.set(newP, { preprocessed: true });
-						return newP;
+				if (el.textContent.length > SPLIT_THRESHOLD && el.querySelector('br')) {
+					const newElements = [];
+					let contentBuffer = [];
+
+					const flushBuffer = () => {
+						if (contentBuffer.length === 0) return;
+
+						const hasContent = contentBuffer.some(node =>
+							(node.nodeType === Node.TEXT_NODE && node.nodeValue.trim().length > 0) ||
+							(node.nodeType === Node.ELEMENT_NODE)
+						);
+
+						if (hasContent) {
+							const newEl = document.createElement(el.tagName);
+							if (el.className) newEl.className = el.className;
+							contentBuffer.forEach(node => newEl.appendChild(node));
+							elementState.set(newEl, { preprocessed: true });
+							newElements.push(newEl);
+						}
+						contentBuffer = [];
+					};
+
+					const childNodes = Array.from(el.childNodes);
+					childNodes.forEach(node => {
+						if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR') {
+							flushBuffer();
+						} else {
+							contentBuffer.push(node);
+						}
 					});
-					if (newElements.length > 1) { el.after(...newElements); el.remove(); }
+					flushBuffer();
+
+					if (newElements.length > 0) {
+						el.replaceWith(...newElements);
+					}
+				} else {
+					elementState.set(el, { preprocessed: true });
 				}
-				elementState.set(el, { preprocessed: true });
 			});
 
 			container.querySelectorAll('li').forEach(li => {
@@ -13633,8 +12003,11 @@ Your task is to translate a numbered list of text segments provided by the user.
 				}
 			});
 
-			const translatableSelectors = 'p, blockquote, li, h1, h2, h3, h4, h5, h6, hr';
-			const candidateUnits = Array.from(container.querySelectorAll(translatableSelectors)).filter(el => !el.closest('.translated-by-ao3-script, .translated-by-ao3-script-error'));
+			const translatableSelectors = 'p, blockquote, li, h1, h2, h3, h4, h5, h6, hr, center';
+			let candidateUnits = Array.from(container.querySelectorAll(translatableSelectors)).filter(el => !el.closest('.translated-by-ao3-script, .translated-by-ao3-script-error'));
+			if (candidateUnits.length === 0 && container.textContent.trim().length > 0 && !container.querySelector(translatableSelectors)) {
+				candidateUnits = [container];
+			}
 			const skippableHeaders = ['Summary', 'Notes', 'Work Text', 'Chapter Text'];
 			const finalUnits = [];
 			candidateUnits.filter(p => !skippableHeaders.includes(p.textContent.trim())).forEach(unit => {
@@ -13647,9 +12020,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		const allUnits = preProcessAndGetUnits(containerElement);
 		const unitsToObserve = allUnits.filter(unit => !unit.dataset.translationState);
 		const totalUnits = unitsToObserve.length;
-		let translatedUnits = 0;
-
-		if (totalUnits === 0) { if (onComplete) onComplete(); return null; }
+		if (totalUnits === 0) { if (onComplete) onComplete(); return { disconnect: () => { } }; }
 		initializeLanguageDetection();
 
 		const isInViewport = (el) => {
@@ -13690,7 +12061,6 @@ Your task is to translate a numbered list of text segments provided by the user.
 
 			isProcessing = true;
 			chunkToSend.forEach(p => { translationQueue.delete(p); p.dataset.translationState = 'translating'; });
-			Logger.info('翻译', `处理队列`, { size: chunkToSend.length });
 
 			try {
 				const paragraphsToTranslate = chunkToSend.filter(p => p.tagName !== 'HR' && p.textContent.trim().length > 0);
@@ -13698,7 +12068,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 				try {
 					translationResults = paragraphsToTranslate.length > 0 ? await translateParagraphs(paragraphsToTranslate, { isCancelled, knownFromLang: detectedLanguageForSession }) : new Map();
 				} catch (error) {
-					if (error.type === 'user_cancelled') {
+					if (isCancelled() || error.type === 'user_cancelled') {
 						chunkToSend.forEach(p => { if (p.dataset.translationState === 'translating') delete p.dataset.translationState; });
 						isProcessing = false; return;
 					}
@@ -13706,10 +12076,14 @@ Your task is to translate a numbered list of text segments provided by the user.
 					paragraphsToTranslate.forEach(unit => translationResults.set(unit, { status: 'error', content: error.message || '未知错误' }));
 				}
 
-				if (isCancelled()) return;
+				if (isCancelled()) {
+					chunkToSend.forEach(p => { if (p.dataset.translationState === 'translating') delete p.dataset.translationState; });
+					return;
+				}
 
 				for (const p of chunkToSend) {
-					observer.unobserve(p); translatedUnits++;
+					if (observer) observer.unobserve(p);
+					translatedUnits++;
 					if (p.tagName === 'HR' || p.textContent.trim().length === 0 || /^\s*[-—*~<>=.]{3,}\s*$/.test(p.textContent)) {
 						p.dataset.translationState = 'translated'; continue;
 					}
@@ -13726,42 +12100,71 @@ Your task is to translate a numbered list of text segments provided by the user.
 							transNode.className = 'translated-by-ao3-script-error';
 							newTranslatedElement.innerHTML = `翻译失败：${result.content.replace('翻译失败：', '')}`;
 							p.dataset.translationState = 'error';
+
+							const retryBtn = document.createElement('span');
+							retryBtn.className = 'retry-translation-button';
+							retryBtn.title = '重试翻译';
+							retryBtn.innerHTML = `<svg viewBox="0 -960 960 960"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-694v-106h80v240H560v-80h136q-34-45-84.5-72.5T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q88 0 151.5-54T713-440h82q-19 127-115 203.5T480-160Z"/></svg>`;
+
+							retryBtn.addEventListener('click', (e) => {
+								e.stopPropagation();
+
+								const unitsToRetry = Array.from(containerElement.querySelectorAll('[data-translation-state="error"]'));
+
+								if (unitsToRetry.length > 0) {
+									unitsToRetry.forEach(unit => {
+										const errorNode = unit.nextElementSibling;
+										if (errorNode && errorNode.classList.contains('translated-by-ao3-script-error')) {
+											errorNode.remove();
+										}
+										delete unit.dataset.translationState;
+									});
+									onRetry(unitsToRetry);
+								}
+							});
+
+							newTranslatedElement.appendChild(retryBtn);
+							p.dataset.translationState = 'error';
 						}
 						transNode.appendChild(newTranslatedElement); p.after(transNode);
 					}
 				}
 			} finally {
 				isProcessing = false; onProgress(translatedUnits, totalUnits);
-				Logger.info('翻译', '进度更新', { translated: translatedUnits, total: totalUnits });
 				if (translatedUnits >= totalUnits) { if (onComplete) onComplete(); if (observer) observer.disconnect(); }
 				else if (translationQueue.size > 0 && !isCancelled()) scheduleProcessing(false);
 			}
 		};
 
 		const scheduleProcessing = (force = false) => { if (isCancelled()) return; clearTimeout(scheduleTimeout); scheduleTimeout = setTimeout(() => processQueue(force), 300); };
-		const engineName = getValidEngineName();
-		const effectiveRootMargin = (engineName === 'google_translate' || engineName === 'bing_translator') ? CONFIG.MODEL_SPECIFIC_LIMITS[engineName].LAZY_LOAD_ROOT_MARGIN : GM_getValue('custom_ai_lazy_load_margin', CONFIG.LAZY_LOAD_ROOT_MARGIN);
-		const observer = new IntersectionObserver((entries) => {
-			if (isCancelled()) return;
-			let added = false;
-			entries.forEach(entry => { if (entry.isIntersecting && !entry.target.dataset.translationState) { translationQueue.add(entry.target); added = true; } });
-			if (added) scheduleProcessing(false);
-		}, { rootMargin: effectiveRootMargin });
 
-		unitsToObserve.forEach(unit => observer.observe(unit));
-		return observer;
+		let observer = null;
+		if (useObserver) {
+			const engineName = getValidEngineName();
+			const effectiveRootMargin = (engineName === 'google_translate' || engineName === 'bing_translator') ? CONFIG.MODEL_SPECIFIC_LIMITS[engineName].LAZY_LOAD_ROOT_MARGIN : GM_getValue('custom_ai_lazy_load_margin', CONFIG.LAZY_LOAD_ROOT_MARGIN);
+			observer = new IntersectionObserver((entries) => {
+				if (isCancelled()) return;
+				let added = false;
+				entries.forEach(entry => { if (entry.isIntersecting && !entry.target.dataset.translationState) { translationQueue.add(entry.target); added = true; } });
+				if (added) scheduleProcessing(false);
+			}, { rootMargin: effectiveRootMargin });
+			unitsToObserve.forEach(unit => observer.observe(unit));
+		} else {
+			unitsToObserve.forEach(unit => translationQueue.add(unit));
+			scheduleProcessing(false);
+		}
+		return observer ?
+			{ disconnect: () => observer.disconnect(), addUnits, scheduleProcessing } :
+			{ disconnect: () => { }, addUnits, scheduleProcessing };
 	}
 
 	/**
 	 * 各种术语表变量
 	 */
-	const LOCAL_GLOSSARY_KEY = 'ao3_local_glossary';
-	const LOCAL_GLOSSARY_STRING_KEY = 'ao3_local_glossary_string';
-	const LOCAL_FORBIDDEN_TERMS_KEY = 'ao3_local_forbidden_terms';
-	const LOCAL_FORBIDDEN_STRING_KEY = 'ao3_local_forbidden_string';
-    const CUSTOM_GLOSSARIES_KEY = 'ao3_custom_glossaries';
+	const CUSTOM_GLOSSARIES_KEY = 'ao3_custom_glossaries';
 	const IMPORTED_GLOSSARY_KEY = 'ao3_imported_glossary';
 	const GLOSSARY_METADATA_KEY = 'ao3_glossary_metadata';
+	const ONLINE_GLOSSARY_ORDER_KEY = 'ao3_online_glossary_order';
 	const POST_REPLACE_STRING_KEY = 'ao3_post_replace_string';
 	const POST_REPLACE_MAP_KEY = 'ao3_post_replace_map';
 	const LAST_SELECTED_GLOSSARY_KEY = 'ao3_last_selected_glossary_url';
@@ -13889,7 +12292,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 	/**
 	 * 从 GitHub 或 jsDelivr 导入在线术语表文件
 	 */
-    function importOnlineGlossary(url, options = {}) {
+	function importOnlineGlossary(url, options = {}) {
 		const { silent = false } = options;
 
 		return new Promise((resolve) => {
@@ -13941,10 +12344,14 @@ Your task is to translate a numbered list of text segments provided by the user.
 						GM_setValue(GLOSSARY_METADATA_KEY, metadata);
 						invalidateGlossaryCache();
 
-                        const importedCount = Object.keys(onlineData.terms).length + Object.keys(onlineData.generalTerms).length +
+						const importedCount = Object.keys(onlineData.terms).length + Object.keys(onlineData.generalTerms).length +
 							Object.keys(onlineData.multiPartTerms).length + Object.keys(onlineData.multiPartGeneralTerms).length +
 							onlineData.regexTerms.length;
 						const message = `已成功导入 ${glossaryName} 术语表，共 ${importedCount} 个词条。版本号：v${onlineData.metadata.version || '未知'}，维护者：${onlineData.metadata.maintainer || '未知'}。`;
+
+						if (!silent) {
+							notifyAndLog(message, '导入成功');
+						}
 
 						resolve({ success: true, name: glossaryName, message });
 
@@ -14038,215 +12445,315 @@ Your task is to translate a numbered list of text segments provided by the user.
 	/**
 	 * 获取术语表规则，优先从缓存读取
 	 */
-    function getGlossaryRules() {
-        const cache = GM_getValue(GLOSSARY_RULES_CACHE_KEY, null);
-        const currentStateHash = generateGlossaryStateHash();
+	function getGlossaryRules() {
+		const cache = GM_getValue(GLOSSARY_RULES_CACHE_KEY, null);
+		const currentStateHash = generateGlossaryStateHash();
 
-        if (cache && cache.hash === currentStateHash && cache.rules) {
-            Logger.info('数据', '命中术语表规则缓存');
-            return cache.rules.map(rule => {
-                if (rule.regex && typeof rule.regex === 'object' && rule.regex.source) {
-                    try {
-                        return { ...rule, regex: new RegExp(rule.regex.source, rule.regex.flags) };
-                    } catch (e) {
-                        return null;
-                    }
-                }
-                return rule;
-            }).filter(Boolean);
-        }
+		if (cache && cache.hash === currentStateHash && cache.rules) {
+			Logger.info('数据', '命中术语表规则缓存');
+			return cache.rules.map(rule => {
+				if (rule.regex && typeof rule.regex === 'object' && rule.regex.source) {
+					try {
+						return { ...rule, regex: new RegExp(rule.regex.source, rule.regex.flags) };
+					} catch (e) {
+						return null;
+					}
+				}
+				return rule;
+			}).filter(Boolean);
+		}
 
-        Logger.info('数据', '缓存未命中或已失效，正在重建规则');
-        return buildPrioritizedGlossaryMaps();
-    }
+		Logger.info('数据', '缓存未命中或已失效，正在重建规则');
+		return buildPrioritizedGlossaryMaps();
+	}
 
-    /**
-     * 构建并排序所有术语表规则
-     */
-    function buildPrioritizedGlossaryMaps() {
-        const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-        const glossaryMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-        const localGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-        let rules = [];
-        const processedLocalKeys = new Set();
-        const PRIORITY = {
-            LOCAL_FORBIDDEN: 60000,
-            LOCAL_TERM: 50000,
-            LOCAL_GENERAL_TERM: 50000,
-            ONLINE_FORBIDDEN: 40000,
-            ONLINE_TERM: 30000,
-            ONLINE_REGEX: 30000,
-            ONLINE_GENERAL_TERM: 20000
-        };
-        const termSeparatorRegex = /[\s-－﹣—–]+/;
-        function addRule(ruleConfig) {
-            const { termForms, translation, type, timestamp = 0, source, originalTerm, isMultiPart, isGeneral, isUnordered = false } = ruleConfig;
-            const basePriority = PRIORITY[type];
-            if (basePriority === undefined) return;
-			const lengthFactor = isMultiPart
-				? termForms.map(partForms => Array.from(partForms)[0]).join(' ').length
-				: (typeof termForms === 'string' ? termForms.length : Array.from(termForms)[0].length);
-            const priority = basePriority + timestamp + lengthFactor;
-            const isForbidden = type.includes('FORBIDDEN');
-            try {
-                let ruleObject;
-                if (type === 'ONLINE_REGEX') {
-                    ruleObject = {
-                        type: 'regex', matchStrategy: 'regex',
-                        regex: new RegExp(termForms, 'g'),
-                        replacement: translation, priority, source, originalTerm
-                    };
-                } else if (isMultiPart) {
-                    ruleObject = {
-                        type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'dom',
-                        parts: termForms,
-                        replacement: isForbidden ? termForms.map(partForms => Array.from(partForms)[0]).join(' ') : translation,
-                        priority, isGeneral, source, originalTerm, isUnordered
-                    };
-                } else {
-                    const pattern = createSmartRegexPattern(termForms);
-                    const flags = isGeneral ? 'gi' : 'g';
-                    ruleObject = {
-                        type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'regex',
-                        regex: new RegExp(pattern, flags),
-                        replacement: isForbidden ? Array.from(termForms)[0] : translation,
-                        priority, source, originalTerm
-                    };
-                }
-                rules.push(ruleObject);
-            } catch (e) { }
-        }
-        function processSinglePartTerm(term, translation, type, isLocal, timestamp, source, originalTerm) {
-            const normalizedTerm = term.trim();
-            if (!normalizedTerm) return;
-            const isGeneral = type.includes('GENERAL');
-            const isForbidden = type.includes('FORBIDDEN');
-            if (termSeparatorRegex.test(normalizedTerm)) {
-                processMultiPartTerm(term, translation, type, isLocal, timestamp, source, originalTerm, false);
-                return;
-            }
-            const forms = generateWordForms(normalizedTerm, { preserveCase: isForbidden, forceLowerCase: isGeneral });
-            if (isLocal || !processedLocalKeys.has(normalizedTerm.toLowerCase())) {
-                addRule({ termForms: forms, translation, type, isLocal, timestamp, source, originalTerm, isMultiPart: false, isGeneral: isGeneral });
-                if (isLocal) {
-                    forms.forEach(f => processedLocalKeys.add(f.toLowerCase()));
-                }
-            }
-        }
-        function processMultiPartTerm(term, translation, type, isLocal, timestamp, source, originalTerm, isFromEqualsSyntax) {
-            const normalizedTerm = term.trim();
-            const isForbidden = type.includes('FORBIDDEN');
-            const normalizedTranslation = !isForbidden ? translation.trim() : null;
-            if (!normalizedTerm || (!normalizedTranslation && !isForbidden)) return;
-            const termParts = normalizedTerm.split(termSeparatorRegex);
-            if (termParts.length <= 1 && !isFromEqualsSyntax) {
-                processSinglePartTerm(term, translation, type, isLocal, timestamp, source, originalTerm);
-                return;
-            }
-            if (isLocal && processedLocalKeys.has(normalizedTerm.toLowerCase())) return;
-            if (!isLocal && processedLocalKeys.has(normalizedTerm.toLowerCase())) return;
-            const isGeneral = type.includes('GENERAL');
-            const termPartsWithForms = termParts.map(part =>
-                Array.from(generateWordForms(part, { preserveCase: isForbidden, forceLowerCase: isGeneral }))
-            );
-            const isUnorderedEligible = isFromEqualsSyntax && (type === 'LOCAL_TERM' || type === 'ONLINE_TERM' || type === 'LOCAL_GENERAL_TERM' || type === 'ONLINE_GENERAL_TERM');
-            addRule({
-                termForms: termPartsWithForms,
-                translation: normalizedTranslation,
-                type,
-                isLocal,
-                timestamp,
-                source,
-                originalTerm: originalTerm,
-                isMultiPart: true,
-                isGeneral,
-                isUnordered: isUnorderedEligible
-            });
-            if (!isForbidden && isFromEqualsSyntax) {
-                const translationParts = normalizedTranslation.split(/[\s·・]+/);
-                if (termParts.length === translationParts.length) {
-                    termParts.forEach((part, i) => {
-                        processSinglePartTerm(part, translationParts[i], type, isLocal, timestamp, source, `${part} -> ${translationParts[i]} (from: ${originalTerm})`);
-                    });
-                }
-            }
-            if (isLocal) {
-                processedLocalKeys.add(normalizedTerm.toLowerCase());
-            }
-        }
-        localGlossaries.forEach(glossary => {
-            if (glossary.enabled === false) return;
-            if (glossary.forbidden) {
-                glossary.forbidden.split(/[,，]/).forEach(term => {
-                    processSinglePartTerm(term, null, 'LOCAL_FORBIDDEN', true, 0, glossary.name, term);
-                });
-            }
-            if (glossary.sensitive) {
-                glossary.sensitive.replace(/[，,]/g, '|||').split('|||').forEach(entry => {
-                    const normalizedEntry = entry.replace(/[：＝]/g, (match) => ({ '：': ':', '＝': '=' }[match]));
-                    const multiPartMatch = normalizedEntry.match(/^\s*(.+?)\s*=\s*(.+?)\s*$/);
-                    if (multiPartMatch) {
-                        processMultiPartTerm(multiPartMatch[1], multiPartMatch[2], 'LOCAL_TERM', true, 0, glossary.name, entry.trim(), true);
-                        return;
-                    }
-                    const singlePartMatch = normalizedEntry.match(/^\s*(.+?)\s*:\s*(.+?)\s*$/);
-                    if (singlePartMatch) {
-                        processSinglePartTerm(singlePartMatch[1], singlePartMatch[2], 'LOCAL_TERM', true, 0, glossary.name, entry.trim());
-                    }
-                });
-            }
-            if (glossary.insensitive) {
-                glossary.insensitive.replace(/[，,]/g, '|||').split('|||').forEach(entry => {
-                    const normalizedEntry = entry.replace(/[：＝]/g, (match) => ({ '：': ':', '＝': '=' }[match]));
-                    const multiPartMatch = normalizedEntry.match(/^\s*(.+?)\s*=\s*(.+?)\s*$/);
-                    if (multiPartMatch) {
-                        processMultiPartTerm(multiPartMatch[1], multiPartMatch[2], 'LOCAL_GENERAL_TERM', true, 0, glossary.name, entry.trim(), true);
-                        return;
-                    }
-                    const singlePartMatch = normalizedEntry.match(/^\s*(.+?)\s*:\s*(.+?)\s*$/);
-                    if (singlePartMatch) {
-                        processSinglePartTerm(singlePartMatch[1], singlePartMatch[2], 'LOCAL_GENERAL_TERM', true, 0, glossary.name, entry.trim());
-                    }
-                });
-            }
-        });
-        const sortedOnlineGlossaryUrls = Object.keys(allImportedGlossaries)
-            .filter(url => glossaryMetadata[url] && glossaryMetadata[url].enabled !== false)
-            .sort((a, b) => {
-                const timeA = new Date(glossaryMetadata[a]?.last_imported || 0).getTime();
-                const timeB = new Date(glossaryMetadata[b]?.last_imported || 0).getTime();
-                return timeB - timeA;
-            });
-        sortedOnlineGlossaryUrls.forEach((url, index) => {
-            const g = allImportedGlossaries[url];
-            if (!g) return;
-            const timestamp = index * 0.001;
-            const sourceName = `在线: ${decodeURIComponent(url.split('/').pop())}`;
-            (g.forbiddenTerms || []).forEach(term => processSinglePartTerm(term, null, 'ONLINE_FORBIDDEN', false, timestamp, sourceName, term));
-            Object.entries(g.terms || {}).forEach(([k, v]) => processSinglePartTerm(k, v, 'ONLINE_TERM', false, timestamp, sourceName, `${k}:${v}`));
-            Object.entries(g.generalTerms || {}).forEach(([k, v]) => processSinglePartTerm(k, v, 'ONLINE_GENERAL_TERM', false, timestamp, sourceName, `${k}:${v}`));
-            Object.entries(g.multiPartTerms || {}).forEach(([k, v]) => processMultiPartTerm(k, v, 'ONLINE_TERM', false, timestamp, sourceName, `${k}=${v}`, true));
-            Object.entries(g.multiPartGeneralTerms || {}).forEach(([k, v]) => processMultiPartTerm(k, v, 'ONLINE_GENERAL_TERM', false, timestamp, sourceName, `${k}=${v}`, true));
-            (g.regexTerms || []).forEach(({ pattern, replacement }) => {
-                if (!processedLocalKeys.has(pattern.toLowerCase())) {
-                    addRule({ termForms: pattern, translation: replacement, type: 'ONLINE_REGEX', isLocal: false, timestamp, source: sourceName, originalTerm: `${pattern}:${replacement}` });
-                }
-            });
-        });
-        rules.sort((a, b) => b.priority - a.priority);
-        const currentStateHash = generateGlossaryStateHash();
-        const serializedRules = rules.map(rule => {
-            if (rule.regex instanceof RegExp) {
-                return { ...rule, regex: { source: rule.regex.source, flags: rule.regex.flags } };
-            }
-            return rule;
-        });
-        GM_setValue(GLOSSARY_RULES_CACHE_KEY, {
-            hash: currentStateHash,
-            rules: serializedRules
-        });
-        return rules;
-    }
+	/**
+	 * 构建并排序所有术语表规则
+	 */
+	function buildPrioritizedGlossaryMaps() {
+		const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
+		const glossaryMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+		const localGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+		const onlineOrder = GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []);
+
+		const orderedGlossaries = [];
+
+		localGlossaries.forEach(g => {
+			if (g.enabled !== false) {
+				orderedGlossaries.push({ ...g, type: 'LOCAL', sourceName: g.name });
+			}
+		});
+
+		const onlineUrls = Object.keys(allImportedGlossaries);
+		const onlineUrlSet = new Set(onlineUrls);
+
+		onlineOrder.forEach(url => {
+			if (onlineUrlSet.has(url) && glossaryMetadata[url]?.enabled !== false) {
+				orderedGlossaries.push({ ...allImportedGlossaries[url], type: 'ONLINE', sourceName: decodeURIComponent(url.split('/').pop()) });
+				onlineUrlSet.delete(url);
+			}
+		});
+
+		onlineUrlSet.forEach(url => {
+			if (glossaryMetadata[url]?.enabled !== false) {
+				orderedGlossaries.push({ ...allImportedGlossaries[url], type: 'ONLINE', sourceName: decodeURIComponent(url.split('/').pop()) });
+			}
+		});
+
+		const validRules = [];
+		const processedInsensitiveTerms = new Set();
+		const processedSensitiveTerms = new Set();
+
+		const termSeparatorRegex = /[\s-－﹣—–]+/;
+		const translationSeparatorRegex = /[\s·・]+/;
+		const quoteRegex = /["“‘'”’]/;
+
+		const smartSplit = (str, regex) => {
+			if (!quoteRegex.test(str)) return str.split(regex);
+			const parts = [];
+			let current = '';
+			let inQuote = false;
+			let currentQuote = '';
+			for (let i = 0; i < str.length; i++) {
+				const char = str[i];
+				if (quoteRegex.test(char)) {
+					if (!inQuote) {
+						inQuote = true;
+						currentQuote = char;
+					} else if (char === currentQuote || (currentQuote === '“' && char === '”') || (currentQuote === '‘' && char === '’')) {
+						inQuote = false;
+					}
+					current += char;
+				} else if (!inQuote && regex.test(char)) {
+					if (current.trim()) parts.push(current.trim());
+					current = '';
+				} else {
+					current += char;
+				}
+			}
+			if (current.trim()) parts.push(current.trim());
+			return parts;
+		};
+
+		const sanitizeTranslation = (term, trans) => {
+			if (!trans || !quoteRegex.test(term)) return trans;
+			const match = trans.match(/^["“‘'](.*)["”’']$/);
+			if (match) return match[1].trim();
+			return trans;
+		};
+
+		const tryAddRule = (term, translation, glossaryIndex, sourceName, isSensitive, isForbidden, isRegex = false, isUnordered = false) => {
+			let normalizedTerm = term.trim();
+			if (!normalizedTerm) return;
+
+			const sanitizedTrans = sanitizeTranslation(normalizedTerm, translation);
+
+			let isLiteral = false;
+			const literalMatch = normalizedTerm.match(/^["“‘'](.*)["”’']$/);
+			if (literalMatch) {
+				isLiteral = true;
+				normalizedTerm = literalMatch[1].trim();
+			} else if (quoteRegex.test(normalizedTerm)) {
+				isLiteral = true;
+				normalizedTerm = normalizedTerm.replace(/["“‘'”’]/g, '').trim();
+			}
+
+			const lowerTerm = normalizedTerm.toLowerCase();
+
+			if (processedInsensitiveTerms.has(lowerTerm)) {
+				return;
+			}
+
+			if (isSensitive) {
+				if (processedSensitiveTerms.has(normalizedTerm)) {
+					return;
+				}
+				processedSensitiveTerms.add(normalizedTerm);
+			} else {
+				processedInsensitiveTerms.add(lowerTerm);
+			}
+
+			let ruleObject;
+			const lengthBonus = normalizedTerm.length;
+
+			if (isRegex) {
+				try {
+					const testRegex = new RegExp(normalizedTerm);
+					if (testRegex.test("")) {
+						Logger.warn('数据', `术语表 "${sourceName}" 中的正则 "${normalizedTerm}" 匹配空字符串，已跳过以防止死循环`);
+						return;
+					}
+				} catch (e) {
+					Logger.error('数据', `术语表 "${sourceName}" 中的正则 "${normalizedTerm}" 非法: ${e.message}`);
+					return;
+				}
+
+				ruleObject = {
+					type: 'regex', matchStrategy: 'regex',
+					regex: new RegExp(normalizedTerm, 'g'),
+					replacement: translation,
+					glossaryIndex, source: sourceName, originalTerm: `${normalizedTerm}:${translation}`,
+					sortLength: lengthBonus, isSensitive
+				};
+			} else if (isLiteral) {
+				const escaped = normalizedTerm.replace(/([.*+?^${}()|[\]\\])/g, '\\$&');
+				const prefix = /^[a-zA-Z0-9]/.test(normalizedTerm) ? '\\b' : '';
+				const suffix = /[a-zA-Z0-9]$/.test(normalizedTerm) ? '\\b' : '';
+				const pattern = prefix + escaped + suffix;
+				const flags = isSensitive ? 'g' : 'gi';
+				ruleObject = {
+					type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'regex',
+					regex: new RegExp(pattern, flags),
+					replacement: isForbidden ? normalizedTerm : sanitizedTrans,
+					glossaryIndex, source: sourceName, originalTerm: normalizedTerm,
+					sortLength: lengthBonus, isSensitive
+				};
+			} else {
+				const termParts = smartSplit(normalizedTerm, termSeparatorRegex);
+				if (termParts.length > 1) {
+					const termForms = termParts.map(part => {
+						const partLiteralMatch = part.match(/^["“‘'](.*)["”’']$/);
+						if (partLiteralMatch) {
+							return new Set([partLiteralMatch[1].trim()]);
+						}
+						return Array.from(generateWordForms(part, { preserveCase: isForbidden, forceLowerCase: !isSensitive }));
+					});
+					ruleObject = {
+						type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'dom',
+						parts: termForms,
+						replacement: isForbidden ? termForms.map(partForms => Array.from(partForms)[0]).join(' ') : sanitizedTrans,
+						glossaryIndex, isGeneral: !isSensitive, source: sourceName, originalTerm: normalizedTerm,
+						isUnordered: isUnordered,
+						sortLength: lengthBonus, isSensitive
+					};
+				} else {
+					if (quoteRegex.test(normalizedTerm)) {
+						const cleaned = normalizedTerm.replace(/["“‘'”’]/g, '').trim();
+						const escaped = cleaned.replace(/([.*+?^${}()|[\]\\])/g, '\\$&');
+						const prefix = /^[a-zA-Z0-9]/.test(cleaned) ? '\\b' : '';
+						const suffix = /[a-zA-Z0-9]$/.test(cleaned) ? '\\b' : '';
+						const flags = isSensitive ? 'g' : 'gi';
+						ruleObject = {
+							type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'regex',
+							regex: new RegExp(prefix + escaped + suffix, flags),
+							replacement: isForbidden ? cleaned : sanitizedTrans,
+							glossaryIndex, source: sourceName, originalTerm: normalizedTerm,
+							sortLength: lengthBonus, isSensitive
+						};
+					} else {
+						const forms = generateWordForms(normalizedTerm, { preserveCase: isForbidden, forceLowerCase: !isSensitive });
+						const pattern = createSmartRegexPattern(forms);
+						const flags = isSensitive ? 'g' : 'gi';
+						ruleObject = {
+							type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'regex',
+							regex: new RegExp(pattern, flags),
+							replacement: isForbidden ? Array.from(forms)[0] : sanitizedTrans,
+							glossaryIndex, source: sourceName, originalTerm: normalizedTerm,
+							sortLength: lengthBonus, isSensitive
+						};
+					}
+				}
+			}
+			validRules.push(ruleObject);
+		};
+
+		const processEqualsSyntax = (term, translation, glossaryIndex, sourceName, isSensitive) => {
+			tryAddRule(term, translation, glossaryIndex, sourceName, isSensitive, false, false, true);
+			if (term.match(/^["“‘'](.*)["”’']$/)) return;
+			const termParts = smartSplit(term, termSeparatorRegex);
+			const transParts = smartSplit(translation, translationSeparatorRegex);
+
+			if (termParts.length > 1 && termParts.length === transParts.length) {
+				for (let i = 0; i < termParts.length; i++) {
+					tryAddRule(termParts[i], transParts[i], glossaryIndex, sourceName, isSensitive, false, false, false);
+				}
+			}
+		};
+
+		orderedGlossaries.forEach((glossary, index) => {
+			const sourceName = glossary.sourceName;
+
+			if (glossary.forbidden) {
+				glossary.forbidden.split(/[,，]/).forEach(term => {
+					tryAddRule(term, null, index, sourceName, true, true);
+				});
+			}
+			(glossary.forbiddenTerms || []).forEach(term => {
+				tryAddRule(term, null, index, sourceName, true, true);
+			});
+
+			if (glossary.sensitive) {
+				glossary.sensitive.replace(/[，,]/g, '|||').split('|||').forEach(entry => {
+					const normalizedEntry = entry.replace(/[：＝]/g, (match) => ({ '：': ':', '＝': '=' }[match]));
+
+					const multiPartMatch = normalizedEntry.match(/^\s*(.+?)\s*=\s*(.+?)\s*$/);
+					if (multiPartMatch) {
+						processEqualsSyntax(multiPartMatch[1], multiPartMatch[2], index, sourceName, true);
+					} else {
+						const singlePartMatch = normalizedEntry.match(/^\s*(.+?)\s*:\s*(.+?)\s*$/);
+						if (singlePartMatch) {
+							tryAddRule(singlePartMatch[1], singlePartMatch[2], index, sourceName, true, false);
+						}
+					}
+				});
+			}
+			Object.entries(glossary.terms || {}).forEach(([k, v]) => tryAddRule(k, v, index, sourceName, true, false));
+			Object.entries(glossary.multiPartTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, index, sourceName, true));
+
+			if (glossary.insensitive) {
+				glossary.insensitive.replace(/[，,]/g, '|||').split('|||').forEach(entry => {
+					const normalizedEntry = entry.replace(/[：＝]/g, (match) => ({ '：': ':', '＝': '=' }[match]));
+
+					const multiPartMatch = normalizedEntry.match(/^\s*(.+?)\s*=\s*(.+?)\s*$/);
+					if (multiPartMatch) {
+						processEqualsSyntax(multiPartMatch[1], multiPartMatch[2], index, sourceName, false);
+					} else {
+						const singlePartMatch = normalizedEntry.match(/^\s*(.+?)\s*:\s*(.+?)\s*$/);
+						if (singlePartMatch) {
+							tryAddRule(singlePartMatch[1], singlePartMatch[2], index, sourceName, false, false);
+						}
+					}
+				});
+			}
+			Object.entries(glossary.generalTerms || {}).forEach(([k, v]) => tryAddRule(k, v, index, sourceName, false, false));
+			Object.entries(glossary.multiPartGeneralTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, index, sourceName, false));
+
+			(glossary.regexTerms || []).forEach(({ pattern, replacement }) => {
+				tryAddRule(pattern, replacement, index, sourceName, true, false, true);
+			});
+		});
+
+		validRules.sort((a, b) => {
+			const typeScore = { 'forbidden': 100, 'term': 60, 'regex': 50 };
+			const scoreA = typeScore[a.type] || 0;
+			const scoreB = typeScore[b.type] || 0;
+			if (scoreB !== scoreA) {
+				return scoreB - scoreA;
+			}
+			if (b.sortLength !== a.sortLength) {
+				return b.sortLength - a.sortLength;
+			}
+			if (a.glossaryIndex !== b.glossaryIndex) {
+				return a.glossaryIndex - b.glossaryIndex;
+			}
+			return (b.isSensitive ? 1 : 0) - (a.isSensitive ? 1 : 0);
+		});
+
+		const currentStateHash = generateGlossaryStateHash();
+		const serializedRules = validRules.map(rule => {
+			if (rule.regex instanceof RegExp) {
+				return { ...rule, regex: { source: rule.regex.source, flags: rule.regex.flags } };
+			}
+			return rule;
+		});
+
+		GM_setValue(GLOSSARY_RULES_CACHE_KEY, {
+			hash: currentStateHash,
+			rules: serializedRules
+		});
+
+		return validRules;
+	}
 
 	/**
 	 * 为单个英文单词生成其常见词形变体
@@ -14395,14 +12902,14 @@ Your task is to translate a numbered list of text segments provided by the user.
 	/**
 	 * 通用通知与日志函数
 	 */
-    function notifyAndLog(message, title = 'AO3 Translator', logType = 'info') {
-        GM_notification(message, title);
-        if (logType === 'error') {
-            Logger.error('系统', message);
-        } else {
-            Logger.info('系统', message);
-        }
-    }
+	function notifyAndLog(message, title = 'AO3 Translator', logType = 'info') {
+		GM_notification(message, title);
+		if (logType === 'error') {
+			Logger.error('系统', message);
+		} else {
+			Logger.info('系统', message);
+		}
+	}
 
 	/**
 	 * sleepms 函数：延时。
@@ -14442,29 +12949,29 @@ Your task is to translate a numbered list of text segments provided by the user.
 		return hash;
 	}
 
-    /**
-     * 根据术语表内容生成一个状态哈希
-     */
-    function generateGlossaryStateHash() {
-        const localGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-        const localState = JSON.stringify(localGlossaries);
-        const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-        const enabledOnlineGlossaries = Object.keys(metadata)
-            .filter(url => metadata[url] && metadata[url].enabled !== false)
-            .sort()
-            .map(url => `${url}@${metadata[url].version}`)
-            .join(';');
-        const combinedStateString = localState + '|||' + enabledOnlineGlossaries;
-        return simpleStringHash(combinedStateString);
-    }
+	/**
+	 * 根据术语表内容生成一个状态哈希
+	 */
+	function generateGlossaryStateHash() {
+		const localGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+		const localState = JSON.stringify(localGlossaries);
+		const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+		const enabledOnlineGlossaries = Object.keys(metadata)
+			.filter(url => metadata[url] && metadata[url].enabled !== false)
+			.sort()
+			.map(url => `${url}@${metadata[url].version}`)
+			.join(';');
+		const combinedStateString = localState + '|||' + enabledOnlineGlossaries;
+		return simpleStringHash(combinedStateString);
+	}
 
 	/**
 	 * 使术语表规则缓存失效
 	 */
-    function invalidateGlossaryCache() {
-        GM_deleteValue(GLOSSARY_RULES_CACHE_KEY);
-        Logger.info('数据', '术语表规则缓存已失效');
-    }
+	function invalidateGlossaryCache() {
+		GM_deleteValue(GLOSSARY_RULES_CACHE_KEY);
+		Logger.info('数据', '术语表规则缓存已失效');
+	}
 
 	/**
 	 * getNestedProperty 函数：获取嵌套属性的安全函数。
@@ -14485,7 +12992,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		}, obj);
 	}
 
-    /**
+	/**
 	 * 翻译文本处理函数
 	 */
 	const AdvancedTranslationCleaner = new (class {
@@ -14496,10 +13003,12 @@ Your task is to translate a numbered list of text segments provided by the user.
 			];
 			this.junkLineRegex = new RegExp(`^\\s*(\\d+\\.\\s*)?(${this.metaKeywords.join('|')})[:：\\s]`, 'i');
 			this.lineNumbersRegex = /^\d+\.\s*/;
-			this.aiGenericExplanationRegex = /\s*\uff08(?:原文|译文|说明|保留|注释|注)[:：\s][^\uff08\uff09]*?\uff09\s*/g;
-			this.fillerWordsRegex = /(?<![a-zA-Z])(emm|hmm|ah|uh|er|um|uhm)(?![a-zA-Z])/gi;
-			this.possessiveRegex = /([a-zA-Z\u4e00-\u9fa5]+(?:s|es|ies)?)\s*['’‘](s\b)?/g;
-			this.cjkCharsAndPunctuation = '\\u4e00-\\u9fa5\\u3000-\\u303f\\uff00-\\uffef';
+			this.aiGenericExplanationRegex = /\s*[\uff08(](?:原文|译文|说明|保留|注释|译注|注)[:：\s][^\uff08\uff09()]*?[\uff09)]\s*/g;
+			this.cjkIdeographs = '\\u4e00-\\u9fff\\u3400-\\u4dbf\\u2e80-\\u2eff\\uf900-\\ufaff';
+			this.cjkSymbols = '\\u3000-\\u303f\\uff00-\\uffef\\u30fb';
+			this.cjkTypoQuotes = '\\u2018-\\u201d\\u2026';
+			this.cjkBoundaryChars = this.cjkIdeographs + this.cjkTypoQuotes;
+			this.cjkAll = this.cjkBoundaryChars + this.cjkSymbols;
 		}
 
 		clean(text) {
@@ -14507,49 +13016,42 @@ Your task is to translate a numbered list of text segments provided by the user.
 				return '';
 			}
 
-			let cleanedText = text.split('\n').filter(line => !this.junkLineRegex.test(line)).join('\n');
-			cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
-			cleanedText = cleanedText.replace(this.aiGenericExplanationRegex, '');
-			cleanedText = cleanedText.replace(this.fillerWordsRegex, ' ');
-
-			cleanedText = cleanedText.replace(/&amp;/g, '&')
+			let cleanedText = text
+				.replace(/&nbsp;/g, ' ')
+				.replace(/&amp;/g, '&')
 				.replace(/&lt;/g, '<')
 				.replace(/&gt;/g, '>')
 				.replace(/&quot;/g, '"')
-				.replace(/&#39;/g, "'");
+				.replace(/&#39;/g, "'")
+				.replace(/\u00a0/g, ' ');
 
-			cleanedText = cleanedText.replace(this.possessiveRegex, (match, p1, p2) => {
-				if (p2 !== undefined || /[sS]$/.test(p1)) {
-					return p1 + '的';
-				}
-				return match;
-			});
-
-			cleanedText = cleanedText.replace(/的\s*的/g, '的');
+			cleanedText = cleanedText.split('\n').filter(line => !this.junkLineRegex.test(line)).join('\n');
+			cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
+			cleanedText = cleanedText.replace(this.aiGenericExplanationRegex, '');
 
 			cleanedText = cleanedText.replace(/(<(em|strong|span|b|i|u)[^>]*>)([\s\S]*?)(<\/\2>)/g, (_match, openTag, _tagName, content, closeTag) => {
 				return openTag + content.trim() + closeTag;
 			});
 
-			const cjkBlock = `([${this.cjkCharsAndPunctuation}]+)`;
-			const latinBlock = `([a-zA-Z0-9_.-]+)`;
-			const separator = `((?:</?(?:strong|em|code|b|i|u)>|\\s|["':,.\\[\\]@])*?)`;
+			const cjkBoundaryBlock = `[${this.cjkBoundaryChars}]`;
+			const latinChar = `[a-zA-Z0-9_.-]`;
+			const simpleFormattingTags = `</?(?:em|strong|span|b|i|u)>`;
+			const cjkContext = `(?:[${this.cjkAll}]|${simpleFormattingTags})`;
 
-			cleanedText = cleanedText.replace(new RegExp(`${cjkBlock}${separator}${latinBlock}`, 'g'), '$1 $2$3');
-			cleanedText = cleanedText.replace(new RegExp(`${latinBlock}${separator}${cjkBlock}`, 'g'), '$1$2 $3');
+			cleanedText = cleanedText.replace(new RegExp(`(${cjkBoundaryBlock})((?:${simpleFormattingTags})*)(${latinChar}+)`, 'g'), '$1$2 $3');
+			cleanedText = cleanedText.replace(new RegExp(`(${latinChar}+)((?:${simpleFormattingTags})*)(${cjkBoundaryBlock})`, 'g'), '$1 $2$3');
 
 			cleanedText = cleanedText.replace(/(“|‘|「|『)\s+/g, '$1');
 			cleanedText = cleanedText.replace(/\s+(”|’|」|』)/g, '$1');
 
-			let previousText;
-			const simpleFormattingTags = `</?(?:em|strong|span|b|i|u)>`;
-			const cjkContext = `(?:[${this.cjkCharsAndPunctuation}]|${simpleFormattingTags})`;
+			cleanedText = cleanedText.replace(/\s+/g, ' ');
 
+			const cjkSpaceRegex = new RegExp(`(${cjkContext})\\s+(?=${cjkContext})`, 'g');
+			let prevText;
 			do {
-				previousText = cleanedText;
-				cleanedText = cleanedText.replace(/\s+/g, ' ');
-				cleanedText = cleanedText.replace(new RegExp(`(${cjkContext})\\s+(${cjkContext})`, 'g'), '$1$2');
-			} while (previousText !== cleanedText);
+				prevText = cleanedText;
+				cleanedText = cleanedText.replace(cjkSpaceRegex, '$1');
+			} while (cleanedText !== prevText);
 
 			return cleanedText.trim();
 		}
@@ -14684,178 +13186,278 @@ Your task is to translate a numbered list of text segments provided by the user.
 		containerElement.setAttribute('data-reformatted', 'true');
 	}
 
-    /**
-     * 执行数据迁移，将旧版存储格式更新为新版
-     */
-    function runDataMigration() {
-        (function () {
-            const postReplaceData = GM_getValue('ao3_post_replace_map', null);
-            if (postReplaceData && typeof postReplaceData === 'object' && !postReplaceData.hasOwnProperty('singleRules')) {
-                const newRules = {
-                    singleRules: postReplaceData,
-                    multiPartRules: []
-                };
-                GM_setValue('ao3_post_replace_map', newRules);
-            }
-        })();
+	/**
+	 * 执行数据迁移，将旧版存储格式更新为新版
+	 */
+	function runDataMigration() {
+		(function () {
+			const postReplaceData = GM_getValue('ao3_post_replace_map', null);
+			if (postReplaceData && typeof postReplaceData === 'object' && !postReplaceData.hasOwnProperty('singleRules')) {
+				const newRules = {
+					singleRules: postReplaceData,
+					multiPartRules: []
+				};
+				GM_setValue('ao3_post_replace_map', newRules);
+			}
+		})();
 
-        (function () {
-            const newGlossaries = GM_getValue('ao3_custom_glossaries', null);
-            if (newGlossaries !== null) {
-                let changed = false;
-                newGlossaries.forEach(g => {
-                    if (typeof g.enabled === 'undefined') {
-                        g.enabled = true;
-                        changed = true;
-                    }
-                });
-                if (changed) {
-                    GM_setValue('ao3_custom_glossaries', newGlossaries);
-                }
-                return;
-            }
+		(function () {
+			const newGlossaries = GM_getValue('ao3_custom_glossaries', null);
+			if (newGlossaries !== null) {
+				let changed = false;
+				newGlossaries.forEach(g => {
+					if (typeof g.enabled === 'undefined') {
+						g.enabled = true;
+						changed = true;
+					}
+				});
+				if (changed) {
+					GM_setValue('ao3_custom_glossaries', newGlossaries);
+				}
+				return;
+			}
 
-            const oldGlossaryStr = GM_getValue('ao3_local_glossary_string', '');
-            const oldForbiddenStr = GM_getValue('ao3_local_forbidden_string', '');
-            const oldGlossaryObj = GM_getValue('ao3_local_glossary', null);
-            const veryOldGlossaryObj = GM_getValue('ao3_translation_glossary', null);
+			const oldGlossaryStr = GM_getValue('ao3_local_glossary_string', '');
+			const oldForbiddenStr = GM_getValue('ao3_local_forbidden_string', '');
+			const oldGlossaryObj = GM_getValue('ao3_local_glossary', null);
+			const veryOldGlossaryObj = GM_getValue('ao3_translation_glossary', null);
 
-            let finalSensitive = oldGlossaryStr;
+			let finalSensitive = oldGlossaryStr;
 
-            if (!finalSensitive) {
-                let glossaryToMigrate = null;
-                if (oldGlossaryObj && typeof oldGlossaryObj === 'object') {
-                    glossaryToMigrate = oldGlossaryObj;
-                } else if (veryOldGlossaryObj && typeof veryOldGlossaryObj === 'object') {
-                    glossaryToMigrate = veryOldGlossaryObj;
-                }
-                if (glossaryToMigrate) {
-                    finalSensitive = Object.entries(glossaryToMigrate).map(([k, v]) => `${k}:${v}`).join(', ');
-                }
-            }
+			if (!finalSensitive) {
+				let glossaryToMigrate = null;
+				if (oldGlossaryObj && typeof oldGlossaryObj === 'object') {
+					glossaryToMigrate = oldGlossaryObj;
+				} else if (veryOldGlossaryObj && typeof veryOldGlossaryObj === 'object') {
+					glossaryToMigrate = veryOldGlossaryObj;
+				}
+				if (glossaryToMigrate) {
+					finalSensitive = Object.entries(glossaryToMigrate).map(([k, v]) => `${k}:${v}`).join(', ');
+				}
+			}
 
-            let finalForbidden = oldForbiddenStr;
-            if (!finalForbidden) {
-                const oldForbiddenArray = GM_getValue('ao3_local_forbidden_terms', null);
-                if (oldForbiddenArray && Array.isArray(oldForbiddenArray)) {
-                    finalForbidden = oldForbiddenArray.join(', ');
-                }
-            }
+			let finalForbidden = oldForbiddenStr;
+			if (!finalForbidden) {
+				const oldForbiddenArray = GM_getValue('ao3_local_forbidden_terms', null);
+				if (oldForbiddenArray && Array.isArray(oldForbiddenArray)) {
+					finalForbidden = oldForbiddenArray.join(', ');
+				}
+			}
 
-            if (finalSensitive || finalForbidden) {
-                const defaultGlossary = {
-                    id: `local_${Date.now()}`,
-                    name: '默认术语表',
-                    sensitive: finalSensitive || '',
-                    insensitive: '',
-                    forbidden: finalForbidden || '',
-                    enabled: true
-                };
-                GM_setValue('ao3_custom_glossaries', [defaultGlossary]);
-            }
+			if (finalSensitive || finalForbidden) {
+				const defaultGlossary = {
+					id: `local_${Date.now()}`,
+					name: '默认',
+					sensitive: finalSensitive || '',
+					insensitive: '',
+					forbidden: finalForbidden || '',
+					enabled: true
+				};
+				GM_setValue('ao3_custom_glossaries', [defaultGlossary]);
+			}
 
-            GM_deleteValue('ao3_local_glossary_string');
-            GM_deleteValue('ao3_local_forbidden_string');
-            GM_deleteValue('ao3_local_glossary');
-            GM_deleteValue('ao3_translation_glossary');
-            GM_deleteValue('ao3_local_forbidden_terms');
-        })();
+			GM_deleteValue('ao3_local_glossary_string');
+			GM_deleteValue('ao3_local_forbidden_string');
+			GM_deleteValue('ao3_local_glossary');
+			GM_deleteValue('ao3_translation_glossary');
+			GM_deleteValue('ao3_local_forbidden_terms');
+		})();
 
-        (function () {
-            const servicesToMigrate = ['zhipu_ai', 'deepseek_ai', 'groq_ai', 'together_ai', 'cerebras_ai', 'modelscope_ai'];
-            servicesToMigrate.forEach(serviceName => {
-                const oldKey = `${serviceName.split('_')[0]}_api_key`;
-                const newStringKey = `${serviceName}_keys_string`;
-                const newArrayKey = `${serviceName}_keys_array`;
-                const oldKeyValue = GM_getValue(oldKey, null);
+		(function () {
+			const servicesToMigrate = ['zhipu_ai', 'deepseek_ai', 'groq_ai', 'together_ai', 'cerebras_ai', 'modelscope_ai'];
+			servicesToMigrate.forEach(serviceName => {
+				const oldKey = `${serviceName.split('_')[0]}_api_key`;
+				const newStringKey = `${serviceName}_keys_string`;
+				const newArrayKey = `${serviceName}_keys_array`;
+				const oldKeyValue = GM_getValue(oldKey, null);
 
-                if (oldKeyValue && GM_getValue(newStringKey, null) === null) {
-                    GM_setValue(newStringKey, oldKeyValue);
-                    const keysArray = oldKeyValue.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
-                    GM_setValue(newArrayKey, keysArray);
-                    GM_deleteValue(oldKey);
-                }
-            });
+				if (oldKeyValue && GM_getValue(newStringKey, null) === null) {
+					GM_setValue(newStringKey, oldKeyValue);
+					const keysArray = oldKeyValue.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+					GM_setValue(newArrayKey, keysArray);
+					GM_deleteValue(oldKey);
+				}
+			});
 
-            const oldChatglmKey = GM_getValue('chatglm_api_key', null);
-            if (oldChatglmKey && GM_getValue('zhipu_ai_keys_string', null) === null) {
-                GM_setValue('zhipu_ai_keys_string', oldChatglmKey);
-                GM_setValue('zhipu_ai_keys_array', [oldChatglmKey]);
-                GM_deleteValue('chatglm_api_key');
-            }
-        })();
+			const oldChatglmKey = GM_getValue('chatglm_api_key', null);
+			if (oldChatglmKey && GM_getValue('zhipu_ai_keys_string', null) === null) {
+				GM_setValue('zhipu_ai_keys_string', oldChatglmKey);
+				GM_setValue('zhipu_ai_keys_array', [oldChatglmKey]);
+				GM_deleteValue('chatglm_api_key');
+			}
+		})();
 
-        (function () {
-            const oldKeysArray = GM_getValue('google_ai_keys_array', null);
-            const newKeysStringExists = GM_getValue('google_ai_keys_string', null) !== null;
-            if (oldKeysArray && Array.isArray(oldKeysArray) && !newKeysStringExists) {
-                const newKeysString = oldKeysArray.join(', ');
-                GM_setValue('google_ai_keys_string', newKeysString);
-            }
-        })();
+		(function () {
+			const oldKeysArray = GM_getValue('google_ai_keys_array', null);
+			const newKeysStringExists = GM_getValue('google_ai_keys_string', null) !== null;
+			if (oldKeysArray && Array.isArray(oldKeysArray) && !newKeysStringExists) {
+				const newKeysString = oldKeysArray.join(', ');
+				GM_setValue('google_ai_keys_string', newKeysString);
+			}
+		})();
 
-        (function () {
-            const modelKey = 'google_ai_model';
-            const currentModel = GM_getValue(modelKey, null);
-            if (!currentModel) return;
+		(function () {
+			const modelKey = 'google_ai_model';
+			const currentModel = GM_getValue(modelKey, null);
+			if (!currentModel) return;
 
-            const migrationMap = {
-                'gemini-2.5-flash': 'gemini-flash-latest',
-                'gemini-2.5-flash-lite': 'gemini-flash-lite-latest'
-            };
+			const migrationMap = {
+				'gemini-2.5-flash': 'gemini-flash-latest',
+				'gemini-2.5-flash-lite': 'gemini-flash-lite-latest'
+			};
 
-            if (migrationMap[currentModel]) {
-                GM_setValue(modelKey, migrationMap[currentModel]);
-            }
-        })();
+			if (migrationMap[currentModel]) {
+				GM_setValue(modelKey, migrationMap[currentModel]);
+			}
+		})();
 
-        (function () {
-            const fromLang = GM_getValue('from_lang');
-            if (fromLang === 'auto' || fromLang === undefined || fromLang === null) {
-                GM_setValue('from_lang', 'auto');
-            }
-            if (GM_getValue('enable_ui_trans') === undefined) {
-                GM_setValue('enable_ui_trans', true);
-            }
-            if (GM_getValue('custom_ai_validation_thresholds') === undefined) {
-                const d = CONFIG.VALIDATION_THRESHOLDS.default;
-                GM_setValue('custom_ai_validation_thresholds', `${d.absolute_loss}, ${d.proportional_loss}, ${d.proportional_trigger_count}`);
-            }
-            const sysPrompt = GM_getValue('custom_ai_system_prompt');
-            if (sysPrompt && typeof sysPrompt === 'string' && sysPrompt.includes('${')) {
-                GM_setValue('custom_ai_system_prompt', sysPrompt.replace(/\$\{/g, '{'));
-            }
-        })();
-    }
+		(function () {
+			const sysPrompt = GM_getValue('custom_ai_system_prompt');
+			if (sysPrompt && typeof sysPrompt === 'string' && sysPrompt.includes('${')) {
+				GM_setValue('custom_ai_system_prompt', sysPrompt.replace(/\$\{/g, '{'));
+			}
+		})();
+	}
 
-    /**
+	/**
+	 * 初始化通用功能默认设置
+	 */
+	function initializeGeneralDefaults() {
+		const fromLang = GM_getValue('from_lang');
+		if (fromLang === 'auto' || fromLang === undefined || fromLang === null) {
+			GM_setValue('from_lang', 'auto');
+		}
+		if (GM_getValue('enable_ui_trans') === undefined) {
+			GM_setValue('enable_ui_trans', true);
+		}
+		if (GM_getValue('custom_ai_validation_thresholds') === undefined) {
+			const d = CONFIG.VALIDATION_THRESHOLDS.default;
+			GM_setValue('custom_ai_validation_thresholds', `${d.absolute_loss}, ${d.proportional_loss}, ${d.proportional_trigger_count}`);
+		}
+	}
+
+	/**
+	 * 初始化屏蔽功能默认设置
+	 */
+	function initializeBlockerDefaults() {
+		if (GM_getValue('ao3_blocker_enabled') === undefined) {
+			GM_setValue('ao3_blocker_enabled', true);
+		}
+		if (GM_getValue('ao3_blocker_show_reasons') === undefined) {
+			GM_setValue('ao3_blocker_show_reasons', true);
+		}
+		if (GM_getValue('ao3_blocker_current_view') === undefined) {
+			GM_setValue('ao3_blocker_current_view', 'tags');
+		}
+		if (GM_getValue('ao3_blocker_adv_scope_rel') === undefined) {
+			GM_setValue('ao3_blocker_adv_scope_rel', '1');
+		}
+		if (GM_getValue('ao3_blocker_adv_scope_char') === undefined) {
+			GM_setValue('ao3_blocker_adv_scope_char', '5');
+		}
+		const blockerKeys = [
+			'ao3_blocker_tags_black', 'ao3_blocker_tags_white',
+			'ao3_blocker_content_author', 'ao3_blocker_content_title',
+			'ao3_blocker_content_summary', 'ao3_blocker_content_id',
+			'ao3_blocker_stats_min_words', 'ao3_blocker_stats_max_words',
+			'ao3_blocker_stats_min_chapters', 'ao3_blocker_stats_max_chapters',
+			'ao3_blocker_stats_update', 'ao3_blocker_stats_crossover',
+			'ao3_blocker_adv_pairing', 'ao3_blocker_adv_char',
+			'ao3_blocker_adv_lang'
+		];
+		blockerKeys.forEach(key => {
+			if (GM_getValue(key) === undefined) {
+				GM_setValue(key, '');
+			}
+		});
+	}
+
+	/**
+	 * 辅助函数：向指定 Key 追加屏蔽规则
+	 */
+	function addBlockRule(key, value) {
+		if (!value) return;
+		const currentStr = GM_getValue(key, '');
+		const currentRules = currentStr.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+		if (!currentRules.includes(value)) {
+			currentRules.push(value);
+			GM_setValue(key, currentRules.join(', '));
+		}
+	}
+
+	/**
 	 * 脚本主入口
 	 */
-    function main() {
-        if (window.top !== window.self) {
-            return;
-        }
-        Logger.info('系统', `插件初始化完成，当前版本：v${GM_info.script.version}`);
+	function main() {
+		if (window.top !== window.self) {
+			return;
+		}
+		if (window.ao3_translator_running) {
+			Logger.warn('系统', '检测到脚本重复执行，已拦截');
+			return;
+		}
+		window.ao3_translator_running = true;
 
-        runDataMigration();
-        checkForGlossaryUpdates();
+		Logger.info('系统', `插件初始化完成，当前版本：v${GM_info.script.version}`);
 
-        const fabElements = createFabUI();
-        const panelElements = createSettingsPanelUI();
-        let rerenderMenu;
-        let fabLogic;
+		runDataMigration();
+		initializeGeneralDefaults();
+		initializeBlockerDefaults();
+		updateBlockerCache();
+		checkForGlossaryUpdates();
 
-        const handlePanelClose = () => {
-            if (fabLogic) {
-                fabLogic.retractFab();
-            }
-        };
+		const fabElements = createFabUI();
+		const panelElements = createSettingsPanelUI();
+		let rerenderMenu;
+		let fabLogic;
 
-        const panelLogic = initializeSettingsPanelLogic(panelElements, () => rerenderMenu(), handlePanelClose);
-        fabLogic = initializeFabInteraction(fabElements, panelLogic);
+		const handlePanelClose = () => {
+			if (fabLogic) {
+				fabLogic.retractFab();
+			}
+		};
 
-        const globalStyles = document.createElement('style');
-        globalStyles.textContent = `
+		const panelLogic = initializeSettingsPanelLogic(panelElements, () => rerenderMenu(), handlePanelClose);
+		fabLogic = initializeFabInteraction(fabElements, panelLogic);
+
+		document.addEventListener('click', (e) => {
+			if (!e.altKey || e.button !== 0) return;
+
+			const link = e.target.closest('a');
+			if (!link) return;
+
+			let added = false;
+			const href = link.getAttribute('href');
+			const text = link.textContent.trim();
+
+			if (href && /\/works\/\d+$/.test(href)) {
+				const idMatch = href.match(/\/works\/(\d+)$/);
+				if (idMatch) {
+					addBlockRule('ao3_blocker_content_id', idMatch[1]);
+					added = true;
+				}
+			}
+			else if (link.rel && link.rel.includes('author')) {
+				addBlockRule('ao3_blocker_content_author', text);
+				added = true;
+			}
+			else if (link.classList.contains('tag')) {
+				addBlockRule('ao3_blocker_tags_black', `'${text}'`);
+				added = true;
+			}
+
+			if (added) {
+				e.preventDefault();
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+				link.style.pointerEvents = 'none';
+				setTimeout(() => { link.style.pointerEvents = ''; }, 100);
+				refreshBlocker();
+			}
+		}, true);
+
+		const globalStyles = document.createElement('style');
+		globalStyles.textContent = `
             .autocomplete.dropdown p.notice {
                 margin-bottom: 0;
             }
@@ -14890,39 +13492,66 @@ Your task is to translate a numbered list of text segments provided by the user.
                 margin-bottom: 10px;
             }
             p.kudos {
-                line-height: 1.6;
+                line-height: 1.5;
+            }
+            .retry-translation-button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                vertical-align: middle;
+                margin-left: 8px;
+                cursor: pointer;
+                color: #1b95e0;
+                transition: transform 0.2s ease;
+                -webkit-tap-highlight-color: transparent;
+                user-select: none;
+            }
+            .retry-translation-button:hover {
+                transform: rotate(30deg);
+                color: #0d8bd9;
+            }
+            .retry-translation-button:active {
+                transform: rotate(90deg);
+                opacity: 0.7;
+            }
+            .retry-translation-button svg {
+                width: 18px;
+                height: 18px;
+                fill: currentColor;
             }
         `;
-        document.head.appendChild(globalStyles);
-        if (document.documentElement.lang !== CONFIG.LANG) {
-            document.documentElement.lang = CONFIG.LANG;
-        }
-        new MutationObserver(() => {
-            if (document.documentElement.lang !== CONFIG.LANG && document.documentElement.lang.toLowerCase().startsWith('en')) {
-                document.documentElement.lang = CONFIG.LANG;
-            }
-        }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
-        updatePageConfig('初始载入');
+		document.head.appendChild(globalStyles);
+		if (document.documentElement.lang !== CONFIG.LANG) {
+			document.documentElement.lang = CONFIG.LANG;
+		}
+		new MutationObserver(() => {
+			if (document.documentElement.lang !== CONFIG.LANG && document.documentElement.lang.toLowerCase().startsWith('en')) {
+				document.documentElement.lang = CONFIG.LANG;
+			}
+		}).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+		updatePageConfig('初始载入');
 
-        if (pageConfig.currentPageType) {
-            if (FeatureSet.enable_ui_trans) {
-                transTitle();
-                transBySelector();
-                traverseNode(document.body);
-                runHighPriorityFunctions();
-            }
-            fabLogic.toggleFabVisibility();
-            if (FeatureSet.enable_transDesc) {
-                setTimeout(transDesc, 1000);
-            }
-        }
-        rerenderMenu = setupMenuCommands(fabLogic, panelLogic);
-        rerenderMenu();
-        watchUpdate(fabLogic);
-    }
+		scanAllWorks();
 
-    /**
-	 * watchUpdate 函数：监视页面变化，根据变化的节点进行翻译。
+		if (pageConfig.currentPageType) {
+			if (FeatureSet.enable_ui_trans) {
+				transTitle();
+				transBySelector();
+				traverseNode(document.body);
+				runHighPriorityFunctions();
+			}
+			fabLogic.toggleFabVisibility();
+			if (FeatureSet.enable_transDesc) {
+				setTimeout(transDesc, 1000);
+			}
+		}
+		rerenderMenu = setupMenuCommands(fabLogic, panelLogic);
+		rerenderMenu();
+		watchUpdate(fabLogic);
+	}
+
+	/**
+	 * 监视页面变化
 	 */
 	function watchUpdate(fabLogic) {
 		let previousURL = window.location.href;
@@ -14938,6 +13567,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 					traverseNode(document.body);
 					runHighPriorityFunctions();
 				}
+				scanAllWorks();
 				fabLogic.toggleFabVisibility();
 				if (FeatureSet.enable_transDesc) {
 					transDesc();
@@ -14946,6 +13576,29 @@ Your task is to translate a numbered list of text segments provided by the user.
 		};
 
 		const processMutations = mutations => {
+			if (BlockerCache.enabled) {
+				const newBlurbs = [];
+				for (const mutation of mutations) {
+					if (mutation.type === 'childList') {
+						for (const node of mutation.addedNodes) {
+							if (node.nodeType === 1) {
+								if (node.classList.contains('blurb')) {
+									newBlurbs.push(node);
+								} else if (node.hasChildNodes()) {
+									const blurbs = node.querySelectorAll('li.blurb:not(.ao3-blocker-processed)');
+									for (const blurb of blurbs) {
+										newBlurbs.push(blurb);
+									}
+								}
+							}
+						}
+					}
+				}
+				if (newBlurbs.length > 0) {
+					WorkProcessor.add(newBlurbs);
+				}
+			}
+
 			const nodesToProcess = mutations.flatMap(({ target, addedNodes, type }) => {
 				if (type === 'childList' && addedNodes.length > 0) {
 					return Array.from(addedNodes);
@@ -14984,7 +13637,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		observer.observe(document.documentElement, { ...CONFIG.OBSERVER_CONFIG, subtree: true });
 	}
 
-    /**
+	/**
 	 * 辅助函数：集中调用所有高优先级专用函数
 	 * @param {HTMLElement} [rootElement=document] - 扫描范围
 	 */
@@ -15254,202 +13907,207 @@ Your task is to translate a numbered list of text segments provided by the user.
 	/**
 	 * 页面类型检测
 	 */
-    function detectPageType() {
-        if (document.title.includes("You're clicking too fast!")) {
-            const h2 = document.querySelector('main h2');
-            if (h2 && h2.textContent.includes('Too many page requests too quickly')) {
-                return 'error_too_many_requests';
-            }
-        }
+	function detectPageType() {
+		if (document.title.includes("You're clicking too fast!")) {
+			const h2 = document.querySelector('main h2');
+			if (h2 && h2.textContent.includes('Too many page requests too quickly')) {
+				return 'error_too_many_requests';
+			}
+		}
 
-        if (document.querySelector('ul.media.fandom.index.group')) return 'media_index';
-        if (document.querySelector('div#main.owned_tag_sets-show')) return 'owned_tag_sets_show';
-        const { pathname } = window.location;
-        if (pathname.startsWith('/first_login_help')) {
-            return false;
-        }
-        if (pathname === '/abuse_reports/new' || pathname === '/support') return 'report_and_support_page';
-        if (pathname === '/known_issues') return 'known_issues_page';
-        if (pathname === '/tos') return 'tos_page';
-        if (pathname === '/content') return 'content_policy_page';
-        if (pathname === '/privacy') return 'privacy_policy_page';
-        if (pathname === '/dmca') return 'dmca_policy_page';
-        if (pathname === '/tos_faq') return 'tos_faq_page';
-        if (pathname === '/abuse_reports/new') return 'abuse_reports_new';
-        if (pathname === '/support') return 'support_page';
-        if (pathname === '/diversity') return 'diversity_statement';
-        if (pathname === '/site_map') return 'site_map';
-        if (pathname.startsWith('/wrangling_guidelines')) return 'wrangling_guidelines_page';
-        if (pathname === '/donate') return 'donate_page';
-        if (pathname.startsWith('/faq')) return 'faq_page';
-        if (pathname === '/help/skins-basics.html') return 'help_skins_basics';
-        if (pathname === '/help/tagset-about.html') return 'help_tagset_about';
-        if (pathname === '/tag_sets') return 'tag_sets_index';
-        if (pathname === '/external_works/new') return 'external_works_new';
+		if (document.querySelector('ul.media.fandom.index.group')) return 'media_index';
+		if (document.querySelector('div#main.owned_tag_sets-show')) return 'owned_tag_sets_show';
+		const { pathname } = window.location;
+		if (pathname.startsWith('/first_login_help')) {
+			return false;
+		}
+		if (pathname === '/abuse_reports/new' || pathname === '/support') return 'report_and_support_page';
+		if (pathname === '/known_issues') return 'known_issues_page';
+		if (pathname === '/tos') return 'tos_page';
+		if (pathname === '/content') return 'content_policy_page';
+		if (pathname === '/privacy') return 'privacy_policy_page';
+		if (pathname === '/dmca') return 'dmca_policy_page';
+		if (pathname === '/tos_faq') return 'tos_faq_page';
+		if (pathname === '/abuse_reports/new') return 'abuse_reports_new';
+		if (pathname === '/support') return 'support_page';
+		if (pathname === '/diversity') return 'diversity_statement';
+		if (pathname === '/site_map') return 'site_map';
+		if (pathname.startsWith('/wrangling_guidelines')) return 'wrangling_guidelines_page';
+		if (pathname === '/donate') return 'donate_page';
+		if (pathname.startsWith('/faq')) return 'faq_page';
+		if (pathname === '/help/skins-basics.html') return 'help_skins_basics';
+		if (pathname === '/help/tagset-about.html') return 'help_tagset_about';
+		if (pathname === '/tag_sets') return 'tag_sets_index';
+		if (pathname === '/external_works/new') return 'external_works_new';
 
-        if (pathname === '/invite_requests' || pathname === '/invite_requests/status') return 'invite_requests_index';
+		if (pathname === '/invite_requests' || pathname === '/invite_requests/status') return 'invite_requests_index';
 
-        const isSearchResultsPage = document.querySelector('h2.heading')?.textContent.trim() === 'Search Results';
-        if (pathname === '/works/search') {
-            return isSearchResultsPage ? 'works_search_results' : 'works_search';
-        }
-        if (pathname === '/people/search') {
-            return isSearchResultsPage ? 'people_search_results' : 'people_search';
-        }
-        if (pathname === '/bookmarks/search') {
-            return isSearchResultsPage ? 'bookmarks_search_results' : 'bookmarks_search';
-        }
-        if (pathname === '/tags/search') {
-            return isSearchResultsPage ? 'tags_search_results' : 'tags_search';
-        }
-        if (pathname === '/about') return 'about_page';
+		const isSearchResultsPage = document.querySelector('h2.heading')?.textContent.trim() === 'Search Results';
+		if (pathname === '/works/search') {
+			return isSearchResultsPage ? 'works_search_results' : 'works_search';
+		}
+		if (pathname === '/people/search') {
+			return isSearchResultsPage ? 'people_search_results' : 'people_search';
+		}
+		if (pathname === '/bookmarks/search') {
+			return isSearchResultsPage ? 'bookmarks_search_results' : 'bookmarks_search';
+		}
+		if (pathname === '/tags/search') {
+			return isSearchResultsPage ? 'tags_search_results' : 'tags_search';
+		}
+		if (pathname === '/about') return 'about_page';
 
-        const pathSegments = pathname.substring(1).split('/').filter(Boolean);
-        if (pathname === '/users/login') return 'session_login';
-        if (pathname === '/users/logout') return 'session_logout';
-        if (pathname === '/') {
-            return document.body.classList.contains('logged-in') ? 'dashboard' : 'front_page';
-        }
-        if (pathSegments.length > 0) {
-            const p1 = pathSegments[0];
-            const p2 = pathSegments[1];
-            const p3 = pathSegments[2];
-            const p4 = pathSegments[3];
-            const p5 = pathSegments[4];
-            switch (p1) {
-                case 'admin_posts':
-                    if (p2 && /^\d+$/.test(p2)) {
-                        return 'admin_posts_show';
-                    }
-                    return 'admin_posts_index';
+		const pathSegments = pathname.substring(1).split('/').filter(Boolean);
+		if (pathname === '/users/login') return 'session_login';
+		if (pathname === '/users/logout') return 'session_logout';
+		if (pathname === '/') {
+			return document.body.classList.contains('logged-in') ? 'dashboard' : 'front_page';
+		}
+		if (pathSegments.length > 0) {
+			const p1 = pathSegments[0];
+			const p2 = pathSegments[1];
+			const p3 = pathSegments[2];
+			const p4 = pathSegments[3];
+			const p5 = pathSegments[4];
+			switch (p1) {
+				case 'admin_posts':
+					if (p2 && /^\d+$/.test(p2)) {
+						return 'admin_posts_show';
+					}
+					return 'admin_posts_index';
 
-                case 'comments':
-                    if (document.querySelector('a[href="/admin_posts"]')) {
-                        return 'admin_posts_show';
-                    }
-                    break;
+				case 'comments':
+					if (document.querySelector('a[href="/admin_posts"]')) {
+						return 'admin_posts_show';
+					}
+					break;
 
-                case 'media':
-                    return 'media_index';
-                case 'users':
-                    if (p2 && p3 === 'pseuds') {
-                        if (p4 === 'new') return 'users_settings';
-                        if (p4) {
-                            if (p5 === 'works') return 'users_works_index';
-                            if (p5 === 'bookmarks') return 'users_bookmarks_index';
-                            if (p5 === 'series') return 'users_series_index';
-                            if (p5 === 'gifts') return 'users_gifts_index';
-                            if (p5 === 'edit') return 'users_settings';
-                            if (p5 === 'orphan') return 'orphans_new';
-                            if (!p5) return 'profile';
-                        }
-                        if (!p4) return 'users_settings';
-                    }
-                    if (p2 && p3 === 'pseuds' && p5 === 'works') return 'users_works_index';
-                    if (p2 && (p3 === 'blocked' || p3 === 'muted') && p4 === 'users') return 'users_block_mute_list';
-                    if (p2 && p3 === 'dashboard') return 'dashboard';
-                    if (p2 && p3 === 'profile' && p4 === 'edit') return 'users_settings';
-                    if (p2 && p3 === 'profile') return 'profile';
-                    if (p2 && p3 === 'stats') return 'users_stats';
-                    if (p2 && p3 === 'readings') return 'users_history';
-                    if (p2 && p3 === 'preferences') return 'preferences';
-                    if (p2 && p3 === 'edit') return 'users_settings';
-                    if (p2 && p3 === 'change_username') return 'users_settings';
-                    if (p2 && p3 === 'change_password') return 'users_settings';
-                    if (p2 && p3 === 'change_email') return 'users_settings';
-                    if (p2 && p3 === 'works' && p4 === 'drafts') return 'users_drafts_index';
-                    if (p2 && p3 === 'series') return 'users_series_index';
-                    if (p2 && p3 === 'works' && p4 === 'show_multiple') return 'works_show_multiple';
-                    if (p2 && p3 === 'works' && p4 === 'edit_multiple') return 'works_edit_multiple';
-                    if (p2 && p3 === 'works') return 'users_works_index';
-                    if (p2 && p3 === 'bookmarks') return 'users_bookmarks_index';
-                    if (p2 && p3 === 'collections') return 'users_collections_index';
-                    if (p2 && p3 === 'subscriptions') return 'users_subscriptions_index';
-                    if (p2 && p3 === 'related_works') return 'users_related_works_index';
-                    if (p2 && p3 === 'gifts') return 'users_gifts_index';
-                    if (p2 && p3 === 'history') return 'users_history';
-                    if (p2 && p3 === 'inbox') return 'users_inbox';
-                    if (p2 && p3 === 'signups') return 'users_signups';
-                    if (p2 && p3 === 'assignments') return 'users_assignments';
-                    if (p2 && p3 === 'claims') return 'users_claims';
-                    if (p2 && p3 === 'invitations') return 'users_invitations';
-                    if (p2 && !p3) return 'profile';
-                    break;
-                case 'works':
-                    if (document.querySelector('div#main.works-update')) return 'works_edit';
-                    if (p2 === 'new') {
-                        const searchParams = new URLSearchParams(window.location.search);
-                        if (searchParams.get('import') === 'true') {
-                            return 'works_import';
-                        }
-                        return 'works_new';
-                    }
-                    if (p2 === 'search') return isSearchResultsPage ? 'works_search_results' : 'works_search';
-                    if (p2 && /^\d+$/.test(p2)) {
-                        if (p3 === 'chapters' && p4 === 'new') return 'chapters_new';
-                        if (p3 === 'chapters' && p4 && /^\d+$/.test(p4) && p5 === 'edit') return 'chapters_edit';
-                        if (p3 === 'edit_tags') return 'works_edit_tags';
-                        if (p3 === 'edit') return 'works_edit';
-                        if (!p3 || p3 === 'navigate' || (p3 === 'chapters' && p4)) return 'works_chapters_show';
-                    }
-                    if (!p2) return 'works_index';
-                    break;
-                case 'chapters':
-                    if (p2 && /^\d+$/.test(p2)) {
-                        return 'works_chapters_show';
-                    }
-                    break;
-                case 'series':
-                    if (p2 && /^\d+$/.test(p2)) return 'series_show';
-                    if (!p2) return 'series_index';
-                    break;
-                case 'orphans':
-                    return 'orphans_new';
-                case 'collections':
-                    if (p2 === 'new') {
-                        return 'collections_new';
-                    }
-                    return 'collections_dashboard_common';
-                case 'tags':
-                    if (p2) {
-                        if (pathSegments.slice(-1)[0] === 'works') return 'tags_works_index';
-                        return 'tags_show';
-                    }
-                    if (!p2) return 'tags_index';
-                    break;
-                case 'tag_sets':
-                    if (p2 === 'new') {
-                        return 'tag_sets_new';
-                    }
-                    if (p3 === 'nominations' && p4 === 'new') {
-                        return 'tag_sets_nominations_new';
-                    }
-                    break;
-                case 'skins':
-                    if (p2 === 'new') return 'skins';
-                    if (p2 && /^\d+$/.test(p2) && p3 === 'edit') return 'skins_edit';
-                    if (p2 && /^\d+$/.test(p2)) return 'skins_show';
-                    return 'skins';
-                case 'bookmarks':
-                    if (p2 && /^\d+$/.test(p2) && p3 === 'new') return 'bookmarks_new_for_work';
-                    if (p2 && /^\d+$/.test(p2)) return 'bookmarks_show';
-                    if (!p2) return 'bookmarks_index';
-                    break;
-            }
-        }
-        if (document.body.classList.contains('dashboard')) return 'dashboard';
-        if (document.querySelector('body.works.index')) return 'works_index';
-        if (document.querySelector('body.works.show, body.chapters.show')) return 'works_chapters_show';
-        const pathMatch = pathname.match(I18N.conf.rePagePath);
-        if (pathMatch && pathMatch[1]) {
-            let derivedType = pathMatch[1];
-            if (pathMatch[2]) derivedType += `_${pathMatch[2]}`;
-            if (I18N[CONFIG.LANG]?.[derivedType]) {
-                return derivedType;
-            }
-        }
-        return 'common';
-    }
+				case 'media':
+					return 'media_index';
+				case 'users':
+					if (p2 && p3 === 'pseuds') {
+						if (p4 === 'new') return 'users_settings';
+						if (p4) {
+							if (p5 === 'works') return 'users_works_index';
+							if (p5 === 'bookmarks') return 'users_bookmarks_index';
+							if (p5 === 'series') return 'users_series_index';
+							if (p5 === 'gifts') return 'users_gifts_index';
+							if (p5 === 'edit') return 'users_settings';
+							if (p5 === 'orphan') return 'orphans_new';
+							if (!p5) return 'profile';
+						}
+						if (!p4) return 'users_settings';
+					}
+					if (p2 && p3 === 'pseuds' && p5 === 'works') return 'users_works_index';
+					if (p2 && (p3 === 'blocked' || p3 === 'muted') && p4 === 'users') return 'users_block_mute_list';
+					if (p2 && p3 === 'dashboard') return 'dashboard';
+					if (p2 && p3 === 'profile' && p4 === 'edit') return 'users_settings';
+					if (p2 && p3 === 'profile') return 'profile';
+					if (p2 && p3 === 'stats') return 'users_stats';
+					if (p2 && p3 === 'readings') return 'users_history';
+					if (p2 && p3 === 'preferences') return 'preferences';
+					if (p2 && p3 === 'edit') return 'users_settings';
+					if (p2 && p3 === 'change_username') return 'users_settings';
+					if (p2 && p3 === 'change_password') return 'users_settings';
+					if (p2 && p3 === 'change_email') return 'users_settings';
+					if (p2 && p3 === 'works' && p4 === 'drafts') return 'users_drafts_index';
+					if (p2 && p3 === 'series') return 'users_series_index';
+					if (p2 && p3 === 'works' && p4 === 'show_multiple') return 'works_show_multiple';
+					if (p2 && p3 === 'works' && p4 === 'edit_multiple') return 'works_edit_multiple';
+					if (p2 && p3 === 'works') return 'users_works_index';
+
+					/**************************************************************************
+					 * Region 6: 术语表系统、工具函数与核心逻辑
+					 **************************************************************************/
+
+					if (p2 && p3 === 'bookmarks') return 'users_bookmarks_index';
+					if (p2 && p3 === 'collections') return 'users_collections_index';
+					if (p2 && p3 === 'subscriptions') return 'users_subscriptions_index';
+					if (p2 && p3 === 'related_works') return 'users_related_works_index';
+					if (p2 && p3 === 'gifts') return 'users_gifts_index';
+					if (p2 && p3 === 'history') return 'users_history';
+					if (p2 && p3 === 'inbox') return 'users_inbox';
+					if (p2 && p3 === 'signups') return 'users_signups';
+					if (p2 && p3 === 'assignments') return 'users_assignments';
+					if (p2 && p3 === 'claims') return 'users_claims';
+					if (p2 && p3 === 'invitations') return 'users_invitations';
+					if (p2 && !p3) return 'profile';
+					break;
+				case 'works':
+					if (document.querySelector('div#main.works-update')) return 'works_edit';
+					if (p2 === 'new') {
+						const searchParams = new URLSearchParams(window.location.search);
+						if (searchParams.get('import') === 'true') {
+							return 'works_import';
+						}
+						return 'works_new';
+					}
+					if (p2 === 'search') return isSearchResultsPage ? 'works_search_results' : 'works_search';
+					if (p2 && /^\d+$/.test(p2)) {
+						if (p3 === 'chapters' && p4 === 'new') return 'chapters_new';
+						if (p3 === 'chapters' && p4 && /^\d+$/.test(p4) && p5 === 'edit') return 'chapters_edit';
+						if (p3 === 'edit_tags') return 'works_edit_tags';
+						if (p3 === 'edit') return 'works_edit';
+						if (!p3 || p3 === 'navigate' || (p3 === 'chapters' && p4)) return 'works_chapters_show';
+					}
+					if (!p2) return 'works_index';
+					break;
+				case 'chapters':
+					if (p2 && /^\d+$/.test(p2)) {
+						return 'works_chapters_show';
+					}
+					break;
+				case 'series':
+					if (p2 && /^\d+$/.test(p2)) return 'series_show';
+					if (!p2) return 'series_index';
+					break;
+				case 'orphans':
+					return 'orphans_new';
+				case 'collections':
+					if (p2 === 'new') {
+						return 'collections_new';
+					}
+					return 'collections_dashboard_common';
+				case 'tags':
+					if (p2) {
+						if (pathSegments.slice(-1)[0] === 'works') return 'tags_works_index';
+						return 'tags_show';
+					}
+					if (!p2) return 'tags_index';
+					break;
+				case 'tag_sets':
+					if (p2 === 'new') {
+						return 'tag_sets_new';
+					}
+					if (p3 === 'nominations' && p4 === 'new') {
+						return 'tag_sets_nominations_new';
+					}
+					break;
+				case 'skins':
+					if (p2 === 'new') return 'skins';
+					if (p2 && /^\d+$/.test(p2) && p3 === 'edit') return 'skins_edit';
+					if (p2 && /^\d+$/.test(p2)) return 'skins_show';
+					return 'skins';
+				case 'bookmarks':
+					if (p2 && /^\d+$/.test(p2) && p3 === 'new') return 'bookmarks_new_for_work';
+					if (p2 && /^\d+$/.test(p2)) return 'bookmarks_show';
+					if (!p2) return 'bookmarks_index';
+					break;
+			}
+		}
+		if (document.body.classList.contains('dashboard')) return 'dashboard';
+		if (document.querySelector('body.works.index')) return 'works_index';
+		if (document.querySelector('body.works.show, body.chapters.show')) return 'works_chapters_show';
+		const pathMatch = pathname.match(I18N.conf.rePagePath);
+		if (pathMatch && pathMatch[1]) {
+			let derivedType = pathMatch[1];
+			if (pathMatch[2]) derivedType += `_${pathMatch[2]}`;
+			if (I18N[CONFIG.LANG]?.[derivedType]) {
+				return derivedType;
+			}
+		}
+		return 'common';
+	}
 
 	/**
 	 * traverseNode 函数：遍历指定的节点，并对节点进行翻译。
@@ -15668,7 +14326,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		});
 	}
 
-    /**
+	/**
 	 * 主翻译入口函数
 	 */
 	function transDesc() {
@@ -15733,7 +14391,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 			]
 		};
 
-        const applyRules = (rules) => {
+		const applyRules = (rules) => {
 			rules.forEach(rule => {
 				if (rule.selector === 'ul.tags.commas' && (pageConfig.currentPageType === 'admin_posts_show' || pageConfig.currentPageType === 'admin_posts_index')) {
 					return;
@@ -15770,7 +14428,7 @@ Your task is to translate a numbered list of text segments provided by the user.
 		}
 	}
 
-    /**
+	/**
 	 * 为指定元素添加翻译按钮
 	 */
 	function addTranslationButton(element, originalButtonText, isAbove, isLazyLoad, isTags, linkedTagsNode = null) {
@@ -15876,6 +14534,3378 @@ Your task is to translate a numbered list of text segments provided by the user.
 		});
 	}
 
+	/**
+	 * 屏蔽规则符号标准化
+	 */
+	function normalizeBlockerInput(str) {
+		if (!str) return '';
+		return str.replace(/[‘’“”"｛｝]/g, "'")
+			.replace(/[＋]/g, "+")
+			.replace(/[－—]/g, "-")
+			.replace(/[，]/g, ",");
+	}
+
+	/**
+	 * 屏蔽规则模式匹配
+	 */
+	function matchBlockerPattern(text, pattern) {
+		if (!text || !pattern) return false;
+		const normalizedText = text.toLowerCase().trim();
+		const normalizedPattern = pattern.toLowerCase().trim();
+		if (normalizedPattern.includes('*')) {
+			const regexStr = '^' + normalizedPattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$';
+			return new RegExp(regexStr).test(normalizedText);
+		}
+		return normalizedText === normalizedPattern;
+	}
+
+	/**
+	 * 解析屏蔽规则字符串
+	 */
+	function parseBlockerRules(input) {
+		const normalized = normalizeBlockerInput(input);
+		const rules = [];
+		const entries = normalized.split(',').map(e => e.trim()).filter(Boolean);
+		entries.forEach(entry => {
+			const match = entry.match(/'([^']+)'(?:\s*([\+\-])\s*'([^']+)')?/);
+			if (match) {
+				rules.push({
+					base: match[1],
+					operator: match[2] || null,
+					condition: match[3] || null
+				});
+			} else {
+				rules.push({ base: entry.replace(/'/g, ''), operator: null, condition: null });
+			}
+		});
+		return rules;
+	}
+
+	/**
+	 * 解析章节状态字符串
+	 */
+	function parseChaptersStatus(text) {
+		if (!text) return { current: 0, total: 0 };
+		const match = text.match(/(\d+)\s*\/\s*(\d+|\?)/);
+		if (!match) return { current: 0, total: 0 };
+		return {
+			current: parseInt(match[1], 10),
+			total: match[2] === '?' ? null : parseInt(match[2], 10)
+		};
+	}
+
+	/**
+	 * 计算距离上次更新的月数
+	 */
+	function getMonthsSinceUpdate(dateStr) {
+		if (!dateStr) return 0;
+		const cleanStr = dateStr.trim();
+		let updateDate = new Date(cleanStr);
+		if (isNaN(updateDate.getTime())) {
+			const normalized = cleanStr.replace(/年|月/g, '-').replace(/日/g, '');
+			updateDate = new Date(normalized);
+		}
+		if (isNaN(updateDate.getTime())) return 0;
+		const now = new Date();
+		return (now.getFullYear() - updateDate.getFullYear()) * 12 + (now.getMonth() - updateDate.getMonth());
+	}
+
+	/**
+	 * 提取并分类标签
+	 */
+	function getCategorizedTags(blurb) {
+		const result = {
+			fandoms: [],
+			relationships: [],
+			characters: [],
+			freeforms: [],
+			warnings: [],
+			all: []
+		};
+		blurb.querySelectorAll('a.tag').forEach(tag => {
+			const text = tag.textContent.trim();
+			result.all.push(text);
+			const li = tag.closest('li');
+			if (li) {
+				if (li.classList.contains('fandoms')) result.fandoms.push(text);
+				else if (li.classList.contains('relationships')) result.relationships.push(text);
+				else if (li.classList.contains('characters')) result.characters.push(text);
+				else if (li.classList.contains('freeforms')) result.freeforms.push(text);
+				else if (li.classList.contains('warnings')) result.warnings.push(text);
+			} else if (tag.closest('h5.fandoms')) {
+				result.fandoms.push(text);
+			}
+		});
+		return result;
+	}
+
+	/**
+	 * 提取作品卡片中的元数据
+	 */
+	function extractWorkData(blurb) {
+		const titleLink = blurb.querySelector('.header .heading a:first-child');
+		const authors = Array.from(blurb.querySelectorAll('a[rel="author"]')).map(a => a.textContent.trim());
+		const summaryNode = blurb.querySelector('blockquote.summary');
+		const summary = summaryNode ? summaryNode.textContent.trim() : '';
+		const wordsNode = blurb.querySelector('dd.words');
+		const wordCount = wordsNode ? parseInt(wordsNode.textContent.replace(/,/g, ''), 10) : 0;
+		const chaptersNode = blurb.querySelector('dd.chapters');
+		const chapterInfo = parseChaptersStatus(chaptersNode ? chaptersNode.textContent : '');
+		const dateNode = blurb.querySelector('p.datetime');
+		const monthsSinceUpdate = getMonthsSinceUpdate(dateNode ? dateNode.textContent : '');
+		const languageNode = blurb.querySelector('dd.language');
+		const language = languageNode ? languageNode.textContent.trim() : '';
+		const workId = titleLink ? titleLink.href.match(/\/works\/(\d+)/)?.[1] : null;
+		const categorizedTags = getCategorizedTags(blurb);
+		const explicitFandoms = blurb.querySelectorAll('h5.fandoms a.tag');
+		const fandomCount = explicitFandoms.length;
+
+		return {
+			title: titleLink ? titleLink.textContent.trim() : '',
+			authors,
+			summary,
+			wordCount,
+			chapterInfo,
+			monthsSinceUpdate,
+			language,
+			workId,
+			tags: categorizedTags.all,
+			categorizedTags,
+			fandomCount
+		};
+	}
+
+	/**
+	 * 字符串标准化缓存
+	 */
+	const NormalizationCache = new Map();
+
+	/**
+	 * 标签判定结果缓存
+	 */
+	const TagCheckCache = new Map();
+
+	/**
+	 * 全局屏蔽规则缓存对象
+	 */
+	const BlockerCache = {
+		enabled: false,
+		showReasons: true,
+		rules: {
+			tags: {
+				black: { exact: new Set(), fuzzy: [] },
+				white: { exact: new Set(), fuzzy: [] }
+			},
+			content: {
+				author: new Set(),
+				title: [],
+				summary: [],
+				id: new Set()
+			},
+			stats: {
+				minWords: NaN,
+				maxWords: NaN,
+				minChapters: NaN,
+				maxChapters: NaN,
+				update: NaN,
+				crossover: NaN
+			},
+			adv: {
+				pairing: [],
+				char: [],
+				lang: []
+			}
+		}
+	};
+
+	/**
+	 * 辅助函数：编译并分类屏蔽规则
+	 */
+	function compileBlockerRule(input, targetExact, targetFuzzy) {
+		if (!input) return;
+		const rules = parseBlockerRules(input);
+		for (const rule of rules) {
+			if (rule.base.includes('*') || rule.operator) {
+				targetFuzzy.push(rule);
+			} else {
+				targetExact.add(rule.base.toLowerCase());
+			}
+		}
+	}
+
+	/**
+	 * 更新屏蔽规则缓存
+	 */
+	function updateBlockerCache() {
+		NormalizationCache.clear();
+		TagCheckCache.clear();
+
+		BlockerCache.enabled = GM_getValue('ao3_blocker_enabled', true);
+		BlockerCache.showReasons = GM_getValue('ao3_blocker_show_reasons', true);
+
+		const rules = BlockerCache.rules;
+
+		rules.tags.black.exact.clear();
+		rules.tags.black.fuzzy.length = 0;
+		rules.tags.white.exact.clear();
+		rules.tags.white.fuzzy.length = 0;
+
+		compileBlockerRule(GM_getValue('ao3_blocker_tags_black', ''), rules.tags.black.exact, rules.tags.black.fuzzy);
+		compileBlockerRule(GM_getValue('ao3_blocker_tags_white', ''), rules.tags.white.exact, rules.tags.white.fuzzy);
+
+		const splitAndTrim = (key) => GM_getValue(key, '').split(/[,，]/).map(s => s.trim().toLowerCase()).filter(Boolean);
+
+		rules.content.author = new Set(splitAndTrim('ao3_blocker_content_author'));
+		rules.content.id = new Set(splitAndTrim('ao3_blocker_content_id'));
+
+		rules.content.title = splitAndTrim('ao3_blocker_content_title');
+		rules.content.summary = splitAndTrim('ao3_blocker_content_summary');
+
+		const parseIntVal = (key) => parseInt(GM_getValue(key, ''));
+		rules.stats.minWords = parseIntVal('ao3_blocker_stats_min_words');
+		rules.stats.maxWords = parseIntVal('ao3_blocker_stats_max_words');
+		rules.stats.minChapters = parseIntVal('ao3_blocker_stats_min_chapters');
+		rules.stats.maxChapters = parseIntVal('ao3_blocker_stats_max_chapters');
+		rules.stats.update = parseIntVal('ao3_blocker_stats_update');
+		rules.stats.crossover = parseInt(GM_getValue('ao3_blocker_stats_crossover', '').toString().replace(/[^\d]/g, ''));
+
+		rules.adv.lang = splitAndTrim('ao3_blocker_adv_lang');
+		rules.adv.pairing = GM_getValue('ao3_blocker_adv_pairing', '').split(/[,，]/).map(s => normalizeBlockerInput(s).replace(/'/g, '').trim()).filter(Boolean);
+		rules.adv.char = GM_getValue('ao3_blocker_adv_char', '').split(/[,，]/).map(s => normalizeBlockerInput(s).replace(/'/g, '').trim()).filter(Boolean);
+
+		rules.adv.scopeRel = parseInt(GM_getValue('ao3_blocker_adv_scope_rel', '1')) || 1;
+		rules.adv.scopeChar = parseInt(GM_getValue('ao3_blocker_adv_scope_char', '5')) || 5;
+	}
+
+	/**
+	 * 获取标准化文本
+	 */
+	function getNormalizedText(text) {
+		if (!text) return '';
+		let normalized = NormalizationCache.get(text);
+		if (normalized === undefined) {
+			normalized = text.toLowerCase().trim();
+			NormalizationCache.set(text, normalized);
+		}
+		return normalized;
+	}
+
+	/**
+	 * 综合判定作品是否应被屏蔽
+	 */
+	function getBlockReason(workData) {
+		if (!BlockerCache.enabled) return null;
+
+		const { rules } = BlockerCache;
+		const reasons = [];
+		const workTags = workData.tags || [];
+
+		const isWhitelisted = workTags.some(tag => {
+			const normalized = getNormalizedText(tag);
+			if (rules.tags.white.exact.has(normalized)) return true;
+
+			return rules.tags.white.fuzzy.some(rule => {
+				if (!matchBlockerPattern(normalized, rule.base)) return false;
+				if (!rule.operator) return true;
+				const condMatch = workTags.some(t => matchBlockerPattern(getNormalizedText(t), rule.condition));
+				return rule.operator === '+' ? condMatch : !condMatch;
+			});
+		});
+		if (isWhitelisted) return null;
+
+		for (const tag of workTags) {
+			const normalized = getNormalizedText(tag);
+
+			if (rules.tags.black.exact.has(normalized)) {
+				reasons.push(`标签 '${tag}'`);
+				break;
+			}
+
+			const hitFuzzy = rules.tags.black.fuzzy.find(rule => {
+				if (!matchBlockerPattern(normalized, rule.base)) return false;
+				if (!rule.operator) return true;
+				const condMatch = workTags.some(t => matchBlockerPattern(getNormalizedText(t), rule.condition));
+				return rule.operator === '+' ? condMatch : !condMatch;
+			});
+
+			if (hitFuzzy) {
+				reasons.push(`标签 '${hitFuzzy.base}'`);
+				break;
+			}
+		}
+
+		const hitAuthor = workData.authors.find(a => rules.content.author.has(getNormalizedText(a)));
+		if (hitAuthor) reasons.push(`作者 '${hitAuthor}'`);
+
+		if (rules.content.id.has(workData.workId)) reasons.push(`作品 ID '${workData.workId}'`);
+
+		const normalizedTitle = getNormalizedText(workData.title);
+		const hitTitle = rules.content.title.find(p => normalizedTitle.includes(p));
+		if (hitTitle) reasons.push(`标题关键词 '${hitTitle}'`);
+
+		const normalizedSummary = getNormalizedText(workData.summary);
+		const hitSummary = rules.content.summary.find(p => normalizedSummary.includes(p));
+		if (hitSummary) reasons.push(`摘要关键词 '${hitSummary}'`);
+
+		if (!isNaN(rules.stats.minWords) && workData.wordCount < rules.stats.minWords) reasons.push(`字数少于 ${rules.stats.minWords}`);
+		if (!isNaN(rules.stats.maxWords) && workData.wordCount > rules.stats.maxWords) reasons.push(`字数多于 ${rules.stats.maxWords}`);
+		if (!isNaN(rules.stats.minChapters) && workData.chapterInfo.current < rules.stats.minChapters) reasons.push(`章节少于 ${rules.stats.minChapters}`);
+		if (!isNaN(rules.stats.maxChapters) && workData.chapterInfo.current > rules.stats.maxChapters) reasons.push(`章节多于 ${rules.stats.maxChapters}`);
+
+		const isOngoing = workData.chapterInfo.total === null || workData.chapterInfo.current !== workData.chapterInfo.total;
+		if (!isNaN(rules.stats.update) && isOngoing && workData.monthsSinceUpdate > rules.stats.update) {
+			reasons.push(`未更新超过 ${rules.stats.update} 个月`);
+		}
+
+		if (!isNaN(rules.stats.crossover) && workData.fandomCount > rules.stats.crossover) reasons.push(`同人圈超过 ${rules.stats.crossover} 个`);
+
+		if (rules.adv.lang.length > 0) {
+			const normalizedLang = getNormalizedText(workData.language);
+			if (!rules.adv.lang.some(l => normalizedLang.includes(l))) {
+				reasons.push(`语言不匹配`);
+			}
+		}
+
+		if (rules.adv.pairing.length > 0) {
+			const scope = rules.adv.scopeRel || 1;
+			const relsToCheck = workData.categorizedTags.relationships.slice(0, scope);
+			const hasMatch = relsToCheck.some(tag => rules.adv.pairing.some(p => matchBlockerPattern(tag, p)));
+			if (!hasMatch) {
+				reasons.push(`主要关系不匹配`);
+			}
+		}
+
+		if (rules.adv.char.length > 0) {
+			const scope = rules.adv.scopeChar || 5;
+			const charsToCheck = workData.categorizedTags.characters.slice(0, scope);
+			const hasMatch = charsToCheck.some(tag => rules.adv.char.some(c => matchBlockerPattern(tag, c)));
+			if (!hasMatch) {
+				reasons.push(`主要角色不匹配`);
+			}
+		}
+
+		return reasons.length > 0 ? reasons.join('；') : null;
+	}
+
+	/**
+	 * 执行屏蔽视觉处理
+	 */
+	function executeBlocking(blurb, reason) {
+		if (window.getComputedStyle(blurb).display === 'none') {
+			return;
+		}
+
+		if (!BlockerCache.showReasons) {
+			blurb.classList.add('ao3-blocker-hidden');
+			return;
+		}
+
+		if (blurb.classList.contains('ao3-blocker-work')) return;
+
+		const ICON_VISIBILITY = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+
+		const ICON_VISIBILITY_OFF = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>';
+
+		const originalContent = Array.from(blurb.childNodes);
+		const cut = document.createElement('div');
+		cut.className = 'ao3-blocker-cut';
+		originalContent.forEach(node => cut.appendChild(node));
+
+		const fold = document.createElement('div');
+		fold.className = 'ao3-blocker-fold';
+
+		const note = document.createElement('span');
+		note.className = 'ao3-blocker-note';
+		note.textContent = `屏蔽原因: ${reason}`;
+
+		const toggle = document.createElement('div');
+		toggle.className = 'ao3-blocker-toggle';
+		toggle.innerHTML = ICON_VISIBILITY;
+
+		toggle.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			if (blurb.classList.contains('ao3-blocker-unhide')) {
+				blurb.classList.remove('ao3-blocker-unhide');
+				toggle.innerHTML = ICON_VISIBILITY;
+			} else {
+				blurb.classList.add('ao3-blocker-unhide');
+				toggle.innerHTML = ICON_VISIBILITY_OFF;
+			}
+		});
+
+		fold.appendChild(note);
+		fold.appendChild(toggle);
+
+		blurb.innerHTML = '';
+		blurb.classList.add('ao3-blocker-work');
+		blurb.appendChild(fold);
+		blurb.appendChild(cut);
+	}
+
+	/**
+	 * 处理单个作品卡片
+	 */
+	function processSingleBlurb(blurb) {
+		if (blurb.classList.contains('ao3-blocker-processed') || blurb.classList.contains('muted')) return;
+
+		const data = extractWorkData(blurb);
+		const reason = getBlockReason(data);
+		if (reason) {
+			executeBlocking(blurb, reason);
+		}
+		blurb.classList.add('ao3-blocker-processed');
+	}
+
+	/**
+	 * 任务调度器
+	 */
+	const WorkProcessor = {
+		queue: new Set(),
+		isProcessing: false,
+		timeBudget: 6,
+
+		add(nodes) {
+			if (!nodes || nodes.length === 0) return;
+			for (let i = 0; i < nodes.length; i++) {
+				this.queue.add(nodes[i]);
+			}
+			this.schedule();
+		},
+
+		schedule() {
+			if (this.isProcessing) return;
+			this.isProcessing = true;
+			requestAnimationFrame(this.process.bind(this));
+		},
+
+		process() {
+			const start = performance.now();
+			const iterator = this.queue.values();
+			let result = iterator.next();
+
+			while (!result.done) {
+				const node = result.value;
+				this.queue.delete(node);
+
+				processSingleBlurb(node);
+
+				if (performance.now() - start > this.timeBudget) {
+					requestAnimationFrame(this.process.bind(this));
+					return;
+				}
+				result = iterator.next();
+			}
+
+			this.isProcessing = false;
+		}
+	};
+
+	/**
+	 * 全量扫描页面作品
+	 */
+	function scanAllWorks() {
+		if (!BlockerCache.enabled) return;
+		const blurbs = document.querySelectorAll('li.blurb:not(.ao3-blocker-processed)');
+		WorkProcessor.add(blurbs);
+	}
+
+	/**
+	 * 刷新页面屏蔽状态
+	 */
+	function refreshBlocker() {
+		updateBlockerCache();
+		unblockAllWorks();
+		scanAllWorks();
+	}
+
+	/**
+	 * 还原页面上所有被屏蔽作品的原始状态
+	 */
+	function unblockAllWorks() {
+		document.querySelectorAll('li.blurb.ao3-blocker-processed').forEach(blurb => {
+			if (blurb.classList.contains('ao3-blocker-work')) {
+				const cut = blurb.querySelector('.ao3-blocker-cut');
+				if (cut) {
+					const originalContent = Array.from(cut.childNodes);
+					blurb.innerHTML = '';
+					originalContent.forEach(node => blurb.appendChild(node));
+				}
+			}
+			blurb.classList.remove('ao3-blocker-work', 'ao3-blocker-hidden', 'ao3-blocker-unhide', 'ao3-blocker-processed');
+		});
+	}
+
+
+	/**************************************************************************
+	 * I18N 翻译数据区
+	 **************************************************************************/
+
+	const I18N = {
+		'conf': {
+			ignoreMutationSelectorPage: {
+				'*': ['.userstuff .revised.at', '.kudos_count', '.bookmark_count', '.comment_count', '.hit_count', '.view_count'],
+				'works_show': ['.stats .hits', '.stats .kudos'],
+			},
+			ignoreSelectorPage: {
+				'*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', 'dd.freeform.tags', '[data-translated-by-custom-function]', 'li.freeforms', 'blockquote.userstuff.summary', 'textarea#embed_code', '.header.module h4.heading a[href^="/series/"]', '.header.module h4.heading a[href^="/works/"]', '.header.module h4.heading a[rel="author"]', '.header.module h5.fandoms a.tag', 'ul.series a[href^="/series/"]', 'dd.series a[href^="/series/"]'],
+				'works_show': ['.dropdown.actions-menu ul', '#main .userstuff'],
+				'works_chapters_show': ['#main .userstuff'],
+				'series_show': ['h2.heading'],
+				'admin_posts_show': ['.userstuff'],
+				'tag_sets_index': ['h2.heading', 'dl.stats'],
+				'tag_sets_new': ['h4.heading > label[for*="freeform"]'],
+				'faq_page': ['.userstuff', '.faq.index.group'],
+				'wrangling_guidelines_page': ['.userstuff'],
+				'tos_page': ['#tos.userstuff'],
+				'content_policy_page': ['#content.userstuff'],
+				'privacy_policy_page': ['#privacy.userstuff'],
+				'dmca_policy_page': ['#DMCA.userstuff'],
+				'tos_faq_page': ['.admin.userstuff'],
+				'abuse_reports_new': ['.userstuff'],
+				'support_page': ['.userstuff'],
+				'known_issues_page': ['.admin.userstuff'],
+				'report_and_support_page': ['.userstuff'],
+			},
+			characterDataPage: ['common', 'works_show', 'users_dashboard'],
+			rePagePath: /^\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_-]+))?/
+		},
+		'zh-CN': {
+			'title': {
+				'static': {},
+				'regexp': []
+			},
+			'public': {
+				'static': {
+
+					// 基本
+					'Archive of Our Own': 'AO3 作品库',
+					'Fandoms': '同人圈', 'All Fandoms': '所有同人圈',
+					'Browse': '浏览', 'Works': '作品', 'Bookmarks': '书签', 'Tags': '标签', 'Collection': '合集', 'Collections': '合集',
+					'Search': '搜索', 'People': '用户',
+					'About': '关于', 'About Us': '关于我们', 'News': '新的动态', 'FAQ': '常见问题', 'Wrangling Guidelines': '整理指南', 'Donate or Volunteer': '捐赠/志愿',
+					'Recent Works': '最近作品',
+					'Recent Series': '最近系列',
+					'Recent Bookmarks': '最近书签', 'Collections:': '合集:',
+					'Bookmarker\'s Tags:': '书签创建者的标签：', 'Bookmarker\'s Collections:': '书签创建者的合集：', 'Completed': '已完结',
+					'Bookmark Tags:': '书签标签：', 'Complete Work': '已完结', 'Work in Progress': '连载中', 'Public Bookmark': '公开书签',
+					'Most Popular': '最常用', 'Tag Sets': '标签集',
+					'Warnings': '预警',
+					'Find your favorites': '寻找喜欢的内容',
+
+					// 登录
+					'Log In': '登录',
+					'Log in': '登录',
+					'Sign Up': '注册',
+					'User': '用户',
+					'Username or email:': '用户名或邮箱:',
+					'Password:': '密码:',
+					'Remember Me': '记住我',
+					'Remember me': '记住我',
+					'Forgot password?': '忘记密码?',
+					'Get an Invitation': '获取邀请',
+
+					// 忘记密码
+					'Forgotten your password?': '忘记您的密码了吗？',
+					'If you\'ve forgotten your password, we can send instructions that will allow you to reset it. Please tell us the username or email address you used when you signed up for your Archive account.': '如果您忘记了密码，我们可以发送允许您重置密码的邮件说明。请输入您注册 AO3 帐户时使用的用户名或电子邮箱地址。',
+					'Reset Password': '重置密码',
+
+					// 星期
+					'Mon': '周一',
+					'Tue': '周二',
+					'Wed': '周三',
+					'Thu': '周四',
+					'Fri': '周五',
+					'Sat': '周六',
+					'Sun': '周日',
+					'Monday': '星期一',
+					'Tuesday': '星期二',
+					'Wednesday': '星期三',
+					'Thursday': '星期四',
+					'Friday': '星期五',
+					'Saturday': '星期六',
+					'Sunday': '星期日',
+
+					// 月份
+					'Jan': '1月',
+					'Feb': '2月',
+					'Mar': '3月',
+					'Apr': '4月',
+					'May': '5月',
+					'Jun': '6月',
+					'Jul': '7月',
+					'Aug': '8月',
+					'Sep': '9月',
+					'Oct': '10月',
+					'Nov': '11月',
+					'Dec': '12月',
+					'January': '1月',
+					'February': '2月',
+					'March': '3月',
+					'April': '4月',
+					'May': '5月',
+					'June': '6月',
+					'July': '7月',
+					'August': '8月',
+					'September': '9月',
+					'October': '10月',
+					'November': '11月',
+					'December': '12月',
+
+					// 页脚
+					'Footer': '页脚',
+					'Customize': '自定义',
+					'Default': '默认界面',
+					'Low Vision Default': '低视力默认界面',
+					'Reversi': 'Reversi 界面',
+					'Snow Blue': 'Snow Blue 界面',
+					'About the Archive': '关于 Archive',
+					'Site Map': '站点地图',
+					'Diversity Statement': '多元化声明',
+					'Terms of Service': '服务条款',
+					'Content Policy': '内容政策',
+					'Privacy Policy': '隐私政策',
+					'DMCA Policy': 'DMCA 政策',
+					'Site Status': '站点状态',
+					'TOS FAQ': '服务条款常见问题',
+					'↑ Top': '↑ 回到顶部',
+					'Frequently Asked Questions': '常见问题',
+					'Contact Us': '联系我们',
+					'Policy Questions & Abuse Reports': '政策咨询与滥用举报',
+					'Technical Support & Feedback': '技术支持与反馈',
+					'Development': '开发',
+					'Known Issues': '已知问题',
+					'View License': '查看许可证',
+					'OTW': 'OTW',
+					'Organization for Transformative Works': '再创作组织',
+
+					// 反馈
+					'Support and Feedback': '支持与反馈',
+					'FAQs & Tutorials': '常见问题与教程',
+					'Release Notes': '更新日志',
+
+					// 动态
+					'News': '最新动态',
+					'All News': '全部动态',
+					'Published': '发布于',
+					'Comments': '评论',
+					'Read more...': '更多',
+					'Tag:': '标签：',
+					'Go': '确定',
+					'RSS Feed': 'RSS 订阅',
+					'Follow us': '关注我们',
+					'What\'s New': '新增内容',
+					'Enter Comment': '输入评论',
+					'Last Edited': '最后编辑',
+
+					// 同人圈
+					'Anime & Manga': '动漫及漫画', 'Books & Literature': '书籍及文学', 'Cartoons & Comics & Graphic Novels': '卡通，漫画及图像小说', 'Celebrities & Real People': '明星及真人', 'Movies': '电影', 'Music & Bands': '音乐及乐队', 'Other Media': '其她媒体', 'Theater': '戏剧', 'TV Shows': '电视剧', 'Video Games': '电子游戏', 'Uncategorized Fandoms': '未分类的同人圈',
+					'> Anime & Manga': ' > 动漫及漫画', '> Books & Literature': ' > 书籍及文学', '> Cartoons & Comics & Graphic Novels': ' > 卡通，漫画及图像小说', '> Celebrities & Real People': ' > 明星及真人', '> Movies': ' > 电影', '> Music & Bands': ' > 音乐及乐队', '> Other Media': ' > 其她媒体', '> Theater': ' > 戏剧', '> TV Shows': ' > 电视剧', '> Video Games': ' > 电子游戏', '> Uncategorized Fandoms': ' > 未分类的同人圈',
+
+					// 个人中心
+					'My Dashboard': '个人中心',
+					'My Subscriptions': '订阅列表',
+					'My History': '历史记录',
+					'My Preferences': '偏好设置',
+					'Dashboard': '仪表盘',
+					'Preferences': '偏好设置',
+					'Skins': '站点界面',
+					'Works in Collections': '合集中的作品',
+					'Drafts': '草稿',
+					'Please note:': '注意：',
+					'Unposted drafts are only saved for a month from the day they are first created, and then deleted from the Archive.': '未发布的草稿自创建日起仅保留一个月，之后将被从 Archive 中删除。',
+					'Series': '系列',
+					'Bookmark External Work': '为外部作品创建书签',
+					'Sorry, there were no collections found.': '抱歉，未找到任何合集。',
+					'Manage Collection Items': '管理合集',
+					'New Collection': '新建合集',
+					'Works in Challenges/Collections': '参与挑战/合集的作品',
+					'Awaiting Collection Approval': '等待合集方审核',
+					'Awaiting User Approval': '等待用户确认',
+					'Rejected by Collection': '合集方已拒绝',
+					'Rejected by User': '用户已拒绝',
+					'Approved': '已通过',
+					'Nothing to review here!': '当前无待审内容！',
+					'Inbox': '消息中心',
+					'Filter by read': '按阅读状态筛选',
+					'Show all': '显示全部',
+					'Show unread': '显示未读',
+					'Show read': '显示已读',
+					'Filter by replied to': '按回复状态筛选',
+					'Show all': '显示全部',
+					'Show without replies': '显示未回复',
+					'Show replied to': '显示已回复',
+					'Sort by date': '按日期排序',
+					'Newest first': '最新优先',
+					'Oldest first': '最早优先',
+					'Filter': '筛选',
+					'Statistics': '数据统计',
+					'History': '历史记录',
+					'Full History': '全部历史记录',
+					'Marked for Later': '稍后阅读',
+					'Is it later already?': '到“稍后”了吗？',
+					'Some works you\'ve marked for later.': '这里是您标记为稍后阅读的作品。',
+					'Clear History': '清空历史记录',
+					'Delete from History': '删除历史记录',
+					'Subscriptions': '订阅列表',
+					'All Subscriptions': '所有订阅',
+					'Series Subscriptions': '系列订阅',
+					'User Subscriptions': '用户订阅',
+					'Work Subscriptions': '作品订阅',
+					'My Series Subscriptions': '系列订阅',
+					'My User Subscriptions': '用户订阅',
+					'My Work Subscriptions': '作品订阅',
+					'Delete All Work Subscriptions': '删除所有作品订阅',
+					'Delete All Series Subscriptions': '删除所有系列订阅',
+					'Delete All User Subscriptions': '删除所有用户订阅',
+					'Yes, Delete All Subscriptions': '是的，删除所有订阅',
+					'Yes, Delete All Work Subscriptions': '是的，删除所有作品订阅',
+					'Yes, Delete All Series Subscriptions': '是的，删除所有系列订阅',
+					'Yes, Delete All User Subscriptions': '是的，删除所有用户订阅',
+					'Your subscriptions have been deleted.': '您的订阅已成功删除。',
+					'Unsubscribe': '取消订阅',
+					'Delete All Subscriptions': '删除所有订阅',
+					'Sign-ups': '报名挑战',
+					'Assignments': '任务中心',
+					'Unfulfilled Claims': '未完成的认领',
+					'Fulfilled Claims': '已完成的认领',
+					'Claims': '我的认领',
+					'Related Works': '相关作品',
+					'Gifts': '赠文',
+					'Accepted Gifts': '已接受的赠文',
+					'Refused Gifts': '已拒绝的赠文',
+					'Choices': '用户选项',
+					'Pitch': '创作与发布',
+					'Catch': '互动与追踪',
+					'Switch': '活动与交换',
+					'My Works': '我的作品',
+					'My Series': '我的系列',
+					'My Bookmarks': '我的书签',
+					'My Collections': '我的合集',
+					'History': '历史记录',
+					'Log Out': '登出',
+					'Post New': '发布新作',
+					'Edit Works': '编辑作品',
+					'Subscribe': '订阅',
+					'Invitations': '邀请',
+					'My pseuds:': '笔名：',
+					'Name (required)': '名称（必填）',
+					'Create Pseud': '创建笔名',
+					'Edit Pseud': '编辑笔名',
+					'Back To Pseuds': '返回笔名列表',
+					'Pseuds': '笔名',
+					'Pseud was successfully created.': '笔名已成功创建。',
+					'I joined on:': '加入于：',
+					'My user ID is:': '用户ID：',
+					'Edit My Works': '编辑作品',
+					'Edit My Profile': '编辑资料',
+					'Set My Preferences': '设置偏好',
+					'Manage My Pseuds': '管理笔名',
+					'Delete My Account': '删除账号',
+					'Blocked Users': '已屏蔽用户',
+					'Muted Users': '已静音用户',
+					'Change Username': '修改用户名',
+					'Change Password': '修改密码',
+					'Email address': '邮箱地址',
+					'Change Email': '修改邮箱',
+					'Privacy': '隐私设置',
+					'Show my email address to other people.': '向其她人显示我的邮箱地址',
+					'Show my date of birth to other people.': '向其她人显示我的出生日期',
+					'Hide my work from search engines when possible.': '尽可能地对搜索引擎隐藏我的作品',
+					'Hide the share buttons on my work.': '隐藏我作品中的分享按钮',
+					'Allow others to invite me to be a co-creator.': '允许其她人邀请我成为共同创作者',
+					'Display': '显示设置',
+					'Show me adult content without checking.': '无需确认即可显示成人内容',
+					'Show the whole work by default.': '默认显示全文',
+					'Hide warnings (you can still choose to show them).': '隐藏内容预警（仍可手动显示）',
+					'Hide additional tags (you can still choose to show them).': '隐藏附加标签（仍可手动显示）',
+					'Hide work skins (you can still choose to show them).': '隐藏作品界面（仍可手动显示）',
+					'Your site skin': '您的站点界面',
+					'Public Site Skins': '公共站点界面',
+					'Your time zone': '您所在的时区',
+					'Browser page title format': '浏览页面标题格式',
+					'Turn off emails about comments.': '关闭评论邮件通知',
+					'Turn off messages to your inbox about comments.': '关闭评论消息通知',
+					'Turn off copies of your own comments.': '关闭自己评论的副本通知',
+					'Turn off emails about kudos.': '关闭点赞邮件通知',
+					'Do not allow guests to reply to my comments on news posts or other users\' works (you can still control the comment settings for your works separately).': '不允许游客回复我在动态帖或其她用户作品中的评论（仍可单独调整自己作品的评论权限）',
+					'Collections, Challenges and Gifts': '合集、挑战与赠文设置',
+					'Allow others to invite my works to collections.': '允许其她人将我的作品加入合集',
+					'Allow anyone to gift me works.': '允许任何人向我赠送作品',
+					'Turn off emails from collections.': '关闭来自合集的邮件通知',
+					'Turn off inbox messages from collections.': '关闭来自合集的消息通知',
+					'Turn off emails about gift works.': '关闭有关赠文的邮件通知',
+					'Misc': '其她偏好设置',
+					'Turn on History.': '启用历史记录',
+					'Turn the new user help banner back on.': '重新显示新用户帮助横幅',
+					'Turn off the banner showing on every page.': '关闭每个页面的提示横幅',
+					'Update': '确定',
+					'My Site Skins': '我的站点界面',
+					'Create Site Skin': '创建站点界面',
+					'A site skin lets you change the way the Archive is presented when you are logged in to your account. You can use work skins to customize the way your own works are shown to others.': '站点界面可让您在登录账户后更改 Archive 的呈现方式。您也可以使用作品界面来自定义其她人查看您作品时的展示样式。',
+					'My Site Skins': '我的站点界面',
+					'My Work Skins': '我的作品界面',
+					'Public Work Skins': '公共作品界面',
+					'Create Work Skin': '创建作品界面',
+					'No site skins here yet!': '还没有站点界面！',
+					'No work skins here yet!': '还没有作品界面！',
+					'Why not try making one?': '为什么不试着去创建一个呢？',
+					'Inbox': '收件箱',
+					'Subscribed Works': '已订阅作品',
+					'Subscribed Series': '已订阅系列',
+					'Unposted Assignments': '未发布的任务',
+					'Completed Assignments': '已完成的任务',
+
+					// 合集管理与设置
+					'Creator/Pseud(s)': '创作者/笔名',
+					'Details ↓': '详情 ↓',
+					'Close Details ↑': '收起详情 ↑',
+					'Bookmarker approval status': '书签创建者审核状态',
+					'Unreviewed by bookmarker': '书签创建者未审核',
+					'Approved by bookmarker': '书签创建者已通过',
+					'Rejected by bookmarker': '书签创建者已拒绝',
+					'Collection approval status': '合集审核状态',
+					'Unreviewed by collection moderators': '合集管理员未审核',
+					'Approved by collection moderators': '合集管理员已通过',
+					'Rejected by collection moderators': '合集管理员已拒绝',
+					'Remove': '移除',
+					'Owner pseud(s)': '所有者笔名',
+					'Collection Tags': '合集标签',
+					'Enter up to 10 tags to describe the content of your collection.': '最多输入 10 个标签来描述您的合集内容。',
+					'Use this if your collection is not fandom-specific.': '如果您的合集不针对特定同人圈，请使用此项。',
+
+					// 作品搜索页
+					'Work Info': '作品信息',
+					'Date Posted': '发布日期',
+					'Date Updated': '更新日期',
+					'Completion status': '完成状态',
+					'All works': '所有作品',
+					'Complete works only': '仅完结作品',
+					'Works in progress only': '仅连载作品',
+					'Include crossovers': '包含跨圈作品',
+					'Exclude crossovers': '排除跨圈作品',
+					'Only crossovers': '仅限跨圈作品',
+					'Single Chapter': '单个章节',
+					'Rating': '分级',
+					'Categories': '分类',
+					'Other': '其她',
+					'Work Stats': '作品统计',
+					'Hits': '点击',
+					'Kudos': '点赞',
+					'Kudos ♥': '点赞 ♥',
+					'Sort by': '排序方式',
+					'Best Match': '最佳匹配',
+					'Sort direction': '排序方向',
+					'Descending': '降序',
+					'Ascending': '升序',
+					'Filter by title': '按标题筛选',
+					'Filter by tag': '按标签筛选',
+					'Work Search': '作品搜索',
+					'Any Field': '任意字段',
+					'Date': '日期',
+					'Crossovers': '跨圈作品',
+					'Language': '语言',
+					'Characters': '角色',
+					'Relationships': '关系',
+					'Additional Tags': '附加标签',
+
+					// 用户搜索页
+					'Search all fields': '搜索所有字段',
+					'Name': '名称',
+					'Fandom': '同人圈',
+					'Search People': '搜索用户',
+
+					// 标签搜索页
+					'Tag name': '标签名称',
+					'Find tags wrangled to specific canonical fandoms.': '查找已整理至特定规范同人圈的标签。',
+					'Type': '类型',
+					'Fandom': '同人圈',
+					'Character': '角色',
+					'Relationship': '关系',
+					'Freeform': '自由标签',
+					'Any type': '任意类型',
+					'Wrangling status': '整理状态',
+					'Canonical': '规范',
+					'Non-canonical': '非规范',
+					'Synonymous': '同义',
+					'Canonical or synonymous': '规范或同义',
+					'Non-canonical and non-synonymous': '非规范且非同义',
+					'Any status': '任意状态',
+					'Name': '名称',
+					'Date Created': '创建日期',
+					'Uses': '使用次数',
+					'Search Tags': '搜索标签',
+					'Title': '标题',
+					'Author': '作者',
+					'Artist': '画师',
+					'Author/Artist': '作者/画师',
+					'People Search': '用户搜索',
+					'Tag Search': '标签搜索',
+					'Work Tags': '作品标签',
+
+					// 浏览
+					'Expand Fandoms List': '展开同人圈列表',
+					'Collapse Fandoms List': '收起同人圈列表',
+					'Recent works': '最近作品',
+					'Recent series': '最近系列',
+					'Recent bookmarks': '最近书签',
+					'Expand Works List': '展开作品列表',
+					'Collapse Works List': '收起作品列表',
+					'Expand Bookmarks List': '展开书签列表',
+					'Collapse Booksmarks List': '收起书签列表',
+
+					// 个人资料
+					'Edit My Profile': '编辑简介',
+					'Edit Profile': '编辑简介',
+					'Edit Default Pseud and Icon': '编辑笔名和头像',
+					'Change Username': '更改用户名',
+					'Change My Username': '更改用户名',
+					'Change Password': '更改密码',
+					'Change My Password': '更改密码',
+					'Change Email': '更改邮箱',
+					'Title': '标题',
+					'Location': '位置',
+					'Date of Birth': '出生日期',
+					'About Me': '关于我',
+					'Plain text with limited HTML': '纯文本，支持有限 HTML',
+					'Embedded images (<img> tags) will be displayed as HTML, including the image\'s source link and any alt text.': '嵌入的图像（<img> 标签）将显示为 HTML，包括图像的源链接和任何替代文本。',
+					'Update': '更新',
+					'Editing pseud': '编辑笔名',
+					'Name': '名称',
+					'Make this name default': '将此笔名设为默认',
+					'Description': '简介',
+					'Icon': '头像',
+					'This is your icon.': '这是您的头像。',
+					'You can have one icon for each pseud.': '每个笔名可设置一个头像。',
+					'Icons can be in png, jpeg or gif form.': '头像格式支持 PNG、JPEG 和 GIF。',
+					'Icons should be sized 100x100 pixels for best results.': '建议头像尺寸为 100×100 像素以获得最佳效果。',
+					'Upload a new icon': '上传新头像',
+					'Icon alt text': '头像替代文本',
+					'Icon comment text': '头像注释文本',
+					'New Pseud': '新建笔名',
+					'Default Pseud': '默认笔名',
+					'Edit Pseud': '编辑笔名',
+					'Edit': '编辑',
+					'Current username': '当前用户名',
+					'New username': '新用户名',
+					'Your username has been successfully updated.': '您的用户名已成功更新。',
+					'Password': '密码',
+					'New password': '新密码',
+					'Confirm new password': '确认新密码',
+					'Old password': '旧密码',
+					'Current email': '当前邮箱',
+					'New email': '新邮箱',
+					'Enter new email again': '再次输入新邮箱',
+					'Confirm New Email': '确认新邮箱',
+					'Submit': '提交',
+					'Create': '创建',
+
+					// 作品
+					'Rating:': '分级:',
+					'Archive Warning:': 'Archive 预警:',
+					'Archive Warnings:': 'Archive 预警:',
+					'Archive Warning': 'Archive 预警',
+					'Archive Warnings': 'Archive 预警',
+					'Category:': '分类:',
+					'Categories:': '分类:',
+					'Fandom:': '同人圈:',
+					'Fandoms:': '同人圈:',
+					'Relationship:': '关系:',
+					'Relationships:': '关系:',
+					'Character:': '角色:',
+					'Characters:': '角色:',
+					'Additional Tag:': '附加标签:',
+					'Additional Tags:': '附加标签:',
+					'Language:': '语言:',
+					'Series': '系列',
+					'Series:': '系列:',
+					'Stats:': '统计:',
+					'Published:': '发布于:',
+					'Completed:': '完结于:',
+					'Updated:': '更新于:',
+					'Words:': '字数:',
+					'Chapters:': '章节:',
+					'Comments:': '评论:',
+					'Kudos:': '点赞:',
+					'Bookmarks:': '书签:',
+					'Hits:': '点击:',
+					'Complete?': '已完结？',
+					'Word Count:': '字数:',
+					'Date Updated:': '更新日期:',
+					'Post': '发布',
+					'New Work': '新作品',
+					'Edit Work': '编辑作品',
+					'Import Work': '导入作品',
+					'From Draft': '从草稿',
+					'Edit': '编辑',
+					'Edit Tags': '编辑标签',
+					'Add Chapter': '添加章节',
+					'Post Draft': '发布草稿',
+					'Delete Draft': '删除草稿',
+					'Post Chapter': '发布章节',
+					'Edit Chapter': '编辑章节',
+					'Delete Chapter': '删除章节',
+					'Manage Chapters': '管理章节',
+					'Drag chapters to change their order.': '拖动章节以更改顺序。',
+					'Enter new chapter numbers.': '输入新的章节编号。',
+					'Update Positions': '更新顺序',
+					'Update': '更新',
+					'Delete': '删除',
+					'Cancel': '取消',
+					'Save': '保存',
+					'Saved': '已保存',
+					'Submit': '提交',
+					'Orphan Work': '匿名化作品',
+					'Orphan Works': '匿名化作品',
+					'Filters': '筛选器',
+					'Sort By': '排序方式',
+					'Random': '随机',
+					'Creator': '创作者',
+					'Date Updated': '更新日期',
+					'Word Count': '字数统计',
+					'Summary': '简介',
+					'Summary:': '简介:',
+					'Notes': '注释',
+					'Work Text': '作品正文',
+					'Chapter Index': '章节索引',
+					'Full-page index': '整页索引',
+					'Full-Page Index': '整页索引',
+					'Entire Work': '完整作品',
+					'Next Chapter': '下一章',
+					'Previous Chapter': '上一章',
+					'kudos': ' 个赞',
+					'bookmark': ' 条书签',
+					'comment': ' 条评论',
+					'← Previous': '← 上一页',
+					'Next →': '下一页 →',
+					'All fields are required. Your email address will not be published.': '所有字段均为必填。您的电子邮箱地址不会被公开。',
+					'Guest name': '访客名称',
+					'Guest email': '访客邮箱',
+					'Please enter your name.': '请输入您的名称',
+					'Please enter your email address.': '请输入您的电子邮箱地址',
+					'Hide Creator\'s Style': '隐藏创作者样式',
+					'Show Creator\'s Style': '显示创作者样式',
+					'top level comment': '主评论',
+					'Share Work': '分享作品',
+					'Restore From Last Unposted Draft?': '从上次未发布的草稿继续',
+					'Delete Work': '删除作品',
+					'Save As Draft': '存为草稿',
+					'Save Draft': '保存草稿',
+					'Post Work': '发布作品',
+
+
+					// 合集
+					'Collections in the Archive of Our Own': ' AO3 中的合集',
+					'Profile': '简介',
+					'Join': '加入',
+					'Leave': '退出',
+					'Open Challenges': '开放中的挑战',
+					'Open Collections': '开放中的合集',
+					'Closed Collections': '已截止的合集',
+					'Moderated Collections': '审核制合集',
+					'Unmoderated Collections': '非审核制合集',
+					'Unrevealed Collections': '未公开合集',
+					'Anonymous Collections': '匿名合集',
+					'Sort and Filter': '排序及筛选',
+					'Filter collections:': '筛选合集:',
+					'Filter by title or name': '按标题或名称筛选',
+					'Filter by fandom': '按同人圈筛选',
+					'Closed': '已截止',
+					'Multifandom': '跨圈',
+					'Yes': '是',
+					'No': '否',
+					'Either': '皆可',
+					'Collection Type': '合集类型',
+					'No Challenge': '无挑战',
+					'Any': '任意',
+					'Clear Filters': '清除筛选',
+
+					// 书签
+					'Bookmark Search': '书签搜索',
+					'Edit Bookmark': '编辑书签',
+					'Start typing for suggestions!': '开始输入以获取建议',
+					'Searching...': '搜索中…',
+					'(No suggestions found)': '未找到建议',
+					'Any field on work': '作品任意字段', 'Work tags': '作品标签', 'Type': '类型', 'Work': '作品', 'Work language': '作品语言', 'External Work': '外部作品', 'Date updated': '更新日期', 'Bookmark': '书签', 'Any field on bookmark': '书签任意字段', 'Bookmarker\'s tags': '书签创建者的标签', 'Bookmarker': '书签创建者', 'Bookmark type': '书签类型', 'Rec': '推荐', 'With notes': '含注释', 'Date Bookmarked': '书签创建日期', 'Date bookmarked': '书签创建日期', 'Search Bookmarks': '搜索书签',
+					'Search Results': '搜索结果', 'Edit Your Search': '修改搜索设置',
+					'Ratings': '分级',
+					'Include': '包括',
+					'Include Ratings': '包括分级',
+					'Other tags to include': '要包括的其她标签',
+					'Exclude': '排除',
+					'Other tags to exclude': '要排除的其她标签',
+					'More Options': '更多选项',
+					'Show only crossovers': '仅显示跨圈作品',
+					'Completion Status': '完成状态',
+					'Search within results': '在结果中搜索',
+					'Bookmarker\'s Tags': '书签创建者标签',
+					'Other work tags to include': '要包括的其她作品标签',
+					'Other bookmarker\'s tags to include': '要包括的其她书签创建者标签',
+					'Search bookmarker\'s tags and notes': '搜索书签创建者标签和注释',
+					'Other work tags to exclude': '要排除的其她作品标签',
+					'Other bookmarker\'s tags to exclude': '要排除的其她书签创建者标签',
+					'Bookmark types': '书签类型',
+					'Recs only': '仅推荐',
+					'Only bookmarks with notes': '仅含注释',
+					'All Bookmarks': '所有书签',
+					'Add To Collection': '添加到合集',
+					'Share': '分享',
+					'Private Bookmark': '私人书签',
+					'Your tags': '标签',
+					'Plain text with limited HTML': '纯文本，支持有限 HTML',
+					'The creator\'s tags are added automatically.': '创建者的标签会自动添加',
+					'Comma separated, 150 characters per tag': '以逗号分隔，每个标签最多 150 字符',
+					'Add to collections': '添加到合集',
+					'Private bookmark': '私人书签',
+					'Create': '创建',
+					'Bookmark was successfully deleted.': '书签已成功删除。',
+					'Add Bookmark to collections': '将书签添加到合集',
+					'Collection name(s):': '合集名称：',
+					'collection name': '合集名称',
+					'Add': '添加',
+					'Back': '返回',
+					'Bookmark was successfully updated.': '书签已成功更新。',
+					'Share Bookmark': '分享书签',
+					'Close': '关闭',
+					'Show': '展示',
+					'Bookmark Collections:': '书签合集:',
+
+					// 系列
+					'Creators:': '创建者:',
+					'Creator:': '创建者:',
+					'Series Begun:': '系列开始于:',
+					'Series Updated:': '系列更新于:',
+					'Description:': '描述:',
+					'Notes:': '注释:',
+					'Works:': '作品:',
+					'Complete:': '完结:',
+
+					// 语言
+					'Work Languages': '作品语言',
+					'Suggest a Language': '建议语言',
+
+					// 界面
+					'You are now using the default Archive skin again!': '您已重新切换至 Archive 默认界面！',
+					'Revert to Default Skin': '恢复默认界面',
+					'Role:': '功能:',
+					'user': '用户',
+					'Media:': '媒体:',
+					'all': '全部',
+					'Condition:': '状态:',
+					'Normal': '正常',
+					'(No Description Provided)': '（未提供描述）',
+					'Parent Skins': '母级界面',
+					'Use': '使用',
+					'Stop Using': '停用',
+					'Preview': '预览',
+					'Set For Session': '为当前会话设置',
+					'override': '覆盖',
+
+					// 屏蔽与静音
+					'Block': '屏蔽',
+					'Unblock': '取消屏蔽',
+					'Mute': '静音',
+					'Unmute': '取消静音',
+					'Yes, Unmute User': '是的，取消静音',
+					'Yes, Mute User': '是的，静音用户',
+					'Yes, Unblock User': '是的，取消屏蔽',
+					'Yes, Block User': '是的，屏蔽用户',
+
+					// 提示信息
+					'Your profile has been successfully updated': '您的个人资料已成功更新。',
+					'Your edits were put through! Please check over the works to make sure everything is right.': '您的编辑已生效！请检查相关作品，确保所有更改都已正确应用。',
+					'We\'re sorry! Something went wrong.': '非常抱歉！操作未完成，请稍后重试。',
+					'Your preferences were successfully updated.': '您的偏好设置已成功更新。',
+					'Works and bookmarks listed here have been added to a collection but need approval from a collection moderator before they are listed in the collection.': '此处列出的作品和书签已添加至合集中，但需经合集管理员批准后才会在合集内显示。',
+					'Successfully logged out.': '已成功登出。',
+					'Successfully logged in.': '已成功登录。',
+					'Bookmark was successfully created. It should appear in bookmark listings within the next few minutes.': '书签已创建成功。它将在接下来的几分钟内出现在书签列表中。',
+					'Browse fandoms by media or favorite up to 20 tags to have them listed here!': '可按媒体浏览同人圈，或收藏最多 20 个标签以在此展示。',
+					'You can search this page by pressing': '按', 'ctrl F': ' Ctrl + F ', 'cmd F': ' Cmd + F ，', '': '', 'and typing in what you are looking for.': '输入关键词即可在本页搜索。',
+					'Sorry! We couldn\'t save this bookmark because:': '抱歉！我们无法保存此书签，因为', 'Pseud can\'t be blank': '笔名不能为空',
+					'The following challenges are currently open for sign-ups! Those closing soonest are at the top.': '以下挑战现已开放报名！即将截止的挑战排在最前面。',
+					'You currently have no works posted to the Archive. If you add some, you\'ll find information on this page about hits, kudos, comments, and bookmarks of your works.': '您当前没有任何已发布的作品。添加作品后，您可以在此页面查看作品的访问量、点赞、评论和书签情况。',
+					'Users can also see how many subscribers they have, but not the names of their subscribers or identifying information about other users who have viewed or downloaded their works.': '用户还可以查看自己的订阅者数量，但无法看到订阅者的姓名，也无法获取浏览或下载其作品的其她用户的任何身份信息。',
+					'This work could have adult content. If you continue, you have agreed that you are willing to see such content.': '此作品可能含有成人内容。若您选择“继续”，即表示您同意查看此类内容。',
+					'Yes, Continue': '是，继续',
+					'No, Go Back': '否，返回',
+					'Set your preferences now': '设置偏好',
+					'Work successfully deleted from your history.': '该作品已成功从您的历史记录中删除。',
+					'Your history is now cleared.': '您的历史记录已清除。',
+					'You are already signed in.': '您已登录。',
+					'There are no works or bookmarks under this name yet.': '此名称下尚无作品或书签。',
+					'Sorry, you don\'t have permission to access the page you were trying to reach. Please log in.': '抱歉，您无权访问目标页面。请先登录。',
+					'Are you sure you want to delete this draft?': '您确定要删除此草稿吗？',
+					'Work was successfully updated.': '作品已成功更新。',
+					'The work was not updated.': '作品没有更新。',
+					'Your changes have not been saved. Please post your work or save as draft if you want to keep them.': '您的更改尚未保存。如果您想保留，请发布作品或将其保存为草稿。',
+					'Work was successfully posted. It should appear in work listings within the next few minutes.': '作品已成功发布。它将在接下来的几分钟内出现在作品列表中。',
+					'Are you sure you want to delete this work? This will destroy all comments and kudos on this work as well and CANNOT BE UNDONE!': '您确定要删除这篇作品吗？此操作将一并删除该作品收到的所有评论和点赞，且无法撤销！',
+					'Chapter has been posted!': '章节已成功发布！',
+					'Chapter was successfully updated.': '章节已成功更新。',
+					'Are you sure?': '您确定吗？',
+					'The chapter was successfully deleted.': '已成功删除此章节。',
+					'Chapter order has been successfully updated.': '章节顺序已成功更新。',
+					'This is a draft chapter in a posted work. It will be kept unless the work is deleted.': '这是已发布作品中的一篇草稿章节。除非作品被删除，否则该草稿将一直保留。',
+					'This chapter is a draft and hasn\'t been posted yet!': '本章节为草稿，尚未发布！',
+					'Are you sure you want to delete this bookmark?': '您确定要删除此书签吗？',
+					'This is part of an ongoing challenge and will be revealed soon!': '本作品正在参与一项开放中的挑战，内容将很快揭晓！',
+					'Your search failed because of a syntax error. Please try again.': '搜索失败，您的查询存在语法错误。请修改后重试。',
+					'Type or paste formatted text.': '输入或粘贴带有格式的文本',
+					'Comment created!': '评论已发布！',
+					'Are you sure you want to delete this comment?': '您确定要删除这条评论吗？',
+					'Yes, delete!': '是的，删除！',
+					'Comment deleted.': '评论已删除。',
+					'(Previous comment deleted.)': '（原评论已删除）',
+					'Freeze Thread': '锁定评论串',
+					'Comment thread successfully frozen!': '已成功锁定评论串！',
+					'Unfreeze Thread': '解锁评论串',
+					'Comment thread successfully unfrozen!': '已成功解锁评论串！',
+					'Frozen': '已锁定',
+					'Comment was successfully updated.': '评论已成功更新。',
+					'Sorry! We couldn\'t save this skin because:': '抱歉！我们无法保存此界面，因为：',
+					'Title must be unique': '标题必须唯一',
+					'We couldn\'t find any valid CSS rules in that code.': '代码中不存在任何有效的 CSS 规则',
+					'Skin was successfully created.': '界面已成功创建。',
+					'Skin was successfully updated.': '界面已成功删除。',
+					'Are you sure you want to delete this skin?': '您确定要删除此界面吗？',
+					'The skin was deleted.': '界面已删除。',
+					'Your changes have not been saved. Please post your work or save the draft if you want to keep them.': '您的更改尚未保存。如果您想保留，请发布作品或保存草稿。',
+					'Are you sure you want to change your username?': '您确定要更改用户名吗？',
+					'This has been deleted, sorry!': '抱歉，此内容已被删除！',
+					'Collection status updated!': '合集状态已更新！',
+					'The pseud was successfully deleted.': '笔名已成功删除。',
+					'Pseud was successfully deleted.': '笔名已成功删除。',
+
+					// 标签说明
+					'This tag indicates adult content.': '此标签涉及成人内容。',
+					'Parent tags (more general):': '母级标签（更通用）：',
+					'Tags with the same meaning:': '同义标签：',
+					'Metatags:': '元标签：',
+					'Subtags:': '子标签：',
+					'Child tags (displaying the first 300 of each type):': '子标签（每种类型显示前 300 个）：',
+					'and more': '以及更多',
+					'Relationships by Character': '关系按角色分类'
+				},
+				'innerHTML_regexp': [
+
+					['h4.heading', /^\s*Hi,\s+(.+?)!\s*$/s, '您好，$1！'],
+					[
+						'li.dropdown a.dropdown-toggle',
+						/^\s*Hi,\s+(.+?)!\s*$/s,
+						'您好，$1！'
+					],
+
+					// 用户主页
+					['li a, li span.current', /^\s*Works\s*\((\d+)\)\s*$/s, '作品（$1）'],
+					['li a, li span.current', /^\s*Drafts\s*\((\d+)\)\s*$/s, '草稿（$1）'],
+					['li a, li span.current', /^\s*Series\s*\((\d+)\)\s*$/s, '系列（$1）'],
+					['li a, li span.current', /^\s*Bookmarks\s*\((\d+)\)\s*$/s, '书签（$1）'],
+					['li a, li span.current', /^\s*Collections\s*\((\d+)\)\s*$/s, '合集（$1）'],
+					['li a, li span.current', /^\s*Inbox\s*\((\d+)\)\s*$/s, '消息中心（$1）'],
+					['li a, li span.current', /^\s*Sign-ups\s*\((\d+)\)\s*$/s, '报名挑战（$1）'],
+					['li a, li span.current', /^\s*Assignments\s*\((\d+)\)\s*$/s, '任务中心（$1）'],
+					['li a, li span.current', /^\s*Claims\s*\((\d+)\)\s*$/s, '我的认领（$1）'],
+					['li a, li span.current', /^\s*Related Works\s*\((\d+)\)\s*$/s, '相关作品（$1）'],
+					['li a, li span.current', /^\s*Gifts\s*\((\d+)\)\s*$/s, '接收赠文（$1）'],
+					['li a, li span.current', /^\s*Challenge Sign-ups\s*$/s, '挑战活动报名'],
+					['li a, li span.current', /^\s*Gifts\s*$/s, '接收赠文'],
+					['a', /^\s*Unsubscribe from (.+?)\s*$/s, '取消订阅 $1'],
+					['h2.heading', /^\s*Works by\s+(.+?)\s*$/s, '$1 的作品'],
+					['h2.heading', /^\s*Series by\s+(.+?)\s*$/s, '$1 的系列'],
+					['h2.heading', /^\s*Bookmarks by\s+(.+?)\s*$/s, '$1 的书签'],
+					['h2.heading', /^\s*Collections by\s+(.+?)\s*$/s, '$1 的合集'],
+					['h2.heading', /^\s*Gifts for\s+(.+?)\s*$/s, '$1 收到的赠文'],
+					['h2.heading', /^\s*(.+?)'s Related Works\s*$/s, '$1 的相关作品'],
+					['h2.heading', /^\s*(.+?)'s Collections\s*$/s, '$1 的合集'],
+					['h2.heading', /^\s*Challenge Sign-ups for\s+(.+?)\s*$/s, '$1 参加的挑战'],
+					[
+						'h2.heading',
+						/^\s*(\d+)\s+Works?\s+by\s+(.+?)\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s,
+						'$3（$2）：$1 篇作品'
+					],
+					[
+						'h2.heading',
+						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+?)\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s,
+						'$5（$4）：$3 篇作品，第 $1 - $2 篇'
+					],
+					[
+						'h2.heading',
+						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s,
+						'$4：$3 篇作品，第 $1 - $2 篇'
+					],
+					[
+						'h2.heading',
+						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+?)\s*$/s,
+						'$4：$3 篇作品，第 $1 - $2 篇'
+					],
+					[
+						'h2.heading',
+						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Series\s+by\s+(.+?)\s*$/s,
+						'$4：$3 个系列，第 $1 - $2 个'
+					],
+					[
+						'h2.heading',
+						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Bookmarks?\s+by\s+(.+?)\s*$/s,
+						'$4：$3 条书签，第 $1 - $2 条'
+					],
+					['h2.heading', /^\s*(\d+)\s+Works?\s+by\s+(.+?)\s*$/s, '$2：$1 篇作品'],
+					['h2.heading', /^\s*(\d+)\s+Series\s+by\s+(.+?)\s*$/s, '$2：$1 个系列'],
+					['h2.heading', /^\s*(\d+)\s+Bookmarks?\s+by\s+(.+?)\s*$/s, '$2：$1 条书签'],
+					['h2.heading', /^\s*(\d+)\s+Collections?\s+by\s+(.+?)\s*$/s, '$2：$1 个合集'],
+					['h2.heading', /^\s*(\d+)\s+Unposted\s+Drafts?\s*$/s, '未发布的草稿：$1'],
+
+					// 浏览
+					[
+						'p',
+						/^\s*These are some of the latest works posted to the Archive\. To find more works, <a href="\/media">choose a fandom<\/a> or <a href="\/works\/search">try our advanced search<\/a>\.\s*(?:<!--[\s\S]*?-->)?\s*$/s,
+						'这里展示了一些最新发布的作品。若要查看更多作品，请<a href="/media">选择一个同人圈</a>或<a href="/works/search">尝试高级搜索</a>。'
+					],
+					[
+						'p',
+						/^\s*These are some of the latest bookmarks created on the Archive\. To find more bookmarks,\s*<a href="\/media">choose a fandom<\/a>\s*or\s*<a href="\/bookmarks\/search">try our advanced search<\/a>\.\s*(?:<!--[\s\S]*?-->)?\s*$/s,
+						'这里展示了一些最新创建的书签。若要查看更多书签，请<a href="/media">选择一个同人圈</a>或<a href="/bookmarks/search">尝试高级搜索</a>。'
+					],
+					[
+						'p',
+						/^\s*These are some of the most popular tags used on the Archive\. To find more tags,\s*<a href="\/tags\/search">try our tag search<\/a>\.\s*$/s,
+						'这里展示了一些最常用的标签。若要查看更多标签，请<a href="/tags/search">尝试标签搜索</a>。'
+					],
+					[
+						'h2.heading',
+						/^\s*Chapter Index for\s+(<a href="\/works\/\d+">.+?<\/a>)\s+by\s+(<a rel="author" href="\/users\/.+?">.+?<\/a>)\s*$/s,
+						'章节索引：$1 by $2'
+					],
+					['p', /^\s*<strong>([\d,]+)\s+Found<\/strong>\s*$/, '找到 $1 条结果'],
+					['h2.heading', /^\s*([\d,]+)\s+Works?\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$2：$1 篇作品'],
+					['dd.expandable dl.range dt label', /^From$/s, '从'],
+					['dd.expandable dl.range dt label', /^To$/s, '到'],
+					['label[for*="_work_search_category_ids_"] span:last-of-type', /^(Other)(\s*\(\d+\))$/s, '其她$2'],
+					['label[for*="_bookmark_search_category_ids_"] span:last-of-type', /^(Other)(\s*\(\d+\))$/s, '其她$2'],
+					['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s*of\s*([0-9,]+)\s*Bookmarks by\s*(.+)\s*$/s, '$4：$3 条书签，第 $1 - $2 条'],
+					[
+						'h2.heading',
+						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+?)\s+in\s+(<a[^>]+>.+?<\/a>)\s*$/s,
+						'$5（$4）：$3 篇作品，第 $1 - $2 篇'
+					],
+					['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+)\s*$/s, '$4：$3 篇作品，第 $1 - $2 篇'],
+					['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4：$3 篇已创建书签作品，第 $1 - $2 篇'],
+					['h2.heading', /^\s*Gifts for\s+(.+)\s*$/s, '$1 收到的赠文'],
+					['h2.heading', /^\s*(.+)'s Collections\s*$/s, '$1：合集'],
+					['h5.byline.heading', /^\s*Bookmarked by\s*(<a .*?<\/a>)/s, '创建者：$1'],
+					['li', /^\s*Part (<strong>\d+<\/strong>) of (<a .*?<\/a>)/, '$2 第 $1 部分'],
+					['h2.heading', /^New bookmark for (<a href="\/works\/\d+">.*?<\/a>)/, '为 $1 创建新书签'],
+					['h5.heading a', /^(\d+)\s+works?$/s, '$1 篇作品'],
+					['h5.heading a', /^(\d+)\s+recs?$/s, '$1 条推荐'],
+					['h2.heading', /^\s*Items\s+by\s+(.+?)\s+in\s+Collections\s*$/s, '$1 在合集中的作品'],
+					['dd a', /^([\d,]+)\s+works?$/s, '$1 篇作品'],
+					['h2.heading', /^\s*([\d,]+)\s+Works?\s*$/s, '$1 篇作品'],
+					['h2.heading', /^\s*([\d,]+)\s+Collections?\s*$/s, '$1 个合集'],
+					[
+						'dt',
+						/(<\/a>)\s*\(Work\)\s+by\s*(<a\s+rel="author".*?>.*?<\/a>|[^<]+)/s,
+						'$1（作品）by $2'
+					],
+					[
+						'dt',
+						/(<\/a>)\s*\(Series\)\s+by\s*(<a\s+rel="author".*)/s,
+						'$1（系列）by $2'
+					],
+					[
+						'h4.heading',
+						/<img alt="\(Restricted\)" title="Restricted" src="\/images\/lockblue\.png"[^>]*>/g,
+						'<img alt="(访问受限)" title="访问受限" src="/images/lockblue.png" width="15" height="15">'
+					],
+					['li.pseud ul a[href$="/pseuds"], li.pseud ul span.current', /^\s*All Pseuds\s*\((\d+)\)\s*$/s, '所有笔名 ($1)'],
+
+					// 个人资料
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/g, '剩余 $1 字符'],
+					['p#password-field-description', /^\s*6 to 40 characters\s*$/, '6 到 40 字符'],
+					['p.notice', /Any personal information you post on your public AO3 profile[\s\S]*?<a href="\/privacy">(?:Privacy Policy|隐私政策)<\/a>[\s\S]*?\./s, '您在公开 AO3 个人资料中发布的任何个人信息（包括但不限于您的姓名、电子邮箱、年龄、位置、个人关系、性别或性取向认同、种族或族裔背景、宗教或政治观点，以及/或其她网站的账户用户名）都会对公众可见。要了解 AO3 在您使用网站时收集哪些数据以及我们如何使用这些数据，请查看我们的<a href="/privacy">隐私政策</a>。'],
+					['div.caution.notice', /<p>\s*<strong>Please use this feature with caution\.<\/strong>[\s\S]*?<\/p>/s, '<p><strong>请谨慎使用此功能。</strong>用户名每 7 天仅能更改一次。</p>'],
+					['div.notice', /Changing your email will send a request for confirmation[\s\S]*?will <strong>invalidate any pending email change requests<\/strong>\./s, '更改电子邮箱将向您的新邮箱发送确认请求，并向当前邮箱发送通知。<br>您必须使用确认邮件中的链接完成邮箱更改。如在 7 天内未确认，请求链接将失效，邮箱不会更改。<br>重新提交新邮箱请求将使<strong>任何未完成的更改请求失效</strong>。'],
+					['p.footnote', /You cannot change the pseud that matches your username\. However, you can <a href="([^"]*change_username[^"]*)">change your username<\/a> instead\./g, '无法修改与用户名相同的笔名。如需修改，请<a href="$1">更改您的用户名</a>。'],
+					['h2.heading', /^Pseuds for (.+)$/, '$1 的笔名'],
+					['div.caution.notice p:last-child', /For information on how changing your username will affect your account.*?contact Support.*?\./s, '要了解更改用户名对账户的影响，请参阅<a href="/faq/your-account#namechange">账户常见问题</a>。用户名变更可能需要数天或更长时间才会生效。如果一周后您的作品、书签、系列或合集中仍显示旧用户名，请<a href="/support">联系支持团队</a>。'],
+					['p.note', /If that is not what you want.*?create a new Pseud.*?instead\./s, '如果您不想更改用户名，也可以<a href="/users/Ubifo/pseuds/new">创建一个新的笔名</a>。'],
+					['p.footnote', /3 to 40 characters.*?underscore.*?\)/s, '3 至 40 个字符（仅限 A–Z、a–z、_、0–9），禁止使用空格，且不能以下划线开头或结尾'],
+					[
+						'div.caution.notice p',
+						/For information on how changing your username will affect your account[\s\S]*?<a href="\/support">contact Support<\/a>[.。]?/s,
+						'有关更改用户名如何影响账户的详情，请参阅<a href="/faq/your-account#namechange">账户常见问题</a>。用户名更改可能需要数天或更长时间才会生效。如果一周后您的作品、书签、系列或合集中仍显示旧用户名，请<a href="/support">联系支持团队</a>。'
+					],
+					[
+						'div.flash.notice',
+						/^\s*Your password has been changed\. To protect your account, you have been logged out of all active sessions\. Please log in with your new password\.\s*$/s,
+						'您的密码已更改。为了保护您的账户，您已从所有活动会话中登出。请使用新密码登录。'
+					],
+
+					// 作品
+					[
+						'span.role',
+						/^\s*\(Guest\)\s*$/i,
+						' (访客)'
+					],
+					[
+						'span.parent',
+						/^\s*on\s+(<a[^>]+>)Chapter\s+(\d+)(<\/a>)\s*$/is,
+						'：$1第 $2 章$3'
+					],
+					[
+						'span.parent',
+						/^\s*on\s+(<a[^>]+>)Chapter\s+(\d+)\s+of\s+(\d+)(<\/a>)\s*$/is,
+						'：$1第 $2 章 / 共 $3 章$4'
+					],
+					[
+						'h2.heading',
+						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Series\s+by\s+(.+?)\s*$/s,
+						'$4：$3 个系列，第 $1 - $2 个'
+					],
+					[
+						'h3.heading',
+						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Collections\s*$/s,
+						'$3 个合集，第 $1 - $2 个'
+					],
+					[
+						'p.type',
+						/^\s*\((Open|Closed)(.*)\)\s*$/s,
+						(_match, status, rest) => {
+							const map = { 'Open': '开放中', 'Closed': '已截止' };
+							return `(${map[status]}${rest})`;
+						}
+					],
+					[
+						'h2.heading',
+						/^\s*Collections including\s+(.+?)\s*$/s,
+						'包含 $1 的合集'
+					],
+					[
+						'h3.heading',
+						/^\s*(\d+)\s+Collections?\s*$/s,
+						'$1 个合集'
+					],
+					// 书签
+					[
+						'h4.heading',
+						/^\s*<span class="byline">\s*(.+?),\s*(<input[^>]+>)\s*<\/span>\s*save a bookmark!\s*$/s,
+						'创建书签（<span class="byline">$1$2</span>）'
+					],
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
+					['div.flash.notice', /^Added to collection\(s\):\s+(.*)\.$/s, '已添加到合集：$1 。'],
+					[
+						'p.note',
+						/^\s*Copy and paste the following code to link back to this work \((<kbd>CTRL A<\/kbd>\/<kbd>CMD A<\/kbd>) will select all\), or use the Tweet or Tumblr links to share the work on your Twitter or Tumblr account\.\s*$/s,
+						'请复制以下代码以添加指向此作品的链接（按 $1 可全选），或使用 Tweet / Tumblr 链接在您的 Twitter / Tumblr 账户上分享此作品。'
+					],
+					['h2.heading', /^\s*([\d,]+)\s+Bookmarks?\s*$/s, '$1 条书签'],
+					[
+						'h2.heading',
+						/^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Bookmarks?\s*$/s,
+						'$3 条书签，第 $1 - $2 条'
+					],
+					[
+						'h6.landmark.heading',
+						/^Bookmarker's Notes$/,
+						'书签创建者的注释'
+					],
+					[
+						'h4.heading',
+						/^Mystery Work$/,
+						'神秘作品'
+					],
+					[
+						'h5.heading',
+						/^Part of (<a href="\/collections\/.*?">.+?<\/a>)$/,
+						'属于合集：$1'
+					],
+					[
+						'p.notes',
+						/^\s*Looking for prompts you claimed in a prompt meme\? Try\s+(<a href="[^"]+">)My Claims(<\/a>)\.?\s*$/s,
+						'想查看您在“接梗挑战”中认领的同人梗？请前往$1我的认领$2。'
+					],
+					[
+						'h2.heading',
+						/^\s*My Claims\s*$/i,
+						'我的认领'
+					],
+					[
+						'p.notes',
+						/^\s*Looking for assignments you were given for a gift exchange\? Try\s+(<a[^>]+>)My Assignments(<\/a>)\.?\s*$/is,
+						'想查看您在赠文交换活动中被分配的任务？请前往$1任务中心$2。'
+					],
+					[
+						'h2.heading',
+						/^\s*My Assignments\s*$/i,
+						'任务中心'
+					],
+					[
+						'h4.heading a',
+						/^Bookmark for (.*)$/,
+						'书签：$1'
+					],
+					[
+						'h5.heading',
+						/^\s*in\s+(<span class="collection">.*?<\/span>)\s*$/s,
+						'$1'
+					],
+
+					// 界面
+					['div.flash.notice', /^The skin (.+) has been set\. This will last for your current session\.$/s, '$1 界面已启用，此设置将在当前会话期间持续生效。'],
+					['h2.heading', /^\s*(.+?)\s+skin by\s+(.+?)\s*$/s, '$1 界面，提供者：$2'],
+
+					// 笔名
+					[
+						'dd',
+						/^\s*<ul class="notes">\s*<li>You can have one icon for each pseud\.<\/li>\s*<li>Icons can be in png, jpeg or gif form\.<\/li>\s*<li>Icons should be sized 100x100 pixels for best results\.<\/li>\s*<\/ul>\s*$/s,
+						'<ul class="notes"><li>每个笔名可设置一个头像。</li><li>头像格式支持 PNG、JPEG 和 GIF。</li><li>建议头像尺寸为 100×100 像素以获得最佳效果。</li></ul>'
+					],
+
+					// 匿名化作品
+					[
+						'h2.heading',
+						/^\s*Orphan All Works by (.*?)\s*$/s,
+						'匿名化 $1 的所有作品'
+					],
+					[
+						'p.caution.notice',
+						/^\s*Orphaning all works by (.*?) will\s*<strong>permanently<\/strong>\s*remove the pseud \1 from the following work\(s\), their chapters, associated series, and any feedback replies you may have left on them\.\s*$/s,
+						'匿名化 $1 的所有作品将从以下作品、其章节、关联系列以及您可能留下的任何反馈回复中<strong>永久</strong>移除笔名 $1 。'
+					],
+					[
+						'p.caution.notice',
+						/^\s*Unless another one of your pseuds is listed as a creator on the work\(s\) below, orphaning them will remove them from your account and re-attach them to the specially created orphan_account\. Please note that this is\s*<strong>permanent and irreversible\.<\/strong>\s*You are giving up control over the work\(s\),\s*<strong>including the ability to edit or delete them\.<\/strong>\s*$/s,
+						'除非以下作品的创作者名单中包含您的其她笔名，否则匿名化操作会将这些作品从您的账户中移除，并重新关联至专门创建的 orphan_account（匿名帐户）。请注意，此操作是<strong>永久且不可逆的。</strong>您将放弃对这些作品的控制权，<strong>包括编辑或删除它们的能力。</strong>'
+					],
+
+					// 屏蔽与静音
+					['h2.heading',
+						/^Mute (.*)$/s,
+						'静音 $1'
+					],
+					['div.caution.notice',
+						/^\s*<p>\s*Are you sure you want to <strong>mute<\/strong> ([^<]+)\?\s*Muting a user:\s*<\/p>[\s\S]*?<li>completely hides their works, series, bookmarks, and comments from you; there will be no empty space, placeholder text, or other indication something has been removed<\/li>[\s\S]*?<p>Muting a user will not:<\/p>[\s\S]*?<li>prevent you from receiving comment or subscription emails from this user<\/li>\s*<li>hide their works, series, bookmarks, and comments from anyone else<\/li>[\s\S]*?<p>\s*To prevent a user from commenting on your works or replying to your comments elsewhere on the site, visit <a href="([^"]+)">your Blocked Users page<\/a>\.\s*<\/p>[\s\S]*?<p>[\s\S]*?<a href="([^"]+)">instructions for reverting to the default site skin<\/a>\.\s*<\/p>\s*$/s,
+						`<p>您确定要静音 <strong>$1</strong> 吗？静音用户后：</p>
+	                    <ul><li>她们的作品、系列、书签和评论将完全对您隐藏；不会留下空白空间、占位文本或其她任何提示</li></ul>
+	                    <p>静音用户不会：</p>
+	                    <ul>
+	                    <li>阻止您接收来自该用户的评论或订阅邮件</li>
+	                    <li>将她们的内容隐藏给其她任何人</li>
+	                    </ul>
+	                    <p>如需阻止某用户在您的作品上发表评论或在站点其她地方回复您的评论，请访问<a href="$2">已屏蔽用户页面</a>。</p>
+	                    <p>请注意，如果您未使用默认站点界面，静音功能可能无法正常工作。要了解有关<a href="$3">如何恢复默认站点界面</a>的说明，请参阅界面与 Archive 界面常见问题。</p>`
+					],
+					['div.flash.notice',
+						/^You have muted the user ([^<]+)\.$/s,
+						'您已静音用户 $1 。'
+					],
+					['h2.heading',
+						/^Block (.*)$/s,
+						'屏蔽 $1'
+					],
+					['div.caution.notice',
+						/^\s*<p>\s*Are you sure you want to <strong>block<\/strong> ([^<]+)\?\s*Blocking a user prevents them from:\s*<\/p>[\s\S]*?<ul>\s*<li>commenting or leaving kudos on your works<\/li>\s*<li>replying to your comments anywhere on the site<\/li>\s*<li>giving you gift works outside of challenge assignments and claimed prompts<\/li>\s*<\/ul>[\s\S]*?<p>Blocking a user will not:<\/p>[\s\S]*?<ul>\s*<li>hide their works or bookmarks from you<\/li>\s*<li>delete or hide comments they previously left on your works; you can delete these individually<\/li>\s*<li>hide their comments elsewhere on the site<\/li>\s*<\/ul>[\s\S]*?<p>To hide a user's works, bookmarks, series, and comments from you, visit <a href="([^"]+)">your Muted Users page<\/a>\.<\/p>\s*$/s,
+						`<p>您确定要屏蔽 <strong>$1</strong> 吗？屏蔽用户后，她们将无法：</p>
+	                    <ul>
+	                    <li>在您的作品上发表评论或留下点赞</li>
+	                    <li>在站点任何地方回复您的评论</li>
+	                    <li>在挑战分配和认领同人梗之外赠送作品给您</li>
+	                    </ul>
+	                    <p>屏蔽用户不会：</p>
+	                    <ul>
+	                    <li>隐藏您所屏蔽用户的作品或书签</li>
+	                    <li>删除或隐藏她们之前在您作品上留下的评论；您可以逐条删除</li>
+	                    <li>隐藏她们在站点其她地方的评论</li>
+	                    </ul>
+	                    <p>如需隐藏某用户的作品、书签、系列和评论，请访问<a href="$2">已静音用户页面</a>。</p>`
+					],
+					['p.actions',
+						/<a href="([^"]+)">Cancel<\/a>\s*<input type="submit" name="commit" value="Yes, Block User">/s,
+						'<a href="$1">取消</a> <input type="submit" name="commit" value="是的，屏蔽用户">'
+					],
+					['div.flash.notice',
+						/^You have blocked the user ([^<]+)\.$/s,
+						'您已屏蔽用户 $1 。'
+					],
+					['h2.heading',
+						/^Unblock (.*)$/s,
+						'取消屏蔽 $1'
+					],
+					['div.caution.notice',
+						/^\s*<p>\s*Are you sure you want to <strong>unblock<\/strong> ([^<]+)\?\s*Unblocking a user allows them to resume:\s*<\/p>[\s\S]*?<ul>\s*<li>commenting or leaving kudos on your works<\/li>\s*<li>replying to your comments anywhere on the site<\/li>\s*<li>giving you gift works outside of challenge assignments and claimed prompts<\/li>\s*<\/ul>\s*$/s,
+						`<p>您确定要取消屏蔽 <strong>$1</strong> 吗？取消屏蔽后对方将恢复以下权限：</p>
+	                    <ul>
+	                    <li>在您的作品上发表评论或留下点赞</li>
+	                    <li>在站点任何地方回复您的评论</li>
+	                    <li>在挑战分配和认领同人梗之外赠送作品给您</li>
+	                    </ul>`
+					],
+					['div.flash.notice',
+						/^You have unblocked the user ([^<]+)\.$/s,
+						'您已取消屏蔽用户 $1 。'
+					],
+					['h2.heading',
+						/^Unmute (.*)$/s,
+						'取消静音 $1'
+					],
+					['div.caution.notice',
+						/^\s*<p>\s*Are you sure you want to <strong>unmute<\/strong> ([^<]+)\?\s*Unmuting a user allows you to:\s*<\/p>[\s\S]*?<ul>\s*<li>see their works, series, bookmarks, and comments on the site<\/li>\s*<\/ul>\s*$/s,
+						`<p>您确定要取消静音 <strong>$1</strong> 吗？取消静音后，您将可以：</p>
+	                    <ul>
+	                    <li>在站点上查看她们的作品、系列、书签和评论</li>
+	                    </ul>`
+					],
+					['div.flash.notice',
+						/^You have unmuted the user ([^<]+)\.$/s,
+						'您已取消静音用户 $1 。'
+					],
+
+					// 历史记录
+					[
+						'h4.viewed.heading',
+						/^\s*<span>Last visited:<\/span>\s*(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+\((.*?)\)\s+Visited\s+(once|(\d+)\s+times)(?:\s+\((Marked for Later\.)\))?\s*$/s,
+						(_match, day, monthAbbr, year, statusText, visitText, visitCount, markedForLaterText) => {
+							const statusMap = {
+								'Latest version.': '已是最新版',
+								'Minor edits made since then.': '有微小修订',
+								'Update available.': '作品有更新'
+							};
+							const translatedDate = `${year}年${monthMap[monthAbbr]}月${day}日`;
+							const translatedStatus = statusMap[statusText.trim()] || statusText.trim();
+							const translatedVisit = visitText === 'once' ? '阅读 1 次' : `共阅读 ${visitCount} 次`;
+							const translatedMarked = markedForLaterText ? '（已标记为稍后阅读）' : '';
+
+							let result = `上次阅读：${translatedDate}（${translatedStatus}）。${translatedVisit}`;
+							if (translatedMarked) {
+								result += `${translatedMarked}`;
+							}
+							result += '。';
+							return result;
+						}
+					],
+
+					// 提示信息
+					[
+						'#modal .content p:has(a[href*="content#II.J"])',
+						/\(For more information, see the <a href="\/content#II.J">Ratings and Warnings section of the AO3 Terms of Service<\/a>\.\)/s,
+						'（要了解更多信息，请参阅 <a href="/content#II.J">AO3 服务条款的分级与预警部分</a>。）'
+					],
+					['div.flash.error', /Sorry, additional invitations are unavailable\. Please <a href="\/invite_requests">use the queue<\/a>! If you are the mod of a challenge currently being run on the Archive, please <a href="\/support">contact Support<\/a>\. If you are the maintainer of an at-risk archive, please <a href="http:\/\/opendoors\.transformativeworks\.org\/contact-open-doors\/">contact Open Doors<\/a>\./s, '抱歉，暂时无法提供更多邀请。请<a href="/invite_requests">使用排队系统</a>！<br>如果您是正在 Archive 举办挑战活动的管理员，请<a href="/support">联系支持</a>。<br>如果您是处于风险 Archive 站点的维护者，请<a href="http://opendoors.transformativeworks.org/contact-open-doors/">联系 Open Doors</a>。'],
+					['div.flash.error', /^\s*Password resets are disabled for that user\.\s*For more information, please\s*<a href="\/abuse_reports\/new">\s*contact our Policy & Abuse team\s*<\/a>\.\s*$/s, '此用户的密码重置功能已被禁用。要了解更多信息，请<a href="/abuse_reports/new">联系我们的策略与滥用团队</a>。'],
+					[
+						'div.flash.error',
+						/^\s*Your current session has expired and we can't authenticate your request\. Try logging in again, refreshing the page, or <a href="http:\/\/kb\.iu\.edu\/data\/ahic\.html">clearing your cache<\/a> if you continue to experience problems\.\s*$/s,
+						'您当前的会话已过期，无法验证您的请求。如问题持续存在，请重新登录、刷新页面，或清除缓存。'
+					],
+					['h2.heading', /^Error 404$/, '错误 404'],
+					['h3.heading', /^The page you were looking for doesn't exist\.$/, '您查找的页面不存在。'],
+					['div.error-404 p', /^You may have mistyped the address or the page may have been deleted\.$/, '您可能输入了错误的地址或该页面已被删除。'],
+					[
+						'h2.heading',
+						/^\s*Error 503\s*$/s,
+						'错误 503'
+					],
+					[
+						'h3.heading',
+						/^\s*The page was responding too slowly\.\s*$/s,
+						'页面响应过慢。'
+					],
+					[
+						'div[class*="error-"] p',
+						/^\s*Check our <a href="(https:\/\/www\.otwstatus\.org)">status page<\/a> and follow (<a href="[^"]+">@status\.archiveofourown\.org<\/a>) on Bluesky or (<a href="[^"]+">ao3org<\/a>) on Tumblr for updates if this keeps happening\.\s*$/s,
+						'如果此情况持续存在，请查看我们的<a href="$1">站点状态页面</a>，或在 Bluesky 上关注 $2 、在 Tumblr 上关注 $3 以获取最新动态。'
+					],
+					[
+						'p.message.footnote',
+						/^\s*If you accept cookies from our site and you choose "Yes, Continue", you will not be asked again during this session \(that is, until you close your browser\)\. If you log in you can store your preference and never be asked again\.\s*$/s,
+						'若您接受本站 Cookie 并选择“是，继续”，在本次会话期间（即关闭浏览器之前）将不再弹出此提示。登录账户后可保存您的偏好设置，从而永久免除此询问。'
+					],
+					[
+						'p.notice',
+						/^\s*Sorry, this work doesn't allow non-Archive users to comment\.\s+You can however still leave Kudos!\s*$/s,
+						'抱歉，此作品仅限 Archive 用户评论。不过您可以留下点赞！'
+					],
+					[
+						'h4.heading',
+						/^\s*Comment as\s+(<span class="byline">.*?<\/span>)\s*(<input[^>]*>)\s*$/is,
+						'发表评论（$1）$2'
+					],
+					[
+						'h4.heading',
+						/^\s*Comment as\s+(<select[^>]*>[\s\S]*?<\/select>)\s*$/is,
+						'发表评论 $1'
+					],
+					[
+						'h4.heading',
+						/^\s*(<span class="byline">\s*.+?),\s*(<input[^>]+>)\s*<\/span>\s*save a bookmark!\s*$/is,
+						'创建书签（$1$2</span>）'
+					],
+					[
+						'h4.heading',
+						/^\s*(<select[^>]*>[\s\S]*?<\/select>)\s*save a bookmark!\s*$/is,
+						'创建书签 $1'
+					],
+					[
+						'p',
+						/^\s*<strong>Reminder:<\/strong>\s*This site is in beta\. Things may break or crash without notice\.\s*Please report any pesky bugs and <a href="(\/support)">give us your feedback<\/a>!\s*$/s,
+						'<strong>提示：</strong>本站处于测试阶段。功能可能会无预警地出现故障或崩溃。欢迎报告任何烦人的 Bug 以及<a href="$1">提交您的反馈</a>！'
+					],
+					[
+						'p',
+						/^\s*Forgot your password or username\?\s*<a href="(\/users\/password\/new)">Reset (?:your )?password<\/a>\.\s*<br.*?>\s*Don't have an account\?\s*<a href="(\/invite_requests)">Request an invitation to join<\/a>\.?\s*$/s,
+						'忘记了您的密码或用户名？<a href="$1">重置密码</a>。<br>还没有帐户？<a href="$2">获取邀请</a>。'
+					],
+					[
+						'label[for="reset_login"]',
+						/^\s*Email address\s*<strong>or<\/strong>\s*username\s*$/s,
+						'电子邮箱地址 <strong>或</strong> 用户名'
+					],
+					[
+						'p.muted.notice',
+						/^\s*You have muted some users on the Archive\.\s*Some items may not be shown, and any counts may be inaccurate\.\s*You can mute or unmute users on\s*<a href="(\/users\/[^\/]+\/muted\/users)">your Muted Users page<\/a>\s*[.。]?\s*$/s,
+						'您已在 Archive 上静音了部分用户。部分内容可能因此不予显示，相关计数也可能并不准确。您可在<a href="$1">已静音用户</a>页面静音或取消静音用户。'
+					],
+					[
+						'p.caution.notice',
+						/^\s*This draft will be <strong>scheduled for deletion<\/strong> on\s*(<abbr class="day".*?<\/span>)\s*\.\s*$/s,
+						'此草稿将于 <span>$1</span> <strong>预定删除</strong>。'
+					],
+					[
+						'p:has(a[href="/content"]):has(a[href="/tos_faq#content_faq"])',
+						/All\s+works\s+you\s+post\s+on\s+AO3\s+must\s+comply\s+with\s+our\s+<a\s+href="\/content"[^>]*>(?:Content Policy|内容政策)<\/a>\.\s*For\s+more\s+information,\s+please\s+refer\s+to\s+our\s+<a\s+href="\/tos_faq#content_faq"[^>]*>(?:Terms of Service FAQ|服务条款常见问题)<\/a>[\.。]?/s,
+						'您在 AO3 发布的所有作品均必须遵守我们的<a href="/content">内容政策</a>。更多信息请参阅我们的<a href="/tos_faq#content_faq">服务条款常见问题</a>。'
+					],
+					[
+						'p.notice',
+						/^\s*This work is a draft and has not been posted\. The draft will be <strong>scheduled for deletion<\/strong> on\s*(<abbr class="day".*?<\/span>)\s*\.\s*$/s,
+						'此作品是尚未发布的草稿。将于 <span>$1</span> <strong>预定删除</strong>。'
+					],
+					[
+						'p.notice',
+						/^\s*Sorry, this work doesn't allow comments\.\s*$/s,
+						'抱歉，此作品不允许评论。'
+					],
+					[
+						'h4.heading.byline',
+						/^\s*Chapter by (<a\s+rel="author".*?<\/a>)\s*$/s,
+						'章节作者：$1'
+					],
+					[
+						'div.flash.notice',
+						/^Draft was successfully created\. It will be <strong>scheduled for deletion<\/strong>\s+on\s+(.*)\.$/s,
+						'草稿已成功创建。它将于 <span class="datetime">$1</span> <strong>预定删除</strong>。'
+					],
+					[
+						'p',
+						/^\s*This tag belongs to the Character Category\.\s*$/,
+						'此标签属于“角色”分类。'
+					],
+					[
+						'p',
+						/^\s*This tag has not been marked common and can't be filtered on \(yet\)\.\s*$/,
+						'此标签尚未被标记为常用，（目前）无法用于筛选。'
+					],
+					[
+						'h3.heading',
+						/^\s*Works which have used it as a tag:\s*$/,
+						'使用此标签的作品：'
+					],
+					[
+						'div.flash.error',
+						/^We couldn't add your submission to the following collections: (.*?) does not exist\.$/s,
+						'我们无法将您的提交添加到以下合集：$1 不存在。'
+					],
+					[
+						'h2.heading',
+						/^\s*Editing bookmark for (<a href="\/works\/\d+">.*?<\/a>)\s*$/s,
+						'编辑书签：$1'
+					],
+					[
+						'div.flash.notice',
+						/^\s*Bookmark was successfully updated\.\s+Added to collection\(s\):\s*(.*?)\.\s*$/s,
+						'书签已成功更新。已添加到合集：$1。'
+					],
+					[
+						'li',
+						/^\s*Translation into\s+(<span lang="[^"]+">[^<]+<\/span>)\s+available:\s+(<a href="[^"]+">.*?<\/a>)\s+by\s+(<a rel="author" href="[^"]+">.*?<\/a>)\s*$/,
+						'已有 $1 译本：$2 ，译者：$3'
+					],
+					[
+						'li',
+						/^\s*A translation of\s+(<a href="[^"]+">.*?<\/a>)\s+by\s+(<a rel="author" href="[^"]+">.*?<\/a>)\s*$/,
+						'翻译自：$1 ，作者：$2'
+					],
+					[
+						'li',
+						/^\s*Inspired by\s+(<a href="[^"]+">.*?<\/a>)\s+by\s+(<a rel="author" href="[^"]+">.*?<\/a>)\s*$/,
+						'衍生自：$1 ，作者：$2'
+					],
+					[
+						'li',
+						/^\s*For\s+(<a href="\/users\/[^"]+\/gifts">.*?<\/a>)\s*[.。]?\s*$/,
+						'赠送给：$1'
+					],
+					[
+						'p.jump',
+						/^\s*\(See the end of the work for\s*(<a href="#work_endnotes">)notes(<\/a>)\s+and\s+(<a href="#children">)other works inspired by this one(<\/a>)\.\)\s*$/,
+						'（在作品结尾查看$1注释$2和$3相关衍生作品$4。）'
+					],
+					[
+						'main',
+						/^\s*<h2>The archive is down for maintenance\.<\/h2>\s*<p>Check our (<a href="https:\/\/www\.otwstatus\.org">status page<\/a>), (<a href="https:\/\/bsky\.app\/profile\/status\.archiveofourown\.org">@status\.archiveofourown\.org<\/a>) on Bluesky or (<a href="https:\/\/ao3org\.tumblr\.com\/">ao3org<\/a>) on Tumblr for updates\.<\/p>\s*$/s,
+						'<h2> Archive 正在进行维护。</h2><p>请查看我们的 $1、Bluesky 上的 $2 或 Tumblr 上的 $3，以获取最新动态。</p>'
+					],
+					[
+						'h3.heading',
+						/^\s*Sorry!\s*$/s,
+						'抱歉！'
+					],
+					[
+						'h3.heading + p',
+						/^\s*This work is only available to registered users of the Archive\.\s*If you already have an Archive of Our Own account, log in now\.\s*If you don't have an account, you can\s*<a href="\/invite_requests">.*?<\/a>\s*[.。]?\s*$/s,
+						'此作品仅对 Archive 的注册用户开放。如果您已有 AO3 帐户，请立即登录。如果您还没有帐户，可以<a href="/invite_requests">获取邀请</a>。'
+					],
+					[
+						'div#error.error ul',
+						/<li>(.+?) does not accept gifts\.<\/li>/g,
+						(_match, username) => `<li>${username} 不接受赠文。</li>`
+					],
+					[
+						'div.flash.error',
+						/^We couldn't add your submission to the following collection\(s\): <br><ul><li>(.*?), because this item has already been submitted\.<\/li><\/ul>$/s,
+						'我们无法将您的提交添加到以下合集：<br><ul><li>$1，因为该项目已被提交。</li></ul>'
+					],
+					[
+						'p.note',
+						/^\s*Follow AO3 on Bluesky or Tumblr for status updates, and don't forget to check out the <a href="https:\/\/www\.transformativeworks\.org\/where-find-us\/">Organization for Transformative Works' news outlets<\/a> for updates on our other projects!\s*$/s,
+						'在 Bluesky 或 Tumblr 上关注 AO3 以获取最新动态；同时别忘了查看<a href="https://www.transformativeworks.org/where-find-us/">再创作组织的动态发布渠道</a>，了解我们其她项目的进展！'
+					],
+					[
+						'p.jump',
+						/^\s*\(See the end of the work for\s*(<a href="#work_endnotes">)(more )?notes(<\/a>)\s+and\s+(<a href="#children">)other works inspired by this one(<\/a>)\.\)\s*$/s,
+						(_match, p1, p2, p3, p4, p5) => `（在作品结尾查看${p1}${p2 ? '更多' : ''}注释${p3}和${p4}相关衍生作品${p5}。）`
+					],
+					[
+						'div.flash.notice',
+						/^\s*This work was added to your <a href="([^"]*)">Marked for Later list<\/a>\.\s*$/s,
+						'已将此作品添加至<a href="$1">稍后阅读列表</a>。'
+					],
+					[
+						'h4.viewed.heading',
+						/^\s*\(Deleted work, last visited (\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})\)\s*$/s,
+						(_match, day, month, year) => `作品已删除，上次阅读：${year}年${monthMap[month]}月${day}日`
+					],
+					[
+						'div.flash.notice li',
+						/^\s*You are previewing the skin (.*?)\. This is a randomly chosen page\.\s*$/,
+						'您正在预览界面：$1。这是一个随机选择的页面。'
+					],
+					[
+						'div.flash.notice li',
+						/^\s*Go back or click any link to remove the skin\.\s*$/,
+						'返回或点击任意链接以移除此界面。'
+					],
+					[
+						'div.flash.notice li',
+						/^\s*Tip: You can preview any archive page you want by tacking on '\?site_skin=\[skin_id\]' like you can see in the url above\.\s*$/,
+						'提示：您可以通过在 URL 末尾添加 “?site_skin=[skin_id]” 来预览任意 Archive 页面，如上方地址栏所示。'
+					],
+					[
+						'div.flash.notice li a',
+						/^\s*Return To Skin To Use\s*$/,
+						'返回界面以使用'
+					],
+					[
+						'div.flash.alert',
+						/^You are already logged in to an account\. Please log out and try again\.$/,
+						'您已登录账户，请登出后重试。'
+					],
+					[
+						'p',
+						/^\s*The creator's summary is added automatically\.\s*$/s,
+						'创作者的简介会自动添加'
+					],
+					[
+						'p',
+						/^\s*If you've forgotten your password, we can send you an email with instructions to reset your password\.\s*$/s,
+						'如果您忘记了密码，我们可以发送包含重置密码说明的邮件。'
+					],
+					[
+						'p',
+						/^\s*Please enter the email address associated with your AO3 account\. You may only request a password reset a limited number of times per day\.\s*$/s,
+						'请输入与您的 AO3 账户关联的电子邮箱地址。您每天只能请求有限次数的密码重置。'
+					],
+					[
+						'div.caution.notice',
+						/<p>\s*<strong>Please use this feature with caution\.<\/strong>\s*You can change your username once every 7 days\.\s*<\/p>/s,
+						'<p><strong>请谨慎使用此功能。</strong>用户名每 7 天仅能更改一次。</p>'
+					],
+					[
+						'span#more_pseuds_connector',
+						/^\s*,\s+and\s*$/s,
+						'，和 '
+					],
+					[
+						'dd.pseuds',
+						/(<\/a>),\s+(<a)/g,
+						'$1，$2'
+					],
+					[
+						'dd.pseuds',
+						/(<a[^>]+>.*?<\/a>)\s+and\s+(<a[^>]+>.*?<\/a>)/i,
+						'$1 和 $2'
+					],
+					[
+						'div.flash.error',
+						/^\s*Your password was incorrect\. Please try again or, if you've forgotten your password, log out and reset your password via the link on the login form\. If you are still having trouble, <a href="\/support">contact Support<\/a> for help\.\s*$/s,
+						'您的密码不正确。请重试，如果您忘记了密码，请登出并通过登录表单上的链接重置密码。如果问题仍然存在，请<a href="/support">联系支持团队</a>寻求帮助。'
+					],
+					[
+						'p.notice',
+						/^\s*Sorry, you can't comment on a draft\.\s*$/s,
+						'抱歉，您无法评论草稿。'
+					],
+					[
+						'div.flash.alert',
+						/^\s*The password or username you entered doesn't match our records\. Please try again or <a href="([^"]+)">reset your password<\/a>\. If you still can't log in, please visit <a href="([^"]+)">Problems When Logging In<\/a> for help\.\s*$/s,
+						'您输入的用户名或密码与我们的记录不符。请重试或<a href="$1">重置密码</a>。若仍无法登录，请访问<a href="$2">登录问题</a>寻求帮助。'
+					],
+					['h2', /Shields are up!/, '安全防御已启动！'],
+					['p', /We apologize for the interruption, please prove that you are not a robot:/, '很抱歉打扰您，请证明您不是机器人：'],
+					['small', /<b>Your IP:<\/b>\s*<a([^>]+)>Show IP<\/a>/, '<b>您的 IP:</b> <a$1>显示 IP</a>'],
+					['div.flash.notice', /^Invitation resent to (.+?)\.$/, '邀请已重新发送至 $1 。'],
+
+					// 标签说明
+					[
+						'p',
+						/^\s*This tag belongs to the (Fandom|Relationship|Character|Category|Archive Warning|Rating|Additional Tags) Category\.(\s*It's a <a href="\/faq\/glossary#canonicaldef">(?:canonical tag|规范标签)<\/a>[\.。]\s*You can use it to <a href="([^"]+)">(?:filter works|筛选作品)<\/a> and to <a href="([^"]+)">(?:filter bookmarks|筛选书签)<\/a>[\.。]\s*(\s*You can also access a list of <a href="([^"]+)">(?:Relationship tags in this fandom|此同人圈中的关系标签)<\/a>\s*)?[\.。]?)?\s*$/s,
+						(_match, category, canonicalPart, worksLink, bookmarksLink, relationshipPart, relationshipLink) => {
+							const categoryMap = {
+								'Fandom': '同人圈',
+								'Relationship': '关系',
+								'Character': '角色',
+								'Category': '分类',
+								'Archive Warning': 'Archive 预警',
+								'Rating': '分级',
+								'Additional Tags': '附加标签'
+							};
+							const translatedCategory = categoryMap[category] || category;
+							let result = `此标签属于“${translatedCategory}”类别。`;
+							if (canonicalPart) {
+								result += `这是一个<a href="/faq/glossary#canonicaldef">规范标签</a>。您可以用它来<a href="${worksLink}">筛选作品</a>和<a href="${bookmarksLink}">筛选书签</a>。`;
+								if (relationshipPart && relationshipLink) {
+									result += `您也可以访问<a href="${relationshipLink}">此同人圈中的关系标签</a>列表。`;
+								}
+							}
+							return result;
+						}
+					],
+					[
+						'div.merger > h3.heading',
+						/^Mergers$/,
+						'合并'
+					],
+					[
+						'div.merger p',
+						/^\s*(')?([^'<]+)(')?\s+has been made a synonym of (<a class="tag"[^>]*>.*<\/a>)\.\s*Works and bookmarks tagged with ('?)([^'<]+)(')?\s+will show up in (.*)'s filter\.\s*$/s,
+						(_match, quote1, tag1, _quote2, tag2Link, quote3, tag3, _quote4, tag4) => {
+							const displayTag1 = quote1 ? `'${tag1}'` : tag1;
+							const displayTag3 = quote3 ? `'${tag3}'` : tag3;
+							return `${displayTag1} 已被设为 ${tag2Link} 的同义标签。使用 ${displayTag3} 标签的作品和书签将会在 ${tag4} 的筛选结果中显示。`;
+						}
+					],
+					[
+						'p.caution.notice',
+						/^\s*Are you sure you want to <strong><em>delete<\/em><\/strong> all your subscriptions\? This <strong>cannot be undone<\/strong>\s*[.。]?\s*$/s,
+						'您确定要<strong>删除</strong>所有订阅吗？此操作<strong>无法撤销</strong>。'
+					]
+				],
+				'regexp': [
+					[/^(\d+) kudos$/, '$1 个赞'],
+					[/^(\d+) bookmark(?:s)?$/, '$1 条书签'],
+					[/^(\d+) comment(?:s)?$/, '$1 条评论'],
+					[/^(\d+) hit(?:s)?$/, '$1 次点击'],
+					[/^(\d{2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})$/,
+						(match, p1, p2, p3) => `${p3}年${monthMap[p2]}月${p1}日`
+					],
+					[/^Your work (.*) was deleted\.$/, '您的作品 $1 已被删除。'],
+					[/^Unsubscribe from (.*)$/, '取消订阅 $1']
+				],
+				'selector': [
+					['#tos_prompt button[name=commit]', '我同意并已阅读服务条款'],
+					['.actions a.comment_form_placement_open', '评论'],
+					['.actions a.bookmark_form_placement_open', '创建书签'],
+					['#main .comment_error', '评论不能为空白。'],
+					['.post.comment .submit input[type=submit]', '评论'],
+					['form#new_comment .actions input[name=commit]', '评论'],
+					['#kudo_submit', '点赞'],
+					[/^Chapter (\d+)$/, '第 $1 章']
+				]
+			},
+
+			'flexible': {
+
+				'You searched for:': '您搜索了：',
+				'Moderated': '审核制',
+				'Unmoderated': '非审核制',
+				'Unrevealed': '未揭晓',
+				'Anonymous': '匿名',
+				'Gift Exchange Challenges': '赠文交换活动',
+				'Gift Exchange Challenge': '赠文交换活动',
+				'Prompt Meme Challenges': '接梗挑战',
+				'Prompt Meme Challenge': '接梗挑战',
+				'Bookmarked Items': '已创建书签作品',
+
+				'Not Rated': '未分级',
+				'No rating': '未分级',
+				'No category': '未分类',
+				'General Audiences': '全年龄',
+				'Teen And Up Audiences': '青少年及以上',
+				'Mature': '成人向',
+				'Explicit': '限制级',
+
+				'F/F': '女/女',
+				'F/M': '女/男',
+				'Gen': '无CP',
+				'M/M': '男/男',
+				'Multi-Fandom': '跨圈',
+				'Original Work': '原创作品',
+				'Multi': '多配对',
+				'Choose Not To Use Archive Warnings': '不使用 Archive 预警',
+				'Creator Chose Not To Use Archive Warnings': '不使用 Archive 预警',
+				'No Archive Warnings Apply': ' Archive 预警不适用',
+				'Graphic Depictions Of Violence': '暴力场景描写',
+				'Major Character Death': '主要角色死亡',
+				'Underage Sex': '未成年性行为',
+				'Rape/Non-Con': '强暴/非自愿性行为',
+
+			},
+			'common': {
+				'static': {},
+				'regexp': [],
+				'selector': []
+			},
+			'front_page': {
+				'static': {
+					'What is AO3?': 'AO3 是什么？',
+					'Follow @AO3_Status on Twitter for news and updates!': '在 Twitter 上关注 @AO3_Status 获取新闻和更新！',
+				},
+				'regexp': [],
+				'selector': [
+					['.front.home-banner .heading a', '进入 AO3'],
+				]
+			},
+			// 作品搜索
+			'works_search': {
+				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
+			},
+			'works_search_results': {
+				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
+			},
+			// 用户搜索
+			'people_search': {
+				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
+			},
+			'people_search_results': {
+				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
+			},
+			// 书签搜索
+			'bookmarks_search': {
+				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
+			},
+			'bookmarks_search_results': {
+				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
+			},
+			// 标签搜索
+			'tags_search': {
+				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
+			},
+			'tags_search_results': {
+				'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
+			},
+			'dashboard': {
+				'static': {
+				},
+				'regexp': [],
+				'selector': []
+			},
+			'profile': {
+				'static': {
+					'User Profile': '用户资料',
+					'My Pseud': '我的笔名',
+					'Pseuds': '笔名',
+					'Joined': '加入日期',
+					'Bio': '个人简介',
+					'Dismiss permanently': '永久关闭此信息',
+					'Hide first login help banner': '隐藏首次登录帮助横幅',
+					'×': '×',
+				},
+				'innerHTML_regexp': [
+					['p.alt.message',
+						/^\s*You don't have anything posted under this name yet\.\s*Would you like to\s*<a (href="\/works\/new")>post a new work<\/a>\s*or maybe\s*<a (href="\/external_works\/new")>a new bookmark<\/a>\s*\?\s*$/s,
+						'您还没有以这个笔名发布任何作品。您想要<a $1>发布新作品</a>或者创建<a $2>一个新的书签</a>吗？'
+					]
+				],
+				'regexp': [],
+				'selector': []
+			},
+			'works_edit': {
+				'static': {
+					'Edit Work': '编辑作品',
+					'Add Chapter': '添加章节',
+					'Edit Chapter:': '编辑章节:',
+				},
+				'regexp': [], 'selector': [], 'innerHTML_regexp': []
+			},
+			'works_new': {
+				'static': {
+					'Post New Work': '发布新作品',
+					'Import From An Existing URL Instead?': '从现有 URL 导入',
+					'* Required information': '* 处为必填信息',
+					'Tags are comma separated, 150 characters per tag. Fandom, relationship, character, and additional tags must not add up to more than 75. Archive warning, category, and rating tags do not count toward this limit.': '标签以逗号分隔，每个标签最多 150 字符。同人圈、关系、角色及附加标签总计不得超过 75 字符。Archive 预警、分类及分级标签不计入此限制。',
+					'Rating*': '分级*',
+					'Archive Warnings*': 'Archive 预警*',
+					'Fandoms*': '同人圈*',
+					'If this is the first work for a fandom, it may not show up in the fandoms page for a day or two.': '如果这是该同人圈的第一篇作品，可能需要一两天才会出现在同人圈页面。',
+					'Preface': '前言',
+					'Work Title*': '作品标题*',
+					'We need a title! (At least 1 character long, please.)': '需要一个标题！(请至少输入 1 个字符)',
+					'Add co-creators?': '添加共创者？',
+					'at the beginning': '在开头',
+					'at the end': '在结尾',
+					'End Notes': '尾注',
+					'Associations': '关联',
+					'Post to Collections / Challenges': '发布到合集/挑战',
+					'Gift this work to': '将此作品赠送给',
+					'This work is a remix, a translation, a podfic, or was inspired by another work': '此作品为改编、译作、有声读物或衍生自另一作品',
+					'This work is part of a series': '此作品为一个系列的一部分',
+					'This work has multiple chapters': '此作品包含多个章节',
+					'Set a different publication date': '设置一个不同的发布日期',
+					'Choose a language *': '选择语言*',
+					'Please select a language': '请选择语言',
+					'Select work skin': '选择作品界面',
+					'Basic Formatting': '基本界面',
+					'Homestuck Skin': 'Homestuck 界面',
+					'Undertale Work Skin': 'Undertale 界面',
+					'Only show your work to registered users': '仅向注册用户展示',
+					'Enable comment moderation': '启用评论审核',
+					'Registered users and guests can comment': '注册用户及游客可评论',
+					'Only registered users can comment': '仅注册用户可评论',
+					'No one can comment': '禁止评论',
+					'Work Text*': '作品正文*',
+					'Rich Text': '富文本',
+					'Preview': '预览',
+					'Brevity is the soul of wit, but your content does have to be at least 10 characters long.': '简洁乃智慧之魂，但您的内容长度必须至少 10 个字符。',
+					'Sorry! We couldn\'t save this work because:': '抱歉！我们无法保存此作品，因为：', 'Language cannot be blank.': '语言不能为空。', 'Please fill in at least one fandom.': '请至少填写一个同人圈。', 'Please select at least one warning.': '请至少选择一个预警。',
+					'For a work in the Archive, only the URL is required.': '对于 Archive 站内的作品，仅需填写 URL。',
+					'This is a translation': '这是一个译本',
+					'Choose one of your existing series:': '选择一个您已有的系列：',
+					'Please select': '请选择',
+					'Or create and use a new one:': '或创建并使用一个新系列：',
+					'Chapter Title:': '章节标题：',
+					'Set publication date': '设置发布日期',
+				},
+				'innerHTML_regexp': [
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
+					['fieldset.work.text p.notice', /<strong>Note:<\/strong> Text entered in the posting form is <strong>not<\/strong> automatically saved\. Always keep a backup copy of your work\./s, '<strong>注意：</strong>在发布表单中输入的文本<strong>不会</strong>自动保存。请务必保留作品的备份。'],
+					[
+						'fieldset.create p.notice',
+						/All works you post on AO3 must comply with our <a href="\/content">(Content Policy|内容政策)<\/a>\. For more information, please refer to our <a href="\/tos_faq#content_faq">(?:Terms of Service FAQ|服务条款常见问题)<\/a>\./s,
+						'您在 AO3 发布的所有作品均必须遵守我们的<a href="/content">内容政策</a>。更多信息请参阅我们的<a href="/tos_faq#content_faq">服务条款常见问题</a>。'
+					],
+				],
+				'regexp': [],
+				'selector': [
+					['dt.permissions.comments', '谁可以评论此作品'],
+					['#chapters-options label[for="work_wip_length"]', '第 1 章 / 共']
+				]
+			},
+			'works_import': {
+				'static': {
+					'Import New Work': '导入新作品',
+					'Please note! Fanfiction.net, Wattpad.com, and Quotev.com do not allow imports from their sites.': '请注意！FanFiction.net、Wattpad.com 和 Quotev.com 不允许从其站点导入内容。',
+					'Post New Work Instead?': '改为发布新作品',
+					'Works URLs': '作品 URL',
+					'Rating*': '分级*',
+					'Archive Warnings*': 'Archive 预警*',
+					'Fandoms*': '同人圈*',
+					'Choose a language*': '选择语言*',
+					'Please select a language': '请选择语言',
+					'Set custom encoding': '设置自定义编码',
+					'Import as': '作为以下内容导入',
+					'Works (limit of 25)': '作品（限 25 个）',
+					'Chapters in a single work (limit of 200)': '单部作品的多个章节（限 200 个）',
+					'Preferences': '偏好设置',
+					'Post without previewing.': '不预览直接发布。',
+					'Override tags and notes': '覆盖标签和说明',
+					'Enable comment moderation': '启用评论审核',
+					'Registered users and guests can comment': '注册用户及游客可评论',
+					'Only registered users can comment': '仅注册用户可评论',
+					'No one can comment': '禁止评论',
+					'Set the following tags and/or notes on all works, overriding whatever the importer finds in the content.': '对所有导入的作品设置以下标签和/或说明，覆盖导入工具从内容中提取的信息。',
+					'Use values extracted from the content for blank fields if possible': '如果可能，对空白字段使用从内容中提取的值',
+					'Do not use values extracted from the content at all; use Archive defaults for blank fields': '完全不使用从内容中提取的值；对空白字段使用 Archive 默认值',
+					'Only show imported works to registered users': '仅向注册用户展示导入的作品',
+					'Notes at the beginning': '将注释放在开头',
+					'Submit': '提交',
+					'Import': '导入'
+				},
+				'innerHTML_regexp': [
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
+					[
+						'div.notice p',
+						/You might find the <a href="\/faq\/posting-and-editing#importwork">Import FAQ<\/a> useful\./s,
+						'<a href="/faq/posting-and-editing#importwork">导入常见问题</a>可能会对您有所帮助。'
+					],
+					[
+						'p.footnote#url-field-description',
+						/URLs for existing work\(s\) or for the chapters of a single work; <strong>one URL per line\.<\/strong>/s,
+						'现有作品或单部作品各章节的 URL ；<strong>每行一个 URL 。</strong>'
+					],
+					[
+						'p.note',
+						/Tags are comma separated, 150 characters per tag\. Fandom, relationship, character, and additional tags must not add up to more than 75\. Archive warning, category, and rating tags do not count toward this limit\./s,
+						'标签以逗号分隔，每个标签最多 150 字符。同人圈、关系、角色及附加标签总计不得超过 75 字符。Archive 预警、分类及分级标签不计入此限制。'
+					],
+					[
+						'p.footnote',
+						/If this is the first work for a fandom, it may not show up in the fandoms page for a day or two\./s,
+						'如果这是该同人圈的第一篇作品，可能需要一两天才会出现在同人圈页面。'
+					],
+					[
+						'fieldset p.notice',
+						/All works you post on AO3 must comply with our <a href="\/content">(Content Policy|内容政策)<\/a>\. For more information, please refer to our <a href="\/tos_faq#content_faq">(?:Terms of Service FAQ|服务条款常见问题)<\/a>\./s,
+						'您在 AO3 发布的所有作品均必须遵守我们的<a href="/content">内容政策</a>。更多信息请参阅我们的<a href="/tos_faq#content_faq">服务条款常见问题</a>。'
+					],
+				],
+				'regexp': [],
+				'selector': [
+					['dt.permissions.comments', '谁可以评论此作品']
+				]
+			},
+			'chapters_new': {
+				'static': {
+					'Post New Chapter': '发布新章节',
+					'Name, Order and Date': '名称、顺序和日期',
+					'Chapter Title': '章节标题',
+					'Chapter Number': '章节编号',
+					'Chapter Publication Date': '章节发布日期',
+					'Chapter Preface': '章节前言',
+					'Chapter Summary': '章节简介',
+					'Chapter Notes': '章节注释',
+					'End Notes': '尾注',
+					'Chapter Text*': '章节正文*',
+					'Post Chapter': '发布章节',
+					'Warning: Unchecking this box will delete the existing beginning note.': '警告：取消勾选此框将删除已有的开头注释。',
+					'Warning: Unchecking this box will delete the existing end note.': '警告：取消勾选此框将删除已有的结尾注释。'
+				},
+				'selector': [
+					['label[for="chapter_wip_length"]', '共']
+				]
+			},
+			'works_edit_tags': {
+				'static': {
+					'Post Work': '发布作品',
+					'Update': '更新'
+				},
+				'innerHTML_regexp': [
+					[
+						'h2.heading',
+						/^\s*Edit Work Tags for (.*)\s*$/s,
+						'编辑作品标签：$1 '
+					]
+				],
+				'selector': []
+			},
+			'chapters_edit': {
+				'static': {}
+			},
+			'orphans_new': {
+				'static': {
+					'Take my pseud off as well': '同时移除我的笔名',
+					'Leave a copy of my pseud on': '保留我的笔名副本',
+					'Read More About The Orphaning Process': '阅读更多关于匿名流程的信息',
+					'Yes, I\'m sure': '是的，我确定'
+				},
+				'innerHTML_regexp': [
+					[
+						'p.caution.notice',
+						/Orphaning will\s*<strong>permanently<\/strong>\s*remove all identifying data from the following work\(s\), their chapters, associated series, and any feedback replies you may have left on them\./s,
+						'匿名化操作将<strong>永久</strong>移除以下作品、其章节、关联系列以及您可能留下的任何反馈回复中的所有身份识别信息。'
+					],
+					[
+						'p.caution.notice',
+						/Orphaning a work removes it from your account and re-attaches it to the specially created orphan_account\. Please note that this is\s*<strong>permanent and irreversible\.<\/strong>\s*You are giving up control over the work,\s*<strong>including the ability to edit or delete it\.<\/strong>/s,
+						'匿名化作品会将其从您的账户中移除，并重新关联至专门创建的 orphan_account（匿名帐户）。请注意，此操作是<strong>永久且不可逆的。</strong>您将放弃对该作品的控制权，<strong>包括编辑或删除它的能力。</strong>'
+					],
+					[
+						'p.caution.notice',
+						/Are you\s*<strong>really<\/strong>\s*sure you want to do this\?/s,
+						'您<strong>真的</strong>确定要这样做吗？'
+					]
+				],
+				'selector': []
+			},
+			'works_show_multiple': {
+				'static': {
+					'Edit Multiple Works': '编辑多个作品',
+					'You have no works or drafts to edit.': '您没有可编辑的作品或草稿。',
+					'All': '全选',
+					'None': '取消勾选',
+					'Actions': '操作',
+					'Orphan': '匿名化'
+				},
+				'innerHTML_regexp': [
+					[
+						'fieldset.fandom.listbox > legend',
+						/^Select (.*) works$/s,
+						'选择 $1 的作品'
+					]
+				],
+				'regexp': [
+					[/\(Draft\)$/, '（草稿）']
+				]
+			},
+			'works_edit_multiple': {
+				'static': {
+					'Edit Multiple Works': '编辑多个作品',
+					'Visibility': '可见性',
+					'Keep current visibility settings': '保持当前可见性设置',
+					'Show to all': '对所有人可见',
+					'Only show to registered users': '仅向注册用户展示',
+					'Comment moderation': '评论审核',
+					'Keep current comment moderation settings': '保持当前评论审核设置',
+					'Disable comment moderation': '禁用评论审核',
+					'Who can comment on these works': '谁可以评论这些作品',
+					'Keep current comment settings': '保持当前评论设置',
+					'Add co-creators': '添加共创者',
+					'Choose a language': '选择语言',
+					'Update All Works': '更新所有作品',
+					'Are you sure? Remember this will replace all existing values!': '您确定吗？请记住，此操作将替换所有现有值！'
+				},
+				'innerHTML_regexp': [
+					[
+						'p.caution.notice',
+						/^\s*Your edits will be applied to <strong>.*?<\/strong> of the following works:\s*$/s,
+						'您的编辑将应用于以下<strong>全部</strong>作品：'
+					],
+					[
+						'p.caution.notice',
+						/^\s*Your edits will <strong>replace<\/strong> the existing values!\s*\(If you leave a field blank it will remain unchanged\.\)\s*$/s,
+						'您的编辑将<strong>替换</strong>现有值（如果将字段留空，则不会进行更改）。'
+					]
+				]
+			},
+			'users_invitations': {
+				'flexible': {
+					'Unsent': '未发送',
+					'Sent But Unused': '已发送但未使用',
+					'Used': '已使用',
+
+				},
+				'static': {
+					'Invite a friend': '邀请好友',
+					'Invitations': '邀请',
+					'Manage Invitations': '管理邀请',
+					'Request Invitations': '获取邀请',
+					'Your Invitations': '您的邀请',
+					'Manage:': '管理：',
+					'All': '全部'
+				},
+				'innerHTML_regexp': [
+					['div.module p', /Sorry, you have no unsent invitations right now\. <a href="\/user_invite_requests\/new">Request invitations<\/a>/s, '抱歉，您当前没有未发送的邀请。<a href="/user_invite_requests/new">获取邀请</a>']
+				]
+			},
+			'users_common': {
+				'static': {
+					'Profile': '个人资料',
+				},
+			},
+			'users_settings': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+			},
+			'users_block_mute_list': {
+				'static': {
+					'Blocked Users': '已屏蔽用户',
+					'Muted Users': '已静音用户',
+					'Block a user': '屏蔽用户',
+					'Mute a user': '静音用户',
+					'Block': '屏蔽',
+					'Mute': '静音',
+					'Unblock': '取消屏蔽',
+					'Unmute': '取消静音',
+					'You have not muted any users.': '您尚未静音任何用户。',
+					'You have not blocked any users.': '您尚未屏蔽任何用户。'
+				},
+				'innerHTML_regexp': [
+					[
+						'div.notice',
+						/^\s*<p>You can block up to 2,000 users\. Blocking a user prevents them from:<\/p>[\s\S]*?<a href="(\/users\/[^\/]+\/muted\/users)">your Muted Users page<\/a>\.<\/p>\s*$/s,
+						`<p>您最多可以屏蔽 2,000 位用户。屏蔽用户后，她们将无法：</p>
+	                        <ul>
+	                        <li>在您的作品上发表评论或留下点赞</li>
+	                        <li>在站点任何地方回复您的评论</li>
+	                        <li>在活动分配和认领同人梗之外赠送作品给您</li>
+	                        </ul>
+	                        <p>屏蔽用户不会：</p>
+	                        <ul>
+	                        <li>隐藏您所屏蔽用户的作品或书签</li>
+	                        <li>删除或隐藏她们之前在您作品上留下的评论；您可以逐条删除</li>
+	                        <li>隐藏她们在站点其她地方的评论</li>
+	                        </ul>
+	                        <p>如需隐藏某用户的作品、书签、系列和评论，请访问<a href="$1">已静音用户页面</a>。</p>`
+					],
+					[
+						'div.notice',
+						/^\s*<p>You can mute up to 2,000 users\. Muting a user:<\/p>[\s\S]*?<a href="(\/users\/[^\/]+\/blocked\/users)">your Blocked Users page<\/a>\.[\s\S]*?<a href="(\/faq\/skins-and-archive-interface#restoresiteskin)">instructions for reverting to the default site skin<\/a>\.\s*<\/p>\s*$/s,
+						`<p>您最多可静音 2,000 位用户。静音用户后：</p>
+	                        <ul>
+	                        <li>她们的作品、系列、书签和评论将完全对您隐藏；不会留下空白空间、占位文本或其她任何提示</li>
+	                        </ul>
+	                        <p>静音用户不会：</p>
+	                        <ul>
+	                        <li>阻止您接收来自该用户的评论或订阅邮件</li>
+	                        <li>将她们的内容隐藏给其她任何人</li>
+	                        </ul>
+	                        <p>如需阻止某用户在您的作品上发表评论或在站点其她地方回复您的评论，请访问<a href="$1">已屏蔽用户页面</a>。</p>
+	                        <p>请注意，如果您未使用默认站点界面，静音功能可能无法正常工作。要了解有关<a href="$2">如何恢复默认站点界面</a>的说明，请参阅界面与 Archive 界面常见问题 。</p>`
+					]
+				],
+				'regexp': [],
+				'selector': []
+			},
+			'preferences': {
+				'static': {
+					'Edit My Preferences': '编辑我的偏好设置',
+					'Privacy': '隐私设置',
+					'Interface': '界面设置',
+					'Work Display': '作品显示',
+					'Site Skins': '站点界面',
+					'When I post a work, credit me as:': '当我发布作品时，署名方式：',
+					'Show': '显示',
+					'Hide': '隐藏',
+					'Turn on Creator Styles': '启用创作者界面样式',
+					'Update': '确定',
+				},
+				'regexp': [],
+				'selector': []
+			},
+			'skins': {
+				'static': {
+					'Public Site Skins': '公共站点界面',
+					'Create Site Skin': '创建新界面',
+					'Edit Skin': '编辑界面',
+					'Description': '描述',
+					'Use': '使用',
+					'Preview': '预览',
+					'Set For Session': '为本次会话设置',
+					'Create New Skin': '创建新界面',
+					'Write Custom CSS': '编写自定义 CSS',
+					'Use Wizard': '使用向导',
+					'* Required information': '* 处为必填信息',
+					'Type*': '类型*',
+					'Title*': '标题*',
+					'Site Skin': '站点界面',
+					'Work Skin': '作品界面',
+					'Upload a preview (png, jpeg or gif)': '上传预览（PNG、JPEG 或 GIF）',
+					'Apply to make public': '应用并公开',
+					'Advanced': '高级',
+					'Show ↓': '显示 ↓',
+					'Hide ↑': '隐藏 ↑',
+					'Conditions': '条件',
+					'What it does:': '作用：',
+					'add on to archive skin': '添加到 Archive 界面',
+					'replace archive skin entirely': '完全替换 Archive 界面',
+					'IE Only:': '仅限 IE：',
+					'Parent Only:': '仅限母级：',
+					'Media:': '媒体：',
+					'Choose @media': '选择 @media',
+					'Parent Skins': '母级界面',
+					'Add parent skin': '添加母级界面',
+					'Actions': '操作',
+					'Submit': '提交',
+					'Site Skin Wizard': '站点界面向导',
+					'Fonts and Whitespace': '字体与留白',
+					'Font': '字体',
+					'Colors': '颜色设置',
+					'Percent of browser font size': '浏览器字体大小百分比',
+					'Work margin width': '作品页边距宽度',
+					'Vertical gap between paragraphs': '段落垂直间距',
+					'Background color': '背景色',
+					'Text color': '文字颜色',
+					'Header color': '页眉颜色',
+					'Accent color': '强调色',
+					'This form allows you to create a new site or work skin. Select "Work Skin" or "Site Skin" in the Type option list to choose which type of skin you are creating.': '此表单允许您创建新的站点或作品界面。在“类型”选项列表中选择“作品界面”或“站点界面”以指定创建的界面类型。',
+				},
+				'innerHTML_regexp': [
+					['p.notes', /^\s*This wizard only creates site skins\.\s*You can also <a href="\/skins\/new\?skin_type=WorkSkin">create a work skin<\/a> which can be used to add styling to works that you post\.\s*<a[^>]*><span class="symbol question"><span>\?<\/span><\/span><\/a>\s*$/, '此向导仅创建站点界面。您也可以<a href="/skins/new?skin_type=WorkSkin">创建作品界面</a>，用于为您发布的作品添加样式。<a class="help symbol question modal modal-attached" title="Skins basics" href="/help/skins-basics.html" aria-controls="modal"><span class="symbol question"><span>?</span></span></a>'],
+					['p.notes', /^\s*You may wish to refer to this <a href="https:\/\/www\.w3schools\.com\/colors\/colors_names\.asp">handy list of colors<\/a>\.\s*$/, '您可以参考这份<a href="https://www.w3schools.com/colors/colors_names.asp">实用的颜色列表</a>。'],
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
+					['p.footnote#font-field-notes', /^\s*Comma-separated list of font names\.\s*$/, '以逗号分隔的字体名称列表。'],
+					['p.footnote#base-em-field-notes', /^\s*Numbers only, treated as a percentage of the browser's default font size\. Default: <code>100<\/code>\s*$/, '仅限数字，表示相对于浏览器默认字体大小的百分比。默认值：<code>100</code>'],
+					['p.footnote#margin-field-notes', /^\s*Numbers only, treated as a percentage of the page width\.\s*$/, '仅限数字，表示相对于页面宽度的百分比。'],
+					['p.footnote#paragraph-margin-field-notes', /^\s*Numbers only, treated as a multipler of the paragraph font size\. Default: <code>1\.286<\/code>\s*$/, '仅限数字，表示相对于段落字体大小的倍数。默认值：<code>1.286</code>'],
+					['p.footnote#background-color-field-notes', /^\s*Name or hex code\. Default: <code>#fff<\/code>\s*$/, '名称或十六进制代码。默认值：<code>#fff</code>'],
+					['p.footnote#foreground-color-field-notes', /^\s*Name or hex code\. Default: <code>#2a2a2a<\/code>\s*$/, '名称或十六进制代码。默认值：<code>#2a2a2a</code>'],
+					['p.footnote#header-color-field-notes', /^\s*Name or hex code\. Default: <code>#900<\/code>\s*$/, '名称或十六进制代码。默认值：<code>#900</code>'],
+					['p.footnote#accent-color-field-notes', /^\s*Name or hex code\. Default: <code>#ddd<\/code>\s*$/, '名称或十六进制代码。默认值：<code>#ddd</code>']
+				],
+				'regexp': [
+					[/^Must be present\.$/, '必须提供']
+				],
+				'selector': []
+			},
+			'users_works_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': [],
+			},
+			'users_drafts_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': [],
+			},
+			'users_series_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': [],
+			},
+			'users_bookmarks_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': [],
+			},
+			'users_collections_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': [],
+			},
+			'users_subscriptions_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': [],
+			},
+			'users_related_works_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': [],
+			},
+			'users_gifts_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': [],
+			},
+			'users_signups': {
+				'static': {
+					'Challenge Sign-ups': '挑战活动报名'
+				},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': []
+			},
+			'users_stats': {
+				'static': {
+					'Navigation and Sorting': '导航与排序',
+					'Stats': '数据统计',
+					'All Years': '所有年份',
+					'Totals': '总计',
+					'User Subscriptions:': '用户订阅:',
+					'Comment Threads:': '评论串:',
+					'Subscriptions:': '作品订阅:',
+					'View Sorting and Actions': '视图排序与操作',
+					'Fandoms View': '同人圈视图',
+					'Flat View': '平铺视图',
+					'Listing Statistics': '列表统计',
+					'Comment Threads': '评论串',
+					'Subscriptions': '订阅列表'
+				},
+				'innerHTML_regexp': [
+					['span.words', /^\(([\d,]+)\s+words\)$/s, '（$1 字）']
+				],
+				'regexp': [],
+				'selector': []
+			},
+			'works_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': []
+			},
+			'works_show': {
+				'static': {
+					'Download': '下载',
+					'Subscribe': '订阅',
+					'Unsubscribe': '取消订阅',
+					'kudos': ' 个赞',
+					'Comments': '评论',
+					'Chapter Notes': '章节注释',
+					'Work Notes': '作品注释',
+					'End Notes': '章节尾注',
+					'Inspired by': '灵感来源于',
+				},
+				'innerHTML_regexp': [],
+				'regexp': [
+					[/^Chapter (\d+) of (\d+)$/, '第 $1 章 / 共 $2 章'],
+					[/^Chapter (\d+)$/, '第 $1 章'],
+				],
+				'selector': [
+					['#workskin .preface .notes .landmark', '注释'],
+				]
+			},
+			'series_index': {
+				'static': {}, 'innerHTML_regexp': [], 'regexp': [], 'selector': []
+			},
+			'series_show': {
+				'static': {
+					'Works in Series': '系列中的作品',
+					'Series Begun': '系列开始于',
+					'Series Updated': '系列更新于',
+					'Words': '总字数',
+					'Description': '系列描述',
+				},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': []
+			},
+			'tags_index': {
+				'static': {
+					'Canonical Tags': '规范标签',
+					'Uncategorized Tags': '未分类标签',
+					'Browse Tags': '浏览标签',
+				},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': []
+			},
+			'tags_show': {
+				'static': {
+					'Works in Tag': '此标签下的作品',
+					'Filter': '筛选',
+					'Related Tags': '相关标签',
+					'Meta Tag': '元标签',
+					'Sub Tag': '子标签',
+					'Synonymous Tag': '同义标签',
+				},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': []
+			},
+			'tag_sets_index': {
+				'static': {
+					'New Tag Set': '新建标签集',
+					'Nominate': '提名',
+
+				},
+				'innerHTML_regexp': [
+					['dl.stats', /(Fandoms:|Characters:|Relationships:|Additional Tags:)/g, (match) => {
+						const translationMap = {
+							'Fandoms:': '同人圈：',
+							'Characters:': '角色：',
+							'Relationships:': '关系：',
+							'Additional Tags:': '附加标签：'
+						};
+						return translationMap[match] || match;
+					}]
+				],
+				'regexp': [],
+				'selector': []
+			},
+			'tag_sets_nominations_new': {
+				'flexible': {
+					'Relationship': '关系',
+				},
+				'static': {
+					// 表单区域标题
+					'Basic Information': '基本信息',
+					'Submit': '提交',
+					'Tag Nominations': '标签提名',
+					'Nominate Tags Form': '提名标签表单',
+					'Fandom?': '同人圈？',
+
+					// 标签与提示
+					'Nominating For:': '提名对象：',
+					'Pseud:': '笔名：',
+
+					// 页面说明文字
+					'The autocomplete lists canonical tags for you. Please choose the canonical version of your tag if there is one.': '自动补全列表会为您列出规范标签。如存在规范版本，请选择。',
+					'The tag set moderators might change or leave out your nominations (sometimes just because a different form of your nomination was included).': '标签集管理员可能会更改或忽略您的提名（有时仅因已收录了另一种形式）。',
+					'Nominations are not forever! Don\'t be confused if you come back in a few months and they are gone: they may have been cleaned up.': '提名并非永久保留！几个月后回来如发现提名消失，请勿感到困惑：可能已被清理。',
+					'If crossover relationships are allowed, you can enter them under either fandom.': '若允许跨圈关系，可在任一同人圈下输入。',
+
+					'Specifying Fandom': '指定同人圈',
+					'Tagset fandom for child': '子标签集同人圈',
+					'Close': '关闭'
+				},
+				'innerHTML_regexp': [
+					['h2.heading', /^Tag Nominations for (.*?)$/, '为 “$1” 提名标签'],
+					['ul.navigation.actions a[href*="/tag_sets/"]', /^Back To (.*?)$/, '返回 “$1”'],
+					['#modal .content.userstuff p',
+						/^\s*You only need to specify the fandom if your nomination is new or not in the fandom already -- for instance, if you're\s*submitting a character who has just appeared in the fandom\.\s*This information is just used to help the moderators sort out new tags\.\s*$/s,
+						'仅当您的提名为新标签或尚未存在于该同人圈时才需指定同人圈——例如，您提交的角色刚出现在该同人圈中。此信息仅用于帮助管理员整理新标签。'
+					]
+				],
+				'regexp': [
+					[/^You can nominate up to .*$/, translateNominationRule],
+
+					[/^Fandom (\d+)$/, '同人圈 $1'],
+					[/^Additional Tag (\d+)$/, '附加标签 $1']
+				],
+				'selector': []
+			},
+			'owned_tag_sets_show': {
+				'flexible': {
+					'Ratings': '分级',
+					'Additional Tags': '附加标签',
+					'Categories': '分类',
+					'Warnings': '预警',
+					'No Media': '无媒体',
+					'Unassociated Characters & Relationships': '未关联的角色与关系',
+				},
+				'static': {
+					'Nominate': '提名',
+					'All Tag Sets': '所有标签集',
+					'Created on:': '创建日期：',
+					'Maintainers:': '维护者：',
+					'Description:': '简介：',
+					'Status:': '状态：',
+					'Stats:': '统计数据：',
+					'Nominations allowed per person:': '每人可提名数量：',
+					'Expand All': '展开全部',
+					'Contract All': '收起全部',
+					'Medium: Fanfiction': '媒介：同人文',
+					'The following characters and relationships don\'t seem to be associated with any fandom in the tagset. You might need to add the fandom, or set up associations for them.': '以下角色与关系似乎尚未与标签集中的任何同人圈关联。您可能需要添加所属同人圈，或为其建立关联。',
+					'The moderators have chosen not to make the tags in this set visible to the public (possibly while nominations are underway).': '标签集管理员已选择暂不向公众展示此标签集中的标签（可能是因为提名正在进行中）。',
+					'Metadata': '元数据',
+					'Listing Tags': '标签列表',
+				},
+				'innerHTML_regexp': [
+					['h2.heading', /^About (.*)$/, '关于 “$1”'],
+					['dd', /<strong>Open<\/strong> to the public\./, '对公众开放。'],
+					['dl.stats', /(Fandoms:|Characters:|Relationships:|Freeforms:)/g, (match) => {
+						const translationMap = {
+							'Fandoms:': '同人圈：',
+							'Characters:': '角色：',
+							'Relationships:': '关系：',
+							'Freeforms:': '自由形式：'
+						};
+						return translationMap[match] || match;
+					}],
+				],
+				'regexp': [
+					[/^Medium: Art - Character$/, '媒介：画作-角色'],
+					[/^Medium: Fanvid - Character$/, '媒介：同人视频-角色'],
+					[/^Medium: Other - Character$/, '媒介：其她-角色'],
+				],
+				'selector': []
+			},
+			'tag_sets_new': {
+				'static': {
+					'Create A Tag Set': '创建标签集',
+					'Back to Tag Sets': '返回标签集',
+					'Management': '管理',
+					'Description': '简介',
+					'Nomination Limits': '提名限制',
+					'Tags In Set': '标签集内标签',
+					'Tags in Set': '标签集内标签',
+					'Tag Associations': '标签关联',
+					'Actions': '操作',
+					'Ratings': '评级',
+					'Tag sets are used for running a challenge.': '标签集用于举办挑战活动。',
+					'"Visible" tag sets are shown to all users.': '“可见”标签集会向所有用户展示。',
+					'"Usable" tag sets can be used by others in their challenges.': '“可用”标签集可供她人在其挑战中使用。',
+					'Tag sets that are open to nominations can take nominations from the public.': '开放提名的标签集可接受公众提名。',
+					'Tag names have to be unique. If necessary the archive may add on the tag type. (For instance, if you entered a character "Firefly", you\'d see "Firefly - Character" in your tag set instead since the tag Firefly is already used for the show.': '标签名称必须唯一。如有必要，Archive 会自动添加标签类型后缀。（例如，若您输入角色名“Firefly”，由于已有同名标签用于剧集，该标签会在您的标签集中显示为“Firefly - Character”。）',
+					'Current Owners': '当前所有者',
+					'Add/Remove Owners:': '添加/移除所有者：',
+					'Current Moderators': '当前管理员',
+					'Add/Remove Moderators:': '添加/移除管理员：',
+					'Title* (text only)': '标题*（仅限文本）',
+					'Brief Description': '简要描述',
+					'Visible tag list?': '可见标签列表？',
+					'Usable by others?': '可被她人使用？',
+					'Currently taking nominations?': '当前接受提名？',
+					'Fandom nomination limit': '同人圈提名限制',
+					'Character nomination limit': '角色提名限制',
+					'Relationship nomination limit': '关系提名限制',
+					'Freeform nomination limit': '自由标签提名限制',
+					'Add Fandoms:': '添加同人圈：',
+					'Add Characters:': '添加角色：',
+					'Add Relationships:': '添加关系：',
+					'All': '全选',
+					'None': '取消勾选',
+					'Tag Set Associations': '标签集关联',
+					'Tagset tag associations': '标签集：标签关联 帮助',
+					'Close': '关闭'
+				},
+				'innerHTML_regexp': [
+					['h4.heading > label[for*="freeform"]', /Add Additional Tags:/, '添加附加标签：'],
+					['form > fieldset:nth-of-type(1) > p.notes', /^\s*To add or remove an owner or moderator, enter their name\. If they are already on the list they will be removed; if not, they will be added\.\s*You can't remove the sole owner of a tag set\.\s*$/, '要添加或移除所有者或管理员，请输入其用户名。若已在列表中则移除，否则将被添加。无法移除唯一所有者。'],
+					['#nomination_limits .notes li:nth-of-type(1)', /If you allow <em>both<\/em> fandoms and characters\/relationships in the same tag set,\s*the number of characters\/relationships is <strong>per fandom<\/strong> 。/s, '如果您在同一标签集中同时允许提名同人圈和角色/关系，那么角色/关系的数量是<strong>按每个同人圈计算</strong>的。'],
+					['#nomination_limits .notes li:nth-of-type(2)', /If that's not what you want, you\s*can have users nominate fandoms in one tag set, and characters\/relationships in another tag set\. Then use both tag sets in your challenge settings\./s, '如果这不是您想要的效果，您可以让用户在一个标签集中提名同人圈，在另一个标签集中提名角色/关系。然后在您的挑战设置中同时使用这两个标签集。'],
+					['#modal .content.userstuff p:nth-of-type(1)', /Tag associations let you set up associations between the fandoms, characters, and relationships in your tag set, which then\s+lets your participants pick from only the characters and relationships in a given fandom\./s, '标签关联功能允许您在所选同人圈、角色和关系之间建立关联，从而让参与者仅从指定同人圈中的角色和关系中进行选择。'],
+					['#modal .content.userstuff p:nth-of-type(2)', /Note: if the wranglers have already set up these associations, then you can just add the additional\s+ones that you would like -- you don't have to \(and in fact aren't allowed\) to create copies of canonical\s+associations\. You can still limit your participants' choices to tags actually in your set\./s, '注意：如果标签管理员已经建立了这些关联，您只需添加想要的关联即可——无需（且实际上也不被允许）复制已有的规范关联。您仍可将参与者的选项限制在标签集中已有的标签范围内。'],
+					['#modal .content.userstuff p:nth-of-type(3)', /If you're not sure how this might work, try adding a few fandoms and characters and setting up some associations,\s+and then set up your challenge and try out the sign-up form!/s, '如果不确定此功能如何运作，请尝试添加一些同人圈和角色并建立关联，然后创建您的挑战活动并在报名表中进行测试！']
+				],
+				'regexp': [],
+				'selector': []
+			},
+			'collections_index': {
+				'flexible': {
+					'Moderated': '审核制',
+					'Fandoms': '同人圈',
+					'Works': '作品',
+					'Open,': '开放中,',
+					'Closed,': '已截止,',
+				},
+				'static': {
+					'Sign Up': '报名',
+				},
+				'innerHTML_regexp': [
+					['h3.heading', /(\d+\s*-\s*\d+)\s+of\s+([\d,]+)\s+Collections/s, '第 $1 个，共 $2 个合集']
+				],
+				'regexp': [
+					[/^You have applied to join (.*)\.$/, '您已申请加入 $1。'],
+					[/^Removed (\w+) from collection\.$/, '已将 $1 从合集中移除。']
+				],
+				'selector': []
+			},
+			'bookmarks_index': {
+				'static': {
+					'My Bookmarks': '我的书签',
+					'Recs': '推荐',
+					'Private': '私密',
+					'Public': '公开',
+					'Notes & Tags': '笔记和标签',
+					'Your tags': '标签',
+					'The creator\'s tags are added automatically.': '创建者的标签会自动添加',
+					'Comma separated, 150 characters per tag': '以逗号分隔，每个标签最多 150 字符',
+					'Add to collections': '添加到合集',
+					'Private bookmark': '私人书签',
+					'Create': '创建',
+				},
+				'innerHTML_regexp': [
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
+				],
+				'regexp': [],
+				'selector': []
+			},
+			'bookmarks_show': {
+				'static': {
+					'Bookmark by': '书签创建者：',
+					'Bookmarker\'s Tags': '书签创建者的标签',
+					'Bookmarker\'s Notes': '书签创建者的注释',
+				},
+				'regexp': [],
+				'selector': []
+			},
+			'collections_show': {
+				'static': {
+					'Collection by': '合集创建者',
+					'Maintainers': '维护者',
+					'Challenge': '挑战',
+					'Gift Exchange': '赠文交换',
+					'Prompt Meme': '接梗挑战',
+					'Rules': '规则',
+					'FAQ': '常见问题',
+					'Sign-up': '报名',
+					'Assignments': '任务中心',
+					'Post to Collection': '发布到此合集',
+				},
+				'regexp': [],
+				'selector': []
+			},
+			'collections_new': {
+				'static': {
+					'New Collection': '新建合集',
+					'Suggestions': '建议',
+					'New Collection Form': '新建合集表单',
+					'* Required information': '* 处为必填信息',
+					'Header': '页眉',
+					'Collection name*': '合集名称*',
+					'Display title*': '显示标题*',
+					'Parent collection (that you maintain)': '母合集（由您维护）',
+					'Collection email': '合集电子邮箱',
+					'Custom header URL': '自定义页眉 URL',
+					'Icon': '图标',
+					'Upload a new icon': '上传新图标',
+					'Icon alt text': '图标替代文本',
+					'Icon comment text': '图标注释文本',
+					'Brief description': '简要描述',
+					'Preferences': '偏好设置',
+					'This collection is moderated': '此合集需审核',
+					'This collection is closed': '此合集为关闭状态',
+					'This collection is unrevealed': '此合集为未公开状态',
+					'This collection is anonymous': '此合集为匿名状态',
+					'Show random works on the front page instead of the most recent': '在主页随机显示作品，而不是最新作品',
+					'Send a message to the collection email when a work is added': '作品添加时向合集电子邮箱发送通知',
+					'Type of challenge, if any': '活动类型（如有）',
+					'Gift Exchange': '赠文交换',
+					'Prompt Meme': '接梗挑战',
+					'Notice to challenge creators': '活动创建者须知',
+					'Profile': '概述',
+					'Plain text with limited HTML': '纯文本，支持有限 HTML',
+					'Introduction': '介绍',
+					'FAQ': '常见问题',
+					'Rules': '规则',
+					'Assignment notification message': '分配通知信息',
+					'Gift notification message': '赠文通知信息',
+					'Actions': '操作',
+				},
+				'innerHTML_regexp': [
+					['h3.heading + ul.notes li:nth-of-type(1)', /^\s*Only registered users can post, so you don't need to worry about spam: you can leave your collection unmoderated\. You can always reject works afterwards if there <em>is<\/em> a mistaken submission\.\s*$/, '只有注册用户可以发布，因此您无需担心垃圾信息：您可以让您的合集不受审核。如有误提交，您随时可以事后拒绝作品。'],
+					['h3.heading + ul.notes li:nth-of-type(2)', /^\s*The best way to set up a regular challenge \(e\.g\., an annual challenge like Yuletide,\s*or a weekly one like sga_flashfic\) is to create a closed parent collection and then add a new, open, subcollection for each challenge\.\s*$/, '设置常规活动（例如年度活动 Yuletide 或每周活动 sga_flashfic ）的最佳方式是创建一个封闭的母合集，然后为每次活动添加一个新的开放的子合集。'],
+					['h3.heading + ul.notes li:nth-of-type(3)', /^\s*If you limit membership for each challenge \(e\.g\., for a gift exchange\), people can sign\s*up for each subcollection separately\. If you just want the whole thing moderated, have people sign up as members of the parent collection; they'll then be able to post in every subcollection\.\s*$/, '如果您为每次活动限制成员资格（例如赠文交换），用户可以分别报名加入每个子合集。如果您只想对整个活动进行审核，请让用户报名成为母合集的成员；这样她们就可以在所有子合集中发布内容。'],
+					['p.footnote#name-field-notes', /^\s*1 to 255 characters \(A-Z, a-z, _, 0-9 only\), no spaces, cannot begin or end with underscore \(_\)\s*$/, '1 到 255 个字符（仅限 A–Z、a–z、_、0–9），禁止使用空格，且不能以下划线开头或结尾'],
+					['p.footnote#title-field-notes', /^\s*\(text only\)\s*$/, '（仅限文本）'],
+					['p.footnote#header-image-field-description', /^\s*JPG, GIF, PNG\s*$/, 'JPG、GIF、PNG'],
+					['fieldset > legend + p', /^\s*You can also individually\s+Manage Items\s+in your collection\.\s*$/, '您也可以单独管理合集中的作品。'],
+					['dd',
+						/^\s*<ul class="notes">\s*<li>Each collection can have one icon<\/li>\s*<li>Icons can be in png, jpeg or gif form<\/li>\s*<li>Icons should be sized 100x100 pixels for best results<\/li>\s*<\/ul>\s*$/,
+						'<ul class="notes"><li>每个合集可设置一个图标</li><li>图标可为 PNG、JPEG 或 GIF 格式</li><li>建议图标尺寸为 100×100 像素以获得最佳效果</li></ul>'],
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/g, '剩余 $1 字符'],
+					['dd',
+						/^\s*<ul class="notes">\s*<li>As a challenge owner, you may have access to challenge participants' email addresses\.<\/li>\s*<li>Use of those email addresses for any purpose other than running the challenge will lead to the termination of your account\.<\/li>\s*<\/ul>\s*$/,
+						'<ul class="notes"><li>作为活动主办方，您可能可以获得参与者的邮箱地址。</li><li>将这些邮箱用于除活动运营以外的其她任何用途，将导致您的账户被永久停用。</li></ul>'],
+					['fieldset.profile > p:first-of-type', /Plain text with limited HTML\s*(<a.*?<\/a>)/, '纯文本，支持有限 HTML $1'],
+					['fieldset.profile > p.note', /^\s*Tip: if this is a subcollection or challenge, you don't need to repeat yourself: fields left blank will copy from your parent collection\.\s*$/, '提示：如果这是子合集或活动，您无需重复填写：留空字段将从母合集复制。'],
+					['p#assignment-notification-field-description', /^\s*This will be sent out with assignments in a gift exchange challenge\. Plain text only\.\s*$/, '在赠文交换活动中，此信息将随分配一起发送。仅限纯文本。'],
+					['p#gift-notification-field-description', /^\s*This will be sent out with each work notification when you "reveal" a gift exchange or prompt meme\. Plain text only\.\s*$/, '当您“揭晓”赠文交换或接梗挑战时，此信息将随每个作品通知发送。仅限纯文本。'],
+				],
+				'selector': [
+					['input[name="commit"][value="Submit"]', '提交'],
+				],
+			},
+			'collections_dashboard_common': {
+				'flexible': {
+					'Open,': '开放中,',
+					'Closed,': '已截止,',
+				},
+				'static': {
+					'Open': '开放中',
+					'Sign Up': '报名',
+					'Post to Collection': '发布到此合集',
+					'Dashboard': '仪表盘',
+					'Profile': '概述',
+					'Sign-up Form': '报名表',
+					'Sign-up Summary': '报名概览',
+					'Random Items': '随机作品',
+					'People': '用户',
+					'Tags': '标签',
+					'Any Character': '任意角色',
+					'Any Relationship': '任意关系',
+					'Any Additional Tag': '任意附加标签',
+					'Any Category': '任意类别',
+					'Any Rating': '任意分级',
+					'Any Archive Warning': '任意 Archive 预警',
+					'Description:': '描述：',
+					'Optional Tags:': '可选标签：',
+					'Submit': '提交',
+					'Active since:': '活动开始于：',
+					'Maintainers:': '维护者：',
+					'Sign-up:': '报名状态：',
+					'Sign-up Closes:': '报名截止：',
+					'Assignments Due:': '分配截止：',
+					'Works Revealed:': '作品揭晓：',
+					'Signed up:': '已报名：',
+					'The summary is being generated. Please try again in a few minutes.': '概览正在生成，请几分钟后重试。',
+					'All Media Types': '所有媒体类型',
+					'Show': '显示',
+					'No fandoms found': '未找到同人圈',
+					'Find gifts for:': '查找赠文',
+					'There are no works or bookmarks in this collection yet.': '此合集尚无作品或书签。',
+					'These are some of the most popular tags used in the collection.': '以下是此合集中最常用的一些标签。',
+					'* Required information': '* 处为必填信息',
+					'Rules': '规则',
+					'Rules:': '规则:',
+					'Prompts:': '同人梗:',
+					'Intro': '简介',
+					'Intro:': '简介:',
+					'FAQ:': '常见问题:',
+					'Prompt Form': '同人梗表单',
+					'Semi-anonymous Prompt?': '半匿名同人梗？',
+					'(Note: This is not totally secure, and is still guessable in some places.)': '（注：此模式并非绝对安全，某些情况下仍可能被推测身份）',
+					'choose fandoms from canonical archive tags': '从规范 Archive 标签中选择同人圈',
+					'choose characters from canonical archive tags': '从规范 Archive 标签中选择角色',
+					'choose relationships from canonical archive tags': '从规范 Archive 标签中选择关系',
+					'choose additional tags from canonical archive tags': '从规范 Archive 标签中选择附加标签',
+					'(no time specified)': '（未设定具体时间）',
+					'Creators Revealed:': '创作者揭晓：',
+					'Claim': '认领',
+					'Request Fulfilled': '请求已完成',
+					'Request Unfulfilled': '请求未完成',
+					'Fulfilled By': '完成者',
+					'Claimed By': '认领者',
+					'> Fandoms': '> 同人圈',
+					'Random works': '随机作品',
+					'All Challenges': '所有活动',
+					'Top-Level Collections': '顶级合集',
+					'Sign-ups close at:': '报名截止于：',
+					'Requests Summary': '请求概览',
+					'Requested Fandoms': '请求的同人圈',
+					'Last generated at:': '最后生成于:',
+					'(Generated hourly on request while sign-ups are open.)': '（在报名开放期间，可按需每小时生成）',
+					'Requests': '请求',
+					'Offers': '提供',
+					'Fandoms:': '同人圈:',
+					'Works:': '作品:',
+					'Challenges/Subcollections:': '活动合集/子合集:',
+					'Listed by fewest offers and most requests.': '按提供最少、请求最多排序。',
+					'Contact:': '联系方式：',
+					'(See all...)': '（查看全部...）',
+					'(See fewer...)': '（收起...）',
+					'Title:': '标题：',
+					'Prompt URL:': '同人梗 URL：',
+					'Sign-ups close at: (no time specified)': '报名截止于：（未指定时间）',
+					'Remove?': '移除此项？',
+				},
+				'innerHTML_regexp': [
+					['h2.heading', /^Sign Up for (.+)$/, '报名 $1'],
+					['dd', /^\s*(\d+)\s+Too few sign-ups to display names\s*$/, '$1 人。报名人数过少，无法显示名称'],
+					['p.notes.notice', /^Challenge maintainers will have access to the email address associated with your AO3 account for the purpose of communicating with you about the challenge\.$/, '活动维护者将可使用与您 AO3 账户相关联的电子邮箱与您沟通活动相关事宜。'],
+					['h3.heading', /^Sign Up as\s*(<span class="byline">.*<\/span>)/, '作为 $1 报名'],
+					['dt > label.fandom', /^Fandoms? \(([\d\s-]+)\):(?:\s*\*)*$/, '同人圈（$1）：*'],
+					['dt > label.character', /^Characters? \(([\d\s-]+)\):(?:\s*\*)*$/, '角色（$1）：*'],
+					['dt > label.relationship', /^Relationships? \(([\d\s-]+)\):(?:\s*\*)*$/, '关系（$1）：*'],
+					['dt > label.freeform', /^Additional Tags \(([\d\s-]+)\):(?:\s*\*)*$/, '附加标签（$1）：*'],
+					['dt > label.category', /^Categories \(([\d\s-]+)\):(?:\s*\*)*$/, '类别（$1）：*'],
+					['dt > label.rating', /^Ratings \(([\d\s-]+)\):(?:\s*\*)*$/, '分级（$1）：*'],
+					['dt > label.warning', /^Archive Warnings \(([\d\s-]+)\):(?:\s*\*)*$/, 'Archive 预警（$1）：*'],
+					['h4.heading', /^Archive Warnings$/, 'Archive 预警'],
+					['div.flash.notice', /^Summary does not appear until at least 5 sign-ups have been made!$/, '至少 5 人报名后才会显示概览！'],
+					['h2.heading', /^Sign-up Summary for (.+)/, '$1 报名概览'],
+					['h2.heading', /^(<a href="\/collections\/.*?">.+<\/a>) > Fandoms$/, '$1 > 同人圈'],
+					['h2.heading', /^(\d+)\s+Works? in (<a href="\/collections\/.*?">.+<\/a>)/, '$2 中的作品：$1'],
+					['h2.heading', /^\s*(\d+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2 的已创建书签作品：$1'],
+					['h2.heading', /^Participants in (.+)/, '$1 的参与者'],
+					['h5.heading', /(\d+)\s*works?,\s*(\d+)\s*recs?/, '$1 篇作品，$2 条推荐'],
+					['h3.heading', /(\d+\s*-\s*\d+)\s+of\s+([\d,]+)\s+Collections/s, '第 $1 个，共 $2 个合集'],
+					['li a, li span.current', /^Prompts\s*\((\d+)\)$/, '同人梗 ($1)'],
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/s, '剩余 $1 字符'],
+					['h2.heading', /^\s*Challenges\/Subcollections in\s*(.+?)\s*$/s, '$1 中的挑战/子合集'],
+					['h2.heading', /^\s*Prompts for\s+(.+?)\s*$/, '$1 的同人梗'],
+					['h3.heading', /^\s*Requests?(.*)\s*$/, '请求$1'],
+					['h3.heading', /^\s*Offers?(.*)\s*$/, '提供$1'],
+					['ul.commas.index.group', /^\s*(\d+)\s+anonymous\s+claimant(s?)\s*$/, '$1 位匿名认领者'],
+					['h4.heading', /^\s*Request\s+by\s+(?:Anonymous|匿名)\s*$/s, '请求 by 匿名'],
+					['p.actions a.showme', /^\s*Add another request\?\s*\(Up to (\d+) allowed\.\)\s*$/, '添加另一个请求项？（最多可添加 $1 个）'],
+					['p.actions a.showme', /^\s*Add another offer\?\s*\(Up to (\d+) allowed\.\)\s*$/, '添加另一个提供项？（最多可添加 $1 个）'],
+					['h2.heading', /^\s*(\d+)\s+Works? in\s*(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2 中的 $1 篇作品'],
+					['h2.heading', /^\s*Participants in\s+(.+?)\s*$/s, '$1 的参与者'],
+					['h4.heading', /^\s*Request\s+by\s+(.+?)\s*$/s, '请求 by $1'],
+				],
+				'regexp': [
+					[/^Subcollections \((\d+)\)$/, '子合集（$1）'],
+					[/^Fandoms \((\d+)\)$/, '同人圈（$1）'],
+					[/^Works \((\d+)\)$/, '作品（$1）'],
+					[/^Bookmarked Items \((\d+)\)$/, '已创建书签作品（$1）'],
+				],
+				'selector': []
+			},
+			'external_works_new': {
+				'static': {
+					'Bookmark an external work': '为外部作品创建书签',
+					'Bookmark': '书签',
+					'External Work': '外部作品',
+					'Creator\'s Tags': '创建者标签',
+					'Write Comments': '撰写评论',
+					'Choose Type and Post': '选择类型并发布',
+					'URL*': 'URL *',
+					'Creator*': '作者 *',
+					'Title*': '标题 *',
+					'Creator\'s Summary': '作者简介',
+					'(please copy and paste from original work)': '(请从原作复制并粘贴)',
+					'Fandoms*': '同人圈 *',
+					'Rating': '分级',
+					'Categories': '分类',
+					'Relationships': '关系',
+					'Characters': '角色',
+					'Your tags': '标签',
+					'Add to collections': '添加到合集',
+					'Private bookmark': '私人书签',
+					'Rec': '推荐',
+					'* Required information': '* 处为必填信息',
+					'If this URL has been bookmarked before, the work information will be filled in automatically.': '如果此 URL 之前已被创建书签，作品信息将自动填充。',
+					'Creator\'s Tags (comma separated, 150 characters per tag). Only a fandom is required. Fandom, relationship, and character tags must not add up to more than 75. Category and rating tags do not count toward this limit.': '创建者标签（逗号分隔，每个标签最多 150 字符）。仅需填写同人圈标签。同人圈、关系和角色标签总字符数不得超过 75 字符。分类和分级标签不计入此限制。',
+					'Plain text with limited HTML': '纯文本，支持有限 HTML',
+					'Comma separated, 150 characters per tag': '以逗号分隔，每个标签最多 150 字符',
+					'Create': '创建',
+					'My Bookmarks': '我的书签',
+				},
+				'innerHTML_regexp': [
+					[
+						'div.post.bookmark > p:first-of-type',
+						/Bookmark external works with the <a href="([^"]*)"[^>]*>AO3 External Bookmarklet<\/a>\. This is a simple bookmarklet that should work in any browser, if you have JavaScript enabled\. Just right-click and select <cite>Bookmark This Link<\/cite> \(or <cite>Bookmark Link<\/cite>\)\./s,
+						'使用 <a href="$1" title="右键单击并为此链接添加书签">AO3 外部书签工具</a>对外部作品创建书签。这个简单的书签工具只要启用 JavaScript 即可在任何浏览器中使用。只需右键单击并选择 <cite>将此链接加入书签</cite>（或 <cite>书签链接</cite> ）。'
+					],
+					[
+						'p.character_counter',
+						/(<span[^>]*>\d+<\/span>)\s*characters left/s,
+						'剩余 $1 字符'
+					],
+					[
+						'#modal .content p:has(a[href*="content#II.J"])',
+						/\(For more information, see the <a href="\/content#II.J">Ratings and Warnings section of the AO3 Terms of Service<\/a>\.\)/s,
+						'（要了解更多信息，请参阅 <a href="/content#II.J">AO3 服务条款的分级与预警部分</a>。）'
+					],
+				],
+				'regexp': [],
+				'selector': []
+			},
+
+			'media_index': {
+				'static': {},
+				'regexp': [],
+				'selector': [
+					['.media.fandom.index.group p.actions a', '全部']
+				]
+			},
+
+			'users_inbox': {
+				'static': {
+					'My Inbox': '收件箱'
+				},
+				'regexp': [
+					[/^My Inbox \((\d+) comment(?:s)?, (\d+) unread\)$/, '收件箱：$1 条评论, $2 条未读']
+				],
+				'selector': []
+			},
+
+			'session_login': {
+				'static': {
+					'Log In': '用户登录',
+					'User name or email': '用户名或邮箱',
+					'Password': '密码',
+					'Remember Me': '记住我',
+					'Forgot password?': '忘记密码?',
+					'It seems you\'re using an ad blocker.': '您似乎使用了广告拦截器。',
+				},
+				'regexp': [],
+				'selector': []
+			},
+			'session_logout': {
+				'static': {
+					'You have been logged out.': '您已成功登出。',
+					'Log back in?': '重新登录？'
+				},
+				'regexp': [],
+				'selector': []
+			},
+			'admin_posts_show': {
+				'static': {
+					'AO3 News': 'AO3 最新动态',
+					'Previous Post': '上一篇',
+					'Next Post': '下一篇',
+					'Published:': '发布于：',
+					'Original:': '原文：',
+					'Tags:': '标签：',
+					'Translations:': '翻译版本：',
+					'↑ Top': '↑ 返回顶部',
+					'Back to AO3 News Index': '返回 AO3 动态总览',
+					'Reply': '回复',
+					'Thread': '评论串',
+					'Parent Thread': '主评论串',
+					'Block': '屏蔽',
+					'RSS Feed': 'RSS 订阅',
+					'Edit': '编辑',
+					'Comment': '评论',
+					'Comment on': '评论于：',
+					'Last Edited': '最后编辑',
+					'(Plain text with limited HTML': '(纯文本，支持有限 HTML',
+					'Sorry, this news post doesn\'t allow comments.': '抱歉，此动态帖不允许评论。',
+					'Sorry, comments are disabled for this post.': '抱歉，此动态贴不允许评论。',
+					'Comments on this news post are moderated. Your comment will not appear until it has been approved.': '此动态帖的评论需审核。您的评论在获得批准前不会显示。',
+					'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论必须包含文字内容。',
+				},
+				'innerHTML_regexp': [
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/, '剩余 $1 字符'],
+					[
+						'ul.actions a',
+						/^Read (\d+) Comments$/,
+						'阅读 $1 条评论'
+					],
+					[
+						'p.notice',
+						/^\s*Sorry, this news post doesn't allow non-Archive users to comment\.\s*You can however <a href="\/support">contact Support<\/a> with any feedback or questions\.\s*$/s,
+						'抱歉，此动态贴不允许非 Archive 用户发表评论。您可通过<a href="/support">联系支持团队</a>提供反馈或咨询。'
+					],
+				],
+				'regexp': [
+					[/^Comments \((\d+)\)$/, '评论（$1）'],
+					[/^Hide Comments \((\d+)\)$/, '收起评论（$1）'],
+					[/^View all (\d+) comments$/, '查看全部 $1 条评论']
+				],
+				'selector': [
+					[['input[name="commit"][value="Comment"]', '评论']]
+				]
+			},
+			'admin_posts_index': {
+				'static': {},
+				'innerHTML_regexp': [],
+				'regexp': [],
+				'selector': []
+			},
+			'works_chapters_show': {
+				'static': {
+					'Chapter by Chapter': '逐章阅读',
+					'Mark for Later': '稍后阅读',
+					'Mark as Read': '标记已读',
+					'Cancel Bookmark': '取消创建书签',
+					'Share': '分享',
+					'↑ Top': '↑ 回到顶部',
+					'Kudos': '点赞',
+					'Reply': '回复',
+					'Thread': '评论串',
+					'Parent Thread': '主评论串',
+					'←Previous Chapter': '← 上一章',
+					'← Previous Chapter': '← 上一章',
+					'Next Chapter →': '下一章 →',
+					'Next Chapter→': '下一章 →',
+					'← Previous Work': '← 上一作品',
+					'Next Work →': '下一作品 →',
+					'Download': '下载',
+					'Comment': '评论',
+					'Hide Comments': '隐藏评论',
+					'(Plain text with limited HTML': '(纯文本，支持有限 HTML',
+					'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论需要包含文字内容。',
+					'Thank you for leaving kudos!': '感谢您的点赞！',
+					'You have already left kudos here. :)': '您已经点赞过了 :)',
+					'Your tags': '标签',
+					'The creator\'s tags are added automatically.': '创作者的标签会自动添加',
+					'Comma separated, 150 characters per tag': '以逗号分隔，每个标签最多 150 字符',
+					'Add to collections': '添加到合集',
+					'Private bookmark': '私人书签',
+					'Create': '创建',
+					'Series this work belongs to:': '所属系列：',
+					'Works inspired by this one:': '衍生作品：',
+				},
+				'innerHTML_regexp': [
+					[
+						'div.flash.notice',
+						/^\s*This work was removed from your <a href="([^"]*)">Marked for Later list<\/a>\.\s*$/s,
+						'已将此作品移出<a href="$1">稍后阅读列表</a>。'
+					],
+					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/, '剩余 $1 字符'],
+					['h3.title', /<a (.*?)>Chapter (\d+)<\/a>:\s*(.*)/s, '<a $1>第 $2 章</a>: $3'],
+					['h3.title', /<a (.*?)>Chapter (\d+)<\/a>/s, '<a $1>第 $2 章</a>'],
+					['p.jump', /\(See the end of the work for (<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在作品结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
+					['div.chapter div.notes > p', /\(See the end of the chapter for\s*(<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在本章结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
+					['p.jump', /\(See the end of the work for (<a href="[^"]*#children">)other works inspired by this one(<\/a>)\.\)/, '（在作品结尾查看$1相关衍生作品$2。）'],
+					[
+						'div.series span.position, dd.series span.position',
+						/^\s*Part (\d+) of (<a href="\/series\/.*?">.*?<\/a>)(.*)$/si,
+						'$2 第 $1 部分$3'
+					],
+					[
+						'p.notice',
+						/^\s*This work's creator has chosen to moderate comments on the work\.\s*Your comment will not appear until it has been approved by the creator\.\s*$/s,
+						'此作品的创作者已选择审核评论。您的评论将在创作者批准后显示。'
+					],
+					[
+						'p#notes-field-description',
+						/^\s*The creator's summary is added automatically\.\s*Plain text with limited HTML\s*(<a[^>]+>[\s\S]*?<\/a>)\s*$/s,
+						'创作者的简介会自动添加。纯文本，支持有限 HTML $1'
+					]
+				],
+				'regexp': [
+					[/^Comments \((\d+)\)$/, '评论（$1）'],
+					[/^Hide Comments \((\d+)\)$/, '隐藏评论（$1）']
+				],
+				'selector': []
+			},
+			'faq_page': {
+				'static': {
+					'Expand Categories': '展开分类',
+					'Collapse Categories': '折叠分类'
+				},
+				'innerHTML_regexp': [
+					['h2.heading', /^\s*Archive FAQ\s*$/, 'Archive 常见问题'],
+					[
+						'p.notice',
+						/^\s*The FAQs are currently being updated and translated by our volunteers\.\s*This is a work in progress and not all information will be up to date or available in languages other than English at this time\.\s*If your language doesn't list all FAQs yet, please consult the English list and check back later for updates\.\s*$/s,
+						'常见问题目前正在由我们的志愿者更新和翻译。此工作仍在进行中，目前并非所有信息都已更新或提供非英文版本。如果您的语言尚未列出所有常见问题，请查阅英文列表，并稍后回来查看更新。'
+					],
+					[
+						'p.notes',
+						/^\s*Some commonly asked questions about the Archive are answered here\.\s*Questions and answers about our Terms of Service can be found in the <a href="\/tos_faq\?language_id=[\w-]+">(?:TOS FAQ|服务条款常见问题)<\/a>\.\s*You may also like to check out our <a href="\/known_issues\?language_id=[\w-]+">(?:Known Issues|已知问题)<\/a>\.\s*If you need more help, please\s*<a href="\/support\?language_id=[\w-]+">(?:contact Support|联系支持团队)<\/a>[\.。]\s*$/s,
+						'此处解答了一些关于 Archive 的常见问题。有关我们服务条款的问题和答案，请查阅<a href="/tos_faq?language_id=en">服务条款常见问题</a>。您也可以查看我们的<a href="/known_issues?language_id=en">已知问题</a>。如果需要更多帮助，请<a href="/support?language_id=en">联系支持团队</a>。'
+					],
+					[
+						'h3.heading',
+						/^\s*Available Categories\s*(<ul class="showme hidden actions"[\s\S]*?<\/ul>)\s*$/s,
+						'可用分类 $1'
+					],
+				],
+				'regexp': [],
+				'selector': []
+			},
+			'site_map': {
+				'static': {
+					'Explore': '探索',
+					'Homepage': '主页',
+					'Additional Tags Cloud': '附加标签集',
+					'Languages': '语言',
+					'Collections and Challenges': '合集与挑战',
+					'About the Archive of Our Own': '关于 Archive of Our Own',
+					'Terms of Service FAQ': '服务条款常见问题',
+					'Archive FAQ': 'Archive 常见问题',
+					'AO3 News': 'AO3 最新动态',
+					'Access your account': '访问您的帐户',
+					'My Home': '我的主页',
+					'My Collections and Challenges': '我的合集与挑战',
+					'My Inbox': '我的收件箱',
+					'Change your account settings': '更改您的账户设置',
+					'My Profile': '个人资料',
+					'Donations': '捐赠',
+				},
+				'innerHTML_regexp': [
+					['li', /^\s*The Archive of Our Own is a project of the <a href="https:\/\/transformativeworks\.org"><acronym title="[^"]+">OTW<\/acronym><\/a>\s*$/s, 'Archive of Our Own 是再创作组织（OTW）旗下项目'],
+				],
+				'regexp': [],
+				'selector': []
+			},
+			'report_and_support_page': {
+				'static': {
+					'Your name or username (optional)': '您的姓名或用户名（可选）',
+					'Your name (optional)': '您的姓名（可选）',
+					'Your email (required)': '您的电子邮箱（必填）',
+					'We cannot contact you if the email address you provide is invalid.': '如果您提供的电子邮箱地址无效，我们将无法与您联系。',
+					'Select language (required)': '选择语言（必填）',
+					'Link to the page you are reporting (required)': '您要举报的页面链接（必填）',
+					'Please enter the link to the page you are reporting.': '请输入您要举报的页面链接。',
+					'Please ensure this link leads to the page you intend to report. Enter only one URL here and include any other links in the description field below.': '请确保该链接确实指向您希望举报的页面。此处仅填写一个网址，其她链接请填写在下方描述栏中。',
+					'Brief summary of Terms of Service violation (required)': '违反服务条款简述（必填）',
+					'Please enter a subject line for your report.': '请输入举报主题',
+					'Please specify why you are contacting us and/or what part of the Terms of Service is relevant to your complaint. (For example, "harassment", "not a fanwork", "commercial activities", etc.)': '请说明您联系我们的原因及/或涉及服务条款的相关内容。（例如：“骚扰行为”、“非同人作品”、“商业活动”等）',
+					'Description of the content you are reporting (required)': '举报内容描述（必填）',
+					'Please describe what you are reporting and why you are reporting it.': '请描述您要举报的内容及举报原因',
+					'Brief summary of your question or problem (required)': '问题简述（必填）',
+					'Please enter a brief summary of your message': '请输入您信息的简要说明',
+					'Your question or problem (required)': '您的问题或疑问（必填）',
+					'Please be as specific as possible, including error messages and/or links': '请尽可能具体，包括错误信息和/或相关链接',
+					'Please enter your feedback': '请输入您的反馈',
+					'Send': '发送',
+					'Submit': '提交',
+				},
+				'innerHTML_regexp': [
+					['p#comment-field-description', /Explain how the content you are reporting violates the <a href="\/content">(?:Content Policy|内容政策)<\/a> or other parts of the <a href="\/tos">(?:Terms of Service|服务条款)<\/a>\. Please be as specific as possible and <a href="\/abuse_reports\/new#reporthow">include all relevant links and other information in your report<\/a>\. All information provided will remain confidential\./s, '说明您所举报的内容如何违反了<a href="/content">内容政策</a>或<a href="/tos">服务条款</a>的其她部分。请尽可能具体，并在<a href="/abuse_reports/new#reporthow">反馈中包含所有相关链接及信息</a>。您提供的所有信息都将保密。'],
+					[
+						'h3.heading',
+						/^\s*Please use this form for questions about how to use the Archive and for reporting any technical problems\.\s*$/s,
+						'请使用此表单咨询有关如何使用 Archive 的问题，或报告任何技术问题。'
+					]
+				]
+			},
+		}
+	};
 	/**
 	 * 脚本主入口检查
 	 */
