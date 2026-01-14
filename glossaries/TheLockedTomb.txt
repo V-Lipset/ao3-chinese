@@ -1,6 +1,6 @@
 维护者：FemslashAmateur
-版本号：0.1
-更新时间：2025-12-25
+版本号：0.2
+更新时间：2026-1-14
 
 
 词条
@@ -8,54 +8,116 @@
 // 角色
 Gideon：吉迪恩
 Nav：纳夫
+Gideon Nav：吉迪恩·纳夫
 Griddle：锅宝
 Goblin：锅布林
 Gonad：吉宝
+Kiriona：基里奥娜
 Harrowhark：哈罗霍克
 Harrow：哈罗
 Nonagesimus：诺那杰斯姆斯
+Harrowhark Nonagesimus：哈罗霍克·诺那杰斯姆斯
+Ortus Nigenad：奥特斯·尼格纳德
+Crux：垮斯
 Judith：茱蒂斯
+Jody：茱蒂
 Deuteros：德特罗斯
+Judith Deuteros：茱蒂斯·德特罗斯
 Marta：玛尔塔
 Dyas：戴亚斯
+Marta Dyas：玛尔塔·戴亚斯
 Coronabeth：科罗娜贝丝
+Corona：科罗娜
 Ianthe：伊安忒
 Tridentarius：泰汀德瑞俄丝
+Coronabeth Tridentarius：科罗娜贝丝·泰汀德瑞俄丝
+Ianthe Tridentarius：伊安忒·泰汀德瑞俄丝
 Naberius：纳贝琉斯
 Tern：特纳
+Babs：巴布斯
+Naberius Tern：纳贝琉斯·特纳
 Isaac：以撒
 Tettares：泰塔瑞斯
+Isaac Tettares ：以撒·泰塔瑞斯
 Jeannemary：珍梅莉
 Chatur：查图尔
+Jeannemary Chatur：珍梅莉·查图尔
 Abigail：阿比盖尔
 Pent：潘特
+Abigail Pent：阿比盖尔·潘特
 Magnus：马格努斯
 Quinn：奎因
+Magnus Quinn：马格努斯·奎因
 Palamedes：帕拉梅德斯
 Sextus：赛克斯图斯
+Palamedes Sextus：帕拉梅德斯·赛克斯图斯
+Pal：小帕
+SexPal：性感帕
 Camilla：卡米拉
 Hect：赫克特
+Cam：小卡
+Camilla Hect：卡米拉·赫克特
 Dulcinea：杜尔西内娅
+Dulcie：杜尔西
 Septimus：塞普蒂默斯
+Dulcinea Septimus：杜尔西内娅·塞普蒂默斯
 Protesilaus：坡罗忒西拉奥斯
 Ebdoma：埃布多玛
+Protesilaus Ebdoma：坡罗忒西拉奥斯·埃布多玛
 Silas：塞拉斯
 Octakiseron：奥克塔基塞隆
+Silas Octakiseron：塞拉斯·奥克塔基塞隆
+Colum Asht：科勒姆·阿什特
+Colum：科勒姆
+Asht：阿什特
 Augustine：奥古斯丁
 Mercymorn：梅茜摩恩
 Gaius：盖乌斯
+Dve：德维
+Cassiopeia：卡西奥佩娅
+Nigella：奈格拉
+Cytherea：赛忒瑞亚
+Cyth：赛忒
+Loveday：洛芙黛
+
 
 // 职位
-Gideon The Ninth：第九宫的吉迪恩
-Reverend Daughter：虔敬女儿
+Gideon the Ninth：第九宫的吉迪恩
+Reverend Daughter：虔敬女儿 
+Marta the Second：第二宫的玛尔塔
+Naberius the Third：第三宫的纳贝琉斯
+Jeannemary the Fourth：第四宫的珍梅莉
+Magnus the Fifth：第五宫的马格努斯
+Camilla the Sixth：第六宫的卡米拉
+Protesilaus the Seventh：第七宫的坡罗忒西拉奥斯
+Colum the Eighth：第八宫的科勒姆
+Warden：监守人
+Master Warden：主监守人
 
 // 组织和地点
-The Locked Tomb：闭锁之墓
+Locked Tomb：闭锁之墓
 Nine Houses：九重宫
-The Ninth House：第九宫
+Ninth House：第九宫
+First House：第一宫
+Second House：第二宫
+Second House：第三宫
+Fourth House：第四宫
+Fifth House：第五宫
+Sixth House：第六宫
+Seventh House：第七宫
+Eighth House：第八宫
+the Ninth：九宫
+the First：一宫
+the Second：二宫
+the Second：三宫
+the Fourth：四宫
+the Fifth：五宫
+the Sixth：六宫
+the Seventh：七宫
+the Eighth：八宫
 Dominicus：帝明星
 Drearburh：幽暗堡
-The Secundarius Bell：继发钟
+Secundarius Bell：继发钟
 
 // 概念
 Lyctor：宰执
@@ -63,16 +125,18 @@ Lyctors：宰执
 Resurrection Beasts：复活野兽
 Heralds：预兆者
 The River：冥河
+the River：冥河
 Blood of Eden：伊甸之血
 Necromancy：死灵巫术
 Necromancer：死灵巫师
 cavalier：骑士
+Cavalier：骑士
 Thanergy：死能
 Thalergy：生能
-A myriad：万象年
-ward：防域
+thanergy：死能
+thalergy：生能
+myriad：万象年
 
 禁翻词条
-
 BoE
 RB
