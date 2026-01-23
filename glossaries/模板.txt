@@ -1,0 +1,29 @@
+版本号：1.0.1
+维护者：V-Lipset
+更新时间：2025-09-22
+
+// 编写时，请至少包含“词条”、“通用词条”、“禁翻词条”、“正则表达式”这 4 个部分中的 1 个
+// 正则表达式区域外，使用引号包裹带有标点符号的原文词条
+
+词条
+// 此区域区分大小写，用于翻译人名等专有名词
+Wakaba Mutsumi = 若叶 睦
+Elvira Stewart = 艾尔维拉·斯图尔特
+Hypatia：伊帕希娅
+"-chan"：酱
+Dis City：狄斯城
+
+通用词条
+// 此区域不区分大小写，用于翻译通用概念
+Hypercube：异方晶
+Sinner：禁闭者
+
+禁翻词条
+// 此区域区分大小写，用于保持原文
+EDGE
+HUSH
+"BanG Dream! Girl's Band Party! (Video Game)"
+
+正则表达式
+// 匹配德语中 "Wachmann" 的单数和复数形式
+\bWachm(?:ann|änner)\b: 守卫
