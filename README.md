@@ -58,3 +58,4 @@
 - [kiss-translator](https://github.com/fishjar/kiss-translator)
 - [Traduzir-paginas-web](https://github.com/FilipePS/Traduzir-paginas-web)
 - [Google Material Symbols](https://fonts.google.com/icons)
+- [AO3: Advanced Blocker](https://greasyfork.org/en/scripts/549942-ao3-advanced-blocker)
