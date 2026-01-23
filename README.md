@@ -22,7 +22,7 @@
    - 备用
      - [远程版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/main.user.js)
      - [本地版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js)
-5. 安装脚本后，访问/刷新[AO3 网站](https://archiveofourown.org/)，界面将自动变为中文。
+5. 安装脚本后，访问/刷新[ AO3 网站](https://archiveofourown.org/)，界面将自动变为中文。
 6. 如需使用翻译功能，请点击 `悬浮球` 或者 `Tampermonkey 图标` -> `AO3 Translator` -> `打开设置面板` -> `启用翻译功能`。在各页面，你会看到新增的蓝色翻译按钮，点击即可使用。
 
 ## 📖 使用说明
@@ -57,5 +57,6 @@
 - [github-chinese](https://github.com/maboloshi/github-chinese)
 - [kiss-translator](https://github.com/fishjar/kiss-translator)
 - [Traduzir-paginas-web](https://github.com/FilipePS/Traduzir-paginas-web)
-- [Google Material Symbols](https://fonts.google.com/icons)
+- [Read Frog](https://github.com/mengxi-ream/read-frog)
 - [AO3: Advanced Blocker](https://greasyfork.org/en/scripts/549942-ao3-advanced-blocker)
+- [Google Material Symbols](https://fonts.google.com/icons)
