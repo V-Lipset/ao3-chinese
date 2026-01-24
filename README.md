@@ -38,7 +38,9 @@
     - [术语表编写指南](https://v-lipset.github.io/docs/guides/glossary/write)
     - [创建在线术语表](https://v-lipset.github.io/docs/guides/glossary/create)
     - [分享你的术语表](https://v-lipset.github.io/docs/guides/glossary/share)
-- 网盘链接
+- 功能详解
+  - [作品屏蔽功能](https://v-lipset.github.io/docs/feat/block)
+- 视频版安装教程
   - [夸克网盘](https://pan.quark.cn/s/41bf3604f803)
   - [百度网盘](https://pan.baidu.com/s/1JVAj6vEVVrxu4h86sBNkVw?pwd=o1je)
 
