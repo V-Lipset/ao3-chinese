@@ -2,14 +2,19 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.6.1-2026-01-23
+// @version      1.6.1-2026-01-25
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
 // @include      http*://archiveofourown.gay/*
+// @match        https://neversleep.top/*
+// @match        https://jdkg.org/*
+// @match        https://bk3.jdkg.org/*
 // @match        https://archiveofourown.site/*
 // @match        https://ao3mirror.site/*
 // @match        https://ao1s.top/*
+// @match        https://ao3l.site/*
+// @match        https://i.aois.top/*
 // @match        https://xn--iao3-lw4b.ws/*
 // @match        https://ao3sg.hyf9588.tech/*
 // @match        https://ao3rc.hyf9588.tech/*
@@ -6274,13 +6279,16 @@
             }
             .ao3-blocker-unhide > .ao3-blocker-cut { display: block !important; padding: 10px !important; }
 
-            /* 通用：移除点击高亮和聚焦状态 */
+			/* 通用：移除点击高亮和聚焦状态 */
             .settings-action-button-inline, .online-glossary-delete-btn,
             .custom-dropdown-menu li .item-action-btn, .data-sync-action-btn,
             #swap-lang-btn, div.translate-me-ao3-wrapper > div,
             .service-details-toggle-container, .settings-switch, .slider,
             .settings-panel-close-btn, .home-icon-link, .custom-dropdown-menu li,
-            .settings-control, .settings-label, .settings-switch input {
+            .settings-control, .settings-label, .settings-switch input,
+            .ai-select-all-btn,
+            .data-select-all-wrapper,
+            .pseudo-select {
                 -webkit-tap-highlight-color: transparent !important;
                 outline: none !important;
                 box-shadow: none !important;
@@ -6293,7 +6301,13 @@
             .service-details-toggle-container:focus,
             .settings-switch input:focus,
             .settings-panel-close-btn:focus,
-            .home-icon-link:focus {
+            .home-icon-link:focus,
+            .ai-select-all-btn:focus,
+            .data-select-all-wrapper:focus,
+            .pseudo-select:focus,
+            .retry-translation-button:focus,
+            .translate-me-ao3-button:focus
+            {
                 outline: none !important;
                 box-shadow: none !important;
                 border: none !important;
