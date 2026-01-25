@@ -33,14 +33,15 @@
 - 教程
   - [在镜像站点上使用](https://v-lipset.github.io/docs/guides/mirror)
   - [添加接口地址域名白名单](https://v-lipset.github.io/docs/guides/whitelist)
-  - 术语表相关
+  - 在线术语表
     - [在线术语库](https://github.com/V-Lipset/ao3-chinese/wiki/%E5%9C%A8%E7%BA%BF%E6%9C%AF%E8%AF%AD%E8%A1%A8)
     - [术语表编写指南](https://v-lipset.github.io/docs/guides/glossary/write)
     - [创建在线术语表](https://v-lipset.github.io/docs/guides/glossary/create)
     - [分享你的术语表](https://v-lipset.github.io/docs/guides/glossary/share)
-- 功能详解
+- 功能介绍
+  - [本地术语表](https://v-lipset.github.io/docs/feat/local)
   - [作品屏蔽功能](https://v-lipset.github.io/docs/feat/block)
-- 视频版安装教程
+- 插件安装教程
   - [夸克网盘](https://pan.quark.cn/s/41bf3604f803)
   - [百度网盘](https://pan.baidu.com/s/1JVAj6vEVVrxu4h86sBNkVw?pwd=o1je)
 
