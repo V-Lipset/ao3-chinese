@@ -7,8 +7,6 @@ QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
 
 </div>
 
----
-
 ### ✨ 功能
 
 - **界面汉化**
