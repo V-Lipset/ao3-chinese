@@ -1,7 +1,7 @@
 /**
  name         AO3 Translator - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.6.1-2026-01-25
+ version      1.6.1-2026-01-30
  description  AO3 Translator 的词库文件
  author       V-Lipset
  license      GPL-3.0
