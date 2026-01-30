@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.6.1-2026-01-25
+// @version      1.6.1-2026-01-30
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -11068,7 +11068,7 @@
             }
         }
 
-        async _executeBatch(batch) {
+		async _executeBatch(batch) {
             batch.forEach(el => {
                 this.queueManager.remove(el);
                 if (this.observer) this.observer.unobserve(el);
@@ -11097,6 +11097,10 @@
                 }
 
                 batch.forEach(el => {
+                    if (el.dataset.translationState !== 'translating') {
+                        return;
+                    }
+
                     this.processedUnits++;
                     if (el.tagName === 'HR') {
                         el.dataset.translationState = 'translated';
@@ -11111,6 +11115,10 @@
                 if (!this.isCancelled() && e.type !== 'user_cancelled') {
                     Logger.error('翻译', '批次执行发生未捕获错误', e);
                     batch.forEach(el => {
+                        if (el.dataset.translationState !== 'translating') {
+                            return;
+                        }
+                        
                         this.processedUnits++;
                         this.renderer.applyResult(el, { status: 'error', content: e.message }, this.onRetryCallback);
                     });
