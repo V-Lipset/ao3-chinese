@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.6.1-2026-01-30
+// @version      1.6.1-2026-02-01
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -408,9 +408,9 @@
 				REQUEST_RATE: 5,
 				REQUEST_CAPACITY: 20,
 				VALIDATION: {
-					absolute_loss: 4,
+					absolute_loss: 10,
 					proportional_loss: 0.8,
-					proportional_trigger_count: 5,
+					proportional_trigger_count: 10,
 					catastrophic_loss: 5
 				}
 			},
@@ -422,9 +422,9 @@
 				REQUEST_RATE: 5,
 				REQUEST_CAPACITY: 20,
 				VALIDATION: {
-					absolute_loss: 4,
+					absolute_loss: 10,
 					proportional_loss: 0.8,
-					proportional_trigger_count: 5,
+					proportional_trigger_count: 10,
 					catastrophic_loss: 5
 				}
 			}
@@ -11484,8 +11484,14 @@
 	function getGlossaryRules() {
 		const cache = GM_getValue(GLOSSARY_RULES_CACHE_KEY, null);
 		const currentStateVersion = GM_getValue(GLOSSARY_STATE_VERSION_KEY, 0);
+        const currentScriptVersion = GM_info.script.version;
 
-		if (cache && cache.version === currentStateVersion && cache.rules) {
+		if (cache && 
+            cache.version === currentStateVersion && 
+            cache.scriptVersion === currentScriptVersion &&
+            cache.rules) {
+            
+            Logger.info('数据', '命中术语表规则缓存');
 			return cache.rules.map(rule => {
 				if (rule.regex && typeof rule.regex === 'object' && rule.regex.source) {
 					try {
@@ -11498,7 +11504,7 @@
 			}).filter(Boolean);
 		}
 
-		Logger.info('数据', '缓存未命中或已失效，正在重建规则');
+		Logger.info('数据', '缓存未命中、已失效或脚本已更新，正在重建规则');
 		return buildPrioritizedGlossaryMaps();
 	}
 
@@ -11694,49 +11700,23 @@
 				};
 			} else {
 				const termParts = smartSplit(normalizedTerm, termSeparatorRegex);
-				if (termParts.length > 1) {
-					const termForms = termParts.map(part => {
-						const partLiteralMatch = part.match(/^["“‘'](.*)["”’']$/);
-						if (partLiteralMatch) {
-							return new Set([partLiteralMatch[1].trim()]);
-						}
-						return Array.from(generateWordForms(part, { preserveCase: isForbidden, forceLowerCase: !isSensitive }));
-					});
-					ruleObject = {
-						type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'dom',
-						parts: termForms,
-						replacement: isForbidden ? termForms.map(partForms => Array.from(partForms)[0]).join(' ') : sanitizedTrans,
-						glossaryIndex, isGeneral: !isSensitive, source: sourceName, originalTerm: normalizedTerm,
-						isUnordered: isUnordered,
-						sortLength: lengthBonus, isSensitive
-					};
-				} else {
-					if (quoteRegex.test(normalizedTerm)) {
-						const cleaned = normalizedTerm.replace(/["“‘'”’]/g, '').trim();
-						const escaped = cleaned.replace(/([.*+?^${}()|[\]\\])/g, '\\$&');
-						const prefix = /^[a-zA-Z0-9]/.test(cleaned) ? '\\b' : '';
-						const suffix = /[a-zA-Z0-9]$/.test(cleaned) ? '\\b' : '';
-						const flags = isSensitive ? 'g' : 'gi';
-						ruleObject = {
-							type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'regex',
-							regex: new RegExp(prefix + escaped + suffix, flags),
-							replacement: isForbidden ? cleaned : sanitizedTrans,
-							glossaryIndex, source: sourceName, originalTerm: normalizedTerm,
-							sortLength: lengthBonus, isSensitive
-						};
-					} else {
-						const forms = generateWordForms(normalizedTerm, { preserveCase: isForbidden, forceLowerCase: !isSensitive });
-						const pattern = createSmartRegexPattern(forms);
-						const flags = isSensitive ? 'g' : 'gi';
-						ruleObject = {
-							type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'regex',
-							regex: new RegExp(pattern, flags),
-							replacement: isForbidden ? Array.from(forms)[0] : sanitizedTrans,
-							glossaryIndex, source: sourceName, originalTerm: normalizedTerm,
-							sortLength: lengthBonus, isSensitive
-						};
+				
+				const termForms = termParts.map(part => {
+					const partLiteralMatch = part.match(/^["“‘'](.*)["”’']$/);
+					if (partLiteralMatch) {
+						return new Set([partLiteralMatch[1].trim()]);
 					}
-				}
+					return Array.from(generateWordForms(part, { preserveCase: isForbidden, forceLowerCase: !isSensitive }));
+				});
+
+				ruleObject = {
+					type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'dom',
+					parts: termForms,
+					replacement: isForbidden ? termForms.map(partForms => Array.from(partForms)[0]).join(' ') : sanitizedTrans,
+					glossaryIndex, isGeneral: !isSensitive, source: sourceName, originalTerm: normalizedTerm,
+					isUnordered: isUnordered,
+					sortLength: lengthBonus, isSensitive
+				};
 			}
 			validRules.push(ruleObject);
 		};
@@ -11821,6 +11801,7 @@
 		});
 		GM_setValue(GLOSSARY_RULES_CACHE_KEY, {
 			version: currentStateVersion,
+            scriptVersion: GM_info.script.version,
 			rules: serializedRules
 		});
 		Logger.info('数据', `术语表规则重建完成，当前版本: v${currentStateVersion}`);
