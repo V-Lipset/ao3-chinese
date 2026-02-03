@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.6.1-2026-02-01
+// @version      1.6.1-2026-02-03
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -10800,7 +10800,6 @@
 		const translatedTagContainers = document.querySelectorAll('.translated-tags-container');
 		translatedTagContainers.forEach(container => {
 			let targetToHide;
-
 			if (container.parentElement.classList.contains('translated-tags-wrapper')) {
 				let wrapper = container.parentElement;
 				let prev = wrapper.previousElementSibling;
@@ -10815,13 +10814,17 @@
 				}
 				targetToHide = prev;
 			}
-
 			if (targetToHide) {
-				if (mode === 'translation_only') {
-					targetToHide.style.display = 'none';
-				} else {
-					targetToHide.style.display = '';
-				}
+				targetToHide.style.display = (mode === 'translation_only') ? 'none' : '';
+			}
+		});
+
+		const originalTagSpans = document.querySelectorAll('.ao3-tag-original');
+		originalTagSpans.forEach(span => {
+			if (span.parentElement && span.parentElement.querySelector('.ao3-tag-translation')) {
+				span.style.display = (mode === 'translation_only') ? 'none' : '';
+			} else {
+				span.style.display = '';
 			}
 		});
 
@@ -13717,12 +13720,11 @@
 		return controller;
 	}
 
-    /**
+	/**
 	 * 标签区域翻译控制器
 	 */
 	function createTagsTranslationController(options) {
 		const { containerElement, buttonWrapper, originalButtonText } = options;
-		let translatedElement = null;
 		let errorElement = null;
 
 		const controller = createBaseController({
@@ -13730,10 +13732,8 @@
 			originalButtonText,
 			onStart: async (isCancelled, onDone) => {
 				try {
-					const resultEl = await runTagsTranslationEngine(containerElement, isCancelled);
+					await runTagsTranslationEngine(containerElement, isCancelled);
 					if (isCancelled()) return;
-
-					translatedElement = resultEl;
 					onDone();
 				} catch (error) {
 					if (isCancelled()) return;
@@ -13765,21 +13765,11 @@
 				}
 			},
 			onClear: () => {
-				if (translatedElement) {
-					translatedElement.remove();
-					translatedElement = null;
-				} else {
-					let nextNode = containerElement.nextElementSibling;
-					while (nextNode && !nextNode.classList.contains('translate-me-ao3-wrapper')) {
-						if (nextNode.classList.contains('translated-tags-container')) {
-							const nodeToRemove = nextNode;
-							nextNode = nextNode.nextElementSibling;
-							nodeToRemove.remove();
-						} else {
-							nextNode = nextNode.nextElementSibling;
-						}
-					}
-				}
+				const translations = containerElement.querySelectorAll('.ao3-tag-translation');
+				translations.forEach(el => el.remove());
+
+				const originals = containerElement.querySelectorAll('.ao3-tag-original');
+				originals.forEach(el => el.style.display = '');
 
 				if (errorElement) {
 					errorElement.remove();
@@ -13787,9 +13777,6 @@
 				}
 
 				containerElement.style.display = '';
-				if (containerElement.parentElement.classList.contains('wrapper') && containerElement.tagName === 'DL') {
-					containerElement.parentElement.style.display = '';
-				}
 			}
 		});
 
@@ -13801,7 +13788,6 @@
 	 */
 	function createBlurbTranslationController(options) {
 		const { summaryElement, tagsElement, buttonWrapper, originalButtonText } = options;
-		let translatedTagsElement = null;
 		let errorElement = null;
 		let activeSummaryTask = null;
 
@@ -13826,7 +13812,6 @@
 							onRetry: () => {
                                 const failedUnits = Array.from(summaryElement.querySelectorAll('[data-translation-state="error"]'));
                                 if (failedUnits.length === 0) return;
-
                                 failedUnits.forEach(unit => {
                                     const errorNode = unit.nextElementSibling;
                                     if (errorNode && errorNode.classList.contains('translated-by-ao3-translator-error')) {
@@ -13834,12 +13819,10 @@
                                     }
                                     delete unit.dataset.translationState;
                                 });
-
 								if (controller.state === 'complete') {
 									controller.state = 'running';
 									controller.updateButtonState('翻译中…', 'state-running');
 								}
-
                                 if (activeSummaryTask) {
                                     activeSummaryTask.addUnits(failedUnits);
                                     activeSummaryTask.scheduleProcessing(true);
@@ -13848,20 +13831,16 @@
 						});
 					});
 
-					const [tagsResult] = await Promise.all([tagsPromise, summaryPromise]);
+					await Promise.all([tagsPromise, summaryPromise]);
 					if (isCancelled()) return;
-
-					translatedTagsElement = tagsResult;
 					onDone();
 				} catch (error) {
 					if (isCancelled()) return;
 					onDone();
-
 					const errorDiv = document.createElement('div');
 					errorDiv.className = 'translated-by-ao3-translator-error';
 					errorDiv.style.margin = '15px 0';
 					errorDiv.innerHTML = `翻译失败：${error.message}`;
-
 					const retryBtn = document.createElement('span');
 					retryBtn.className = 'retry-translation-button';
 					retryBtn.title = '重试';
@@ -13875,10 +13854,8 @@
 						controller.start();
 					});
 					errorDiv.appendChild(retryBtn);
-
 					buttonWrapper.before(errorDiv);
 					errorElement = errorDiv;
-
 					Logger.error('翻译', 'Blurb 翻译失败', error);
 				}
 			},
@@ -13907,15 +13884,10 @@
 					delete unit.dataset.translationState;
 				});
 
-				if (translatedTagsElement) {
-					translatedTagsElement.remove();
-					translatedTagsElement = null;
-				} else {
-					let nextTagNode = tagsElement.nextElementSibling;
-					if (nextTagNode && nextTagNode.classList.contains('translated-tags-container')) {
-						nextTagNode.remove();
-					}
-				}
+                const translations = tagsElement.querySelectorAll('.ao3-tag-translation');
+                translations.forEach(el => el.remove());
+                const originals = tagsElement.querySelectorAll('.ao3-tag-original');
+                originals.forEach(el => el.style.display = '');
 
 				if (errorElement) {
 					errorElement.remove();
@@ -13932,21 +13904,12 @@
 		return controller;
 	}
 
-	/**
+    /**
 	 * 标签区域翻译引擎
 	 */
 	async function runTagsTranslationEngine(containerElement, isCancelled) {
 		if (isCancelled()) return null;
 
-		const clone = containerElement.cloneNode(true);
-		clone.classList.add('translated-tags-container');
-		clone.removeAttribute('id');
-		clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
-		clone.style.background = '';
-		clone.style.border = '';
-		clone.style.boxShadow = '';
-
-		const nodesToTranslate = [];
 		const targetSelectors = [
 			'dd.fandom a.tag', 'dd.relationship a.tag', 'dd.character a.tag', 'dd.freeform a.tag',
 			'dd.series a', 'dd.collections a', 'dd.language', 'li.fandoms a.tag',
@@ -13954,35 +13917,65 @@
 			'a.tag:not(.rating):not(.warning):not(.category)'
 		];
 
-		const selectedElements = new Set();
-		const fullDictionary = {
-			...pageConfig.staticDict,
-			...pageConfig.globalFlexibleDict,
-			...pageConfig.pageFlexibleDict
-		};
+		const nodesToTranslate = [];
+		const wrapperMap = new Map();
+		const processedElements = new Set();
 
 		targetSelectors.forEach(selector => {
-			clone.querySelectorAll(selector).forEach(el => {
+			containerElement.querySelectorAll(selector).forEach(el => {
+				if (processedElements.has(el)) return;
+				processedElements.add(el);
+
 				if (el.closest('.rating, .warnings, .category, .warning')) return;
+				if (el.querySelector('.ao3-tag-translation')) return;
+
 				const text = el.textContent.trim();
+				const fullDictionary = {
+					...pageConfig.staticDict,
+					...pageConfig.globalFlexibleDict,
+					...pageConfig.pageFlexibleDict
+				};
+
 				if (text && !/^\d+$/.test(text) && !fullDictionary[text]) {
-					selectedElements.add(el);
+					let originalSpan = el.querySelector('.ao3-tag-original');
+
+					if (!originalSpan) {
+						originalSpan = document.createElement('span');
+						originalSpan.className = 'ao3-tag-original';
+
+						while (el.firstChild) {
+							originalSpan.appendChild(el.firstChild);
+						}
+						el.appendChild(originalSpan);
+					}
+
+					nodesToTranslate.push(originalSpan);
+					wrapperMap.set(originalSpan, el);
 				}
 			});
 		});
-
-		nodesToTranslate.push(...selectedElements);
 
 		if (nodesToTranslate.length > 0) {
 			try {
 				const reqId = 'Tags-' + Math.random().toString(36).substring(2, 6).toUpperCase();
 				const translationResults = await translateParagraphs(nodesToTranslate, { isCancelled, reqId });
+
 				if (isCancelled()) return null;
 
-				nodesToTranslate.forEach(el => {
-					const result = translationResults.get(el);
-					if (result && result.status === 'success') {
-						el.textContent = result.content;
+				nodesToTranslate.forEach(originalSpan => {
+					const result = translationResults.get(originalSpan);
+					const parentLink = wrapperMap.get(originalSpan);
+
+					if (result && result.status === 'success' && parentLink) {
+						if (parentLink.querySelector('.ao3-tag-translation')) return;
+
+						const translationSpan = document.createElement('span');
+						translationSpan.className = 'ao3-tag-translation';
+
+						const cleanedContent = result.content.trim().replace(/[。\.]$/, '');
+						translationSpan.textContent = cleanedContent;
+
+						parentLink.appendChild(translationSpan);
 					}
 				});
 			} catch (error) {
@@ -13991,27 +13984,10 @@
 			}
 		}
 
-		if (isCancelled()) return null;
-
 		const currentMode = GM_getValue('translation_display_mode', 'bilingual');
-		let insertedElement;
+		applyDisplayModeChange(currentMode);
 
-		if (containerElement.tagName === 'DL' && containerElement.classList.contains('meta') && containerElement.parentElement.classList.contains('wrapper')) {
-			const parentWrapper = containerElement.parentElement;
-			const wrapperClone = parentWrapper.cloneNode(false);
-			wrapperClone.removeAttribute('id');
-			wrapperClone.classList.add('translated-tags-wrapper');
-			wrapperClone.appendChild(clone);
-			parentWrapper.after(wrapperClone);
-			insertedElement = wrapperClone;
-			if (currentMode === 'translation_only') parentWrapper.style.display = 'none';
-		} else {
-			containerElement.after(clone);
-			insertedElement = clone;
-			if (currentMode === 'translation_only') containerElement.style.display = 'none';
-		}
-
-		return insertedElement;
+		return containerElement;
 	}
 
 	/**
@@ -15964,6 +15940,27 @@
                 height: 18px;
                 fill: currentColor;
             }
+
+            /* 标签翻译样式 */
+            .ao3-tag-translation {
+                margin-left: 6px;
+                opacity: 0.85;
+                font-size: 0.95em;
+                display: inline;
+                color: inherit;
+            }
+            
+            /* 标签原文包裹样式 */
+            .ao3-tag-original {
+                display: inline;
+            }
+            
+            /* 防止在标签列表中换行导致布局错乱 */
+            li.blurb ul.tags li, 
+            dl.meta dd ul.tags li, 
+            ul.tags.commas li {
+                display: inline;
+            }
         `;
 		document.head.appendChild(globalStyles);
 		if (document.documentElement.lang !== CONFIG.LANG) {
@@ -15976,8 +15973,6 @@
 		}).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
 		updatePageConfig('初始载入');
 
-		scanAllWorks();
-
 		if (pageConfig.currentPageType) {
 			if (FeatureSet.enable_ui_trans) {
 				transTitle();
@@ -15985,6 +15980,9 @@
 				traverseNode(document.body);
 				runHighPriorityFunctions();
 			}
+			
+			scanAllWorks();
+
 			fabLogic.toggleFabVisibility();
 			if (FeatureSet.enable_transDesc) {
 				setTimeout(transDesc, 1000);
