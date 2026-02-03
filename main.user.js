@@ -7369,6 +7369,12 @@
 	 * 动态应用翻译显示模式的更改
 	 */
 	function applyDisplayModeChange(mode) {
+		if (mode === 'translation_only') {
+			document.body.classList.add('ao3-translation-only');
+		} else {
+			document.body.classList.remove('ao3-translation-only');
+		}
+
 		const originalUnits = document.querySelectorAll('[data-translation-state="translated"]');
 		originalUnits.forEach(unit => {
 			const nextSibling = unit.nextElementSibling;
@@ -12528,6 +12534,10 @@
                 font-size: 0.95em;
                 display: inline;
                 color: inherit;
+            }
+            /* 当处于仅译文模式时，移除左侧间隔 */
+            body.ao3-translation-only .ao3-tag-translation {
+                margin-left: 0;
             }
             
             /* 标签原文包裹样式 */
