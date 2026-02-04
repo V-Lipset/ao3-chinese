@@ -1,7 +1,7 @@
 /**
  name         AO3 Translator - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.6.1-2026-02-03
+ version      1.6.1-2026-02-04
  description  AO3 Translator 的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -3448,6 +3448,7 @@ const I18N = {
 			'admin_posts_show': ['.userstuff'],
 			'tag_sets_index': ['h2.heading', 'dl.stats'],
 			'tag_sets_new': ['h4.heading > label[for*="freeform"]'],
+			'collections_dashboard_common': ['.primary.header.module blockquote.userstuff'],
 			'faq_page': ['.userstuff', '.faq.index.group'],
 			'wrangling_guidelines_page': ['.userstuff'],
 			'tos_page': ['#tos.userstuff'],
@@ -3480,7 +3481,7 @@ const I18N = {
 				'Recent Works': '最近作品',
 				'Recent Series': '最近系列',
 				'Recent Bookmarks': '最近书签', 'Collections:': '合集:',
-				'Bookmarker\'s Tags:': '书签创建者的标签：', 'Bookmarker\'s Collections:': '书签创建者的合集：', 'Completed': '已完结',
+				'Bookmarker\'s Tags:': '创建者的标签：', 'Bookmarker\'s Collections:': '创建者的合集：', 'Completed': '已完结',
 				'Bookmark Tags:': '书签标签：', 'Complete Work': '已完结', 'Work in Progress': '连载中', 'Public Bookmark': '公开书签',
 				'Most Popular': '最常用', 'Tag Sets': '标签集',
 				'Warnings': '预警',
@@ -3764,6 +3765,7 @@ const I18N = {
 				'Remove': '移除',
 				'Owner pseud(s)': '所有者笔名',
 				'Collection Tags': '合集标签',
+				'Collection tags:': '合集标签:',
 				'Enter up to 10 tags to describe the content of your collection.': '最多输入 10 个标签来描述您的合集内容。',
 				'Use this if your collection is not fandom-specific.': '如果您的合集不针对特定同人圈，请使用此项。',
 
@@ -5681,7 +5683,7 @@ const I18N = {
 				'Listing Tags': '标签列表',
 			},
 			'innerHTML_regexp': [
-				['h2.heading', /^About (.*)$/, '关于 “$1”'],
+				['h2.heading', /^About (.*)$/, '关于 $1'],
 				['dd', /<strong>Open<\/strong> to the public\./, '对公众开放。'],
 				['dl.stats', /(Fandoms:|Characters:|Relationships:|Freeforms:)/g, (match) => {
 					const translationMap = {
