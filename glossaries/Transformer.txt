@@ -203,6 +203,7 @@ Spark Chamber：火种仓
 Brain Module：脑模块
 Cortical Psychic Patch：皮层神经接口
 Optical Lens：光学镜片
+optics: 光学镜
 Audial Receptor：音频接收器
 Vocalizer：发声器
 // 转化与结构相关
@@ -376,7 +377,7 @@ Shoulder Guard：肩甲
 Knee Joint：膝关节
 Ankle Strut：踝支架
 // 感官系统
-Optics：光学镜头
+Optics：光学镜
 Audio Sensor：音频传感器
 Tactile Sensor：触觉传感器
 Olfactory Sensor：嗅觉传感器
@@ -418,7 +419,7 @@ Patch：修补
 // 特殊状态
 Cold Construction：冷铸
 Hot Spot：热点
-Forge：熔炉
+Forge：神铸
 Vector Sigma：魔力神球
 Well of All Sparks：火种源之井
 
@@ -551,7 +552,7 @@ Biotech
 \bMemory Bank(s)?\b: 记忆模块
 \bFuel Tank(s)?\b: 油箱
 \bEnergon Line(s)?\b: 能量管路
-\bOptical Lens(es)?\b: 光学镜片
+\bOptical Lens(es)?\b: 光学镜
 \bAudial Receptor(s)?\b: 音频接收器
 // 匹配不同拼写
 \bT-Cog(s)?\b: T齿轮
