@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.6.1-2026-02-03
+// @version      1.6.1-2026-02-04
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -5242,8 +5242,9 @@
 		if (fileFormatVersion > currentScriptSupportedVersion) {
 			try {
 				await showCustomConfirm(
-					`该备份文件的格式版本 (${fileFormatVersion}) 高于当前脚本支持的版本 (${currentScriptSupportedVersion})。\n\n强制导入可能会导致部分设置丢失或功能异常。\n是否仍要继续？`,
-					'提示'
+					`该备份文件的格式版本高于当前插件支持的版本。\n\n强制导入可能会导致部分设置丢失或功能异常。\n是否仍要继续导入？`,
+					'提示',
+                    { textAlign: 'center' }
 				);
 			} catch (e) {
 				return { success: false, message: "用户取消导入：版本不兼容。" };
@@ -7112,7 +7113,7 @@
 						const isFirstSaveEver = !GM_getValue(CUSTOM_URL_FIRST_SAVE_DONE, DEFAULT_CONFIG.GENERAL.custom_url_first_save_done);
 						if (isFirstSaveEver) {
 							GM_setValue(CUSTOM_URL_FIRST_SAVE_DONE, true);
-							const confirmationMessage = `您正在添加一个自定义翻译服务接口地址。\n为了保护您的浏览器安全，油猴脚本要求您为这个新地址手动授权。\n您需要将刚才输入的接口地址域名添加到脚本的 “域名白名单” 中。这是一个首次设置时必须进行的一次性操作。\n点击 “确定” ，将跳转到一份图文版操作教程；点击 “取消” ，则不会进行跳转。\n此提示仅显示一次，是否跳转到教程页面？`;
+							const confirmationMessage = `您正在添加一个自定义翻译服务接口地址。\n为了保护您的浏览器安全，油猴脚本要求您为这个新地址手动授权。\n您需要将刚才输入的接口地址域名添加到 AO3 Translator 的 “域名白名单” 中。这是一个首次设置时必须进行的一次性操作。\n点击 “确定” ，将跳转到一份图文版操作教程；点击 “取消” ，则不会进行跳转。\n此提示仅显示一次，是否跳转到教程页面？`;
 							try {
 								await showCustomConfirm(confirmationMessage, '安全授权', { useTextIndent: true });
 								window.open('https://v-lipset.github.io/docs/guides/whitelist', '_blank');
@@ -9940,60 +9941,84 @@
 			.replace(/[‘’]/g, "'");
 	}
 
-	/**
+    /**
 	 * 智能去引号工具
 	 */
 	function smartUnquote(s) {
 		if (!s) return '';
 		s = s.trim();
-		if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+		const len = s.length;
+		if (len < 2) return s;
+
+		const first = s[0];
+		const last = s[len - 1];
+
+		if ((first === '"' && last === '"') ||
+			(first === "'" && last === "'") ||
+			(first === '“' && last === '”') ||
+			(first === '‘' && last === '’')) {
 			return s.slice(1, -1);
 		}
+		
 		return s;
 	}
 
-	/**
+    /**
 	 * 通用引用感知分词引擎
 	 */
 	function tokenizeQuoteAware(str, separators = [',', '+', '-']) {
 		const tokens = [];
 		let current = "";
 		let inQuote = false;
-		let quoteChar = "";
-		let lastOp = null; 
+		let expectedCloseQuote = "";
+		let lastOp = null;
+
+		const quotePairs = {
+			'"': '"',
+			"'": "'",
+			'“': '”',
+			'‘': '’'
+		};
 
 		for (let i = 0; i < str.length; i++) {
 			let char = str[i];
 
 			if (char === '\\' && i + 1 < str.length) {
-				const nextChar = str[i + 1];
-				const escapedTargets = ['"', "'", '\\', ...separators];
-				
-				if (escapedTargets.includes(nextChar)) {
-					current += nextChar;
-					i++;
-					continue;
-				}
+				current += char + str[i + 1];
+				i++;
+				continue;
 			}
 
-			if ((char === '"' || char === "'")) {
-				if (!inQuote) {
+			if (inQuote) {
+				current += char;
+				if (char === expectedCloseQuote) {
+					let nextNonSpaceChar = null;
+					for (let k = i + 1; k < str.length; k++) {
+						if (!/\s/.test(str[k])) {
+							nextNonSpaceChar = str[k];
+							break;
+						}
+					}
+
+					if (nextNonSpaceChar === null || separators.includes(nextNonSpaceChar)) {
+						inQuote = false;
+						expectedCloseQuote = "";
+					}
+				}
+			} else {
+				if (quotePairs.hasOwnProperty(char)) {
 					inQuote = true;
-					quoteChar = char;
-				} else if (char === quoteChar) {
-					inQuote = false;
+					expectedCloseQuote = quotePairs[char];
+					current += char;
+				} else if (separators.includes(char)) {
+					if (current.trim() || lastOp !== null) {
+						tokens.push({ value: current.trim(), op: lastOp });
+					}
+					lastOp = char;
+					current = "";
+				} else {
+					current += char;
 				}
-				current += char;
-			}
-			else if (separators.includes(char) && !inQuote) {
-				if (current.trim() || lastOp !== null) {
-					tokens.push({ value: current.trim(), op: lastOp });
-				}
-				lastOp = char;
-				current = "";
-			}
-			else {
-				current += char;
 			}
 		}
 
@@ -11060,12 +11085,12 @@
 					error.noRetry = true;
 					break;
 				case 429:
-					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制，脚本将在稍后自动重试。`;
+					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
 					error.type = 'rate_limit';
 					break;
 				case 500:
 				case 503:
-					userFriendlyError = `服务器错误 (${response.status})：${this.provider.name} 的服务器暂时不可用，脚本将在稍后自动重试。`;
+					userFriendlyError = `服务器错误 (${response.status})：${this.provider.name} 的服务器暂时不可用。`;
 					error.type = 'server_overloaded';
 					break;
 				default:
@@ -12333,7 +12358,7 @@
 		switch (res.status) {
 			case 400:
 			case 422:
-				userFriendlyError = `请求格式或参数错误 (${res.status})：请检查脚本是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
+				userFriendlyError = `请求格式或参数错误 (${res.status})：请检插件是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
 				error.noRetry = true;
 				break;
 			case 401:
@@ -12414,7 +12439,7 @@
 				if (apiErrorCode === 20012) {
 					userFriendlyError = `模型不存在 (400)：您选择的模型名称无效或已下线。请在设置中更换模型。`;
 				} else {
-					userFriendlyError = `请求参数错误 (400)：请检查脚本版本或配置。`;
+					userFriendlyError = `请求参数错误 (400)：请检查插件版本或配置。`;
 				}
 				error.noRetry = true;
 				break;
@@ -12587,7 +12612,7 @@
 		switch (res.status) {
 			case 400:
 			case 422:
-				userFriendlyError = `请求格式或参数错误 (${res.status})：请检查脚本是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
+				userFriendlyError = `请求格式或参数错误 (${res.status})：请检查插件是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
 				error.noRetry = true;
 				break;
 			case 401:
@@ -13470,6 +13495,8 @@
 				this.state = 'running';
 				this.updateButtonState('翻译中…', 'state-running');
 
+				await sleep(10);
+
 				const isCancelled = this.getCancelChecker(myRunId);
 				const onDone = () => {
 					if (!isCancelled()) {
@@ -13918,7 +13945,8 @@
 
 		const targetSelectors = [
 			'dd.fandom a.tag', 'dd.relationship a.tag', 'dd.character a.tag', 'dd.freeform a.tag',
-			'dd.series a', 'dd.collections a', 'dd.language', 'li.fandoms a.tag',
+			'dd.series a:not(.previous):not(.next)', // <--- 修改了这一行
+			'dd.collections a', 'dd.language', 'li.fandoms a.tag',
 			'li.relationships a.tag', 'li.characters a.tag', 'li.freeforms a.tag',
 			'a.tag:not(.rating):not(.warning):not(.category)'
 		];
@@ -14906,7 +14934,7 @@
 			}).filter(Boolean);
 		}
 
-		Logger.info('数据', '缓存未命中、已失效或脚本已更新，正在重建规则');
+		Logger.info('数据', '缓存未命中、已失效或插件已更新，正在重建规则');
 		return buildPrioritizedGlossaryMaps();
 	}
 
@@ -14977,6 +15005,76 @@
 		return preparedRules;
 	}
 
+    /**
+     * 安全解析术语表键值对
+     */
+    function parseGlossaryKeyValuePair(entry) {
+        if (!entry) return null;
+        let inQuote = false;
+        let expectedCloseQuote = '';
+        let splitIndex = -1;
+        let separator = '';
+
+        const quotePairs = {
+            '"': '"',
+            "'": "'",
+            '“': '”',
+            '‘': '’'
+        };
+
+        const rawChars = entry.split('');
+        
+        for (let i = 0; i < rawChars.length; i++) {
+            const char = rawChars[i];
+            
+            if (inQuote) {
+                if (char === expectedCloseQuote) {
+
+                    let nextNonSpaceChar = null;
+                    for (let k = i + 1; k < rawChars.length; k++) {
+                        if (!/\s/.test(rawChars[k])) {
+                            nextNonSpaceChar = rawChars[k];
+                            break;
+                        }
+                    }
+
+                    const isSeparator = 
+                        nextNonSpaceChar === ':' || 
+                        nextNonSpaceChar === '：' || 
+                        nextNonSpaceChar === '=' || 
+                        nextNonSpaceChar === '＝';
+
+                    if (isSeparator) {
+                        inQuote = false;
+                    }
+                }
+            } else {
+                if (quotePairs.hasOwnProperty(char)) {
+                    inQuote = true;
+                    expectedCloseQuote = quotePairs[char];
+                } else {
+                    if (char === ':' || char === '：') {
+                        splitIndex = i;
+                        separator = ':';
+                        break;
+                    }
+                    if (char === '=' || char === '＝') {
+                        splitIndex = i;
+                        separator = '=';
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (splitIndex === -1) return null;
+
+        const key = entry.substring(0, splitIndex).trim();
+        const value = entry.substring(splitIndex + 1).trim();
+        
+        return { key, value, separator };
+    }
+
 	/**
 	 * 构建并排序所有术语表规则
 	 */
@@ -14986,11 +15084,13 @@
 		const localGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
 		const onlineOrder = GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []);
 		const orderedGlossaries = [];
+
 		localGlossaries.forEach(g => {
 			if (g.enabled !== false) {
 				orderedGlossaries.push({ ...g, type: 'LOCAL', sourceName: g.name });
 			}
 		});
+
 		const onlineUrls = Object.keys(allImportedGlossaries);
 		const onlineUrlSet = new Set(onlineUrls);
 		onlineOrder.forEach(url => {
@@ -15004,12 +15104,14 @@
 				orderedGlossaries.push({ ...allImportedGlossaries[url], type: 'ONLINE', sourceName: decodeURIComponent(url.split('/').pop()) });
 			}
 		});
+
 		const validRules = [];
 		const processedInsensitiveTerms = new Set();
 		const processedSensitiveTerms = new Set();
 		const termSeparatorRegex = /[\s-－﹣—–]+/;
 		const translationSeparatorRegex = /[\s·・]+/;
 		const quoteRegex = /["“‘'”’]/;
+
 		const smartSplit = (str, regex) => {
 			if (!quoteRegex.test(str)) return str.split(regex);
 			const parts = [];
@@ -15036,25 +15138,29 @@
 			if (current.trim()) parts.push(current.trim());
 			return parts;
 		};
+
 		const sanitizeTranslation = (term, trans) => {
 			if (!trans || !quoteRegex.test(term)) return trans;
 			const match = trans.match(/^["“‘'](.*)["”’']$/);
 			if (match) return match[1].trim();
 			return trans;
 		};
-		const tryAddRule = (term, translation, glossaryIndex, sourceName, isSensitive, isForbidden, isRegex = false, isUnordered = false) => {
+
+        const tryAddRule = (term, translation, glossaryIndex, sourceName, isSensitive, isForbidden, isRegex = false, isUnordered = false) => {
 			let normalizedTerm = term.trim();
 			if (!normalizedTerm) return;
-			const sanitizedTrans = sanitizeTranslation(normalizedTerm, translation);
+
 			let isLiteral = false;
-			const literalMatch = normalizedTerm.match(/^["“‘'](.*)["”’']$/);
-			if (literalMatch) {
+
+			const unquoted = smartUnquote(normalizedTerm);
+
+			if (unquoted !== normalizedTerm) {
 				isLiteral = true;
-				normalizedTerm = literalMatch[1].trim();
-			} else if (quoteRegex.test(normalizedTerm)) {
-				isLiteral = true;
-				normalizedTerm = normalizedTerm.replace(/["“‘'”’]/g, '').trim();
+				normalizedTerm = unquoted.trim();
 			}
+
+			const sanitizedTrans = sanitizeTranslation(normalizedTerm, translation);
+			
 			const lowerTerm = normalizedTerm.toLowerCase();
 			if (processedInsensitiveTerms.has(lowerTerm)) {
 				return;
@@ -15122,6 +15228,7 @@
 			}
 			validRules.push(ruleObject);
 		};
+
 		const processEqualsSyntax = (term, translation, glossaryIndex, sourceName, isSensitive) => {
 			tryAddRule(term, translation, glossaryIndex, sourceName, isSensitive, false, false, true);
 			if (term.match(/^["“‘'](.*)["”’']$/)) return;
@@ -15133,52 +15240,58 @@
 				}
 			}
 		};
+
+        const processStringRules = (rawString, glossaryIndex, sourceName, isSensitive, isForbidden) => {
+            if (!rawString) return;
+            const tokens = tokenizeQuoteAware(rawString, [',', '，']);
+            
+            tokens.forEach(token => {
+                const entry = token.value.trim();
+                if (!entry) return;
+
+                if (isForbidden) {
+                    tryAddRule(entry, null, glossaryIndex, sourceName, isSensitive, true);
+                    return;
+                }
+
+                const parsed = parseGlossaryKeyValuePair(entry);
+                if (parsed) {
+                    if (parsed.separator === '=') {
+                        processEqualsSyntax(parsed.key, parsed.value, glossaryIndex, sourceName, isSensitive);
+                    } else {
+                        tryAddRule(parsed.key, parsed.value, glossaryIndex, sourceName, isSensitive, false);
+                    }
+                }
+            });
+        };
+
 		orderedGlossaries.forEach((glossary, index) => {
 			const sourceName = glossary.sourceName;
+
 			if (glossary.forbidden) {
-				glossary.forbidden.split(/[,，]/).forEach(term => {
-					tryAddRule(term, null, index, sourceName, true, true);
-				});
+                processStringRules(glossary.forbidden, index, sourceName, true, true);
 			}
 			(glossary.forbiddenTerms || []).forEach(term => {
 				tryAddRule(term, null, index, sourceName, true, true);
 			});
+
 			if (glossary.sensitive) {
-				glossary.sensitive.replace(/[，,]/g, '|||').split('|||').forEach(entry => {
-					const normalizedEntry = entry.replace(/[：＝]/g, (match) => ({ '：': ':', '＝': '=' }[match]));
-					const multiPartMatch = normalizedEntry.match(/^\s*(.+?)\s*=\s*(.+?)\s*$/);
-					if (multiPartMatch) {
-						processEqualsSyntax(multiPartMatch[1], multiPartMatch[2], index, sourceName, true);
-					} else {
-						const singlePartMatch = normalizedEntry.match(/^\s*(.+?)\s*:\s*(.+?)\s*$/);
-						if (singlePartMatch) {
-							tryAddRule(singlePartMatch[1], singlePartMatch[2], index, sourceName, true, false);
-						}
-					}
-				});
+                processStringRules(glossary.sensitive, index, sourceName, true, false);
 			}
 			Object.entries(glossary.terms || {}).forEach(([k, v]) => tryAddRule(k, v, index, sourceName, true, false));
 			Object.entries(glossary.multiPartTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, index, sourceName, true));
+
 			if (glossary.insensitive) {
-				glossary.insensitive.replace(/[，,]/g, '|||').split('|||').forEach(entry => {
-					const normalizedEntry = entry.replace(/[：＝]/g, (match) => ({ '：': ':', '＝': '=' }[match]));
-					const multiPartMatch = normalizedEntry.match(/^\s*(.+?)\s*=\s*(.+?)\s*$/);
-					if (multiPartMatch) {
-						processEqualsSyntax(multiPartMatch[1], multiPartMatch[2], index, sourceName, false);
-					} else {
-						const singlePartMatch = normalizedEntry.match(/^\s*(.+?)\s*:\s*(.+?)\s*$/);
-						if (singlePartMatch) {
-							tryAddRule(singlePartMatch[1], singlePartMatch[2], index, sourceName, false, false);
-						}
-					}
-				});
+                processStringRules(glossary.insensitive, index, sourceName, false, false);
 			}
 			Object.entries(glossary.generalTerms || {}).forEach(([k, v]) => tryAddRule(k, v, index, sourceName, false, false));
 			Object.entries(glossary.multiPartGeneralTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, index, sourceName, false));
-			(glossary.regexTerms || []).forEach(({ pattern, replacement }) => {
+
+            (glossary.regexTerms || []).forEach(({ pattern, replacement }) => {
 				tryAddRule(pattern, replacement, index, sourceName, true, false, true);
 			});
 		});
+
 		validRules.sort((a, b) => {
 			if (a.glossaryIndex !== b.glossaryIndex) {
 				return a.glossaryIndex - b.glossaryIndex;
@@ -15194,6 +15307,7 @@
 			}
 			return (b.isSensitive ? 1 : 0) - (a.isSensitive ? 1 : 0);
 		});
+
 		const currentStateVersion = generateGlossaryStateVersion();
 		const serializedRules = validRules.map(rule => {
 			if (rule.regex instanceof RegExp) {
@@ -15920,6 +16034,13 @@
             .translated-tags-container {
                 margin-top: 15px;
                 margin-bottom: 10px;
+            }
+            .collection.profile .primary.header.module .translate-me-ao3-wrapper,
+            .collection.home .primary.header.module .translate-me-ao3-wrapper {
+                clear: none !important;
+                margin-left: 120px !important;
+                margin-top: 15px !important;
+                width: auto !important;
             }
             p.kudos {
                 line-height: 1.5;
@@ -16802,11 +16923,15 @@
 				{ selector: '#chapters > .userstuff', text: '翻译正文', above: true, isLazyLoad: true },
 				{ selector: '#chapters > .chapter > .userstuff[role="article"]', text: '翻译正文', above: true, isLazyLoad: true }
 			],
+			'collections_dashboard_common': [
+				{ selector: '.primary.header.module blockquote.userstuff', text: '翻译概述', above: false, isLazyLoad: false },
+				{ selector: '#intro blockquote.userstuff', text: '翻译简介', above: false, isLazyLoad: false }
+			],
 			'admin_posts_show': [
-				{ selector: 'div[role="article"] > .userstuff', text: '翻译动态', above: true, isLazyLoad: false }
+				{ selector: 'div[role="article"] > .userstuff', text: '翻译动态', above: true, isLazyLoad: true }
 			],
 			'admin_posts_index': [
-				{ selector: '.admin_posts-index div[role="article"] > .userstuff', text: '翻译动态', above: true, isLazyLoad: false }
+				{ selector: '.admin_posts-index div[role="article"] > .userstuff', text: '翻译动态', above: true, isLazyLoad: true }
 			],
 			'tos_page': [
 				{ selector: '#tos.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
@@ -16839,7 +16964,7 @@
 
 		const applyRules = (rules) => {
 			rules.forEach(rule => {
-				if (rule.selector === 'ul.tags.commas' && (pageConfig.currentPageType === 'admin_posts_show' || pageConfig.currentPageType === 'admin_posts_index')) {
+				if (rule.selector === 'ul.tags.commas' && (pageConfig.currentPageType === 'admin_posts_show' || pageConfig.currentPageType === 'admin_posts_index' || pageConfig.currentPageType === 'collections_dashboard_common')) {
 					return;
 				}
 
@@ -17000,6 +17125,7 @@
 				'admin_posts_show': ['.userstuff'],
 				'tag_sets_index': ['h2.heading', 'dl.stats'],
 				'tag_sets_new': ['h4.heading > label[for*="freeform"]'],
+				'collections_dashboard_common': ['.primary.header.module blockquote.userstuff'],
 				'faq_page': ['.userstuff', '.faq.index.group'],
 				'wrangling_guidelines_page': ['.userstuff'],
 				'tos_page': ['#tos.userstuff'],
@@ -17032,7 +17158,7 @@
 					'Recent Works': '最近作品',
 					'Recent Series': '最近系列',
 					'Recent Bookmarks': '最近书签', 'Collections:': '合集:',
-					'Bookmarker\'s Tags:': '书签创建者的标签：', 'Bookmarker\'s Collections:': '书签创建者的合集：', 'Completed': '已完结',
+					'Bookmarker\'s Tags:': '创建者的标签：', 'Bookmarker\'s Collections:': '创建者的合集：', 'Completed': '已完结',
 					'Bookmark Tags:': '书签标签：', 'Complete Work': '已完结', 'Work in Progress': '连载中', 'Public Bookmark': '公开书签',
 					'Most Popular': '最常用', 'Tag Sets': '标签集',
 					'Warnings': '预警',
@@ -17316,6 +17442,7 @@
 					'Remove': '移除',
 					'Owner pseud(s)': '所有者笔名',
 					'Collection Tags': '合集标签',
+					'Collection tags:': '合集标签:',
 					'Enter up to 10 tags to describe the content of your collection.': '最多输入 10 个标签来描述您的合集内容。',
 					'Use this if your collection is not fandom-specific.': '如果您的合集不针对特定同人圈，请使用此项。',
 
@@ -19233,7 +19360,7 @@
 					'Listing Tags': '标签列表',
 				},
 				'innerHTML_regexp': [
-					['h2.heading', /^About (.*)$/, '关于 “$1”'],
+					['h2.heading', /^About (.*)$/, '关于 $1'],
 					['dd', /<strong>Open<\/strong> to the public\./, '对公众开放。'],
 					['dl.stats', /(Fandoms:|Characters:|Relationships:|Freeforms:)/g, (match) => {
 						const translationMap = {
