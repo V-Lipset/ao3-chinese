@@ -1,10 +1,10 @@
-版本号：1.0.5
+版本号：1.0.6
 维护者：拉葛莎
-更新时间：2026-02-04
+更新时间：2026-02-05
 
 // ============================================
 // 变形金刚术语表 - Transformers Glossary
-// 整合版（包含G1、电影、TFP、BW、同人、设定等）
+// 整合版（包含G1、电影、TFP、IDW、同人、设定等）
 // ============================================
 
 词条
@@ -69,6 +69,8 @@ Sentinel Prime：御天敌
 Galvatron：惊破天
 Cyclonus：狂飙
 Scourge：瘟疫
+Straxus: 斯塔萨斯
+Jhiaxus: 哲拉萨斯
 
 // === 主要角色 - 巨无霸/原始兽 ===
 Optimus Primal：擎天圣
@@ -114,10 +116,15 @@ Dead End：封锁
 Wildrider：莽撞
 Breakdown：打击
 Aerialbots：飞行太保
+Silverbolt: 银剑
+Slingshot: 弹弓
+Skydive: 俯冲
+Airraid: 空袭
+Fireflight: 飞火
 Superion：大无畏
 Combaticons：战车队
 Bruticus：混天豹
-Protectobots：守护神
+Protectobots：机器卫兵
 Defensor：守护神
 Technobots：神风队
 Computron：计算王
@@ -125,6 +132,19 @@ Terrorcons：龙头部队
 Predaking：冲云霄
 Unicron：宇宙大帝
 Primus：元始天尊
+Dai Atlas: 大阿特拉斯
+Nova: 星皇
+Nova Prime: 耀天威
+Nominus: 逆天劫
+Rung: 荣格
+Trepan: 环锯
+Pharma: 药师
+Nightbeat: 夜巡
+Riptide: 湍流
+First Aid: 急救员
+Streetwise: 大街
+Blades: 刀刃
+Groove: 车辙
 
 // === 电影系列特定角色 ===
 Sam Witwicky：山姆·维特维奇
@@ -202,14 +222,14 @@ Nemesis Prime：暗天陨
 Spark Chamber：火种仓
 Brain Module：脑模块
 Cortical Psychic Patch：皮层神经接口
-Optical Lens：光学镜片
+Optical Lens：光学镜
 optics: 光学镜
 Audial Receptor：音频接收器
 Vocalizer：发声器
 // 转化与结构相关
 Transformation Cog：变形齿轮
 Cybertronian Protoform：塞博坦原生质
-T-Cog：T齿轮
+T-Cog：齿轮
 // 动力与能量系统
 Spark：火种
 Fuel Pump：燃料泵
@@ -313,7 +333,7 @@ Cybertonium：赛博坦金属
 Dark Energon：黑暗能量
 Synthetic Energon：合成能量
 Ore：矿石
-Ore-13：矿石13号
+Ore-13：13号矿石
 Protoform：原生体
 Spark：火种
 Spark Chamber：火种仓
@@ -498,7 +518,6 @@ Screamy：小红
 Jacky：老千
 Doc：大夫
 
-Sinner：禁闭者
 
 禁翻词条
 // 通用禁翻
@@ -555,7 +574,7 @@ Biotech
 \bOptical Lens(es)?\b: 光学镜
 \bAudial Receptor(s)?\b: 音频接收器
 // 匹配不同拼写
-\bT-Cog(s)?\b: T齿轮
+\bT-Cog(s)?\b: 齿轮
 \bTransformation Cog(s)?\b: 变形齿轮
 // 匹配状态描述
 \bStasis (Lock(ed)?|Mode)\b: 静态$1
