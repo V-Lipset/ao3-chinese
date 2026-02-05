@@ -1,0 +1,608 @@
+版本号：1.0.6
+维护者：拉葛莎
+更新时间：2026-02-05
+
+// ============================================
+// 变形金刚术语表 - Transformers Glossary
+// 整合版（包含G1、电影、TFP、IDW、同人、设定等）
+// ============================================
+
+词条
+// === 主要派系与组织 ===
+Autobots：汽车人
+Decepticons：霸天虎
+Maximals：巨无霸
+Predacons：巨狰狞
+Minicons：迷你金刚
+Junkions：垃圾星人
+Quintessons：五面怪
+Wreckers：雷霆拯救队
+Decepticon Justice Division：霸天虎执法部队
+M.E.C.H.：M.E.C.H.
+
+// === 主要角色 - 汽车人/博派 ===
+Optimus Prime：擎天柱
+Bumblebee：大黄蜂
+Ironhide：铁皮
+Ratchet：救护车
+Jazz：爵士
+Prowl：警车
+Wheeljack：千斤顶
+Mirage：幻影
+Sunstreaker：飞毛腿
+Sideswipe：横炮
+Cliffjumper：飞过山
+Arcee：阿尔茜
+Elita-1：艾丽塔
+Ultra Magnus：通天晓
+Springer：弹簧
+Kup：杯子
+Hot Rod：热破
+Rodimus Prime：补天士
+Blurr：啰嗦
+Perceptor：感知器
+Jetfire：天火
+Omega Supreme：大力金刚
+Metroplex：猛大帅
+
+// === 主要角色 - 霸天虎/狂派 ===
+Megatron：威震天
+Starscream：红蜘蛛
+Soundwave：声波
+Shockwave：震荡波
+Shockblast：震荡波
+Laserbeak：激光鸟
+Ravage：机器狗
+Frenzy：迷乱
+Rumble：轰隆隆
+Skywarp：闹翻天
+Thundercracker：惊天雷
+Reflector：照相机
+Refraktor：折射
+Astrotrain：航天飞机
+Blitzwing：闪电
+Octane：毒气弹
+Devastator：大力神
+Menace：冲
+The Fallen：堕落金刚
+Sentinel Prime：御天敌
+Galvatron：惊破天
+Cyclonus：狂飙
+Scourge：瘟疫
+Straxus: 斯塔萨斯
+Jhiaxus: 哲拉萨斯
+
+// === 主要角色 - 巨无霸/原始兽 ===
+Optimus Primal：擎天圣
+Rhinox：犀牛
+Rattrap：精灵鼠
+Cheetor：黄豹
+Dinobot：恐龙勇士
+Tigatron：白虎
+Airazor：飞箭
+Megatron：霸王龙
+Scorponok：巨蝎
+Tarantulas：狼蛛
+Terrorsaur：黄蜂勇士
+Waspinator：毒蜘蛛
+Blackarachnia：黑蜘蛛
+Inferno：魔鬼
+Quickstrike：快刀
+Rampage：狂飙
+Depth Charge：急先锋
+
+// === 其他重要角色与概念 ===
+Alpha Trion：钛师傅
+Vector Sigma：魔力神球
+AllSpark：火种源
+Matrix of Leadership：领导模块
+Dinobots：机器恐龙
+Grimlock：钢锁
+Slag：炉渣
+Sludge：淤泥
+Swoop：飞标
+Snarl：嚎叫
+Constructicons：挖地虎
+Hook：吊钩
+Mixmaster：搅拌机
+Scavenger：清扫机
+Scrapper：铲土机
+Bonecrusher：碾压机
+Long Haul：拖斗
+Stunticons：飞虎队
+Motormaster：汽车大师
+Drag Strip：抢劫
+Dead End：封锁
+Wildrider：莽撞
+Breakdown：打击
+Aerialbots：飞行太保
+Silverbolt: 银剑
+Slingshot: 弹弓
+Skydive: 俯冲
+Airraid: 空袭
+Fireflight: 飞火
+Superion：大无畏
+Combaticons：战车队
+Bruticus：混天豹
+Protectobots：机器卫兵
+Defensor：守护神
+Technobots：神风队
+Computron：计算王
+Terrorcons：龙头部队
+Predaking：冲云霄
+Unicron：宇宙大帝
+Primus：元始天尊
+Dai Atlas: 大阿特拉斯
+Nova: 星皇
+Nova Prime: 耀天威
+Nominus: 逆天劫
+Rung: 荣格
+Trepan: 环锯
+Pharma: 药师
+Nightbeat: 夜巡
+Riptide: 湍流
+First Aid: 急救员
+Streetwise: 大街
+Blades: 刀刃
+Groove: 车辙
+
+// === 电影系列特定角色 ===
+Sam Witwicky：山姆·维特维奇
+Cade Yeager：凯德·伊格
+Seymour Simmons：西蒙斯
+Sector Seven：第七区
+N.E.S.T.：N.E.S.T.
+KSI：KSI
+TRF：TRF
+
+// === 领袖之证系列角色 ===
+Bulkhead：隔板
+Smokescreen：烟幕
+Knock Out：击倒
+Breakdown：死火
+Airachnid：黑寡妇
+Miko Nakadai：仲代神子
+Miko: 神子
+Jack Darby：杰克·达比
+Raf Esquivel：拉菲·埃斯奎维尔
+Fowler：福勒
+Predaking：冲云霄
+Skyquake：天震
+Dreadwing：骇翼
+
+// === 霸天虎执法部队 (DJD) 成员 ===
+Tarn：塔恩
+Vos：沃斯
+Kaon：卡隆
+Tesarus：泰萨拉斯
+Helex：赫列克斯
+Nickel：妮可
+Rotorstorm：旋风暴
+
+// === 十三天元 ===
+Prima：先觉天
+Megatronus：震天尊
+Liege Maximo：马克西莫大帝
+Vector Prime：引天行
+Alpha Trion：钛师傅
+Solus Prime：赛天骄
+Alchemist Prime：撷天萃
+Nexus Prime：经天纬
+Onyx Prime：锐天骁
+Amalgamous Prime：幻天灵
+Quintus Prime：无常天
+Micronus Prime：微天星
+Zeta: 竞天择
+The Thirteenth Prime / The Fallen：第十三天元 / 堕落金刚
+
+// === 赛博坦星球相关 ===
+Cybertron：塞博坦
+Iacon：铁堡
+Kaon：卡隆
+Polyhex：青丘
+Crystal City：水晶城
+Tyger Pax：铁堡
+Polyhex: 莫邪天城
+Tarn: 璇玑湖
+Hydrax Plateau: 九头蛇岛
+Kail: 利刃城
+Nova Cronum: 神思新城
+
+// === 《领袖之证》特殊名词 ===
+Orion Pax : 奥利安·派克斯 
+Dark Energon：黑暗超能量体
+Synthetic Energon：合成超能量体
+Omega Lock：终极之锁
+The Nemesis：报应号
+M.E.C.H.：机甲特勤队
+Nemesis Prime：暗天陨
+
+// === 塞博坦人生理构造与核心系统 ===
+// 火种与意识相关
+Spark Chamber：火种仓
+Brain Module：脑模块
+Cortical Psychic Patch：皮层神经接口
+Optical Lens：光学镜
+optics: 光学镜
+Audial Receptor：音频接收器
+Vocalizer：发声器
+// 转化与结构相关
+Transformation Cog：变形齿轮
+Cybertronian Protoform：塞博坦原生质
+T-Cog：齿轮
+// 动力与能量系统
+Spark：火种
+Fuel Pump：燃料泵
+Energon Converter：能量转换器
+Energon Line：能量管路
+Coolant System：冷却系统
+// 武器与防御系统
+Integrated Weapon System：集成武器系统
+Armor Plating：装甲板
+Force Field：力场
+// 特殊构造
+Pretender Shell：隐者战士外壳
+Headmaster Unit：头领战士单元
+Targetmaster Unit：目标战士单元
+Powermaster Unit：能量战士单元
+// 重要物品与部位
+AllSpark：火种源
+Matrix of Leadership：领导模块
+Cybertonium：赛博坦金属
+Omega Serum：终极血清
+// 特殊状态
+Stasis Lock：静态锁
+CR Chamber：CR治疗舱
+// 科技与设施
+CR：CR（治疗）
+CR Chamber：CR治疗舱
+
+// === 同人特定生理构造与概念 ===
+// “拆卸”相关系统
+Dismantling: 拆卸
+Docking: 对接
+Output Pipe: 输出管
+Interface: 接口
+Docking Channel: 对接通道
+Docking Panel: 对接面板
+Valve Flap: 保护叶片
+Sensitive Node: 敏感节点
+Secondary Fuel Tank: 次级油箱
+Fuel Tank Gasket: 油箱垫片
+Spark Fusion: 火种融合
+Gestation Chamber: 孕育仓
+// 其他同人常见专称
+Head Sculpture: 头雕
+Faceplate: 面甲
+Circuit Speed Enhancer: 电路增速剂
+
+// === 塞博坦气候与天气现象 ===
+Rust Monsoon：锈蚀季风
+Acid Storm：酸蚀风暴
+Electro-Static Tempest：静电风暴
+Energon Hail：能量冰雹
+Thermal Cyclone：热力旋风
+Gamma Ray Shower：伽马射线雨
+Pollution Smog：污染烟雾
+
+// === 塞博坦地理与地质特征 ===
+// 著名地点
+Manganese Mountains：锰铁山脉
+Solitude Plateau：寂寥高原
+Rust River Delta：锈河三角洲
+Crystal Shore：水晶海岸
+// 地质构造
+Energon Geode：能量晶洞
+Cybertonium Vein：赛博坦矿脉
+Silicon Desert：硅砂沙漠
+Oxide Dunes：氧化沙丘
+Ferrous Quicksand：铁质流沙
+Thermal Vent：热力喷口
+// 水体
+Mercury Swamp：水银沼泽
+Coolant Sea：冷却液之海
+The Rust Sea：锈海
+The Sonic Canyons：音速峡谷
+
+// === 塞博坦美食与能量料理 ===
+Energon Goodies：能量点心
+High-Grade Energon：高纯能量液
+Mid-Grade Energon：中纯能量液
+Low-Grade Energon：低纯能量液
+Synthetic Energon Gourmet：合成能量佳肴
+Rust Flakes：锈蚀薄片
+Oil Fondue：油浴火锅
+Circuit Crunch：电路脆片
+Carbonated Coolant：气泡冷却剂
+Lubricant Jelly：润滑胶冻
+// 著名品牌或店铺
+Maccadam‘s Old Oil House：麦卡丹老油吧
+Swirl’s：旋涡饮品店
+
+// 其他
+"-bot"：汽车人
+"-con"：虎子
+"-chan"：酱
+Dis City：狄斯城
+
+通用词条
+// === 核心概念与物品 ===
+Energon：能量
+Energon Cube：能量块
+Cybertonium：赛博坦金属
+Dark Energon：黑暗能量
+Synthetic Energon：合成能量
+Ore：矿石
+Ore-13：13号矿石
+Protoform：原生体
+Spark：火种
+Spark Chamber：火种仓
+Transwarp：超时空
+Space Bridge：太空桥
+Ground Bridge：陆地桥
+Teletraan：显像屏
+Forge：赛天骄之锤
+Omega Lock：终极之锁
+Key：钥匙
+Star Saber：星辰剑
+Skyboom Shield：天雷盾
+Requiem Blaster：镇魂枪
+Immobilizer：静止器
+Thirteen Primes：十三天元
+Decepticon Justice Division：霸天虎执法部队
+The Requiem Blaster：镇魂枪
+The Peaceful Tyranny：和平暴政号
+
+// === 头衔与状态 ===
+Prime：领袖
+Prime：天元
+Beast Mode：野兽模式
+Vehicle Mode：载具模式
+Robot Mode：机器人模式
+Battle Mode：战斗模式
+Stealth Mode：潜行模式
+
+// === 组织与群体 ===
+Vehicon：杂兵
+Insecticon：机器昆虫
+NAILs：NAILs
+
+// === 事件 ===
+Great War：大战
+Golden Age：黄金时代
+Great Exodus：大撤离
+
+// === 其他通用术语 ===
+All Hail Megatron：威震天万岁
+Till All Are One：万众一心
+More Than Meets The Eye：超越视觉
+Robots In Disguise：隐者战士
+
+// === 塞博坦人生理构造通用术语 ===
+// 核心系统
+Cybertronian Biology：塞博坦生理学
+Transformation：变形
+Protoform：原生质
+Alternate Mode：伪装形态
+Robot Mode：机器人形态
+Biomechanical：生化机械
+// 身体部位
+Chassis：底盘/主体框架
+Armor：装甲
+Arm Mount：手臂组件
+Leg Unit：腿部单元
+Thorax：胸舱
+Abdominal Plate：腹甲
+Shoulder Guard：肩甲
+Knee Joint：膝关节
+Ankle Strut：踝支架
+// 感官系统
+Optics：光学镜
+Audio Sensor：音频传感器
+Tactile Sensor：触觉传感器
+Olfactory Sensor：嗅觉传感器
+// 内部系统
+Hydraulic System：液压系统
+Pneumatic System：气压系统
+Neural Net：神经网络
+Circuit：电路
+Circuitry：电路系统
+Processor：处理器
+Memory Bank：记忆模块
+// 能量相关
+Energon：能量
+Energon Flow：能量流
+Fuel：燃料
+Fuel Tank：油箱
+Energon Reserve：能量储备
+Power Core：动力核心
+// 状态与损伤
+Stasis：静态
+Lock：锁定
+Stasis Lock：静态锁
+Injury：损伤
+Wound：创伤
+Circuit Damage：电路损伤
+Armor Damage：装甲损伤
+System Failure：系统故障
+Malfunction：故障
+Corrosion：腐蚀
+Rust：锈蚀
+// 医疗与修复
+Repair：修理
+Maintenance：维护
+Medical Bay：医疗舱
+CR Treatment：CR治疗
+Rebuild：重建
+Reformat：重置
+Patch：修补
+// 特殊状态
+Cold Construction：冷铸
+Hot Spot：热点
+Forge：神铸
+Vector Sigma：魔力神球
+Well of All Sparks：火种源之井
+
+// === 塞博坦气候与环境 ===
+Cybertronian Climate：塞博坦气候
+Atmosphere：大气
+Weather：天气
+Precipitation：降水
+Wind：风
+Storm：风暴
+Climate Zone：气候带
+Toxic：有毒的
+Corrosive：腐蚀性的
+Radioactive：放射性的
+Polluted：被污染的
+
+// === 塞博坦地理通用术语 ===
+Geography：地理
+Landscape：地貌
+Terrain：地形
+Region：区域
+Continent：大陆
+Mountain Range：山脉
+Valley：山谷
+Canyon：峡谷
+Plain：平原
+Desert：沙漠
+Swamp：沼泽
+Sea：海
+Ocean：洋
+River：河流
+Lake：湖泊
+Delta：三角洲
+Coast：海岸
+Shore：岸
+Geological Formation：地质构造
+Crystal Field：水晶原野
+Metallic Forest：金属森林
+
+// === 塞博坦美食文化 ===
+Cybertronian Cuisine：塞博坦美食
+Energon-based Food：能量基食品
+Fuel：燃料（亦指“食物”）
+Drink：饮品
+Ingredient：成分
+Recipe：配方
+Nutrition：营养
+Taste：味道
+Flavor：风味
+Texture：口感
+Refueling：补充燃料（即“进餐”）
+Pub：酒馆
+Bar：酒吧
+Inn：旅馆
+
+// === 同人常见状态与液体 ===
+Overload: 过载
+Shutdown / Lockup: 下线/锁死
+Reboot: 重启
+Lubricant: 润滑液
+Secondary Energon / Exchange Fluid: 次级能量液/交换液
+Condensate: 冷凝液
+Electrolyte: 电解液
+Cleaning Fluid: 清洗液
+
+// === 同人文化梗与称呼 ===
+Sparkmate: 火伴
+Kukuka Ki / Ki Kaku Ku: 酷酷卡ki/ki卡酷酷（变形音效梗）
+Cybertronian Marksmanship: 赛博坦枪法（描边枪法梗）
+True Fan: 真粉丝（具有讽刺意味）
+Mini-Con: 迷你金刚（有时在同人中用作爱称）
+
+// === 《领袖之证》角色绰号与昵称 ===
+// 角色昵称
+Screamy：小红
+Jacky：老千
+Doc：大夫
+
+
+禁翻词条
+// 通用禁翻
+EDGE
+HUSH
+“BanG Dream! Girl‘s Band Party! (Video Game)”
+
+// 生理构造相关缩写/术语
+T-Cog
+CR
+CR Chamber
+Biotech
+
+
+
+// 特定名称保持英文形式
+“Transformers: Prime”
+“Transformers: Animated”
+“Transformers: Cybertron”
+“Beast Wars”
+“Beast Machines”
+
+
+// 保持原文的科技术语（可选）
+“Neural Net”
+“Processor”
+“Circuitry”
+
+正则表达式
+// 匹配Seeker（追踪者）的单复数
+\bSeeker(s)?\b: 追踪者
+// 匹配Jetfire的所有格
+\bJetfire(‘s)?\b: 天火
+// 匹配常见复数形式
+\bInsecticon(s)?\b: 机器昆虫
+\bVehicon(s)?\b: 杂兵
+\bProtoform(s)?\b: 原生体
+\bEnergon Cube(s)?\b: 能量块
+
+// 匹配德语中 “Wachmann” 的单数和复数形式
+\bWachm(?:ann|?nner)\b: 守卫
+
+// 生理构造术语复数处理
+\bProtoform(s)?\b: 原生体
+\bCircuit(s)?\b: 电路
+\bCircuitry\b: 电路系统
+\bSensor(s)?\b: 传感器
+\bArmor Plating(s)?\b: 装甲板
+\bHydraulic System(s)?\b: 液压系统
+\bPneumatic System(s)?\b: 气压系统
+\bMemory Bank(s)?\b: 记忆模块
+\bFuel Tank(s)?\b: 油箱
+\bEnergon Line(s)?\b: 能量管路
+\bOptical Lens(es)?\b: 光学镜
+\bAudial Receptor(s)?\b: 音频接收器
+// 匹配不同拼写
+\bT-Cog(s)?\b: 齿轮
+\bTransformation Cog(s)?\b: 变形齿轮
+// 匹配状态描述
+\bStasis (Lock(ed)?|Mode)\b: 静态$1
+
+// 气候与地理术语复数处理
+\bStorm(s)?\b: 风暴
+\bMonsoon(s)?\b: 季风
+\bCyclone(s)?\b: 旋风
+\bCanyon(s)?\b: 峡谷
+\bValley(s)?\b: 山谷
+\bDune(s)?\b: 沙丘
+\bGeode(s)?\b: 晶洞
+\bVein(s)?\b: 矿脉
+\bVent(s)?\b: 喷口
+\bMountain Range(s)?\b: 山脉
+// 匹配“XX海/洋/河”等水体
+\b(The )?([A-Za-z]+) (Sea|Ocean|River|Lake|Swamp)\b: $1$2$3
+// 美食相关复数
+\bGoodie(s)?\b: 点心
+\bFlake(s)?\b: 薄片
+\bCrunch(es)?\b: 脆片
+\bJelly(?:ies)?\b: 胶冻
+// 匹配能量品级
+\b(High|Mid|Low)-Grade Energon\b: $1纯能量液
+
+// 匹配“拆卸”相关的常见变体或误写
+\b(Dismantl(e|ing)|Dock(ing)?)\b: 拆卸
+
+// 匹配标题中常见的“Prime”作为后缀的情况（不区分大小写，但需谨慎）
+\b(?:[A-Z][a-z]+) Prime\b: $1 领袖
+// 注意：上一条规则可能过度匹配，请根据实际文本决定是否启用。
