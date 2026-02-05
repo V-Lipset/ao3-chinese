@@ -1,6 +1,6 @@
-版本号：1.0.0
+版本号：1.0.1
 维护者：拉葛莎
-更新时间：2026-02-04
+更新时间：2026-02-06
 
 // ============================================
 // 进击的巨人术语库 - Attack on Titan Glossary
@@ -15,7 +15,7 @@ Armin Arlert = 阿尔敏·阿诺德
 // 调查兵团
 Levi Ackerman = 利威尔·阿克曼 
 Erwin Smith = 埃尔文·史密斯 
-Hange Zo? = 韩吉·佐耶
+Hange Zoe = 韩吉·佐耶
 Moblit Berner = 莫布里特·巴纳
 Nile Dawk = 奈尔·德克
 // 宪兵团
@@ -28,7 +28,7 @@ Hannes：汉尼斯
 // 马莱方角色
 Reiner Braun = 莱纳·布朗
 Bertholdt Hoover = 贝特霍尔德·胡佛
-Annie Leonhart = 安妮·利昂纳德
+Annie Leonhart = 阿妮·利昂纳德
 Zeke Yeager = 吉克·耶格尔
 Pieck Finger = 皮克·芬格尔
 Porco Galliard = 波尔柯·加里亚德
@@ -189,9 +189,6 @@ Sacrifice：牺牲
 
 禁翻词条
 // 专有名词保持原文
-Ackerman
-Paths
-Onyankopon
 Utgard
 Liberio
 Shiganshina
