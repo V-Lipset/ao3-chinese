@@ -1,4 +1,4 @@
-版本号：1.0.6
+版本号：1.0.7
 维护者：拉葛莎
 更新时间：2026-02-05
 
@@ -223,6 +223,7 @@ Spark Chamber：火种仓
 Brain Module：脑模块
 Cortical Psychic Patch：皮层神经接口
 Optical Lens：光学镜
+Optic Sensors: 光学传感器
 optics: 光学镜
 Audial Receptor：音频接收器
 Vocalizer：发声器
@@ -341,17 +342,47 @@ Transwarp：超时空
 Space Bridge：太空桥
 Ground Bridge：陆地桥
 Teletraan：显像屏
-Forge：赛天骄之锤
+Forge：熔炉
 Omega Lock：终极之锁
 Key：钥匙
+The Iacon Relics: 铁堡圣物
 Star Saber：星辰剑
 Skyboom Shield：天雷盾
 Requiem Blaster：镇魂枪
 Immobilizer：静止器
+Spark Extractor：火种提取器
+Solus Prime‘s Forge：赛天骄之锤
+Star Saber：星辰剑
+Apex Armor：至尊神甲
+Phase Shifter：相位偏移器
+Magnetic Glove：磁力手套
+Energon Harvester：能量采集器
+Shield Generator：护盾发生器
+Data Cylinder：数据存储罐
+Resonance Blaster：共振声波枪
+Key to Vector Sigma：魔力神球钥匙
+Tox-En：毒能量体
+Toxic Energon: 毒能量体
+Omega Key：终极神钥
 Thirteen Primes：十三天元
 Decepticon Justice Division：霸天虎执法部队
 The Requiem Blaster：镇魂枪
 The Peaceful Tyranny：和平暴政号
+Nemesis: 报应号
+Jackhammer: 钻击号
+Trypticon: 铁甲龙
+// === 通用武器系统与攻击 ===
+Heat Ray：热线枪
+Electro-disruptor：电子扰频器
+Rocket Launcher：火箭发射器
+EMP Generator：电磁脉冲发生器
+Energon Blade：能量刃
+Hardlight Shield：硬光护盾
+Photon Charge：光子弹
+Energon Axe：能量斧
+Ion Blaster：离子爆裂枪
+Null Ray：氖射线
+Fusion Cannon：融合炮
 
 // === 头衔与状态 ===
 Prime：领袖
@@ -377,15 +408,30 @@ All Hail Megatron：威震天万岁
 Till All Are One：万众一心
 More Than Meets The Eye：超越视觉
 Robots In Disguise：隐者战士
+The Covenant of Primus‌: 普神圣约
+​​Autobots, roll out: 汽车人，出发
+​​Freedom is the right of all sentient beings: 自由是所有有思想的生命的权利
+​​No sacrifice, no victory: 没有牺牲，就没有胜利
+​​One shall stand, one shall fall​​: 胜者将会屹立，败者将会倒下
+​​Honour to the end: 荣耀到最后一刻
 
 // === 塞博坦人生理构造通用术语 ===
 // 核心系统
 Cybertronian Biology：塞博坦生理学
+Cybertronian：赛博坦人
+Silicon-based Lifeform：硅基生命体
+Living Metal = 活性金属 赛博坦物质
+Sentio Metallico：感知金属
+Transformium：变形元素
 Transformation：变形
-Protoform：原生质
+Protoform：原生体
 Alternate Mode：伪装形态
 Robot Mode：机器人形态
 Biomechanical：生化机械
+Technorganic：机械有机体
+Inorganic Biology：无机生物学
+Biomechanical Anatomy：生化机械解剖结构
+Metallic Cellular Structure：金属细胞结构
 // 身体部位
 Chassis：底盘/主体框架
 Armor：装甲
@@ -412,6 +458,11 @@ Memory Bank：记忆模块
 // 能量相关
 Energon：能量
 Energon Flow：能量流
+Energon Conversion：能量转化
+Controlled Fusion Core：可控聚变核心
+Fuel Intake：燃料摄入
+Energy Depletion：能量枯竭
+Systems Shutdown：系统关闭
 Fuel：燃料
 Fuel Tank：油箱
 Energon Reserve：能量储备
