@@ -1,4 +1,4 @@
-版本号：1.0.3
+版本号：1.0.5
 维护者：拉葛莎
 更新时间：2026-02-06
 
@@ -150,7 +150,8 @@ Anchor：固定锚
 Gas Canister：气体罐 / 储气罐
 Blade：刀片
 Trigger Grip：扳机式刀柄
-Gear: 装置
+Equipment: 装备
+3D Gear: 立体机动装置
 Vertical Maneuvering Gear：立体机动装置
 // 衍生型号
 Anti-Personnel Vertical Maneuvering Gear：对人立体机动装置 [citation:2]
