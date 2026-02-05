@@ -1,4 +1,4 @@
-版本号：1.0.2
+版本号：1.0.3
 维护者：拉葛莎
 更新时间：2026-02-06
 
@@ -12,6 +12,24 @@
 Eren Yeager = 艾伦·耶格尔 
 Mikasa Ackerman = 三笠·阿克曼 
 Armin Arlert = 阿尔敏·阿诺德 
+Jean Kirstein = 让·基尔休斯坦
+Connie Springer = 柯尼·史普林格
+Sasha Blouse = 萨莎·布劳斯 
+Marco Bott = 马可·波特
+// 其他提及的成员
+Thomas Wagner = 托马斯·瓦格纳
+Mina Carolina = 米娜·卡罗莱纳
+Samuel Linke-Jackson = 山谬·林克-杰克逊
+Hannah Diamant = 汉娜·迪亚曼特
+Franz Kefka = 弗朗茨·凯夫卡
+Nack Tierce = 纳克·提亚斯
+Mylius Zeramuski = 米利乌斯·泽拉姆斯基
+Daz = 达兹
+// === 第104期训练兵团相关 ===
+// 常见昵称与简称
+Potato Girl / Sweet Potato Girl：白薯女 / 芋头女
+104th Trainees Corps：第104期训练兵
+Graduates of the 104th：第104期毕业生
 // 调查兵团
 Levi Ackerman = 利威尔·阿克曼 
 Erwin Smith = 埃尔文·史密斯 
@@ -127,6 +145,15 @@ Spinal Fluid：脊髓液
 Thunder Spear：雷枪
 Vertical Maneuvering Equipment = 立体机动装置
 Omni-Directional Mobility Gear = 立体机动装置
+// 主要部件与装备 [citation:2]
+Anchor：固定锚
+Gas Canister：气体罐 / 储气罐
+Blade：刀片
+Trigger Grip：扳机式刀柄
+Gear: 装置
+Vertical Maneuvering Gear：立体机动装置
+// 衍生型号
+Anti-Personnel Vertical Maneuvering Gear：对人立体机动装置 [citation:2]
 Gas：气体
 Blade：刀片
 Hardening：硬化
@@ -237,3 +264,8 @@ MP
 \bTybur(?:'s|s)?\b: 戴巴
 // 匹配战锤巨人的能力描述
 \b(War\s?Hammer('s)?\s(Ability|Scream))\b: 战锤巨人$3
+// 匹配立体机动装置的主要名称变体
+\b(Omni-Directional Mobility Gear|Vertical Maneuvering Equipment|Vertical Maneuvering Gear)\b: 立体机动装置
+// 匹配常见部件
+\b(Gas (Canister|Tank)|Propellant (Canister|Tank))\b: 气体罐
+\b(Anchor|Fixed Anchor|Grip Anchor)\b: 固定锚
