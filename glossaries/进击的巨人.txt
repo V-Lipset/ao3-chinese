@@ -1,0 +1,225 @@
+版本号：1.0.0
+维护者：拉葛莎
+更新时间：2026-02-04
+
+// ============================================
+// 进击的巨人术语库 - Attack on Titan Glossary
+// ============================================
+
+词条
+// === 核心角色 ===
+// 主角团 - 第104期训练兵团
+Eren Yeager = 艾伦·耶格尔 
+Mikasa Ackerman = 三笠·阿克曼 
+Armin Arlert = 阿尔敏·阿诺德 
+// 调查兵团
+Levi Ackerman = 利威尔·阿克曼 
+Erwin Smith = 埃尔文·史密斯 
+Hange Zo? = 韩吉·佐耶
+Moblit Berner = 莫布里特·巴纳
+Nile Dawk = 奈尔·德克
+// 宪兵团
+Kenny Ackerman = 肯尼·阿克曼
+Hitch Dreyse = 赫里斯塔·兰斯
+Marlowe Freudenberg = 马洛·弗登堡
+// 驻屯兵团
+Keith Sadies = 基斯·夏迪斯
+Hannes：汉尼斯
+// 马莱方角色
+Reiner Braun = 莱纳·布朗
+Bertholdt Hoover = 贝特霍尔德·胡佛
+Annie Leonhart = 安妮·利昂纳德
+Zeke Yeager = 吉克·耶格尔
+Pieck Finger = 皮克·芬格尔
+Porco Galliard = 波尔柯·加里亚德
+Falco Grice = 法尔可·葛雷斯
+Gabi Braun = 贾碧·布朗
+// 王族与贵族
+Rod Reiss = 罗德·雷斯
+Frieda Reiss = 弗丽达·雷斯
+Historia Reiss = 希斯特莉亚·雷斯
+Uri Reiss = 乌利·雷斯
+// 其他关键角色
+Ymir：尤弥尔
+Grisha Yeager = 格里沙·耶格尔
+Carla Yeager = 卡尔拉·耶格尔
+Dina Fritz = 戴娜·弗里茨
+Kiyomi Azumabito = 清美·阿兹马比特
+Onyankopon：欧良果彭
+
+// === 国家、组织与部队 ===
+Paradis Island = 帕拉迪岛 乐园
+Marley = 马莱
+Eldia = 艾尔迪亚
+Survey Corps = 调查兵团
+Garrison：驻屯兵团
+Military Police Brigade = 宪兵团
+Training Corps：训练兵团
+Warrior Unit = 战士队
+Warrior Candidate：战士候补生
+Public Security：治安局
+Anti-Personnel Control Squad = 对人压制部队
+Yeagerists = 耶格尔派
+
+// === 地理与设施 ===
+// 墙壁
+Wall Maria = 玛利亚之墙
+Wall Rose = 罗塞之墙
+Wall Sina = 希娜之墙
+Shiganshina District = 希甘希纳区
+Trost District = 托洛斯特区
+Stohess District = 斯托贝斯区
+// 帕拉迪岛内地点
+Rose Wall = 罗塞之墙
+Sina Wall = 希娜之墙
+Utgard Castle = 乌特迦德城堡
+Ragako Village = 拉加哥村
+Orvud District = 奥尔福德区
+// 墙外与马莱地点
+Liberio：雷贝利欧
+Liberio Internment Zone = 雷贝利欧收容区
+Fort Slava = 斯拉巴要塞
+Mid-East Allied Forces = 中东联合
+// 关键建筑与区域
+Underground Chapel：地下礼拜堂
+Forest of Giant Trees = 巨木之森
+Coordinate：座标
+
+// === 九大巨人 ===
+Founding Titan = 始祖巨人
+Attack Titan = 进击的巨人
+Armored Titan = 铠之巨人
+Colossus Titan = 超大型巨人
+Female Titan = 女巨人
+Beast Titan = 兽之巨人
+Cart Titan = 车力巨人
+Jaw Titan = 颚之巨人
+War Hammer Titan = 战锤巨人
+
+// === 特殊名词与概念 ===
+Titan：巨人
+Pure Titan = 无垢巨人 普通巨人
+Abnormal Titan = 奇行种
+Titan Shifter = 智慧巨人
+Intelligent Titan = 智慧巨人
+Wall Titan = 城墙巨人
+Coordinate Power = 座标之力
+Paths = 道路
+Paths Realm = 道路空间
+Founding Titan‘s Power = 始祖巨人之力
+Vow Renouncing War = 不战之誓
+Rumbling = 地鸣
+Titan Serum = 巨人脊髓液
+Spinal Fluid：脊髓液
+Thunder Spear：雷枪
+Vertical Maneuvering Equipment = 立体机动装置
+Omni-Directional Mobility Gear = 立体机动装置
+Gas：气体
+Blade：刀片
+Hardening：硬化
+Crystal：结晶
+Ackerman：阿克曼
+Orientals：东洋人
+Subjects of Ymir = 尤弥尔的子民
+Eldian：艾尔迪亚人
+Marleyan：马莱人
+Devil of All Earth = 大地恶魔
+“On the other side of the wall, there is freedom.” = “墙壁的另一边，是自由。”
+“Shinzou wo sasageyo!” = “献出心脏！”
+
+通用词条
+// === 通用称谓与头衔 ===
+Captain：兵长
+Commander：团长
+Section Commander：分队长
+Squad Leader：班长
+Cadet：训练兵
+Recruit：新兵
+Soldier：士兵
+Warrior：战士
+Braun：布朗（姓氏）
+// === 武器装备与物资 ===
+Vertical Maneuvering Gear：立体机动装置
+Gear：装置
+Anchor：锚钩
+Canister：气罐
+Blade Replacement：替换刀片
+Half Blade：半刃刀片
+Signal Flare：信号弹
+Black Signal：黑色信号弹
+Red Signal：红色信号弹
+Green Signal：绿色信号弹
+Smoke Signal：烟雾信号
+Rations：军粮
+Horse：马匹
+// === 生物与生理 ===
+Nape：后颈
+Spinal Cord：脊髓
+Nervous System：神经系统
+Regeneration：再生
+Steam：蒸汽
+// === 状态与行动 ===
+Extermination：驱逐
+Reconnaissance：侦察
+Expedition：远征
+Breach：突破
+Sealing：封锁
+Suppression：镇压
+Inheritance：继承
+Transfer：转移
+Devour：吞噬
+// === 组织与单位泛称 ===
+Corps：兵团
+Brigade：旅团
+Squad：班
+Unit：部队
+Team：小队
+// === 其他通用概念 ===
+Memory：记忆
+Inherited Memory：继承的记忆
+Dream：梦
+Freedom：自由
+Truth：真相
+History：历史
+Propaganda：宣传
+Oppression：压迫
+Hatred：仇恨
+Cycle：轮回
+Sacrifice：牺牲
+
+禁翻词条
+// 专有名词保持原文
+Ackerman
+Paths
+Onyankopon
+Utgard
+Liberio
+Shiganshina
+// 特定短语或口号
+“Shinzou wo sasageyo!”
+“On the other side of the wall, there is freedom.”
+// 组织缩写（如适用）
+SC
+MP
+// 作品名称
+“Attack on Titan”
+“Shingeki no Kyojin”
+
+正则表达式
+// 匹配复数形式（适用于许多英文术语）
+\bTitan(s)?\b: 巨人
+\bCadet(s)?\b: 训练兵
+\bSoldier(s)?\b: 士兵
+\bBlade(s)?\b: 刀片
+\bHorse(s)?\b: 马匹
+\bMemory(?:ies)?\b: 记忆
+// 匹配“之墙”的常见英文表述变体
+\b(Wall\s)?(Maria|Rose|Sina)\b: $2之墙
+// 匹配兵团名称的简写或变体
+\b(Survey|Garrison|Military\sPolice)\b(?: Corps| Brigade)?: $1兵团
+// 匹配立体机动装置的可能英文变体
+\b(Vertical\sManeuvering|Omni-Directional\sMobility)\s(Equipment|Gear)\b: 立体机动装置
+// 匹配“巨人”相关的复合词
+\b(Pure|Abnormal|Armored|Colossus|Female|Beast|Cart|Jaw|War\sHammer|Wall|Attack|Founding|Intelligent|Titan\sShifter)\sTitan\b: $1巨人
+// 匹配角色姓氏的所有格或复数（谨慎使用）
+\b(Yeager|Ackerman|Arlert)(‘s)?\b: $1$2
