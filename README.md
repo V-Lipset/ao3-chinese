@@ -42,7 +42,7 @@ QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
   - [本地术语表](https://v-lipset.github.io/docs/feat/local)
   - [作品屏蔽功能](https://v-lipset.github.io/docs/feat/block)
   - 在线术语表
-    - [在线术语库](https://github.com/V-Lipset/ao3-chinese/wiki/%E5%9C%A8%E7%BA%BF%E6%9C%AF%E8%AF%AD%E8%A1%A8)
+    - [在线术语库](https://github.com/V-Lipset/ao3-chinese/wiki/在线术语库)
     - [术语表编写指南](https://v-lipset.github.io/docs/feat/online/write)
     - [创建在线术语表](https://v-lipset.github.io/docs/feat/online/create)
     - [分享你的术语表](https://v-lipset.github.io/docs/feat/online/share)
