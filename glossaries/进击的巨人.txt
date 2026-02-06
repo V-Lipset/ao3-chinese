@@ -1,6 +1,6 @@
-版本号：1.0.0
+版本号：1.0.5
 维护者：拉葛莎
-更新时间：2026-02-04
+更新时间：2026-02-06
 
 // ============================================
 // 进击的巨人术语库 - Attack on Titan Glossary
@@ -12,10 +12,28 @@
 Eren Yeager = 艾伦·耶格尔 
 Mikasa Ackerman = 三笠·阿克曼 
 Armin Arlert = 阿尔敏·阿诺德 
+Jean Kirstein = 让·基尔休斯坦
+Connie Springer = 柯尼·史普林格
+Sasha Blouse = 萨莎·布劳斯 
+Marco Bott = 马可·波特
+// 其他提及的成员
+Thomas Wagner = 托马斯·瓦格纳
+Mina Carolina = 米娜·卡罗莱纳
+Samuel Linke-Jackson = 山谬·林克-杰克逊
+Hannah Diamant = 汉娜·迪亚曼特
+Franz Kefka = 弗朗茨·凯夫卡
+Nack Tierce = 纳克·提亚斯
+Mylius Zeramuski = 米利乌斯·泽拉姆斯基
+Daz = 达兹
+// === 第104期训练兵团相关 ===
+// 常见昵称与简称
+Potato Girl / Sweet Potato Girl：白薯女 / 芋头女
+104th Trainees Corps：第104期训练兵
+Graduates of the 104th：第104期毕业生
 // 调查兵团
 Levi Ackerman = 利威尔·阿克曼 
 Erwin Smith = 埃尔文·史密斯 
-Hange Zo? = 韩吉·佐耶
+Hange Zoe = 韩吉·佐耶
 Moblit Berner = 莫布里特·巴纳
 Nile Dawk = 奈尔·德克
 // 宪兵团
@@ -28,7 +46,7 @@ Hannes：汉尼斯
 // 马莱方角色
 Reiner Braun = 莱纳·布朗
 Bertholdt Hoover = 贝特霍尔德·胡佛
-Annie Leonhart = 安妮·利昂纳德
+Annie Leonhart = 阿妮·利昂纳德
 Zeke Yeager = 吉克·耶格尔
 Pieck Finger = 皮克·芬格尔
 Porco Galliard = 波尔柯·加里亚德
@@ -39,6 +57,18 @@ Rod Reiss = 罗德·雷斯
 Frieda Reiss = 弗丽达·雷斯
 Historia Reiss = 希斯特莉亚·雷斯
 Uri Reiss = 乌利·雷斯
+// === 戴巴家族 ===
+// 家族与姓氏
+Tybur = 戴巴 
+Tybur Family：戴巴家族
+// 家族成员
+Willy Tybur：威利·戴巴
+Lara Tybur：拉拉·戴巴
+// 家族持有的巨人之力
+War Hammer Titan：战锤巨人
+// 关键事件与物品
+Declaration of War：宣战公告
+Liberio Festival：雷贝利欧典礼
 // 其他关键角色
 Ymir：尤弥尔
 Grisha Yeager = 格里沙·耶格尔
@@ -60,6 +90,7 @@ Warrior Candidate：战士候补生
 Public Security：治安局
 Anti-Personnel Control Squad = 对人压制部队
 Yeagerists = 耶格尔派
+Eldian Restorationists：艾尔迪亚复权派
 
 // === 地理与设施 ===
 // 墙壁
@@ -114,6 +145,16 @@ Spinal Fluid：脊髓液
 Thunder Spear：雷枪
 Vertical Maneuvering Equipment = 立体机动装置
 Omni-Directional Mobility Gear = 立体机动装置
+// 主要部件与装备 [citation:2]
+Anchor：固定锚
+Gas Canister：气体罐 / 储气罐
+Blade：刀片
+Trigger Grip：扳机式刀柄
+Equipment: 装备
+3D Gear: 立体机动装置
+Vertical Maneuvering Gear：立体机动装置
+// 衍生型号
+Anti-Personnel Vertical Maneuvering Gear：对人立体机动装置 [citation:2]
 Gas：气体
 Blade：刀片
 Hardening：硬化
@@ -189,9 +230,6 @@ Sacrifice：牺牲
 
 禁翻词条
 // 专有名词保持原文
-Ackerman
-Paths
-Onyankopon
 Utgard
 Liberio
 Shiganshina
@@ -223,3 +261,12 @@ MP
 \b(Pure|Abnormal|Armored|Colossus|Female|Beast|Cart|Jaw|War\sHammer|Wall|Attack|Founding|Intelligent|Titan\sShifter)\sTitan\b: $1巨人
 // 匹配角色姓氏的所有格或复数（谨慎使用）
 \b(Yeager|Ackerman|Arlert)(‘s)?\b: $1$2
+// 匹配戴巴姓氏的可能变体或所有格
+\bTybur(?:'s|s)?\b: 戴巴
+// 匹配战锤巨人的能力描述
+\b(War\s?Hammer('s)?\s(Ability|Scream))\b: 战锤巨人$3
+// 匹配立体机动装置的主要名称变体
+\b(Omni-Directional Mobility Gear|Vertical Maneuvering Equipment|Vertical Maneuvering Gear)\b: 立体机动装置
+// 匹配常见部件
+\b(Gas (Canister|Tank)|Propellant (Canister|Tank))\b: 气体罐
+\b(Anchor|Fixed Anchor|Grip Anchor)\b: 固定锚
