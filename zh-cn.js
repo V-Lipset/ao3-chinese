@@ -1,7 +1,7 @@
 /**
  name         AO3 Translator - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.6.1-2026-02-04
+ version      1.6.1-2026-02-27
  description  AO3 Translator 的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -3590,7 +3590,8 @@ const I18N = {
 				'Follow us': '关注我们',
 				'What\'s New': '新增内容',
 				'Enter Comment': '输入评论',
-				'Last Edited': '最后编辑',
+				'Last Edited': '最后编辑于',
+				'Parent': '上级评论',
 
 				// 同人圈
 				'Anime & Manga': '动漫及漫画', 'Books & Literature': '书籍及文学', 'Cartoons & Comics & Graphic Novels': '卡通，漫画及图像小说', 'Celebrities & Real People': '明星及真人', 'Movies': '电影', 'Music & Bands': '音乐及乐队', 'Other Media': '其她媒体', 'Theater': '戏剧', 'TV Shows': '电视剧', 'Video Games': '电子游戏', 'Uncategorized Fandoms': '未分类的同人圈',
@@ -4064,6 +4065,7 @@ const I18N = {
 				'Close': '关闭',
 				'Show': '展示',
 				'Bookmark Collections:': '书签合集:',
+				'Challenges/Subcollections:': '活动合集/子合集:',
 
 				// 系列
 				'Creators:': '创建者:',
@@ -5951,8 +5953,6 @@ const I18N = {
 				'Requests': '请求',
 				'Offers': '提供',
 				'Fandoms:': '同人圈:',
-				'Works:': '作品:',
-				'Challenges/Subcollections:': '活动合集/子合集:',
 				'Listed by fewest offers and most requests.': '按提供最少、请求最多排序。',
 				'Contact:': '联系方式：',
 				'(See all...)': '（查看全部...）',
@@ -6113,7 +6113,6 @@ const I18N = {
 				'Edit': '编辑',
 				'Comment': '评论',
 				'Comment on': '评论于：',
-				'Last Edited': '最后编辑',
 				'(Plain text with limited HTML': '(纯文本，支持有限 HTML',
 				'Sorry, this news post doesn\'t allow comments.': '抱歉，此动态帖不允许评论。',
 				'Sorry, comments are disabled for this post.': '抱歉，此动态贴不允许评论。',
