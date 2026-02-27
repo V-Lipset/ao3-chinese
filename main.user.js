@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.6.1-2026-02-04
+// @version      1.6.1-2026-02-27
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -6580,7 +6580,7 @@
 						}
 					}
 
-					if (nextNonSpaceChar === null || separators.includes(nextNonSpaceChar)) {
+					if (nextNonSpaceChar === null || separators.includes(nextNonSpaceChar) || [':', '：', '=', '＝'].includes(nextNonSpaceChar)) {
 						inQuote = false;
 						expectedCloseQuote = "";
 					}
@@ -9352,7 +9352,10 @@
 					if (textToSearch.startsWith(formToMatch)) {
 						const prevChar = (startNodeIndex === 0 && startOffset === 0) ? ' ' : textNodes[startNodeIndex].nodeValue[startOffset - 1] || ' ';
 						if (partIndex === 0 && /[a-zA-Z0-9]/.test(prevChar)) {
-							continue;
+							const strBefore = textNodes[startNodeIndex].nodeValue.substring(0, startOffset);
+							if (!/ph_\d{6}$/.test(strBefore)) {
+								continue;
+							}
 						}
 						bestMatch = form;
 						break;
@@ -9405,7 +9408,10 @@
 			const finalEndPoint = endPoints[endPoints.length - 1];
 			const nextChar = textNodes[finalEndPoint.nodeIndex].nodeValue[finalEndPoint.offset] || ' ';
 			if (/[a-zA-Z0-9]/.test(nextChar)) {
-				return null;
+				const remainingStr = textNodes[finalEndPoint.nodeIndex].nodeValue.substring(finalEndPoint.offset);
+				if (!/^ph_\d{6}/.test(remainingStr)) {
+					return null;
+				}
 			}
 
 			return {
@@ -9517,8 +9523,22 @@
 			if (isValid) {
 				const prevChar = normalizedText[overallStart - 1];
 				const nextChar = normalizedText[overallEnd];
-				const startBoundaryOK = !prevChar || !WORD_CHAR_REGEX.test(prevChar);
-				const endBoundaryOK = !nextChar || !WORD_CHAR_REGEX.test(nextChar);
+				
+				let startBoundaryOK = !prevChar || !WORD_CHAR_REGEX.test(prevChar);
+				if (!startBoundaryOK) {
+					const strBefore = normalizedText.substring(0, overallStart);
+					if (/ph_\d{6}$/.test(strBefore)) {
+						startBoundaryOK = true;
+					}
+				}
+
+				let endBoundaryOK = !nextChar || !WORD_CHAR_REGEX.test(nextChar);
+				if (!endBoundaryOK) {
+					const remainingStr = normalizedText.substring(overallEnd);
+					if (/^ph_\d{6}/.test(remainingStr)) {
+						endBoundaryOK = true;
+					}
+				}
 
 				if (startBoundaryOK && endBoundaryOK) {
 					const startMapping = textMap[overallStart];
@@ -10636,7 +10656,7 @@
 				if ((i + 1) % this.yieldInterval === 0) await sleep(0);
 			}
 
-			const selectors = 'p, blockquote, li, h1, h2, h3, h4, h5, h6, hr, center';
+			const selectors = 'p, blockquote, li, dt, dd, h1, h2, h3, h4, h5, h6, hr, center';
 			const skipHeaders = ['Summary', 'Notes', 'Work Text', 'Chapter Text'];
 			const candidates = Array.from(container.querySelectorAll(selectors))
 				.filter(el => !this._isTranslated(el));
@@ -13505,7 +13525,8 @@
 			],
 			'collections_dashboard_common': [
 				{ selector: '.primary.header.module blockquote.userstuff', text: '翻译概述', above: false, isLazyLoad: false },
-				{ selector: '#intro blockquote.userstuff', text: '翻译简介', above: false, isLazyLoad: false }
+				{ selector: '#intro blockquote.userstuff', text: '翻译简介', above: false, isLazyLoad: false },
+				{ selector: '#rules blockquote.userstuff', text: '翻译规则', above: false, isLazyLoad: false }
 			],
 			'admin_posts_show': [
 				{ selector: 'div[role="article"] > .userstuff', text: '翻译动态', above: true, isLazyLoad: true }
@@ -13525,20 +13546,20 @@
 			'dmca_policy_page': [
 				{ selector: '#DMCA.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'tos_faq_page': [
-				{ selector: '.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'tos_faq_page':[
+				{ selector: 'div.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'wrangling_guidelines_page': [
-				{ selector: '.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'wrangling_guidelines_page':[
+				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'faq_page': [
-				{ selector: '.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'faq_page':[
+				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'known_issues_page': [
-				{ selector: '.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'known_issues_page':[
+				{ selector: 'div.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'report_and_support_page': [
-				{ selector: '.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'report_and_support_page':[
+				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			]
 		};
 
