@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.6.1-2026-02-04
+// @version      1.6.1-2026-02-27
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -10000,7 +10000,7 @@
 						}
 					}
 
-					if (nextNonSpaceChar === null || separators.includes(nextNonSpaceChar)) {
+					if (nextNonSpaceChar === null || separators.includes(nextNonSpaceChar) || [':', '：', '=', '＝'].includes(nextNonSpaceChar)) {
 						inQuote = false;
 						expectedCloseQuote = "";
 					}
@@ -12772,7 +12772,10 @@
 					if (textToSearch.startsWith(formToMatch)) {
 						const prevChar = (startNodeIndex === 0 && startOffset === 0) ? ' ' : textNodes[startNodeIndex].nodeValue[startOffset - 1] || ' ';
 						if (partIndex === 0 && /[a-zA-Z0-9]/.test(prevChar)) {
-							continue;
+							const strBefore = textNodes[startNodeIndex].nodeValue.substring(0, startOffset);
+							if (!/ph_\d{6}$/.test(strBefore)) {
+								continue;
+							}
 						}
 						bestMatch = form;
 						break;
@@ -12825,7 +12828,10 @@
 			const finalEndPoint = endPoints[endPoints.length - 1];
 			const nextChar = textNodes[finalEndPoint.nodeIndex].nodeValue[finalEndPoint.offset] || ' ';
 			if (/[a-zA-Z0-9]/.test(nextChar)) {
-				return null;
+				const remainingStr = textNodes[finalEndPoint.nodeIndex].nodeValue.substring(finalEndPoint.offset);
+				if (!/^ph_\d{6}/.test(remainingStr)) {
+					return null;
+				}
 			}
 
 			return {
@@ -12937,8 +12943,22 @@
 			if (isValid) {
 				const prevChar = normalizedText[overallStart - 1];
 				const nextChar = normalizedText[overallEnd];
-				const startBoundaryOK = !prevChar || !WORD_CHAR_REGEX.test(prevChar);
-				const endBoundaryOK = !nextChar || !WORD_CHAR_REGEX.test(nextChar);
+				
+				let startBoundaryOK = !prevChar || !WORD_CHAR_REGEX.test(prevChar);
+				if (!startBoundaryOK) {
+					const strBefore = normalizedText.substring(0, overallStart);
+					if (/ph_\d{6}$/.test(strBefore)) {
+						startBoundaryOK = true;
+					}
+				}
+
+				let endBoundaryOK = !nextChar || !WORD_CHAR_REGEX.test(nextChar);
+				if (!endBoundaryOK) {
+					const remainingStr = normalizedText.substring(overallEnd);
+					if (/^ph_\d{6}/.test(remainingStr)) {
+						endBoundaryOK = true;
+					}
+				}
 
 				if (startBoundaryOK && endBoundaryOK) {
 					const startMapping = textMap[overallStart];
@@ -14056,7 +14076,7 @@
 				if ((i + 1) % this.yieldInterval === 0) await sleep(0);
 			}
 
-			const selectors = 'p, blockquote, li, h1, h2, h3, h4, h5, h6, hr, center';
+			const selectors = 'p, blockquote, li, dt, dd, h1, h2, h3, h4, h5, h6, hr, center';
 			const skipHeaders = ['Summary', 'Notes', 'Work Text', 'Chapter Text'];
 			const candidates = Array.from(container.querySelectorAll(selectors))
 				.filter(el => !this._isTranslated(el));
@@ -16925,7 +16945,8 @@
 			],
 			'collections_dashboard_common': [
 				{ selector: '.primary.header.module blockquote.userstuff', text: '翻译概述', above: false, isLazyLoad: false },
-				{ selector: '#intro blockquote.userstuff', text: '翻译简介', above: false, isLazyLoad: false }
+				{ selector: '#intro blockquote.userstuff', text: '翻译简介', above: false, isLazyLoad: false },
+				{ selector: '#rules blockquote.userstuff', text: '翻译规则', above: false, isLazyLoad: false }
 			],
 			'admin_posts_show': [
 				{ selector: 'div[role="article"] > .userstuff', text: '翻译动态', above: true, isLazyLoad: true }
@@ -16945,20 +16966,20 @@
 			'dmca_policy_page': [
 				{ selector: '#DMCA.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'tos_faq_page': [
-				{ selector: '.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'tos_faq_page':[
+				{ selector: 'div.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'wrangling_guidelines_page': [
-				{ selector: '.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'wrangling_guidelines_page':[
+				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'faq_page': [
-				{ selector: '.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'faq_page':[
+				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'known_issues_page': [
-				{ selector: '.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'known_issues_page':[
+				{ selector: 'div.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'report_and_support_page': [
-				{ selector: '.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			'report_and_support_page':[
+				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			]
 		};
 
@@ -17267,7 +17288,8 @@
 					'Follow us': '关注我们',
 					'What\'s New': '新增内容',
 					'Enter Comment': '输入评论',
-					'Last Edited': '最后编辑',
+					'Last Edited': '最后编辑于',
+					'Parent': '上级评论',
 
 					// 同人圈
 					'Anime & Manga': '动漫及漫画', 'Books & Literature': '书籍及文学', 'Cartoons & Comics & Graphic Novels': '卡通，漫画及图像小说', 'Celebrities & Real People': '明星及真人', 'Movies': '电影', 'Music & Bands': '音乐及乐队', 'Other Media': '其她媒体', 'Theater': '戏剧', 'TV Shows': '电视剧', 'Video Games': '电子游戏', 'Uncategorized Fandoms': '未分类的同人圈',
@@ -17741,6 +17763,7 @@
 					'Close': '关闭',
 					'Show': '展示',
 					'Bookmark Collections:': '书签合集:',
+					'Challenges/Subcollections:': '活动合集/子合集:',
 
 					// 系列
 					'Creators:': '创建者:',
@@ -19628,8 +19651,6 @@
 					'Requests': '请求',
 					'Offers': '提供',
 					'Fandoms:': '同人圈:',
-					'Works:': '作品:',
-					'Challenges/Subcollections:': '活动合集/子合集:',
 					'Listed by fewest offers and most requests.': '按提供最少、请求最多排序。',
 					'Contact:': '联系方式：',
 					'(See all...)': '（查看全部...）',
@@ -19790,7 +19811,6 @@
 					'Edit': '编辑',
 					'Comment': '评论',
 					'Comment on': '评论于：',
-					'Last Edited': '最后编辑',
 					'(Plain text with limited HTML': '(纯文本，支持有限 HTML',
 					'Sorry, this news post doesn\'t allow comments.': '抱歉，此动态帖不允许评论。',
 					'Sorry, comments are disabled for this post.': '抱歉，此动态贴不允许评论。',
