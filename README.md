@@ -6,29 +6,30 @@ QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
 
 ### ✨ 功能
 
-- **界面汉化**
-  - 中文化 AO3 界面，覆盖静态文本、动态数据和各类提示信息。
-- **可配置项**
-  - 接入 OpenAI、DeepSeek 等多种 AI 服务，支持自定义 API 接口。
-  - 显示模式：双语对照/仅译文。
-  - 术语表功能：支持设置术语表规则，精准翻译或禁翻人名、地名等专有术语。
-  - 作品屏蔽：支持设置作品屏蔽规则，隐藏不想看到的作品。
-  - 文章格式调整：支持调整文章排版，在大屏上享有更舒适的阅读体验。
+- 界面汉化。
+- 多种翻译服务。
+- 术语表功能。
+- 作品屏蔽。
+- 文章格式调整。
 
 ### 🔧 安装
 
-1. 在浏览器中安装一个用户脚本管理器，推荐使用 [Tampermonkey](https://www.tampermonkey.net/) 。
-2. 开启浏览器 `管理扩展程序` 中的 `开发者模式` 。
-3. 点击 `篡改猴` -> `详情` -> `允许运行用户脚本` 。
-4. 选择一个版本进行安装：
+- 视频教程
+  - [夸克网盘](https://pan.quark.cn/s/41bf3604f803)
+  - [百度网盘](https://pan.baidu.com/s/1JVAj6vEVVrxu4h86sBNkVw?pwd=o1je)
+- 文字教程
+  - 在浏览器中安装一个用户脚本管理器，推荐使用 [Tampermonkey](https://www.tampermonkey.net/) 。
+  - 开启浏览器 `管理扩展程序` 中的 `开发者模式` 。
+  - 点击 `篡改猴` -> `详情` -> `允许运行用户脚本` 。
+  - 选择一个版本进行安装：
    - 主用
      - [远程版](https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/main.user.js)
      - [本地版](https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js)
    - 备用
      - [远程版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/main.user.js)
      - [本地版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js)
-5. 安装脚本后，访问/刷新 [AO3 网站](https://archiveofourown.org/)，界面将自动变为中文。
-6. 如需使用作品翻译功能，请点击 `悬浮球` 打开设置面板，启用翻译功能。在各个页面，你会看到新增的蓝色翻译按钮，点击即可使用。
+  - 安装脚本后，访问/刷新 [AO3 网站](https://archiveofourown.org/)，界面将自动变为中文。
+  - 如需使用作品翻译功能，请点击 `悬浮球` → 打开设置面板 → 启用翻译功能。启用后，各页面会新增蓝色翻译按钮，点击即可使用。
 
 ### 📖 使用说明
 
@@ -46,9 +47,6 @@ QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
     - [术语表编写指南](https://v-lipset.github.io/docs/feat/online/write)
     - [创建在线术语表](https://v-lipset.github.io/docs/feat/online/create)
     - [分享你的术语表](https://v-lipset.github.io/docs/feat/online/share)
-- 插件安装教程
-  - [夸克网盘](https://pan.quark.cn/s/41bf3604f803)
-  - [百度网盘](https://pan.baidu.com/s/1JVAj6vEVVrxu4h86sBNkVw?pwd=o1je)
 
 ### 🤝 贡献与反馈
 
