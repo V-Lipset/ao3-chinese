@@ -22,12 +22,12 @@ QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
   - 开启浏览器 `管理扩展程序` 中的 `开发者模式` 。
   - 点击 `篡改猴` -> `详情` -> `允许运行用户脚本` 。
   - 选择一个版本进行安装：
-   - 主用
-     - [远程版](https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/main.user.js)
-     - [本地版](https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js)
-   - 备用
-     - [远程版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/main.user.js)
-     - [本地版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js)
+    - 主用
+      - [远程版](https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/main.user.js)
+      - [本地版](https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js)
+    - 备用
+      - [远程版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/main.user.js)
+      - [本地版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js)
   - 安装脚本后，访问/刷新 [AO3 网站](https://archiveofourown.org/)，界面将自动变为中文。
   - 如需使用作品翻译功能，请点击 `悬浮球` → 打开设置面板 → 启用翻译功能。启用后，各页面会新增蓝色翻译按钮，点击即可使用。
 
