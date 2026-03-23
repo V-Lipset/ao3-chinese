@@ -1,7 +1,7 @@
 /**
  name         AO3 Translator - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.6.1-2026-02-27
+ version      1.6.1-2026-03-23
  description  AO3 Translator 的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -672,7 +672,7 @@ function translateBookmarkSearchWorkTagsTips() {
 		container.innerHTML = `
             <h4>书签搜索：作品标签</h4>
             <p>
-                “作品标签”字段会搜索条目创建者为已创建书签作品添加的所有标签，不包括书签创建者自己添加的标签。标签类型可为：分级、预警、分类、同人圈、角色、关系、附加标签。该字段在您输入搜索关键词时会建议规范标签。
+                “作品标签”字段会搜索条目创建者为书签作品添加的所有标签，不包括书签创建者自己添加的标签。标签类型可为：分级、预警、分类、同人圈、角色、关系、附加标签。该字段在您输入搜索关键词时会建议规范标签。
             </p>
         `;
 		container.setAttribute('data-translated-by-custom-function', 'true');
@@ -1490,7 +1490,7 @@ function translateCollectionsHelp() {
                 另请注意，如果您提交的合集受管理员审核，且您不是成员，您的作品不会自动添加——必须等待管理员批准后才会加入。如果这是匿名和/或未公开的合集，则作品发布后立即以匿名和/或隐藏状态展示，包括在等待审核期间。若作品被拒，则会保持匿名和/或未公开状态，直到您将其从合集中移除或管理员取消关联。
             </p>
             <p>
-                如果您改变主意想将作品从合集中移除，可在编辑时修改合集列表，或在账户的"我的合集"页面管理所有已创建书签作品。
+                如果您改变主意想将作品从合集中移除，可在编辑时修改合集列表，或在账户的"我的合集"页面管理所有书签作品。
             </p>
         `;
 		container.setAttribute('data-translated-by-custom-function', 'true');
@@ -3441,7 +3441,42 @@ const I18N = {
 			'works_show': ['.stats .hits', '.stats .kudos'],
 		},
 		ignoreSelectorPage: {
-			'*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', 'dd.freeform.tags', '[data-translated-by-custom-function]', 'li.freeforms', 'blockquote.userstuff.summary', 'textarea#embed_code', '.header.module h4.heading a[href^="/series/"]', '.header.module h4.heading a[href^="/works/"]', '.header.module h4.heading a[rel="author"]', '.header.module h5.fandoms a.tag', 'ul.series a[href^="/series/"]', 'dd.series a[href^="/series/"]'],
+			'*': [
+				// HTML 基础与代码/媒体标签
+				'script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', 'textarea',
+
+				// 插件生成的 UI 元素
+				'[data-translated-by-custom-function]',
+				'.translate-me-ao3-wrapper',
+				'.translated-by-ao3-translator',
+				'.translated-by-ao3-translator-error',
+				'.translated-tags-container',
+				'div.autocomplete.dropdown ul',
+
+				// 用户生成的长文本
+				'#chapters .userstuff',
+				'.summary blockquote.userstuff',
+				'blockquote.userstuff.summary',
+				'.notes blockquote.userstuff',
+				'blockquote.userstuff.notes',
+				'.comment blockquote.userstuff',
+				'.bio .userstuff',
+				'.workskin',
+
+				// 用户生成的短文本
+				'a[rel="author"]',
+				'h4.heading a[href^="/works/"]',
+				'h4.heading a[href^="/series/"]',
+				'h2.title a[href^="/works/"]',
+				'h2.title a[href^="/series/"]',
+				'ul.series a[href^="/series/"]',
+				'dd.series a[href^="/series/"]',
+				'h5.fandoms a.tag',
+				'.fandom a.tag',
+				'li.freeforms',
+				'dd.freeform.tags'
+			],
+
 			'works_show': ['.dropdown.actions-menu ul', '#main .userstuff'],
 			'works_chapters_show': ['#main .userstuff'],
 			'series_show': ['h2.heading'],
@@ -3486,6 +3521,8 @@ const I18N = {
 				'Most Popular': '最常用', 'Tag Sets': '标签集',
 				'Warnings': '预警',
 				'Find your favorites': '寻找喜欢的内容',
+				'Random Items': '随机作品',
+				'Random bookmarks': '随机书签',
 
 				// 登录
 				'Log In': '登录',
@@ -4014,6 +4051,7 @@ const I18N = {
 				'Collection Type': '合集类型',
 				'No Challenge': '无挑战',
 				'Any': '任意',
+				'Word count': '字数统计',
 				'Clear Filters': '清除筛选',
 
 				// 书签
@@ -4066,6 +4104,7 @@ const I18N = {
 				'Show': '展示',
 				'Bookmark Collections:': '书签合集:',
 				'Challenges/Subcollections:': '活动合集/子合集:',
+				'Bookmarked Items': '书签作品',
 
 				// 系列
 				'Creators:': '创建者:',
@@ -4174,6 +4213,10 @@ const I18N = {
 				'The pseud was successfully deleted.': '笔名已成功删除。',
 				'Pseud was successfully deleted.': '笔名已成功删除。',
 				'You can only see your own drafts, sorry!': '抱歉！您只可以查看您自己的草稿。',
+				'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论必须包含文字内容。',
+				'Brevity is the soul of wit, but your content does have to be at least 10 characters long.': '简洁乃智慧之魂，但您的内容长度必须至少 10 个字符。',
+				'must be less than 10000 characters long.': '长度不得超过 10000 个字符。',
+				'If the email address you entered is currently associated with an AO3 account, you should receive an email with instructions to reset your password.': '如果您输入的电子邮件地址当前关联了一个 AO3 账户，您将会收到一封包含密码重置说明的邮件。',
 
 				// 标签说明
 				'This tag indicates adult content.': '此标签涉及成人内容。',
@@ -4200,6 +4243,9 @@ const I18N = {
 				['li a, li span.current', /^\s*Series\s*\((\d+)\)\s*$/s, '系列（$1）'],
 				['li a, li span.current', /^\s*Bookmarks\s*\((\d+)\)\s*$/s, '书签（$1）'],
 				['li a, li span.current', /^\s*Collections\s*\((\d+)\)\s*$/s, '合集（$1）'],
+				['li a, li span.current', /^\s*Subcollections\s*\((\d+)\)\s*$/s, '子合集（$1）'],
+				['li a, li span.current', /^\s*Fandoms\s*\((\d+)\)\s*$/s, '同人圈（$1）'],
+				['li a, li span.current', /^\s*Bookmarked Items\s*\((\d+)\)\s*$/s, '书签作品（$1）'],
 				['li a, li span.current', /^\s*Inbox\s*\((\d+)\)\s*$/s, '消息中心（$1）'],
 				['li a, li span.current', /^\s*Sign-ups\s*\((\d+)\)\s*$/s, '报名挑战（$1）'],
 				['li a, li span.current', /^\s*Assignments\s*\((\d+)\)\s*$/s, '任务中心（$1）'],
@@ -4287,7 +4333,7 @@ const I18N = {
 					'$5（$4）：$3 篇作品，第 $1 - $2 篇'
 				],
 				['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+)\s*$/s, '$4：$3 篇作品，第 $1 - $2 篇'],
-				['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4：$3 篇已创建书签作品，第 $1 - $2 篇'],
+				['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4：$3 篇书签作品，第 $1 - $2 篇'],
 				['h2.heading', /^\s*Gifts for\s+(.+)\s*$/s, '$1 收到的赠文'],
 				['h2.heading', /^\s*(.+)'s Collections\s*$/s, '$1：合集'],
 				['h5.byline.heading', /^\s*Bookmarked by\s*(<a .*?<\/a>)/s, '创建者：$1'],
@@ -4382,6 +4428,7 @@ const I18N = {
 					/^\s*(\d+)\s+Collections?\s*$/s,
 					'$1 个合集'
 				],
+
 				// 书签
 				[
 					'h4.heading',
@@ -4871,6 +4918,19 @@ const I18N = {
 				['p', /We apologize for the interruption, please prove that you are not a robot:/, '很抱歉打扰您，请证明您不是机器人：'],
 				['small', /<b>Your IP:<\/b>\s*<a([^>]+)>Show IP<\/a>/, '<b>您的 IP:</b> <a$1>显示 IP</a>'],
 				['div.flash.notice', /^Invitation resent to (.+?)\.$/, '邀请已重新发送至 $1 。'],
+				[
+					'h2.heading, h4.heading',
+					/^\s*Request\s+by\s+(.+?)\s*$/s,
+					(_match, author) => {
+						const authorText = author.trim();
+						if (authorText === 'Anonymous' || authorText === '匿名') {
+							return '匿名用户的请求';
+						}
+						else {
+							return `${authorText} 的请求`;
+						}
+					}
+				],
 
 				// 标签说明
 				[
@@ -4950,7 +5010,6 @@ const I18N = {
 			'Gift Exchange Challenge': '赠文交换活动',
 			'Prompt Meme Challenges': '接梗挑战',
 			'Prompt Meme Challenge': '接梗挑战',
-			'Bookmarked Items': '已创建书签作品',
 
 			'Not Rated': '未分级',
 			'No rating': '未分级',
@@ -5091,7 +5150,6 @@ const I18N = {
 				'Work Text*': '作品正文*',
 				'Rich Text': '富文本',
 				'Preview': '预览',
-				'Brevity is the soul of wit, but your content does have to be at least 10 characters long.': '简洁乃智慧之魂，但您的内容长度必须至少 10 个字符。',
 				'Sorry! We couldn\'t save this work because:': '抱歉！我们无法保存此作品，因为：', 'Language cannot be blank.': '语言不能为空。', 'Please fill in at least one fandom.': '请至少填写一个同人圈。', 'Please select at least one warning.': '请至少选择一个预警。',
 				'For a work in the Archive, only the URL is required.': '对于 Archive 站内的作品，仅需填写 URL。',
 				'This is a translation': '这是一个译本',
@@ -5894,7 +5952,6 @@ const I18N = {
 				'Profile': '概述',
 				'Sign-up Form': '报名表',
 				'Sign-up Summary': '报名概览',
-				'Random Items': '随机作品',
 				'People': '用户',
 				'Tags': '标签',
 				'Any Character': '任意角色',
@@ -5978,8 +6035,8 @@ const I18N = {
 				['div.flash.notice', /^Summary does not appear until at least 5 sign-ups have been made!$/, '至少 5 人报名后才会显示概览！'],
 				['h2.heading', /^Sign-up Summary for (.+)/, '$1 报名概览'],
 				['h2.heading', /^(<a href="\/collections\/.*?">.+<\/a>) > Fandoms$/, '$1 > 同人圈'],
-				['h2.heading', /^(\d+)\s+Works? in (<a href="\/collections\/.*?">.+<\/a>)/, '$2 中的作品：$1'],
-				['h2.heading', /^\s*(\d+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2 的已创建书签作品：$1'],
+				['h2.heading', /^(\d+)\s+Works? in (<a href="\/collections\/.*?">.+<\/a>)/, '$2：$1 篇作品'],
+				['h2.heading', /^\s*(\d+)\s+(?:Bookmarked Items|书签作品) in\s+(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2：$1 篇书签作品'],
 				['h2.heading', /^Participants in (.+)/, '$1 的参与者'],
 				['h5.heading', /(\d+)\s*works?,\s*(\d+)\s*recs?/, '$1 篇作品，$2 条推荐'],
 				['h3.heading', /(\d+\s*-\s*\d+)\s+of\s+([\d,]+)\s+Collections/s, '第 $1 个，共 $2 个合集'],
@@ -5993,16 +6050,11 @@ const I18N = {
 				['h4.heading', /^\s*Request\s+by\s+(?:Anonymous|匿名)\s*$/s, '请求 by 匿名'],
 				['p.actions a.showme', /^\s*Add another request\?\s*\(Up to (\d+) allowed\.\)\s*$/, '添加另一个请求项？（最多可添加 $1 个）'],
 				['p.actions a.showme', /^\s*Add another offer\?\s*\(Up to (\d+) allowed\.\)\s*$/, '添加另一个提供项？（最多可添加 $1 个）'],
-				['h2.heading', /^\s*(\d+)\s+Works? in\s*(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2 中的 $1 篇作品'],
+				['h2.heading', /^\s*(\d+)\s+Works? in\s*(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2：$1 篇作品'],
 				['h2.heading', /^\s*Participants in\s+(.+?)\s*$/s, '$1 的参与者'],
 				['h4.heading', /^\s*Request\s+by\s+(.+?)\s*$/s, '请求 by $1'],
 			],
-			'regexp': [
-				[/^Subcollections \((\d+)\)$/, '子合集（$1）'],
-				[/^Fandoms \((\d+)\)$/, '同人圈（$1）'],
-				[/^Works \((\d+)\)$/, '作品（$1）'],
-				[/^Bookmarked Items \((\d+)\)$/, '已创建书签作品（$1）'],
-			],
+			'regexp': [],
 			'selector': []
 		},
 		'external_works_new': {
@@ -6117,7 +6169,6 @@ const I18N = {
 				'Sorry, this news post doesn\'t allow comments.': '抱歉，此动态帖不允许评论。',
 				'Sorry, comments are disabled for this post.': '抱歉，此动态贴不允许评论。',
 				'Comments on this news post are moderated. Your comment will not appear until it has been approved.': '此动态帖的评论需审核。您的评论在获得批准前不会显示。',
-				'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论必须包含文字内容。',
 			},
 			'innerHTML_regexp': [
 				['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/, '剩余 $1 字符'],
@@ -6169,7 +6220,6 @@ const I18N = {
 				'Comment': '评论',
 				'Hide Comments': '隐藏评论',
 				'(Plain text with limited HTML': '(纯文本，支持有限 HTML',
-				'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论需要包含文字内容。',
 				'Thank you for leaving kudos!': '感谢您的点赞！',
 				'You have already left kudos here. :)': '您已经点赞过了 :)',
 				'Your tags': '标签',
@@ -6193,6 +6243,19 @@ const I18N = {
 				['p.jump', /\(See the end of the work for (<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在作品结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
 				['div.chapter div.notes > p', /\(See the end of the chapter for\s*(<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在本章结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
 				['p.jump', /\(See the end of the work for (<a href="[^"]*#children">)other works inspired by this one(<\/a>)\.\)/, '（在作品结尾查看$1相关衍生作品$2。）'],
+				[
+					'li',
+					/^\s*In response to a\s+(<a[^>]+>)prompt(<\/a>)\s+by\s+(.+?)\s+in the\s+(<a[^>]+>.+?<\/a>)\s+collection\.\s*$/s,
+					(_match, p1, p2, author, collection) => {
+						const authorText = author.trim();
+						if (authorText === 'Anonymous' || authorText === '匿名') {
+							return `响应了 ${collection} 合集中由匿名用户提出的${p1}同人梗${p2}。`;
+						}
+						else {
+							return `响应了 ${collection} 合集中由 ${authorText} 提出的${p1}同人梗${p2}。`;
+						}
+					}
+				],
 				[
 					'div.series span.position, dd.series span.position',
 					/^\s*Part (\d+) of (<a href="\/series\/.*?">.*?<\/a>)(.*)$/si,
