@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
-// @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.6.1-2026-02-27
+// @description  一个简单的用户脚本，专注于提升 AO3 的阅读体验
+// @version      1.6.1-2026-03-23
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -68,7 +68,7 @@
 		'Jul': '7', 'Aug': '8', 'Sep': '9', 'Oct': '10', 'Nov': '11', 'Dec': '12'
 	};
 
-    /**
+	/**
 	 * 全局默认配置常量库
 	 */
 	const DEFAULT_CONFIG = {
@@ -116,6 +116,41 @@
 		},
 		ENGINE: {
 			current: 'google_translate'
+		}
+	};
+
+	/**
+	 * 占位符全局配置与管理模块
+	 */
+	const PlaceholderConfig = {
+		prefix: 'vtr_',  // 占位符前缀
+		length: 5,       // 占位符数字长度
+
+		get exampleString() {
+			return this.prefix + '123456789'.substring(0, this.length);
+		},
+		generate: function() {
+			const chars = '0123456789';
+			let result = '';
+			for (let i = 0; i < this.length; i++) {
+				result += chars.charAt(Math.floor(Math.random() * chars.length));
+			}
+			return this.prefix + result;
+		},
+		get endBoundaryRegex() {
+			return new RegExp(`${this.prefix}\\d{${this.length}}$`);
+		},
+		get startBoundaryRegex() {
+			return new RegExp(`^${this.prefix}\\d{${this.length}}`);
+		},
+		get fuzzyRegex() {
+			const prefixBase = this.prefix.replace(/_$/, '');
+			const firstChar = prefixBase.charAt(0);
+			return new RegExp(`(?:${prefixBase}|${firstChar})[\\s_\\-－＿—:：]*(\\d{${this.length}})`, 'gi');
+		},
+		get instructionText() {
+			const numWord = this.length === 5 ? 'five' : (this.length === 6 ? 'six' : this.length);
+			return `- **Placeholder Preservation:** If an item contains special placeholders in the format \`${this.prefix}\` followed by ${numWord} digits (e.g., \`${this.exampleString}\`), you MUST preserve these placeholders exactly as they are. DO NOT translate, modify, or delete them.`;
 		}
 	};
 
@@ -251,62 +286,65 @@
 		'zu': 'Zulu (isiZulu)',
 	};
 
+	// 占位符示例
+	const ph = PlaceholderConfig.exampleString;
+
 	/**
 	 * 针对不同目标语言的输出示例数据
 	 */
 	const PROMPT_EXAMPLE_OUTPUTS = {
-		'zh-CN': `1. 这是<em>第一个</em>句子。\n2. ---\n3. 她的名字是 ph_123456。\n4. 这是第四个句子。`,
-		'zh-TW': `1. 這是<em>第一個</em>句子。\n2. ---\n3. 她的名字是 ph_123456。\n4. 這是第四個句子。`,
-		'ar': `1. هذه هي الجملة <em>الأولى</em>.\n2. ---\n3. اسمها هو ph_123456.\n4. هذه هي الجملة الرابعة.`,
-		'bg': `1. Това е <em>първото</em> изречение.\n2. ---\n3. Нейното име е ph_123456.\n4. Това е четвъртото изречение.`,
-		'bn': `1. এটি <em>প্রথম</em> বাক্য।\n2. ---\n3. তার নাম ph_123456।\n4. এটি চতুর্থ বাক্য।`,
-		'ca': `1. Aquesta és la <em>primera</em> frase.\n2. ---\n3. El seu nom és ph_123456.\n4. Aquesta és la quarta frase.`,
-		'cs': `1. Toto je <em>první</em> věta.\n2. ---\n3. Jmenuje se ph_123456.\n4. Toto je čtvrtá věta.`,
-		'da': `1. Dette er den <em>første</em> sætning.\n2. ---\n3. Hendes navn er ph_123456.\n4. Dette er den fjerde sætning.`,
-		'de': `1. Das ist der <em>erste</em> Satz.\n2. ---\n3. Ihr Name ist ph_123456.\n4. Das ist der vierte Satz.`,
-		'el': `1. Αυτή είναι η <em>πρώτη</em> πρόταση.\n2. ---\n3. Το όνομά της είναι ph_123456.\n4. Αυτή είναι η τέταρτη πρόταση.`,
-		'es': `1. Esta es la <em>primera</em> frase.\n2. ---\n3. Su nombre es ph_123456.\n4. Esta es la cuarta frase.`,
-		'et': `1. See on <em>esimene</em> lause.\n2. ---\n3. Tema nimi on ph_123456.\n4. See on neljas lause.`,
-		'fa': `1. این <em>اولین</em> جمله است.\n2. ---\n3. نام او ph_123456 است.\n4. این چهارمین جمله است.`,
-		'fi': `1. Tämä on <em>ensimmäinen</em> lause.\n2. ---\n3. Hänen nimensä on ph_123456.\n4. Tämä on neljäs lause.`,
-		'fr': `1. C'est la <em>première</em> phrase.\n2. ---\n3. Son nom est ph_123456.\n4. C'est la quatrième phrase.`,
-		'gu': `1. આ <em>પહેલું</em> વાક્ય છે।\n2. ---\n3. તેનું નામ ph_123456 છે।\n4. આ ચોથું વાક્ય છે।`,
-		'he': `1. זהו המשפט ה<em>ראשון</em>.\n2. ---\n3. שמה הוא ph_123456.\n4. זהו המשפט הרביעי.`,
-		'hi': `1. यह <em>पहला</em> वाक्य है।\n2. ---\n3. उसका नाम ph_123456 है।\n4. यह चौथा वाक्य है।`,
-		'hr': `1. Ovo je <em>prva</em> rečenica.\n2. ---\n3. Njeno ime je ph_123456.\n4. Ovo je četvrta rečenica.`,
-		'hu': `1. Ez az <em>első</em> mondat.\n2. ---\n3. A neve ph_123456.\n4. Ez a negyedik mondat.`,
-		'id': `1. Ini adalah kalimat <em>pertama</em>.\n2. ---\n3. Namanya adalah ph_123456.\n4. Ini adalah kalimat keempat.`,
-		'is': `1. Þetta er <em>fyrsta</em> setningin.\n2. ---\n3. Hún heitir ph_123456.\n4. Þetta er fjórða setningin.`,
-		'it': `1. Questa è la <em>prima</em> frase.\n2. ---\n3. Il suo nome è ph_123456.\n4. Questa è la quarta frase.`,
-		'ja': `1. これは<em>最初の</em>文です。\n2. ---\n3. 彼女の名前は ph_123456 です。\n4. これは4番目の文です。`,
-		'kn': `1. ಇದು <em>ಮೊದಲ</em> ವಾಕ್ಯ।\n2. ---\n3. ಅವಳ ಹೆಸರು ph_123456।\n4. ಇದು ನಾಲ್ಕನೇ ವಾಕ್ಯ।`,
-		'ko': `1. 이것은 <em>첫 번째</em> 문장입니다。\n2. ---\n3. 그녀의 이름은 ph_123456 입니다。\n4. 이것은 네 번째 문장입니다。`,
-		'lt': `1. Tai yra <em>pirmas</em> sakinys.\n2. ---\n3. Jos vardas yra ph_123456.\n4. Tai yra ketvirtas sakinys.`,
-		'lv': `1. Šis ir <em>pirmais</em> teikums.\n2. ---\n3. Viņas vārds ir ph_123456.\n4. Šis ir ceturtais teikums.`,
-		'ml': `1. ഇതാണ് <em>ഒന്നാമത്തെ</em> വാക്യം।\n2. ---\n3. അവളുടെ പേര് ph_123456 എന്നാണ്।\n4. ഇതാണ് നാലാമത്തെ വാക്യം।`,
-		'mr': `1. हे <em>पहिले</em> वाक्य आहे।\n2. ---\n3. तिचे नाव ph_123456 आहे।\n4. हे चौथे वाक्य आहे।`,
-		'ms': `1. Ini adalah ayat <em>pertama</em>.\n2. ---\n3. Namanya ialah ph_123456.\n4. Ini adalah ayat keempat.`,
-		'mt': `1. Din hija l-<em>ewwel</em> sentenza.\n2. ---\n3. Jisimha hu ph_123456.\n4. Din hija r-raba' sentenza.`,
-		'nl': `1. Dit is de <em>eerste</em> zin.\n2. ---\n3. Haar naam is ph_123456.\n4. Dit is de vierde zin.`,
-		'no': `1. Dette er den <em>første</em> setningen.\n2. ---\n3. Hennes navn er ph_123456.\n4. Dette er den fjerde setningen.`,
-		'pa': `1. ਇਹ <em>ਪਹਿਲਾ</em> ਵਾਕ ਹੈ।\n2. ---\n3. ਉਸਦਾ ਨਾਮ ph_123456 ਹੈ।\n4. ਇਹ ਚੌਥਾ ਵਾਕ ਹੈ।`,
-		'pl': `1. To jest <em>pierwsze</em> zdanie.\n2. ---\n3. Nazywa się ph_123456.\n4. To jest czwarte zdanie.`,
-		'pt': `1. Esta é a <em>primeira</em> frase.\n2. ---\n3. O nome dela é ph_123456.\n4. Esta é a quarta frase.`,
-		'ro': `1. Aceasta este <em>prima</em> propoziție.\n2. ---\n3. Numele ei este ph_123456.\n4. Aceasta este a patra propoziție.`,
-		'ru': `1. Это <em>первое</em> предложение.\n2. ---\n3. Её зовут ph_123456.\n4. Это четвёртое предложение.`,
-		'sk': `1. Toto je <em>prvá</em> veta.\n2. ---\n3. Volá sa ph_123456.\n4. Toto je štvrtá veta.`,
-		'sl': `1. To je <em>prvi</em> stavek.\n2. ---\n3. Ime ji je ph_123456.\n4. To je četrti stavek.`,
-		'sv': `1. Detta är den <em>första</em> meningen.\n2. ---\n3. Hennes namn är ph_123456.\n4. Detta är den fjärde meningen.`,
-		'sw': `1. Hii ni sentensi ya <em>kwanza</em>.\n2. ---\n3. Jina lake ni ph_123456.\n4. Hii ni sentensi ya nne.`,
-		'ta': `1. இது <em>முதல்</em> வாக்கியம்.\n2. ---\n3. அவள் பெயர் ph_123456.\n4. இது நான்காவது வாக்கியம்.`,
-		'te': `1. ఇది <em>మొదటి</em> వాక్యం.\n2. ---\n3. ఆమె పేరు ph_123456.\n4. ఇది నాల్గవ వాక్యం.`,
-		'th': `1. นี่คือประโยค<em>แรก</em>\n2. ---\n3. ชื่อของเธอคือ ph_123456\n4. นี่คือประโยคที่สี่`,
-		'tr': `1. Bu <em>birinci</em> cümledir.\n2. ---\n3. Onun adı ph_123456.\n4. Bu dördüncü cümledir.`,
-		'uk': `1. Це <em>перше</em> речення.\n2. ---\n3. Її звати ph_123456.\n4. Це четверте речення.`,
-		'ur': `1. یہ <em>پہلا</em> جملہ ہے۔\n2. ---\n3. اس کا نام ph_123456 ہے۔\n4. یہ چوتھا جملہ ہے۔`,
-		'vi': `1. Đây là câu <em>đầu tiên</em>.\n2. ---\n3. Tên cô ấy là ph_123456.\n4. Đây là câu thứ tư.`,
-		'zu': `1. Lona umusho <em>wokuqala</em>.\n2. ---\n3. Igama lakhe ngu-ph_123456.\n4. Lona umusho wesine.`,
-		'default': `1. This is the <em>first</em> sentence.\n2. ---\n3. Her name is ph_123456.\n4. This is the fourth sentence.`
+		'zh-CN': `1. 这是<em>第一个</em>句子。\n2. ---\n3. 她的名字是 ${ph}。\n4. 这是第四个句子。`,
+		'zh-TW': `1. 這是<em>第一個</em>句子。\n2. ---\n3. 她的名字是 ${ph}。\n4. 這是第四個句子。`,
+		'ar': `1. هذه هي الجملة <em>الأولى</em>.\n2. ---\n3. اسمها هو ${ph}.\n4. هذه هي الجملة الرابعة.`,
+		'bg': `1. Това е <em>първото</em> изречение.\n2. ---\n3. Нейното име е ${ph}.\n4. Това е четвъртото изречение.`,
+		'bn': `1. এটি <em>প্রথম</em> বাক্য।\n2. ---\n3. তার নাম ${ph}।\n4. এটি চতুর্থ বাক্য।`,
+		'ca': `1. Aquesta és la <em>primera</em> frase.\n2. ---\n3. El seu nom és ${ph}.\n4. Aquesta és la quarta frase.`,
+		'cs': `1. Toto je <em>první</em> věta.\n2. ---\n3. Jmenuje se ${ph}.\n4. Toto je čtvrtá věta.`,
+		'da': `1. Dette er den <em>første</em> sætning.\n2. ---\n3. Hendes navn er ${ph}.\n4. Dette er den fjerde sætning.`,
+		'de': `1. Das ist der <em>erste</em> Satz.\n2. ---\n3. Ihr Name ist ${ph}.\n4. Das ist der vierte Satz.`,
+		'el': `1. Αυτή είναι η <em>πρώτη</em> πρόταση.\n2. ---\n3. Το όνομά της είναι ${ph}.\n4. Αυτή είναι η τέταρτη πρόταση.`,
+		'es': `1. Esta es la <em>primera</em> frase.\n2. ---\n3. Su nombre es ${ph}.\n4. Esta es la cuarta frase.`,
+		'et': `1. See on <em>esimene</em> lause.\n2. ---\n3. Tema nimi on ${ph}.\n4. See on neljas lause.`,
+		'fa': `1. این <em>اولین</em> جمله است.\n2. ---\n3. نام او ${ph} است.\n4. این چهارمین جمله است.`,
+		'fi': `1. Tämä on <em>ensimmäinen</em> lause.\n2. ---\n3. Hänen nimensä on ${ph}.\n4. Tämä on neljäs lause.`,
+		'fr': `1. C'est la <em>première</em> phrase.\n2. ---\n3. Son nom est ${ph}.\n4. C'est la quatrième phrase.`,
+		'gu': `1. આ <em>પહેલું</em> વાક્ય છે।\n2. ---\n3. તેનું નામ ${ph} છે।\n4. આ ચોથું વાક્ય છે।`,
+		'he': `1. זהו המשפט ה<em>ראשון</em>.\n2. ---\n3. שמה הוא ${ph}.\n4. זהו המשפט הרביעי.`,
+		'hi': `1. यह <em>पहला</em> वाक्य है।\n2. ---\n3. उसका नाम ${ph} है।\n4. यह चौथा वाक्य है।`,
+		'hr': `1. Ovo je <em>prva</em> rečenica.\n2. ---\n3. Njeno ime je ${ph}.\n4. Ovo je četvrta rečenica.`,
+		'hu': `1. Ez az <em>első</em> mondat.\n2. ---\n3. A neve ${ph}.\n4. Ez a negyedik mondat.`,
+		'id': `1. Ini adalah kalimat <em>pertama</em>.\n2. ---\n3. Namanya adalah ${ph}.\n4. Ini adalah kalimat keempat.`,
+		'is': `1. Þetta er <em>fyrsta</em> setningin.\n2. ---\n3. Hún heitir ${ph}.\n4. Þetta er fjórða setningin.`,
+		'it': `1. Questa è la <em>prima</em> frase.\n2. ---\n3. Il suo nome è ${ph}.\n4. Questa è la quarta frase.`,
+		'ja': `1. これは<em>最初の</em>文です。\n2. ---\n3. 彼女の名前は ${ph} です。\n4. これは4番目の文です。`,
+		'kn': `1. ಇದು <em>ಮೊದಲ</em> ವಾಕ್ಯ।\n2. ---\n3. ಅವಳ ಹೆಸರು ${ph}।\n4. ಇದು ನಾಲ್ಕನೇ ವಾಕ್ಯ।`,
+		'ko': `1. 이것은 <em>첫 번째</em> 문장입니다。\n2. ---\n3. 그녀의 이름은 ${ph} 입니다。\n4. 이것은 네 번째 문장입니다。`,
+		'lt': `1. Tai yra <em>pirmas</em> sakinys.\n2. ---\n3. Jos vardas yra ${ph}.\n4. Tai yra ketvirtas sakinys.`,
+		'lv': `1. Šis ir <em>pirmais</em> teikums.\n2. ---\n3. Viņas vārds ir ${ph}.\n4. Šis ir ceturtais teikums.`,
+		'ml': `1. ഇതാണ് <em>ഒന്നാമത്തെ</em> വാക്യം।\n2. ---\n3. അവളുടെ പേര് ${ph} എന്നാണ്।\n4. ഇതാണ് നാലാമത്തെ വാക്യം।`,
+		'mr': `1. हे <em>पहिले</em> वाक्य आहे।\n2. ---\n3. तिचे नाव ${ph} आहे।\n4. हे चौथे वाक्य आहे।`,
+		'ms': `1. Ini adalah ayat <em>pertama</em>.\n2. ---\n3. Namanya ialah ${ph}.\n4. Ini adalah ayat keempat.`,
+		'mt': `1. Din hija l-<em>ewwel</em> sentenza.\n2. ---\n3. Jisimha hu ${ph}.\n4. Din hija r-raba' sentenza.`,
+		'nl': `1. Dit is de <em>eerste</em> zin.\n2. ---\n3. Haar naam is ${ph}.\n4. Dit is de vierde zin.`,
+		'no': `1. Dette er den <em>første</em> setningen.\n2. ---\n3. Hennes navn er ${ph}.\n4. Dette er den fjerde setningen.`,
+		'pa': `1. ਇਹ <em>ਪਹਿਲਾ</em> ਵਾਕ ਹੈ।\n2. ---\n3. ਉਸਦਾ ਨਾਮ ${ph} ਹੈ।\n4. ਇਹ ਚੌਥਾ ਵਾਕ ਹੈ।`,
+		'pl': `1. To jest <em>pierwsze</em> zdanie.\n2. ---\n3. Nazywa się ${ph}.\n4. To jest czwarte zdanie.`,
+		'pt': `1. Esta é a <em>primeira</em> frase.\n2. ---\n3. O nome dela é ${ph}.\n4. Esta é a quarta frase.`,
+		'ro': `1. Aceasta este <em>prima</em> propoziție.\n2. ---\n3. Numele ei este ${ph}.\n4. Aceasta este a patra propoziție.`,
+		'ru': `1. Это <em>первое</em> предложение.\n2. ---\n3. Её зовут ${ph}.\n4. Это четвёртое предложение.`,
+		'sk': `1. Toto je <em>prvá</em> veta.\n2. ---\n3. Volá sa ${ph}.\n4. Toto je štvrtá veta.`,
+		'sl': `1. To je <em>prvi</em> stavek.\n2. ---\n3. Ime ji je ${ph}.\n4. To je četrti stavek.`,
+		'sv': `1. Detta är den <em>första</em> meningen.\n2. ---\n3. Hennes namn är ${ph}.\n4. Detta är den fjärde meningen.`,
+		'sw': `1. Hii ni sentensi ya <em>kwanza</em>.\n2. ---\n3. Jina lake ni ${ph}.\n4. Hii ni sentensi ya nne.`,
+		'ta': `1. இது <em>முதல்</em> வாக்கியம்.\n2. ---\n3. அவள் பெயர் ${ph}.\n4. இது நான்காவது வாக்கியம்.`,
+		'te': `1. ఇది <em>మొదటి</em> వాక్యం.\n2. ---\n3. ఆమె పేరు ${ph}.\n4. ఇది నాల్గవ వాక్యం.`,
+		'th': `1. นี่คือประโยค<em>แรก</em>\n2. ---\n3. ชื่อของเธอคือ ${ph}\n4. นี่คือประโยคที่สี่`,
+		'tr': `1. Bu <em>birinci</em> cümledir.\n2. ---\n3. Onun adı ${ph}.\n4. Bu dördüncü cümledir.`,
+		'uk': `1. Це <em>перше</em> речення.\n2. ---\n3. Її звати ${ph}.\n4. Це четверте речення.`,
+		'ur': `1. یہ <em>پہلا</em> جملہ ہے۔\n2. ---\n3. اس کا نام ${ph} ہے۔\n4. یہ چوتھا جملہ ہے۔`,
+		'vi': `1. Đây là câu <em>đầu tiên</em>.\n2. ---\n3. Tên cô ấy là ${ph}.\n4. Đây là câu thứ tư.`,
+		'zu': `1. Lona umusho <em>wokuqala</em>.\n2. ---\n3. Igama lakhe ngu-${ph}.\n4. Lona umusho wesine.`,
+		'default': `1. This is the <em>first</em> sentence.\n2. ---\n3. Her name is ${ph}.\n4. This is the fourth sentence.`
 	};
 
 	/**
@@ -334,16 +372,12 @@
 		- Your entire response MUST consist of *only* the polished translation from Stage 3, formatted as a numbered list that exactly matches the input's numbering.
 		- Do NOT include any stage numbers, headers (e.g., "Polished Translation"), notes, or explanations in your final output.
 		- **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original, including their positions around the translated text.
-		- **Placeholder Preservation:** If an item contains special placeholders in the format \`ph_\` followed by six digits (e.g., \`ph_123456\`), you MUST preserve these placeholders exactly as they are.
-		- **DO NOT** change \`ph_\` to \`P_\`, \`Ph_\`, or any other variation.
-		- **DO NOT** add spaces inside the placeholder (e.g., \`ph_ 123456\` is WRONG).
-		- **DO NOT** translate, modify, or delete them.
-		- **Untranslatable Content:** If an item is a separator, a meaningless symbol, or otherwise untranslatable, you MUST return the original item exactly as it is, preserving its number.
+		${PlaceholderConfig.instructionText}
 
 		### Example Input:
 		1. This is the <em>first</em> sentence.
 		2. ---
-		3. Her name is ph_123456.
+		3. Her name is ${PlaceholderConfig.exampleString}.
 		4. This is the fourth sentence.
 
 		{exampleOutput}
@@ -528,26 +562,6 @@
 					params: { ...BASE_AI_PARAMS }
 				};
 
-				// 迁移旧数据
-				const oldKeys = {
-					'custom_ai_system_prompt': 'system_prompt',
-					'custom_ai_user_prompt': 'user_prompt',
-					'custom_ai_temperature': 'temperature',
-					'custom_ai_chunk_size': 'chunk_size',
-					'custom_ai_para_limit': 'para_limit',
-					'custom_ai_request_rate': 'request_rate',
-					'custom_ai_request_capacity': 'request_capacity',
-					'custom_ai_lazy_load_margin': 'lazy_load_margin',
-					'custom_ai_validation_thresholds': 'validation_thresholds'
-				};
-
-				for (const [oldKey, paramKey] of Object.entries(oldKeys)) {
-					const oldVal = GM_getValue(oldKey);
-					if (oldVal !== undefined && oldVal !== null) {
-						defaultProfile.params[paramKey] = oldVal;
-					}
-				}
-
 				// 初始化 DeepSeek 配置
 				const deepseekProfile = {
 					id: 'profile_deepseek_init',
@@ -563,7 +577,7 @@
 
 				profiles = [defaultProfile, deepseekProfile];
 				GM_setValue(AI_PROFILES_KEY, profiles);
-				Logger.info('配置', '翻译参数配置已初始化并迁移旧数据');
+				Logger.info('配置', '翻译参数配置已初始化');
 			}
 		},
 
@@ -1596,7 +1610,7 @@
 			container.innerHTML = `
 	            <h4>书签搜索：作品标签</h4>
 	            <p>
-	                “作品标签”字段会搜索条目创建者为已创建书签作品添加的所有标签，不包括书签创建者自己添加的标签。标签类型可为：分级、预警、分类、同人圈、角色、关系、附加标签。该字段在您输入搜索关键词时会建议规范标签。
+	                “作品标签”字段会搜索条目创建者为书签作品添加的所有标签，不包括书签创建者自己添加的标签。标签类型可为：分级、预警、分类、同人圈、角色、关系、附加标签。该字段在您输入搜索关键词时会建议规范标签。
 	            </p>
 	        `;
 			container.setAttribute('data-translated-by-custom-function', 'true');
@@ -2414,7 +2428,7 @@
 	                另请注意，如果您提交的合集受管理员审核，且您不是成员，您的作品不会自动添加——必须等待管理员批准后才会加入。如果这是匿名和/或未公开的合集，则作品发布后立即以匿名和/或隐藏状态展示，包括在等待审核期间。若作品被拒，则会保持匿名和/或未公开状态，直到您将其从合集中移除或管理员取消关联。
 	            </p>
 	            <p>
-	                如果您改变主意想将作品从合集中移除，可在编辑时修改合集列表，或在账户的"我的合集"页面管理所有已创建书签作品。
+	                如果您改变主意想将作品从合集中移除，可在编辑时修改合集列表，或在账户的"我的合集"页面管理所有书签作品。
 	            </p>
 	        `;
 			container.setAttribute('data-translated-by-custom-function', 'true');
@@ -5160,7 +5174,6 @@
 
 			allData.data.glossaries = {
 				customGlossaries: GM_getValue(CUSTOM_GLOSSARIES_KEY),
-				importedGlossaries: GM_getValue(IMPORTED_GLOSSARY_KEY),
 				metadata: GM_getValue(GLOSSARY_METADATA_KEY),
 				onlineOrder: GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []),
 				postReplaceRules: postReplaceRules,
@@ -5629,8 +5642,13 @@
 
 		let syncSummary = "";
 		if (isSelected('glossaries')) {
-			const importedUrls = (data.glossaries?.importedGlossaries) ? Object.keys(data.glossaries.importedGlossaries) :
-				(data.glossaries?.onlineMetadata ? Object.keys(data.glossaries.onlineMetadata) : []);
+			const importedUrls = Object.keys(
+				data.glossaries?.importedGlossaries || 
+				data.glossaries?.metadata || 
+				data.glossaries?.onlineMetadata || 
+				{}
+			);
+
 			if (importedUrls.length > 0) {
 				const downloadPromises = importedUrls.map(url => importOnlineGlossary(url, { silent: true }));
 				Promise.allSettled(downloadPromises).then(results => {
@@ -12703,18 +12721,6 @@
 	}
 
 	/**
-	 * 生成一个随机的6位数字字符串
-	 */
-	function generateRandomPlaceholder() {
-		const chars = '0123456789';
-		let result = '';
-		for (let i = 0; i < 6; i++) {
-			result += chars.charAt(Math.floor(Math.random() * chars.length));
-		}
-		return result;
-	}
-
-	/**
 	 * 在DOM节点内查找一个由多部分文本组成的、有序的邻近序列
 	 */
 	function findOrderedDOMSequence(rootNode, rule) {
@@ -12773,7 +12779,7 @@
 						const prevChar = (startNodeIndex === 0 && startOffset === 0) ? ' ' : textNodes[startNodeIndex].nodeValue[startOffset - 1] || ' ';
 						if (partIndex === 0 && /[a-zA-Z0-9]/.test(prevChar)) {
 							const strBefore = textNodes[startNodeIndex].nodeValue.substring(0, startOffset);
-							if (!/ph_\d{6}$/.test(strBefore)) {
+							if (!PlaceholderConfig.endBoundaryRegex.test(strBefore)) {
 								continue;
 							}
 						}
@@ -12829,7 +12835,7 @@
 			const nextChar = textNodes[finalEndPoint.nodeIndex].nodeValue[finalEndPoint.offset] || ' ';
 			if (/[a-zA-Z0-9]/.test(nextChar)) {
 				const remainingStr = textNodes[finalEndPoint.nodeIndex].nodeValue.substring(finalEndPoint.offset);
-				if (!/^ph_\d{6}/.test(remainingStr)) {
+				if (!PlaceholderConfig.startBoundaryRegex.test(remainingStr)) {
 					return null;
 				}
 			}
@@ -12947,7 +12953,7 @@
 				let startBoundaryOK = !prevChar || !WORD_CHAR_REGEX.test(prevChar);
 				if (!startBoundaryOK) {
 					const strBefore = normalizedText.substring(0, overallStart);
-					if (/ph_\d{6}$/.test(strBefore)) {
+					if (PlaceholderConfig.endBoundaryRegex.test(strBefore)) {
 						startBoundaryOK = true;
 					}
 				}
@@ -12955,7 +12961,7 @@
 				let endBoundaryOK = !nextChar || !WORD_CHAR_REGEX.test(nextChar);
 				if (!endBoundaryOK) {
 					const remainingStr = normalizedText.substring(overallEnd);
-					if (/^ph_\d{6}/.test(remainingStr)) {
+					if (PlaceholderConfig.startBoundaryRegex.test(remainingStr)) {
 						endBoundaryOK = true;
 					}
 				}
@@ -13039,7 +13045,7 @@
 							placeholder = placeholderCache.get(finalValue);
 						} else {
 							do {
-								placeholder = `ph_${generateRandomPlaceholder()}`;
+								placeholder = PlaceholderConfig.generate();
 							} while (placeholders.has(placeholder));
 							placeholderCache.set(finalValue, placeholder);
 							placeholders.set(placeholder, { value: finalValue, rule: rule, originalHTML: matchedText });
@@ -13089,7 +13095,7 @@
 							placeholder = placeholderCache.get(finalValue);
 						} else {
 							do {
-								placeholder = `ph_${generateRandomPlaceholder()}`;
+								placeholder = PlaceholderConfig.generate();
 							} while (placeholders.has(placeholder));
 							placeholderCache.set(finalValue, placeholder);
 							placeholders.set(placeholder, { value: finalValue, rule: rule, originalHTML: originalHTML });
@@ -13140,9 +13146,9 @@
 		let processedText = translatedText;
 
 		try {
-			const fuzzyPlaceholderRegex = /(?:ph|p)[\s_\-－＿—:：]*(\d{6})/gi;
+			const fuzzyPlaceholderRegex = PlaceholderConfig.fuzzyRegex;
 			processedText = processedText.replace(fuzzyPlaceholderRegex, (match, digits) => {
-				const standardPlaceholder = `ph_${digits}`;
+				const standardPlaceholder = PlaceholderConfig.prefix + digits;
 				if (placeholders.has(standardPlaceholder)) {
 					return standardPlaceholder;
 				}
@@ -13153,7 +13159,7 @@
 		}
 
 		if (placeholders.size === 0) {
-			return applyPostTranslationReplacements(processedText);
+			return processedText;
 		}
 
 		for (const [placeholder, data] of placeholders.entries()) {
@@ -13202,7 +13208,7 @@
 			}
 		}
 
-		return applyPostTranslationReplacements(processedText);
+		return processedText;
 	}
 
 	/**
@@ -13307,11 +13313,12 @@
 
 				combinedTranslation = combinedTranslation.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
 
-				const fuzzyPlaceholderRegex = /(?:ph|p)[\s\-_]*(\d{6})/gi;
-				const suspectedPlaceholders = [];
+				const fuzzyPlaceholderRegex = PlaceholderConfig.fuzzyRegex;
+				fuzzyPlaceholderRegex.lastIndex = 0;
+				const suspectedPlaceholders =[];
 				let match;
 				while ((match = fuzzyPlaceholderRegex.exec(combinedTranslation)) !== null) {
-					suspectedPlaceholders.push(`ph_${match[1]}`);
+					suspectedPlaceholders.push(PlaceholderConfig.prefix + match[1]);
 				}
 
 				const legalPlaceholders = new Set(placeholders.keys());
@@ -13410,7 +13417,9 @@
 						const originalPara = contentToTranslate.find(item => item.index === p.index);
 						if (originalPara) {
 							const transIndex = contentToTranslate.indexOf(originalPara);
-							const cleanedContent = AdvancedTranslationCleaner.clean(translatedParts[transIndex] || p.content);
+							let cleanedContent = AdvancedTranslationCleaner.clean(translatedParts[transIndex] || p.content);
+							cleanedContent = applyPostTranslationReplacements(cleanedContent);
+							
 							finalResults.set(p.original, { status: 'success', content: cleanedContent });
 						}
 					}
@@ -15768,13 +15777,85 @@
 	 * 执行数据迁移，将旧版存储格式更新为新版
 	 */
 	function runDataMigration() {
-		const CURRENT_MIGRATION_VERSION = 1;
+		const CURRENT_MIGRATION_VERSION = 2;
 		const savedVersion = GM_getValue('ao3_migration_version', 0);
 
 		if (savedVersion >= CURRENT_MIGRATION_VERSION) {
 			return;
 		}
 
+		// 版本 2 迁移：整合旧版参数迁移与占位符规则更新
+		if (savedVersion < 2) {
+			// 迁移旧版 AI 参数到 profile_default
+			const oldKeys = {
+				'custom_ai_system_prompt': 'system_prompt',
+				'custom_ai_user_prompt': 'user_prompt',
+				'custom_ai_temperature': 'temperature',
+				'custom_ai_chunk_size': 'chunk_size',
+				'custom_ai_para_limit': 'para_limit',
+				'custom_ai_request_rate': 'request_rate',
+				'custom_ai_request_capacity': 'request_capacity',
+				'custom_ai_lazy_load_margin': 'lazy_load_margin',
+				'custom_ai_validation_thresholds': 'validation_thresholds'
+			};
+
+			let profiles = GM_getValue(AI_PROFILES_KEY);
+			if (Array.isArray(profiles)) {
+				const defaultProfile = profiles.find(p => p.id === 'profile_default');
+				let profilesChanged = false;
+
+				if (defaultProfile) {
+					for (const[oldKey, paramKey] of Object.entries(oldKeys)) {
+						const oldVal = GM_getValue(oldKey);
+						if (oldVal !== undefined && oldVal !== null) {
+							defaultProfile.params[paramKey] = oldVal;
+							profilesChanged = true;
+							GM_deleteValue(oldKey);
+						}
+					}
+				}
+				if (profilesChanged) {
+					GM_setValue(AI_PROFILES_KEY, profiles);
+				}
+			}
+
+			// 占位符规则迁移
+			const migratePrompt = (prompt) => {
+				if (!prompt) return prompt;
+				const numWord = PlaceholderConfig.length === 5 ? 'five' : (PlaceholderConfig.length === 6 ? 'six' : PlaceholderConfig.length);
+				return prompt
+					.replace(/ph_/g, PlaceholderConfig.prefix)
+					.replace(/Ph_/g, PlaceholderConfig.prefix.charAt(0).toUpperCase() + PlaceholderConfig.prefix.slice(1))
+					.replace(/P_/g, PlaceholderConfig.prefix.charAt(0).toUpperCase() + '_')
+					.replace(/six digits/gi, `${numWord} digits`)
+					.replace(/6 digits/gi, `${PlaceholderConfig.length} digits`)
+					.replace(/123456/g, PlaceholderConfig.exampleString.replace(PlaceholderConfig.prefix, ''));
+			};
+
+			// 迁移 AI Profiles 中的 Prompt
+			profiles = GM_getValue(AI_PROFILES_KEY);
+			if (Array.isArray(profiles)) {
+				let changed = false;
+				profiles.forEach(p => {
+					if (p.params) {
+						if (p.params.system_prompt) {
+							p.params.system_prompt = migratePrompt(p.params.system_prompt);
+							changed = true;
+						}
+						if (p.params.user_prompt) {
+							p.params.user_prompt = migratePrompt(p.params.user_prompt);
+							changed = true;
+						}
+					}
+				});
+				if (changed) {
+					GM_setValue(AI_PROFILES_KEY, profiles);
+				}
+			}
+			Logger.info('系统', '旧版参数及占位符规则迁移完成');
+		}
+
+		// 版本 1 迁移逻辑
         {
             const newRules = GM_getValue(POST_REPLACE_RULES_KEY, null);
             if (newRules === null) {
@@ -15846,7 +15927,7 @@
                     GM_setValue(CUSTOM_GLOSSARIES_KEY, [defaultGlossary]);
                 }
 
-                ['ao3_local_glossary_string', 'ao3_local_forbidden_string', 'ao3_local_glossary',
+				['ao3_local_glossary_string', 'ao3_local_forbidden_string', 'ao3_local_glossary',
                     'ao3_translation_glossary', 'ao3_local_forbidden_terms'].forEach(key => GM_deleteValue(key));
             }
         }
@@ -15892,13 +15973,6 @@
             };
             if (currentModel && migrationMap[currentModel]) {
                 GM_setValue(modelKey, migrationMap[currentModel]);
-            }
-        }
-
-        {
-            const sysPrompt = GM_getValue('custom_ai_system_prompt');
-            if (typeof sysPrompt === 'string' && sysPrompt.includes('${')) {
-                GM_setValue('custom_ai_system_prompt', sysPrompt.replace(/\$\{/g, '{'));
             }
         }
 
@@ -16091,8 +16165,7 @@
             /* 标签翻译样式 */
             .ao3-tag-translation {
                 margin-left: 6px;
-                opacity: 0.85;
-                font-size: 0.95em;
+                opacity: 0.9;
                 display: inline;
                 color: inherit;
             }
@@ -16653,6 +16726,13 @@
 					if (p2 === 'new') {
 						return 'collections_new';
 					}
+					if (p3 === 'works' && p4 && /^\d+$/.test(p4)) {
+						if (p5 === 'chapters' && pathSegments[5] === 'new') return 'chapters_new';
+						if (p5 === 'chapters' && pathSegments[5] && /^\d+$/.test(pathSegments[5]) && pathSegments[6] === 'edit') return 'chapters_edit';
+						if (p5 === 'edit_tags') return 'works_edit_tags';
+						if (p5 === 'edit') return 'works_edit';
+						if (!p5 || p5 === 'navigate' || (p5 === 'chapters' && pathSegments[5])) return 'works_chapters_show';
+					}
 					return 'collections_dashboard_common';
 				case 'tags':
 					if (p2) {
@@ -16700,35 +16780,6 @@
 	 * @param {Node} rootNode - 需要遍历的节点。
 	 */
 	function traverseNode(rootNode) {
-
-		if (rootNode.nodeType === Node.TEXT_NODE) {
-			if (rootNode.nodeValue && rootNode.nodeValue.length <= 1000) {
-				if (rootNode.parentElement && rootNode.parentElement.closest(pageConfig.ignoreSelectors)) {
-					return;
-				}
-				transElement(rootNode, 'nodeValue');
-			}
-			return;
-		}
-
-		if (rootNode.nodeType === Node.ELEMENT_NODE && rootNode.closest(pageConfig.ignoreSelectors)) {
-			return;
-		}
-
-		const treeWalker = document.createTreeWalker(
-			rootNode,
-			NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
-			node => {
-				if (node.nodeType === Node.ELEMENT_NODE && node.closest(pageConfig.ignoreSelectors)) {
-					return NodeFilter.FILTER_REJECT;
-				}
-				if (node.nodeType === Node.TEXT_NODE && node.parentElement && node.parentElement.closest(pageConfig.ignoreSelectors)) {
-					return NodeFilter.FILTER_REJECT;
-				}
-				return NodeFilter.FILTER_ACCEPT;
-			}
-		);
-
 		const handleElement = node => {
 			switch (node.tagName) {
 				case 'INPUT':
@@ -16780,14 +16831,42 @@
 			}
 		};
 
-		const handlers = {
-			[Node.ELEMENT_NODE]: handleElement,
-			[Node.TEXT_NODE]: handleTextNode
-		};
+		if (rootNode.nodeType === Node.TEXT_NODE) {
+			if (rootNode.parentElement && rootNode.parentElement.closest(pageConfig.ignoreSelectors)) {
+				return;
+			}
+			handleTextNode(rootNode);
+			return;
+		}
+
+		if (rootNode.nodeType === Node.ELEMENT_NODE) {
+			if (rootNode.parentElement && rootNode.parentElement.closest(pageConfig.ignoreSelectors)) {
+				return;
+			}
+			handleElement(rootNode);
+			if (rootNode.closest(pageConfig.ignoreSelectors)) {
+				return;
+			}
+		}
+
+		const treeWalker = document.createTreeWalker(
+			rootNode,
+			NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+			node => {
+				if (node.parentElement && node.parentElement.closest(pageConfig.ignoreSelectors)) {
+					return NodeFilter.FILTER_REJECT;
+				}
+				return NodeFilter.FILTER_ACCEPT;
+			}
+		);
 
 		let currentNode;
 		while ((currentNode = treeWalker.nextNode())) {
-			handlers[currentNode.nodeType]?.(currentNode);
+			if (currentNode.nodeType === Node.ELEMENT_NODE) {
+				handleElement(currentNode);
+			} else if (currentNode.nodeType === Node.TEXT_NODE) {
+				handleTextNode(currentNode);
+			}
 		}
 	}
 
@@ -16932,17 +17011,11 @@
 			{ selector: 'dl.work.meta.group', text: '翻译标签', above: false, isTags: true },
 			{ selector: 'ul.tags.commas', text: '翻译标签', above: false, isTags: true },
             { selector: '#admin-banner blockquote.userstuff', text: '翻译公告', insertInside: true },
+			{ selector: '#chapters > .userstuff', text: '翻译正文', above: true, isLazyLoad: true },
+			{ selector: '#chapters > .chapter > .userstuff[role="article"]', text: '翻译正文', above: true, isLazyLoad: true }
 		];
 
 		const pageSpecificRules = {
-			'works_show': [
-				{ selector: '#chapters > .userstuff', text: '翻译正文', above: true, isLazyLoad: true },
-				{ selector: '#chapters > .chapter > .userstuff[role="article"]', text: '翻译正文', above: true, isLazyLoad: true }
-			],
-			'works_chapters_show': [
-				{ selector: '#chapters > .userstuff', text: '翻译正文', above: true, isLazyLoad: true },
-				{ selector: '#chapters > .chapter > .userstuff[role="article"]', text: '翻译正文', above: true, isLazyLoad: true }
-			],
 			'collections_dashboard_common': [
 				{ selector: '.primary.header.module blockquote.userstuff', text: '翻译概述', above: false, isLazyLoad: false },
 				{ selector: '#intro blockquote.userstuff', text: '翻译简介', above: false, isLazyLoad: false },
@@ -16966,19 +17039,19 @@
 			'dmca_policy_page': [
 				{ selector: '#DMCA.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'tos_faq_page':[
+			'tos_faq_page': [
 				{ selector: 'div.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'wrangling_guidelines_page':[
+			'wrangling_guidelines_page': [
 				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'faq_page':[
+			'faq_page': [
 				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'known_issues_page':[
+			'known_issues_page': [
 				{ selector: 'div.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			],
-			'report_and_support_page':[
+			'report_and_support_page': [
 				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
 			]
 		};
@@ -17139,7 +17212,42 @@
 				'works_show': ['.stats .hits', '.stats .kudos'],
 			},
 			ignoreSelectorPage: {
-				'*': ['script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', '.userstuff.workskin', '.workskin', 'div.autocomplete.dropdown ul', 'dd.freeform.tags', '[data-translated-by-custom-function]', 'li.freeforms', 'blockquote.userstuff.summary', 'textarea#embed_code', '.header.module h4.heading a[href^="/series/"]', '.header.module h4.heading a[href^="/works/"]', '.header.module h4.heading a[rel="author"]', '.header.module h5.fandoms a.tag', 'ul.series a[href^="/series/"]', 'dd.series a[href^="/series/"]'],
+				'*': [
+					// HTML 基础与代码/媒体标签
+					'script', 'style', 'noscript', 'iframe', 'canvas', 'video', 'audio', 'img', 'svg', 'pre', 'code', 'textarea',
+
+					// 插件生成的 UI 元素
+					'[data-translated-by-custom-function]',
+					'.translate-me-ao3-wrapper',
+					'.translated-by-ao3-translator',
+					'.translated-by-ao3-translator-error',
+					'.translated-tags-container',
+					'div.autocomplete.dropdown ul',
+
+					// 用户生成的长文本
+					'#chapters .userstuff',
+					'.summary blockquote.userstuff',
+					'blockquote.userstuff.summary',
+					'.notes blockquote.userstuff',
+					'blockquote.userstuff.notes',
+					'.comment blockquote.userstuff',
+					'.bio .userstuff',
+					'.workskin',
+
+					// 用户生成的短文本
+					'a[rel="author"]',
+					'h4.heading a[href^="/works/"]',
+					'h4.heading a[href^="/series/"]',
+					'h2.title a[href^="/works/"]',
+					'h2.title a[href^="/series/"]',
+					'ul.series a[href^="/series/"]',
+					'dd.series a[href^="/series/"]',
+					'h5.fandoms a.tag',
+					'.fandom a.tag',
+					'li.freeforms',
+					'dd.freeform.tags'
+				],
+
 				'works_show': ['.dropdown.actions-menu ul', '#main .userstuff'],
 				'works_chapters_show': ['#main .userstuff'],
 				'series_show': ['h2.heading'],
@@ -17184,6 +17292,8 @@
 					'Most Popular': '最常用', 'Tag Sets': '标签集',
 					'Warnings': '预警',
 					'Find your favorites': '寻找喜欢的内容',
+					'Random Items': '随机作品',
+					'Random bookmarks': '随机书签',
 
 					// 登录
 					'Log In': '登录',
@@ -17712,6 +17822,7 @@
 					'Collection Type': '合集类型',
 					'No Challenge': '无挑战',
 					'Any': '任意',
+					'Word count': '字数统计',
 					'Clear Filters': '清除筛选',
 
 					// 书签
@@ -17764,6 +17875,7 @@
 					'Show': '展示',
 					'Bookmark Collections:': '书签合集:',
 					'Challenges/Subcollections:': '活动合集/子合集:',
+					'Bookmarked Items': '书签作品',
 
 					// 系列
 					'Creators:': '创建者:',
@@ -17872,6 +17984,10 @@
 					'The pseud was successfully deleted.': '笔名已成功删除。',
 					'Pseud was successfully deleted.': '笔名已成功删除。',
 					'You can only see your own drafts, sorry!': '抱歉！您只可以查看您自己的草稿。',
+					'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论必须包含文字内容。',
+					'Brevity is the soul of wit, but your content does have to be at least 10 characters long.': '简洁乃智慧之魂，但您的内容长度必须至少 10 个字符。',
+					'must be less than 10000 characters long.': '长度不得超过 10000 个字符。',
+					'If the email address you entered is currently associated with an AO3 account, you should receive an email with instructions to reset your password.': '如果您输入的电子邮件地址当前关联了一个 AO3 账户，您将会收到一封包含密码重置说明的邮件。',
 
 					// 标签说明
 					'This tag indicates adult content.': '此标签涉及成人内容。',
@@ -17898,6 +18014,9 @@
 					['li a, li span.current', /^\s*Series\s*\((\d+)\)\s*$/s, '系列（$1）'],
 					['li a, li span.current', /^\s*Bookmarks\s*\((\d+)\)\s*$/s, '书签（$1）'],
 					['li a, li span.current', /^\s*Collections\s*\((\d+)\)\s*$/s, '合集（$1）'],
+					['li a, li span.current', /^\s*Subcollections\s*\((\d+)\)\s*$/s, '子合集（$1）'],
+					['li a, li span.current', /^\s*Fandoms\s*\((\d+)\)\s*$/s, '同人圈（$1）'],
+					['li a, li span.current', /^\s*Bookmarked Items\s*\((\d+)\)\s*$/s, '书签作品（$1）'],
 					['li a, li span.current', /^\s*Inbox\s*\((\d+)\)\s*$/s, '消息中心（$1）'],
 					['li a, li span.current', /^\s*Sign-ups\s*\((\d+)\)\s*$/s, '报名挑战（$1）'],
 					['li a, li span.current', /^\s*Assignments\s*\((\d+)\)\s*$/s, '任务中心（$1）'],
@@ -17985,7 +18104,7 @@
 						'$5（$4）：$3 篇作品，第 $1 - $2 篇'
 					],
 					['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+Works?\s+by\s+(.+)\s*$/s, '$4：$3 篇作品，第 $1 - $2 篇'],
-					['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4：$3 篇已创建书签作品，第 $1 - $2 篇'],
+					['h2.heading', /^\s*(\d+)\s*-\s*(\d+)\s+of\s+([0-9,]+)\s+(?:Bookmarked Items|书签作品) in\s+(<a[^>]+>.+?<\/a>)\s*$/s, '$4：$3 篇书签作品，第 $1 - $2 篇'],
 					['h2.heading', /^\s*Gifts for\s+(.+)\s*$/s, '$1 收到的赠文'],
 					['h2.heading', /^\s*(.+)'s Collections\s*$/s, '$1：合集'],
 					['h5.byline.heading', /^\s*Bookmarked by\s*(<a .*?<\/a>)/s, '创建者：$1'],
@@ -18080,6 +18199,7 @@
 						/^\s*(\d+)\s+Collections?\s*$/s,
 						'$1 个合集'
 					],
+
 					// 书签
 					[
 						'h4.heading',
@@ -18569,6 +18689,19 @@
 					['p', /We apologize for the interruption, please prove that you are not a robot:/, '很抱歉打扰您，请证明您不是机器人：'],
 					['small', /<b>Your IP:<\/b>\s*<a([^>]+)>Show IP<\/a>/, '<b>您的 IP:</b> <a$1>显示 IP</a>'],
 					['div.flash.notice', /^Invitation resent to (.+?)\.$/, '邀请已重新发送至 $1 。'],
+					[
+						'h2.heading, h4.heading',
+						/^\s*Request\s+by\s+(.+?)\s*$/s,
+						(_match, author) => {
+							const authorText = author.trim();
+							if (authorText === 'Anonymous' || authorText === '匿名') {
+								return '匿名用户的请求';
+							}
+							else {
+								return `${authorText} 的请求`;
+							}
+						}
+					],
 
 					// 标签说明
 					[
@@ -18648,7 +18781,6 @@
 				'Gift Exchange Challenge': '赠文交换活动',
 				'Prompt Meme Challenges': '接梗挑战',
 				'Prompt Meme Challenge': '接梗挑战',
-				'Bookmarked Items': '已创建书签作品',
 
 				'Not Rated': '未分级',
 				'No rating': '未分级',
@@ -18789,7 +18921,6 @@
 					'Work Text*': '作品正文*',
 					'Rich Text': '富文本',
 					'Preview': '预览',
-					'Brevity is the soul of wit, but your content does have to be at least 10 characters long.': '简洁乃智慧之魂，但您的内容长度必须至少 10 个字符。',
 					'Sorry! We couldn\'t save this work because:': '抱歉！我们无法保存此作品，因为：', 'Language cannot be blank.': '语言不能为空。', 'Please fill in at least one fandom.': '请至少填写一个同人圈。', 'Please select at least one warning.': '请至少选择一个预警。',
 					'For a work in the Archive, only the URL is required.': '对于 Archive 站内的作品，仅需填写 URL。',
 					'This is a translation': '这是一个译本',
@@ -19592,7 +19723,6 @@
 					'Profile': '概述',
 					'Sign-up Form': '报名表',
 					'Sign-up Summary': '报名概览',
-					'Random Items': '随机作品',
 					'People': '用户',
 					'Tags': '标签',
 					'Any Character': '任意角色',
@@ -19676,8 +19806,8 @@
 					['div.flash.notice', /^Summary does not appear until at least 5 sign-ups have been made!$/, '至少 5 人报名后才会显示概览！'],
 					['h2.heading', /^Sign-up Summary for (.+)/, '$1 报名概览'],
 					['h2.heading', /^(<a href="\/collections\/.*?">.+<\/a>) > Fandoms$/, '$1 > 同人圈'],
-					['h2.heading', /^(\d+)\s+Works? in (<a href="\/collections\/.*?">.+<\/a>)/, '$2 中的作品：$1'],
-					['h2.heading', /^\s*(\d+)\s+(?:Bookmarked Items|已创建书签作品) in\s+(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2 的已创建书签作品：$1'],
+					['h2.heading', /^(\d+)\s+Works? in (<a href="\/collections\/.*?">.+<\/a>)/, '$2：$1 篇作品'],
+					['h2.heading', /^\s*(\d+)\s+(?:Bookmarked Items|书签作品) in\s+(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2：$1 篇书签作品'],
 					['h2.heading', /^Participants in (.+)/, '$1 的参与者'],
 					['h5.heading', /(\d+)\s*works?,\s*(\d+)\s*recs?/, '$1 篇作品，$2 条推荐'],
 					['h3.heading', /(\d+\s*-\s*\d+)\s+of\s+([\d,]+)\s+Collections/s, '第 $1 个，共 $2 个合集'],
@@ -19691,16 +19821,11 @@
 					['h4.heading', /^\s*Request\s+by\s+(?:Anonymous|匿名)\s*$/s, '请求 by 匿名'],
 					['p.actions a.showme', /^\s*Add another request\?\s*\(Up to (\d+) allowed\.\)\s*$/, '添加另一个请求项？（最多可添加 $1 个）'],
 					['p.actions a.showme', /^\s*Add another offer\?\s*\(Up to (\d+) allowed\.\)\s*$/, '添加另一个提供项？（最多可添加 $1 个）'],
-					['h2.heading', /^\s*(\d+)\s+Works? in\s*(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2 中的 $1 篇作品'],
+					['h2.heading', /^\s*(\d+)\s+Works? in\s*(<a href="\/collections\/.*?">.+?<\/a>)\s*$/s, '$2：$1 篇作品'],
 					['h2.heading', /^\s*Participants in\s+(.+?)\s*$/s, '$1 的参与者'],
 					['h4.heading', /^\s*Request\s+by\s+(.+?)\s*$/s, '请求 by $1'],
 				],
-				'regexp': [
-					[/^Subcollections \((\d+)\)$/, '子合集（$1）'],
-					[/^Fandoms \((\d+)\)$/, '同人圈（$1）'],
-					[/^Works \((\d+)\)$/, '作品（$1）'],
-					[/^Bookmarked Items \((\d+)\)$/, '已创建书签作品（$1）'],
-				],
+				'regexp': [],
 				'selector': []
 			},
 			'external_works_new': {
@@ -19815,7 +19940,6 @@
 					'Sorry, this news post doesn\'t allow comments.': '抱歉，此动态帖不允许评论。',
 					'Sorry, comments are disabled for this post.': '抱歉，此动态贴不允许评论。',
 					'Comments on this news post are moderated. Your comment will not appear until it has been approved.': '此动态帖的评论需审核。您的评论在获得批准前不会显示。',
-					'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论必须包含文字内容。',
 				},
 				'innerHTML_regexp': [
 					['p.character_counter', /(<span[^>]*>\d+<\/span>)\s*characters left/, '剩余 $1 字符'],
@@ -19867,7 +19991,6 @@
 					'Comment': '评论',
 					'Hide Comments': '隐藏评论',
 					'(Plain text with limited HTML': '(纯文本，支持有限 HTML',
-					'Brevity is the soul of wit, but we need your comment to have text in it.': '简洁乃智慧之魂，但您的评论需要包含文字内容。',
 					'Thank you for leaving kudos!': '感谢您的点赞！',
 					'You have already left kudos here. :)': '您已经点赞过了 :)',
 					'Your tags': '标签',
@@ -19891,6 +20014,19 @@
 					['p.jump', /\(See the end of the work for (<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在作品结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
 					['div.chapter div.notes > p', /\(See the end of the chapter for\s*(<a.*?>)(more )?notes(<\/a>)\.\)/, (_match, p1, p2, p3) => `（在本章结尾查看${p1}${p2 ? '更多' : ''}注释${p3}。）`],
 					['p.jump', /\(See the end of the work for (<a href="[^"]*#children">)other works inspired by this one(<\/a>)\.\)/, '（在作品结尾查看$1相关衍生作品$2。）'],
+					[
+						'li',
+						/^\s*In response to a\s+(<a[^>]+>)prompt(<\/a>)\s+by\s+(.+?)\s+in the\s+(<a[^>]+>.+?<\/a>)\s+collection\.\s*$/s,
+						(_match, p1, p2, author, collection) => {
+							const authorText = author.trim();
+							if (authorText === 'Anonymous' || authorText === '匿名') {
+								return `响应了 ${collection} 合集中由匿名用户提出的${p1}同人梗${p2}。`;
+							}
+							else {
+								return `响应了 ${collection} 合集中由 ${authorText} 提出的${p1}同人梗${p2}。`;
+							}
+						}
+					],
 					[
 						'div.series span.position, dd.series span.position',
 						/^\s*Part (\d+) of (<a href="\/series\/.*?">.*?<\/a>)(.*)$/si,
