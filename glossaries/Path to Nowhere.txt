@@ -1,6 +1,6 @@
 维护者：V-Lipset
-版本号：1.0.6
-更新时间：2025-08-29
+版本号：1.0.7
+更新时间：2026-03-23
 
 
 词条
@@ -41,7 +41,7 @@ Echo：艾可
 Eirene：伊琳娜
 Eleven：雷温
 Enfer：恩菲尔
-Ermes Costello：艾梅斯
+Ermes Costello = 艾梅斯·罗斯提罗
 Etti：爱缇
 Eureka：优利卡
 Eve：伊芙
@@ -68,8 +68,8 @@ K.K.：蔻蔻
 Kawa-Kawa：卡瓦卡瓦
 Kelvin：开尔文
 Korryn：柯琳
-Kujo Jolyne：空条徐伦
-Kujo Jotaro：空条承太郎
+Kujo Jolyne = 空条 徐伦
+Kujo Jotaro = 空条 承太郎
 L.L.：L.L.
 Labyrinth：雷比尼斯
 Lady Pearl：珀尔夫人
@@ -79,7 +79,7 @@ Letta：莱塔
 Levy：李维
 Lisa：丽莎
 Luminita：卢米尼塔
-Luvia Ray：露薇娅·蕾
+Luvia Ray = 露薇娅·蕾
 Lynn：琳
 Lysandra：黎莎洛
 Macchiato：玛奇朵
@@ -92,7 +92,7 @@ Mira：米拉
 Moore：摩尔
 Mr. Fox：福克斯先生
 NOX：诺克斯
-Narciso Anastasia：安那苏
+Narciso Anastasia：纳鲁西索·安纳苏
 Nightingale Adjutant = 夜莺 副官
 Ninety-Nine：九十九
 Nino：妮诺
@@ -144,8 +144,26 @@ Zoya：卓娅
 Elvira Stewart = 艾尔维拉·斯图尔特
 El：艾尔
 Sable：赛泊尔
+Necresta Hella = 幽冕·海拉
+Ceto：赛托
+Ark：雅可
+Hilda：希露妲
+Irrheia：伊蕾娅
+Rumina：露米娜
+Margaret：玛格丽塔
+Helga：荷尔加
+Rust：锈
+Kisugi Rui = 来生 泪
+Kisugi Hitomi = 来生 瞳
+Kisugi Ai = 来生 爱
+Lichen：离尘
+Xiaofeng：啸风
+Jichuan：霁川
+Ayiguo：阿依果
+Clementine：克莱门汀
+Forensica：福伦辛卡
 
-// 组织和地点
+// 设定
 Dis City：狄斯城
 DisCity：狄斯城
 Syndicate：辛迪加
@@ -157,10 +175,8 @@ Quinn：奎恩
 Eastern：东洲
 Paradeisos：上庭
 Legion：军团
-
-// 概念
 Sun Crow：金乌
-Mecrsta：幽冕
+
 Endura：坚韧
 Fury：狂暴
 Umbra：诡秘
@@ -169,11 +185,13 @@ Arcane：异能
 Catalyst：启迪
 Tendency：特化
 
+Campbell：坎贝尔
 Franc：芙兰克
 Cavendish：卡文迪许
+
 Mad Shear：剪疯子
 Mentor：业师
-
+Master：业师
 
 通用词条
 
