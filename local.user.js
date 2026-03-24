@@ -16133,6 +16133,10 @@ function translateStatsChart() {
                 display: none !important;
             }
 
+            body.ao3-translation-only .ao3-translated-content {
+                margin-top: 0 !important;
+            }
+
 			/* 标签翻译样式 */
             .ao3-tag-translation {
                 margin-left: 6px;
