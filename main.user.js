@@ -12706,7 +12706,7 @@
             .ao3-translated-content {
                 display: block;
                 color: inherit;
-                margin-top: 0.8em;
+                margin-top: 1.286em;
             }
 
             body.ao3-translation-only .ao3-original-content {
