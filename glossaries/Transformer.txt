@@ -1,6 +1,6 @@
-版本号：1.0.5
+版本号：1.0.6
 维护者：拉葛莎
-更新时间：2026-02-04
+更新时间：2026-04-010
 
 // ============================================
 // 变形金刚术语表 - Transformers Glossary
@@ -12,7 +12,7 @@
 Autobots：汽车人
 Decepticons：霸天虎
 Maximals：巨无霸
-Predacons：巨狰狞
+Predacons：巨狰狞霸天虎：巨狰狞
 Minicons：迷你金刚
 Junkions：垃圾星人
 Quintessons：五面怪
@@ -69,6 +69,7 @@ Sentinel Prime：御天敌
 Galvatron：惊破天
 Cyclonus：狂飙
 Scourge：瘟疫
+Strike: 魅煞
 
 // === 主要角色 - 巨无霸/原始兽 ===
 Optimus Primal：擎天圣
@@ -156,7 +157,7 @@ Vos：沃斯
 Kaon：卡隆
 Tesarus：泰萨拉斯
 Helex：赫列克斯
-Nickel：妮可
+Nickel：钢镚
 Rotorstorm：旋风暴
 
 // === 十三天元 ===
@@ -447,29 +448,29 @@ Canyon：峡谷
 Plain：平原
 Desert：沙漠
 Swamp：沼泽
-Sea：海
-Ocean：洋
-River：河流
-Lake：湖泊
+Sea：海海：海
+Ocean：洋洋：洋
+River：河流河流：河流河流：河流河流：河流
+Lake：湖泊湖泊：湖泊湖泊：湖泊湖泊：湖泊湖泊：湖泊湖泊：湖泊湖泊：湖泊湖泊：湖泊
 Delta：三角洲
 Coast：海岸
 Shore：岸
 Geological Formation：地质构造
-Crystal Field：水晶原野
-Metallic Forest：金属森林
+Crystal Field：水晶原野晶体场：水晶原野水晶原野：水晶原野晶体场：水晶原野
+Metallic Forest：金属森林金属森林：金属森林金属森林：金属森林金属森林：金属森林
 
 // === 塞博坦美食文化 ===
-Cybertronian Cuisine：塞博坦美食
-Energon-based Food：能量基食品
-Fuel：燃料（亦指“食物”）
-Drink：饮品
-Ingredient：成分
-Recipe：配方
-Nutrition：营养
-Taste：味道
-Flavor：风味
+Cybertronian Cuisine：塞博坦美食塞博坦美食：赛博坦美食塞博坦美食：塞博坦美食塞博坦美食：塞博坦美食
+Energon-based Food：能量基食品能量基食品：能量基食品能量基食品：能量基食品能量基食品：能量基食品
+Fuel：燃料燃料：燃料燃料：燃料燃料：燃料
+Drink：饮品饮品：饮品饮品：饮品饮品：饮品饮品：饮品饮品：饮品饮品：饮品饮品：饮品
+Ingredient：成分成分：成分成分：成分成分：成分成分：成分成分：成分成分：成分成分：成分
+Recipe：配方配方：Recipe配方：配方配方：配方配方：配方配方：配方配方：配方
+Nutrition：营养营养：Nutrition营养：营养营养：Nutrition营养：营养营养：营养营养：营养
+Taste：味道味道：Taste味道：味道味道：Taste味道：味道味道：味道味道：味道
+Flavor：风味风味：Flavor风味：风味风味：风味风味：风味风味：风味风味：风味
 Texture：口感
-Refueling：补充燃料（即“进餐”）
+Refueling：补充燃料加油：补充燃料加油：补充燃料加油：补充燃料加油：补充燃料 加油：补充燃料 加油：补充燃料 加油：补充燃料
 Pub：酒馆
 Bar：酒吧
 Inn：旅馆
