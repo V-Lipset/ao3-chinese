@@ -1,0 +1,267 @@
+版本号：1.3.0
+维护者：拉葛莎
+更新时间：2026-05-04
+
+// =============================================
+// 《冰与火之歌》《权力的游戏》《龙之家族》术语表
+// 涵盖家族箴言、角色、巨龙、外号、名言、宗教、奴隶湾及魔法
+// =============================================
+
+// ========== 词条（区分大小写） ==========
+词条
+
+// ----- 家族箴言 -----
+"Winter Is Coming"：凛冬将至
+"Fire and Blood"：血火同源
+"Hear Me Roar!"：听我怒吼
+"Family, Duty, Honor"：家族、责任、荣誉
+"Ours Is the Fury"：怒火燎原
+"Growing Strong"：生生不息
+"We Do Not Sow"：强取胜于苦耕
+"Unbowed, Unbent, Unbroken"：不屈不挠
+"As High as Honor"：高如荣耀
+"We Light the Way"：我们照亮前路
+"The Old, the True, the Brave"：古老，真实，勇敢
+
+// ----- 人物外号 -----
+"The Imp"：小恶魔
+"Kingslayer"：弑君者
+"The Young Wolf"：少狼主
+"Mother of Dragons"：龙之母
+"The Unburnt"：不焚者
+"Breaker of Chains"：镣铐打破者
+"The Hound"：猎狗
+"Mountain That Rides"：魔山
+"The Red Viper"：红毒蛇
+"The Spider"：八爪蜘蛛
+"Littlefinger"：小指头
+"The Onion Knight"：洋葱骑士
+"The Bastard of Winterfell"：临冬城的私生子
+"The Dragonknight"：龙骑士
+"The Queen of Thorns"：荆棘女王
+"The Beggar King"：乞丐王
+"Darkstar"：暗黑之星
+"The Tattered Prince"：褴衣亲王
+"The Laughing Storm"：笑面风暴
+"The Rogue Prince"：浪荡王子
+"The Realm's Delight"：王国之光
+"The Queen Who Never Was"：无冕女王
+"The Sea Snake"：海蛇
+"Breakbones"：碎骨人
+
+// ----- 巨龙与巨龙外号 -----
+Balerion：贝勒里恩
+"The Black Dread"：黑死神
+Vhagar：瓦格哈尔
+"Queen of All Dragons"：万龙之母
+Meraxes：米拉西斯
+Meleys：梅丽亚斯
+"The Red Queen"：红女王
+Vermithor：沃米索尔
+"The Bronze Fury"：青铜之怒
+Caraxes：科拉克休
+"The Blood Wyrm"：血虫
+Syrax：叙拉克斯
+Silverwing：银翼
+Dreamfyre：梦火
+Tessarion：特赛里恩
+"The Blue Queen"：蓝女王
+Sunfyre：阳炎
+"The Golden"：金辉
+Moondancer：月舞
+Stormcloud：暴云
+Tyraxes：泰雷克休
+Morghul：莫古尔
+Shrykos：斯里科斯
+Arrax：阿拉克斯
+Vermax：沃马克斯
+Seasmoke：海烟
+Quicksilver：闪银
+Sheepstealer：偷羊贼
+Grey Ghost：灰影
+Cannibal：贪食者
+Morning：晨光
+The Last Dragon：最后的龙
+
+// ----- 经典名言名句 -----
+"When you play the game of thrones, you win or you die."：在权力的游戏中，要么赢，要么死。
+"The night is dark and full of terrors."：长夜漫漫，处处险恶。
+"What is dead may never die, but rises again, harder and stronger."：逝者不死，必将再起，其势更烈。
+"A Lannister always pays his debts."：兰尼斯特有债必还。
+"You know nothing, Jon Snow."：你什么都不懂，琼恩·雪诺。
+"Fear cuts deeper than swords."：恐惧比利剑更伤人。
+"The man who passes the sentence should swing the sword."：宣判之人当亲自动手。
+"Not today."：不是今天。
+"Chaos is a ladder."：混乱是阶梯。
+"Burn them all."：烧光他们。
+"Hold the door."：守住门。
+"The things I do for love."：为爱何所不为。
+"Dracarys."：龙焰。
+"I am the sword in the darkness."：我是黑暗中的利剑。
+"Valar morghulis."：凡人皆有一死。
+"Valar dohaeris."：凡人皆需侍奉。
+"A dragon is not a slave."：巨龙不是奴隶。
+"If I look back, I am lost."：若我回头，万劫不复。
+"Night gathers, and now my watch begins."：长夜将至，我从今开始守望。
+
+// ----- 《权力的游戏》主要角色 -----
+Jon Snow = 琼恩·雪诺
+Daenerys Targaryen = 丹妮莉丝·坦格利安
+Tyrion Lannister = 提利昂·兰尼斯特
+Cersei Lannister = 瑟曦·兰尼斯特
+Jaime Lannister = 詹姆·兰尼斯特
+Tywin Lannister = 泰温·兰尼斯特
+Eddard Stark = 艾德·史塔克
+Catelyn Stark = 凯特琳·史塔克
+Robb Stark = 罗柏·史塔克
+Sansa Stark = 珊莎·史塔克
+Arya Stark = 艾莉亚·史塔克
+Bran Stark = 布兰·史塔克
+Theon Greyjoy = 席恩·葛雷乔伊
+Sandor Clegane = 桑铎·克里冈
+Petyr Baelish = 培提尔·贝里席
+Jorah Mormont = 乔拉·莫尔蒙
+Brienne of Tarth：塔斯的布蕾妮
+Khal Drogo：卓戈卡奥
+
+// ----- 《龙之家族》主要角色 -----
+Rhaenyra Targaryen = 雷妮拉·坦格利安
+Daemon Targaryen = 戴蒙·坦格利安
+Alicent Hightower = 阿莉森·海塔尔
+Otto Hightower = 奥托·海塔尔
+Aemond Targaryen = 伊蒙德·坦格利安
+Helaena Targaryen = 海伦娜·坦格利安
+Rhaenys Targaryen = 雷妮丝·坦格利安
+Corlys Velaryon = 科利斯·瓦列利安
+Laenor Velaryon = 兰尼诺·瓦列利安
+Laena Velaryon = 兰娜尔·瓦列利安
+Baela Targaryen = 贝拉·坦格利安
+Rhaena Targaryen = 雷妮亚·坦格利安
+Criston Cole = 克里斯顿·科尔
+Larys Strong = 拉里斯·斯壮
+Harwin Strong = 哈尔温·斯壮
+Lyonel Strong = 莱昂诺·斯壮
+Jacaerys Velaryon = 杰卡里斯·瓦列利安
+Jacaerys Velaryon：小杰
+Lucerys Velaryon = 路斯里斯·瓦列利安
+Lucerys Velaryon：小路
+Joffrey Velaryon = 乔佛里·瓦列利安
+Viserys I Targaryen：韦赛里斯一世·坦格利安
+Aegon II Targaryen：伊耿二世·坦格利安
+Aegon III Targaryen：伊耿三世·坦格利安
+Viserys II Targaryen：韦赛里斯二世·坦格利安
+Mysaria：梅莎丽亚
+
+// ----- 七神信仰与宗教 -----
+Faith of the Seven：七神信仰
+The Father：天父
+The Mother：圣母
+The Warrior：战士
+The Maiden：少女
+The Smith：铁匠
+The Crone：老妪
+The Stranger：陌客
+The Seven-Pointed Star：七星圣经
+Sept：圣堂
+High Septon：总主教
+Silent Sisters：静默姐妹
+Old Gods：旧神
+Drowned God：淹神
+Storm God：风暴神
+R'hllor：拉赫洛
+Lord of Light：光之王
+Red Priest：红袍僧
+Red Priestess：红袍女祭司
+Mother Rhoyne：母亲河洛恩
+
+// ----- 厄斯索斯 · 奴隶湾 -----
+Slaver's Bay：奴隶湾
+Astapor：阿斯塔波
+Yunkai：渊凯
+Meereen：弥林
+Skahazadhan：斯卡札丹河
+Yaros：雅洛斯岛
+Good Masters：善主
+Wise Masters：贤主
+Great Masters：伟主
+Graces：恩典
+Fighting Pits：竞技场
+Zahrina：扎哈娜
+
+// ----- 重要地名 -----
+King's Landing：君临城
+Winterfell：临冬城
+Dragonstone：龙石岛
+Driftmark：潮头岛
+Casterly Rock：凯岩城
+Storm's End：风息堡
+Highgarden：高庭
+Sunspear：阳戟城
+The Eyrie：鹰巢城
+Harrenhal：赫伦堡
+The Wall：绝境长城
+Dothraki Sea：多斯拉克海
+Valyria：瓦雷利亚
+Stepstones：石阶列岛
+
+// ----- 特殊称谓与组织 -----
+Night's Watch：守夜人
+Kingsguard：御林铁卫
+Hand of the King：国王之手
+Master of Coin：财政大臣
+Master of Whisperers：情报总管
+Lord Commander：总司令
+Greens：绿党
+Blacks：黑党
+
+// ========== 通用词条（不区分大小写） ==========
+通用词条
+// 瓦雷利亚语短语
+Valar Morghulis：凡人皆有一死
+Valar Dohaeris：凡人皆需侍奉
+dracarys：龙焰
+Kirimvose：谢谢
+Skoriot ñuhyz zaldrīzesse ilzi?：我的龙在哪里？
+Zaldrīzes buzdari iksos daor：巨龙不是奴隶
+
+// 种族、组织、常见词汇
+Wildling：野人
+ironborn：铁民
+Dothraki：多斯拉克人
+Unsullied：无垢者
+faceless men：无面者
+maester：学士
+septon：修士
+septa：修女
+greenseer：绿先知
+warg：狼灵
+Others：异鬼
+White Walker：异鬼
+direwolf：冰原狼
+dragonrider：龙骑士
+weirwood：鱼梁木
+Valyrian steel：瓦雷利亚钢
+dragonglass：龙晶
+
+// 魔法及相关术语
+greensight：绿之视野
+skinchanger：易形者
+maegi：巫魔女
+necromancer：死灵术士
+pyromancer：火术士
+Alchemists' Guild：炼金术士公会
+wildfire：野火
+glass candle：玻璃蜡烛
+Shadowbinder：缚影士
+
+// ========== 禁翻词条（区分大小写，保持原文） ==========
+禁翻词条
+Hodor
+"Valyrian Freehold"
+
+// ========== 正则表达式 ==========
+正则表达式
+// 匹配“瓦雷利亚”的不同拼写
+\bVal(yrian|yria)\b：瓦雷利亚
+// 匹配守夜人誓词开篇句式
+\bNight gathers, and now my watch begins\b：长夜将至，我从今开始守望
