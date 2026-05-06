@@ -1,6 +1,6 @@
-版本号：1.3.1
+版本号：1.3.2
 维护者：拉葛莎
-更新时间：2026-05-04
+更新时间：2026-05-06
 
 // =============================================
 // 《冰与火之歌》《权力的游戏》《龙之家族》术语表
@@ -89,6 +89,204 @@ Morning：黎明
 Rhaegal: 雷戈
 Viserion: 韦赛利昂
 The Last Dragon：最后的龙
+
+// ----- 重要历史事件与时期 (事件名称作为专有名词保留大小写) -----
+Tragedy at Summerhall：盛夏厅的悲剧
+Battle of Summerhall：盛夏厅之战
+Dance of the Dragons：血龙狂舞
+The Anarchy：大乱斗
+Defiance of Duskendale：暮谷城之乱
+Tourney at Harrenhal：赫伦堡比武大会
+Year of the False Spring：错误的春天
+Robert's Rebellion：劳勃的反叛
+Greyjoy's Rebellion：葛雷乔伊叛乱
+War of the Five Kings：五王之战
+Red Wedding：红色婚礼
+Purple Wedding：紫色婚礼
+Great Spring Sickness：春季大瘟疫
+Doom of Valyria：瓦雷利亚末日浩劫
+Century of Blood：流血世纪
+Bleeding Years：血的时代
+Faith Militant Uprising：教团武装起事
+
+// ----- 知名建筑、厅室、神木与特殊大门 -----
+Great Sept of Baelor：贝勒大圣堂
+Dragonpit：龙穴
+Hall of a Thousand Thrones：千座之殿
+Tower of the Hand：首相塔
+Sea Dragon Tower：海龙塔
+Spear Tower：长矛塔
+White Sword Tower：白剑塔
+Lord Commander's Tower：总司令塔
+Hardin's Tower：哈丁塔
+Lance：长枪楼
+Broken Tower：残塔
+Burner Tower：焚王塔
+Kitchen Keep：厨房城楼
+Armory：军械库
+Maegor's Holdfast：梅葛楼
+Traitor's Walk：叛徒走道
+Outer Yard：外庭
+Middle Bailey：中庭
+Godswood：神木林
+Gods Eye：神眼湖
+Hall of the Hundred Hearths：百炉厅
+Black Gate：黑门
+Moon Door：月门
+Mud Gate：烂泥门
+River Gate：临河门
+Gate of the Gods：诸神门
+Bronze Gate：青铜门
+King's Gate：国王门
+Lion Gate：雄狮门
+Iron Gate：钢铁门
+Dragon Gate：巨龙门
+Old Gate：旧城门
+Queensgate：王后门
+Bloody Gate：血门
+Kingsroad：国王大道
+Roseroad：玫瑰大道
+Goldroad：黄金大道
+Ocean Road：滨海大道
+High Road：大路
+Boneway：骨路
+Prince's Pass：亲王隘口
+
+// ----- 鹰身女妖、组织、律法与特殊地点 -----
+Harpy：鹰身女妖
+Sons of the Harpy：鹰身女妖之子
+Golden Company：黄金团
+Brazen Beasts：兽面军
+Second Sons：次子团
+Windblown：风吹团
+Stormcrows：暴鸦团
+Sorrowful Men：悲伤之人
+Bloody Mummers：血戏班
+Brave Companions：勇士团
+Brotherhood Without Banners：无旗兄弟会
+King's Landing Riot：君临暴乱
+Citadel：学城
+Crossroads：十字路口客栈
+Quiet Isle：寂静岛
+Greywater Watch：灰水望
+Eyrie：鹰巢城
+Sky Cells：天牢
+
+// 厄斯索斯的知名地点
+Smoking Sea：烟海
+Slaver's Bay：奴隶湾
+Dothraki Sea：多斯拉克海
+Red Waste：红色荒原
+Jade Sea：玉海
+Valyrian Peninsula：瓦雷利亚半岛
+Rhoyne：洛恩河
+
+// ========== 通用词条（新增：维斯特洛及通用亲缘关系） ==========
+通用词条
+// ----- 核心长幼关系（强制优先长幼顺序） -----
+elder brother：哥哥
+younger brother：弟弟
+elder sister：姐姐
+younger sister：妹妹
+big brother：大哥
+little brother：小弟
+big sister：大姐
+little sister：小妹
+half-brother：同父异母的哥哥
+half-sister：同父异母的姐姐
+bastard brother：私生子哥哥
+bastard sister：私生子姐姐
+trueborn brother：嫡出兄长
+trueborn sister：嫡出姐姐
+
+// ----- 堂表亲关系（严格区分堂/表） -----
+cousin：堂亲
+cousin brother：堂兄
+cousin sister：堂姐
+// 若想明确“表亲”，可额外添加，但通常cousin默认翻译为堂亲，维斯特洛以父系为主。
+// maternal cousin：表亲
+
+// ----- 姑姨叔舅及其他长辈 -----
+uncle：叔父
+aunt：姑母
+great-uncle：叔祖父
+great-aunt：姑祖母
+nephew：侄子
+niece：侄女
+// 可根据需要添加特定称呼，但以上已覆盖大部分场景。
+
+// ----- 铁群岛亲属特殊用法 -----
+salt husband：盐夫
+rock wife：岩妻
+salt wife：盐妾
+salt son：盐子
+
+// ----- 坦格利安家族内部关系（不区分大小写以防口误） -----
+sister-wife：妹妹兼王后
+brother-husband：哥哥兼丈夫
+nuncle：叔父/舅舅（通用长辈昵称）
+
+// ----- 特殊语境下的家庭称呼 -----
+nephew：侄儿
+niece：侄女
+grandsire：祖父
+grandfather：祖父
+grandmother：祖母
+good-father：岳父/公公
+good-mother：岳母/婆婆
+good-brother：姐夫/大舅子
+good-sister：嫂子/小姨子
+
+// ----- 多斯拉克家庭称谓 -----
+khal：卡奥
+khaleesi：卡丽熙
+ko：寇
+khalakka：卡奥之子
+dosh khaleen：多希卡林
+// 以上多斯拉克称谓已覆盖核心权力与家庭结构。
+
+// ========== 词条（新增补充：由长幼关系衍生的人物称谓语） ==========
+词条
+// 以下称呼作为专有名词时区分大小写
+"the Young Dragon"：少龙主
+"the Dragonknight"：龙骑士
+"The Beggar King"：乞丐王
+"the King Who Bore the Sword"：持剑之王
+"the Conciliator"：仲裁者
+"the Old King"：人瑞王
+"the Young King"：少主
+
+通用词条
+// ----- 瓦雷利亚语基础词汇与称谓 (用引号强制精确匹配，不区分大小写) -----
+"vala"：男人
+"ābra"：女人
+"azantys"：骑士
+"dārilaros"：王子/公主（龙之家族等语境下的特定称呼）/亲王
+"valonqar"：弟弟
+"muña"：母亲
+"kepa"：父亲
+"zaldrīzes"：龙
+"zaldrīzoti"：龙（复数）
+"dovaogēdy"：无垢者
+"dovaogēdi"：无垢者（特定拼写）
+"perzys"：火焰
+"dubys"：奴隶
+"buzdari"：奴隶（主格）
+"iksos"：是/存在
+"daor"：不/否
+"tubi"：今天
+"geros"：再见/离开
+"ilas"：你（宾格）
+"rytsas"：你好
+"jiōrna"：欢迎
+"kostilus"：请
+"kirimvose"：谢谢
+"issa"：是/是的（肯定回应）
+"drīvose"：实际上
+"kostōba"：强大的
+"sȳz"：好的
+"lykirī"：冷静/镇定
+"māzīs"：过来
 
 // ----- 经典名言名句 -----
 "When you play the game of thrones, you win or you die."：在权力的游戏中，要么赢，要么死。
@@ -211,6 +409,179 @@ Dothraki Sea：多斯拉克海
 Valyria：瓦雷利亚
 Stepstones：石阶列岛
 
+// ----- 维斯特洛地理区域 -----
+the North：北境
+the Iron Islands：铁群岛
+the Riverlands：河间地
+the Vale of Arryn：艾林谷
+the Vale：谷地
+the Westerlands：西境
+the Crownlands：王领
+the Reach：河湾地
+the Stormlands：风暴地
+Dorne：多恩
+Beyond the Wall：塞外
+the Gift：赠地
+New Gift：新赠地
+Brandon's Gift：布兰登的赠地
+Dornish Marches：多恩边疆地
+
+// ----- 河流与湖泊 -----
+Trident：三叉戟河
+Green Fork：绿叉河
+Blue Fork：蓝叉河
+Red Fork：红叉河
+Blackwater Rush：黑水河
+White Knife：白刃河
+Mander：曼德河
+Last River：末江
+Wendwater：文德河
+Honeywine：蜜酒河
+Torentine：奔腾河
+Gods Eye：神眼湖
+
+// ----- 海域与大型水体 -----
+Narrow Sea：狭海
+Sunset Sea：日落之海
+Summer Sea：夏日之海
+Shivering Sea：颤抖海
+Smiling Sea：欢笑海
+Jade Sea：玉海
+Bay of Crabs：螃蟹湾
+Bay of Ice：寒冰湾
+Bay of Seals：海豹湾
+Blazewater Bay：明焰湾
+Blackwater Bay：黑水湾
+
+// ----- 多恩 & 河湾地 & 风暴地 -----
+Oldtown：旧镇
+Arbor：青亭岛
+Horn Hill：角陵
+Tumbleton：腾石镇
+Ashford：岑树滩镇
+Three Towers：三塔堡
+Saltpans：盐场镇
+Maidenpool：女泉城
+Seagard：海疆城
+Twins：孪河城
+Raventree Hall：鸦树城
+Riverrun：奔流城
+Darry：戴瑞城
+Stone Hedge：石篱城
+Pinkmaiden：粉红城
+Acorn Hall：橡果厅
+Wayfarer's Rest：旅息城
+Stoney Sept：石堂镇
+Harroway's Town：哈罗威伯爵小镇
+Lord Harroway's Town：哈罗威伯爵小镇
+Fairmarket：市集镇
+Oldstones：荒石城
+Cape Wrath：风怒角
+Mistywood：雨林
+Rainwood：雨林
+Griffin's Roost：鹫巢堡
+Stonehelm：石盔城
+Evenfall Hall：暮临厅
+Estermont：伊斯蒙岛
+Tarth：塔斯岛
+Lonely Light：孤灯堡
+Old Wyk：老威克岛
+Great Wyk：大威克岛
+Harlaw：哈尔洛岛
+Pyke：派克城
+Ten Towers：十塔城
+Lordsport：领主港
+Hammerhorn：铁号城
+Stonetree：石树城
+Pebbleton：卵石镇
+Crakehall：秧鸡厅
+Goldentooth：金牙城
+Deep Den：深穴城
+Silverhill：银山城
+Castamere：卡斯特梅
+Lannisport：兰尼斯港
+Banefort：祸垒
+Fair Isle：仙女岛
+Kayce：凯切镇
+Hornvale：角谷城
+Cornfield：玉米城
+Clegane's Keep：克里冈堡
+
+// ----- 北境 & 塞外 -----
+Barrowton：荒冢屯
+Barrowlands：先民荒冢
+Deepwood Motte：深林堡
+Torrhen's Square：陶伦斯广场
+Bear Island：熊岛
+Flint's Finger：菲林特之指
+Karhold：卡霍城
+Last Hearth：最后壁炉城
+Dreadfort：恐怖堡
+White Harbor：白港
+Widow's Watch：寡妇望
+Ramsgate：公羊门
+Oldcastle：老城
+Hornwood：角木城
+Cerwyn：赛文城
+Skagos：斯卡格斯岛
+Skane：斯卡恩岛
+Craster's Keep：卡斯特的堡垒
+Fist of the First Men：先民拳峰
+Haunted Forest：鬼影森林
+Frostfangs：霜雪之牙
+- Antler River：鹿角河
+Milkwater：乳河
+Skirling Pass：风声峡
+Valley of Thenn：瑟恩谷
+Hardhome：艰难屯
+Frozen Shore：冰封海岸
+Storrold's Point：斯托德之角
+Cape Kraken：海怪角
+
+// ----- 厄斯索斯 · 自由贸易城邦 -----
+Free Cities：自由贸易城邦
+Braavos：布拉佛斯
+Pentos：潘托斯
+Volantis：瓦兰提斯
+Lys：里斯
+Myr：密尔
+Tyrosh：泰洛西
+Lorath：罗拉斯
+Norvos：诺佛斯
+Qohor：科霍尔
+
+// ----- 厄斯索斯 · 其他地点 -----
+Valyria：瓦雷利亚
+Valyrian Peninsula：瓦雷利亚半岛
+Dothraki Sea：多斯拉克海
+Vaes Dothrak：维斯·多斯拉克
+Qarth：魁尔斯
+Red Waste：红色荒原
+Ghiscar：吉斯卡
+Gulf of Grief：悲痛海湾
+Old Ghis：旧吉斯
+Lhazar：拉札
+Slaver's Bay：奴隶湾
+Smoking Sea：烟海
+Rhoyne：洛恩河
+Bone Mountains：骸骨山脉
+Krazaaj Zasqa：科拉札吉·扎斯克
+Kingdom of Sarnor：萨洛尔王国
+Ibben：伊班
+Asshai：亚夏
+Asshai-by-the-Shadow：阴影旁的亚夏
+Yi Ti：夷地
+Leng：雷岛
+Mossovy：莫索维
+Sothoryos：索斯罗斯
+Ulthos：乌尔特斯
+Jogos Nhai：乔戈斯奈
+N'ghai：奈盖
+Carcosa：卡科萨
+Patchface：补丁脸（绰号）
+Shadows：阴影之地
+Saffron Straits：藏红花海峡
+
 // ----- 特殊称谓与组织 -----
 Night's Watch：守夜人
 Kingsguard：御林铁卫
@@ -220,6 +591,10 @@ Master of Whisperers：情报总管
 Lord Commander：总司令
 Greens：绿党
 Blacks：黑党
+First Men：先民
+Andals：安达尔人
+Rhoynar：洛伊拿人
+Forest Children：森林之子
 
 // ========== 通用词条（不区分大小写） ==========
 通用词条
@@ -230,6 +605,33 @@ dracarys：龙焰
 Kirimvose：谢谢
 Skoriot ñuhyz zaldrīzesse ilzi?：我的龙在哪里？
 Zaldrīzes buzdari iksos daor：巨龙不是奴隶
+
+词条
+// ----- 瓦雷利亚语经典短语与名言 (用引号强制精确匹配，区分大小写) -----
+"Valar Morghulis"：凡人皆有一死
+"Valar Dohaeris"：凡人皆需侍奉
+"Zaldrīzes buzdari iksos daor"：巨龙不是奴隶
+"Muña Zaldrīzoti"：龙之母
+"Torgo Nudho"：灰虫子
+"tubi daor"：不是今天
+"zaldrīzo perzys"：龙焰
+"Perzys Ānogār"：血火同源
+"Drakari pykiros"：喷火者
+"Tīkummo jemiros"：有翼的领袖
+"Geros ilas"：再见
+"Hen ñuhā elēnī"：听我歌唱
+"Perzyssy vestretis"：火焰已言明
+"Se gēlȳn irūdaks"：代价已偿付
+"Ānogrose"：以血魔法
+"Perzyro udrȳssi"：以火焰之言
+"Ezīmptos laehossi"：以清澈之眼
+"Hārossa letagon"：联结三者
+"Aōt vāedan"：我为你歌唱
+"Hae mērot gierūli"：如我们合而为一
+"Se hāros bartossi"：以三个头
+"Prūmȳsa sōvīli"：如命中注定般翱翔
+"Gevī dāerī"：优美而自由
+"Dēmalion Āegenko"：铁王座
 
 // 种族、组织、常见词汇
 Wildling：野人
