@@ -1,0 +1,236 @@
+[
+  {
+    "name": "BanG Dream",
+    "tags": [
+      "梦想协奏曲"
+    ],
+    "url": "https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/glossaries/BanG%20Dream.txt",
+    "maintainer": "V-Lipset",
+    "visibility": true,
+    "feedback": "https://github.com/V-Lipset"
+  },
+  {
+    "name": "Path to Nowhere",
+    "tags": [
+      "无期迷途"
+    ],
+    "url": "https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/glossaries/Path%20to%20Nowhere.txt",
+    "maintainer": "V-Lipset",
+    "visibility": true,
+    "feedback": "https://github.com/V-Lipset"
+  },
+  {
+    "name": "Princess Principal",
+    "tags": [
+      "公主代理人"
+    ],
+    "url": "https://raw.githubusercontent.com/LycorisWind/ao3-chinese/refs/heads/main/glossaries/Princess%20Principal.txt",
+    "maintainer": "Ly",
+    "visibility": true,
+    "feedback": "https://github.com/LycorisWind"
+  },
+  {
+    "name": "Disney Twisted-Wonderland",
+    "tags": [
+      "迪士尼扭曲仙境"
+    ],
+    "url": "https://raw.githubusercontent.com/Mizukan/ao3-chinese/refs/heads/main/glossaries/twisted%20wonderland.txt",
+    "maintainer": "minasami",
+    "visibility": true,
+    "feedback": "https://github.com/Mizukan"
+  },
+  {
+    "name": "Naruto",
+    "tags": [
+      "火影忍者"
+    ],
+    "url": "https://raw.githubusercontent.com/vkun767/ao3-chinese/refs/heads/main/%E2%80%8Eglossaries/Naruto-20250917.txt",
+    "maintainer": "weikun767@163.com",
+    "visibility": true,
+    "feedback": "weikun767@163.com"
+  },
+  {
+    "name": "Harry Potter",
+    "tags": [
+      "哈利·波特"
+    ],
+    "url": "https://raw.githubusercontent.com/vkun767/ao3-chinese/refs/heads/main/%E2%80%8Eglossaries/Harry%20Potter-20250917.txt",
+    "maintainer": "weikun767@163.com",
+    "visibility": true,
+    "feedback": "weikun767@163.com"
+  },
+  {
+    "name": "Pokemon",
+    "tags": [
+      "宝可梦",
+      "神奇宝贝"
+    ],
+    "url": "https://raw.githubusercontent.com/Senka-owl/ao3-chinese-senka/refs/heads/main/glossaries/PokemonAnime.txt",
+    "maintainer": "Senka-owl",
+    "visibility": true,
+    "feedback": "https://github.com/Senka-owl"
+  },
+  {
+    "name": "TO BE HERO X",
+    "tags": [
+      "凸变英雄X"
+    ],
+    "url": "https://raw.githubusercontent.com/x000315/ao3-chinese/refs/heads/main/glossaries/To%20Be%20Hero%20X.txt",
+    "maintainer": "x000315",
+    "visibility": true,
+    "feedback": "https://github.com/x000315"
+  },
+  {
+    "name": "Merlin",
+    "tags": [
+      "梅林传奇"
+    ],
+    "url": "https://raw.githubusercontent.com/Anselnya/ao3-chinese/refs/heads/main/glossaries/Merlin.txt",
+    "maintainer": "大魔法师梅林好日子在哪里",
+    "visibility": true,
+    "feedback": "https://github.com/Anselnya"
+  },
+  {
+    "name": "Interview with the Vampire",
+    "tags": [
+      "夜访吸血鬼"
+    ],
+    "url": "https://raw.githubusercontent.com/Anselnya/ao3-chinese/refs/heads/main/glossaries/Interview%20with%20the%20Vampire.txt",
+    "maintainer": "Water Ghosts",
+    "visibility": true,
+    "feedback": "https://github.com/Anselnya"
+  },
+  {
+    "name": "Be More Chill",
+    "tags": [
+      "丸酷进化"
+    ],
+    "url": "https://raw.githubusercontent.com/Kyra-Ly/ao3-chinese/refs/heads/main/glossaries/Be%20More%20Chill.txt",
+    "maintainer": "S.Q.U.I.P",
+    "visibility": true,
+    "feedback": "atasjane@gmail.com"
+  },
+  {
+    "name": "Hannibal",
+    "tags": [
+      "汉尼拔"
+    ],
+    "url": "https://raw.githubusercontent.com/Anselnya/ao3-chinese/refs/heads/main/glossaries/Hannibal.txt",
+    "maintainer": "Winston",
+    "visibility": true,
+    "feedback": "anselnya999@gmail.com"
+  },
+  {
+    "name": "Persona 5",
+    "tags": [
+      "女神异闻录5"
+    ],
+    "url": "https://raw.githubusercontent.com/CyanSkyXD/ao3-chinese/refs/heads/main/glossaries/Persona%205.txt",
+    "maintainer": "CyanSkyXD",
+    "visibility": true,
+    "feedback": "https://github.com/CyanSkyXD"
+  },
+  {
+    "name": "Fire Emblem: Three Houses",
+    "tags": [
+      "火焰之纹章：风花雪月"
+    ],
+    "url": "https://raw.githubusercontent.com/Senka-owl/ao3-chinese-senka/refs/heads/main/glossaries/FE3h",
+    "maintainer": "Senka-owl",
+    "visibility": true,
+    "feedback": "https://github.com/Senka-owl"
+  },
+  {
+    "name": "Fullmetal Alchemist",
+    "tags": [
+      "钢之炼金术师"
+    ],
+    "url": "https://raw.githubusercontent.com/Senka-owl/ao3-chinese-senka/refs/heads/main/glossaries/ullmetal%20Alchemist.txt",
+    "maintainer": "Senka-owl",
+    "visibility": true,
+    "feedback": "https://github.com/Senka-owl"
+  },
+  {
+    "name": "The Locked Tomb",
+    "tags": [
+      "闭锁之墓",
+      "被锁住的坟墓"
+    ],
+    "url": "https://raw.githubusercontent.com/zhufree/ao3-chinese/refs/heads/main/glossaries/TheLockedTomb.txt",
+    "maintainer": "FemslashAmateur",
+    "visibility": true,
+    "feedback": "https://github.com/zhufree"
+  },
+  {
+    "name": "Omniscient Reader's Viewpoint",
+    "tags": [
+      "全知读者视角",
+      "전지적 독자 시점"
+    ],
+    "url": "https://raw.githubusercontent.com/Anselnya/ao3-chinese/refs/heads/main/glossaries/ORV.txt",
+    "maintainer": "■■■",
+    "visibility": true,
+    "feedback": "https://github.com/Anselnya"
+  },
+  {
+    "name": "Lout of Count's Family",
+    "tags": [
+      "成为伯爵家的废物",
+      "백작가의 망나니가 되었다"
+    ],
+    "url": "https://raw.githubusercontent.com/aki-zukila/ao3-chinese/refs/heads/main/glossaries/Lcf.txt",
+    "maintainer": "aki-zukila",
+    "visibility": true,
+    "feedback": "qzgd2219@163.com"
+  },
+  {
+    "name": "Transformers",
+    "tags": [
+      "变形金刚"
+    ],
+    "url": "https://raw.githubusercontent.com/Valyria336/ao3-chinese/refs/heads/patch-1/glossaries/Transformer.txt",
+    "maintainer": "拉葛莎",
+    "visibility": true,
+    "feedback": "https://github.com/Valyria336"
+  },
+  {
+    "name": "Attack on Titan",
+    "tags": [
+      "进击的巨人"
+    ],
+    "url": "https://raw.githubusercontent.com/Valyria336/ao3-chinese/refs/heads/patch-1/glossaries/%E8%BF%9B%E5%87%BB%E7%9A%84%E5%B7%A8%E4%BA%BA.txt",
+    "maintainer": "拉葛莎",
+    "visibility": true,
+    "feedback": "https://github.com/Valyria336"
+  },
+  {
+    "name": "Person of Interest",
+    "tags": [
+      "疑犯追踪"
+    ],
+    "url": "https://raw.githubusercontent.com/dyszd208526/ao3-chinese/refs/heads/main/glossaries/Person%20of%20Interest.txt",
+    "maintainer": "yaojy0205@163.com",
+    "visibility": true,
+    "feedback": "yaojy0205@163.com"
+  },
+  {
+    "name": "Cosmic Princess Kaguya",
+    "tags": [
+      "超时空辉夜姬"
+    ],
+    "url": "https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/glossaries/Cosmic%20Princess%20Kaguya.txt",
+    "maintainer": "V-Lipset",
+    "visibility": true,
+    "feedback": "https://github.com/V-Lipset"
+  },
+  {
+    "name": "Vampire Knight",
+    "tags": [
+      "吸血鬼骑士"
+    ],
+    "url": "https://raw.githubusercontent.com/shlylhy/ao3-chinese/refs/heads/main/glossaries/Vampire%20Knight%20%E5%90%B8%E8%A1%80%E9%AC%BC%E9%AA%91%E5%A3%AB.txt",
+    "maintainer": "Shlylhy",
+    "visibility": true,
+    "feedback": "https://github.com/shlylhy"
+  }
+]
