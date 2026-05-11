@@ -1,8 +1,14 @@
-## AO3 汉化插件
+<div align="center">
+
+<h1 align="center">AO3 汉化插件</h1>
+
+简体中文 / [English](./README_EN.md)
 
 一个简单的用户脚本，专注于提升 AO3 的阅读体验。
 
 QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
+
+</div>
 
 ### ✨ 功能
 
