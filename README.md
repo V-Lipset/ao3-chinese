@@ -1,8 +1,19 @@
-## AO3 汉化插件
+<div align="center"><a name="readme-top"></a>
 
-一个简单的用户脚本，专注于提升 AO3 的阅读体验。
+# AO3 汉化插件
 
-QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
+一款开源的翻译工具，专注于提升 AO3 的阅读体验。
+
+ **简体中文** · [English](./README_EN.md) · [文档](https://v-lipset.github.io) · [更新日志](https://github.com/V-Lipset/ao3-chinese/releases) · [QQ 频道](https://pd.qq.com/s/h5cf7c1sd?b=9)
+
+<!-- SHIELD GROUP -->
+
+[![GitHub release badge][release-shield]][release-link]
+[![GitHub stars badge][stars-shield]][stars-link]
+[![GitHub contributors badge][contributors-shield]][contributors-link]
+![GitHub last commit badge][last-commit-shield]
+
+</div>
 
 ### ✨ 功能
 
@@ -10,6 +21,7 @@ QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
 - 多种翻译服务
 - 术语表功能
 - 作品屏蔽
+- 电子书导出
 - 文章格式调整
 
 ### 🔧 安装
@@ -50,7 +62,7 @@ QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
 
 ### 🤝 贡献与反馈
 
-如果你发现了任何翻译错漏、脚本 Bug，或者有功能建议，欢迎通过 [Issues](https://github.com/V-Lipset/ao3-chinese/issues) 页面提交反馈！
+如果你发现了任何翻译错漏、脚本 bug，或者有功能建议，欢迎通过 [Issues](https://github.com/V-Lipset/ao3-chinese/issues) 页面提交反馈！
 
 ### 📄 许可证
 
@@ -66,3 +78,13 @@ QQ 频道：[AO3 汉化插件](https://pd.qq.com/s/h5cf7c1sd?b=9)
 - [Read Frog](https://github.com/mengxi-ream/read-frog)
 - [AO3: Advanced Blocker](https://greasyfork.org/en/scripts/549942-ao3-advanced-blocker)
 - [Google Material Symbols](https://fonts.google.com/icons)
+
+<!-- LINK GROUP -->
+
+[contributors-link]: https://github.com/V-Lipset/ao3-chinese/graphs/contributors
+[contributors-shield]: https://img.shields.io/github/contributors/V-Lipset/ao3-chinese?style=flat-square&label=Contributors&labelColor=black&color=brightgreen
+[last-commit-shield]: https://img.shields.io/github/last-commit/V-Lipset/ao3-chinese?style=flat-square&label=Last%20Commit&labelColor=black&color=blue
+[release-link]: https://github.com/V-Lipset/ao3-chinese/releases
+[release-shield]: https://img.shields.io/github/v/release/V-Lipset/ao3-chinese?include_prereleases&style=flat-square&label=Latest&color=brightgreen&labelColor=black
+[stars-link]: https://github.com/V-Lipset/ao3-chinese/stargazers
+[stars-shield]: https://img.shields.io/github/stars/V-Lipset/ao3-chinese?style=flat-square&label=Stars&color=yellow&labelColor=black
