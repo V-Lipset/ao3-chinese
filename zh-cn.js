@@ -1,7 +1,7 @@
 /**
  name         AO3 Translator - 词库
  namespace    https://github.com/V-Lipset/ao3-chinese
- version      1.6.1-2026-03-24
+ version      1.7.0-2026-05-12
  description  AO3 Translator 的词库文件
  author       V-Lipset
  license      GPL-3.0
@@ -43,7 +43,7 @@ function translateFirstLoginBanner() {
  * 专用翻译函数：翻译未登录时首页的介绍模块
  */
 function translateFrontPageIntro() {
-	const introDiv = document.querySelector('div.intro.module.odd');
+	const introDiv = document.querySelector('div.intro.module');
 	if (!introDiv || introDiv.hasAttribute('data-translated-by-custom-function')) {
 		return;
 	}
@@ -2966,7 +2966,7 @@ function translateTOSPrompt() {
 	}
 	const h2Span = promptDiv.querySelector('h2.heading span');
 	if (h2Span) {
-		h2Span.textContent = 'Archive of Our Own';
+		h2Span.textContent = 'AO3 作品库';
 	}
 	const firstP = promptDiv.querySelector('.agreement p:first-of-type');
 	if (firstP) {
@@ -2980,7 +2980,7 @@ function translateTOSPrompt() {
 	if (tosLabel) {
 		const originalText = tosLabel.textContent;
 		const yearMatch = originalText.match(/(\d{4})/);
-		if (yearMatch && originalText.includes('I have read & understood the')) {
+		if (yearMatch && (originalText.includes('I have read') || originalText.includes('我已阅读'))) {
 			const year = yearMatch[1];
 			tosLabel.textContent = `我已阅读并理解 ${year} 年服务条款，包括内容政策和隐私政策。`;
 		}
@@ -3452,6 +3452,9 @@ const I18N = {
 				'.ao3-translated-title',
 				'.translated-tags-container',
 				'div.autocomplete.dropdown ul',
+				'.ao3-tag-translation',
+				'.ao3-tag-original',
+				'.translated-by-ao3-translator-error',
 
 				// 用户生成的长文本
 				'#chapters .userstuff',
@@ -3474,7 +3477,8 @@ const I18N = {
 				'h5.fandoms a.tag',
 				'.fandom a.tag',
 				'li.freeforms',
-				'dd.freeform.tags'
+				'dd.freeform.tags',
+				'dd.language'
 			],
 
 			'works_show': ['.dropdown.actions-menu ul', '#main .userstuff'],
@@ -3529,7 +3533,7 @@ const I18N = {
 				'Log in': '登录',
 				'Sign Up': '注册',
 				'User': '用户',
-				'Username or email:': '用户名或邮箱:',
+				'Username or email:': '用户名/邮箱:',
 				'Password:': '密码:',
 				'Remember Me': '记住我',
 				'Remember me': '记住我',
@@ -3678,6 +3682,7 @@ const I18N = {
 				'Is it later already?': '到“稍后”了吗？',
 				'Some works you\'ve marked for later.': '这里是您标记为稍后阅读的作品。',
 				'Clear History': '清空历史记录',
+				'Clear Entire History': '清空历史记录',
 				'Delete from History': '删除历史记录',
 				'Subscriptions': '订阅列表',
 				'All Subscriptions': '所有订阅',
@@ -4105,6 +4110,7 @@ const I18N = {
 				'Bookmark Collections:': '书签合集:',
 				'Challenges/Subcollections:': '活动合集/子合集:',
 				'Bookmarked Items': '书签作品',
+				'Bookmarked Items:': '书签作品:',
 
 				// 系列
 				'Creators:': '创建者:',
@@ -4146,6 +4152,21 @@ const I18N = {
 				'Yes, Mute User': '是的，静音用户',
 				'Yes, Unblock User': '是的，取消屏蔽',
 				'Yes, Block User': '是的，屏蔽用户',
+
+				// 创建账户
+				'Create Account': '创建账户',
+				'User Details': '用户详情',
+				'Username': '用户名',
+				'Confirm password': '确认密码',
+				'Valid email': '有效电子邮箱',
+				'8 to 72 characters': '8 到 72 个字符',
+				'You need a username! (At least 3 letters long, please.)': '您需要一个用户名！（请至少包含 3 个字符。）',
+				'Must be less than 40 letters long.': '长度必须少于 40 个字符。',
+				'Must be at least 3 letters long.': '长度必须至少为 3 个字符。',
+				'Please enter a password! (At least 8 characters long, please.)': '请输入密码！（请至少包含 8 个字符。）',
+				'Must be at least 8 letters long.': '长度必须至少为 8 个字符。',
+				'Must be less than 72 letters long.': '长度必须少于 72 个字符。',
+				'Please enter the same password in both fields.': '请在两个字段中输入相同的密码。',
 
 				// 提示信息
 				'Your profile has been successfully updated': '您的个人资料已成功更新。',
@@ -4217,6 +4238,12 @@ const I18N = {
 				'Brevity is the soul of wit, but your content does have to be at least 10 characters long.': '简洁乃智慧之魂，但您的内容长度必须至少 10 个字符。',
 				'must be less than 10000 characters long.': '长度不得超过 10000 个字符。',
 				'If the email address you entered is currently associated with an AO3 account, you should receive an email with instructions to reset your password.': '如果您输入的电子邮件地址当前关联了一个 AO3 账户，您将会收到一封包含密码重置说明的邮件。',
+        		"Sorry! We couldn't save this user because:": "抱歉！我们无法保存此用户，因为：",
+				"Username has already been taken": "用户名已被占用",
+				'Almost Done!': '即将完成！',
+				'Return to Archive front page': '返回 Archive 首页',
+				'This invitation has already been used to create an account, sorry!': '抱歉，此邀请码已被用于创建账户！',
+				'Your account has already been activated.': '您的账户已经激活。',
 
 				// 标签说明
 				'This tag indicates adult content.': '此标签涉及成人内容。',
@@ -4931,6 +4958,46 @@ const I18N = {
 						}
 					}
 				],
+				[
+					'p.note',
+					/You need to be at least 13 years old to become a registered member of the Archive\. \(Sorry to anyone younger! You'll be more than welcome when the time comes\.\)/s,
+					'您需要年满 13 周岁才能成为本站的注册会员。（对年龄较小的朋友们深表歉意！等您达到年龄要求时，我们非常欢迎您的加入。）'
+				],
+				[
+					'label[for="user_registration_age_over_13"]',
+					/Yes, I am at least 13\./s,
+					'是的，我已年满 13 周岁。'
+				],
+				[
+					'p', 
+					/^\s*Before you begin using AO3, you must agree to our <a[^>]+>Terms of Service \(opens in new window\)<\/a>, including the <a[^>]+>Content Policy \(opens in new window\)<\/a> and <a[^>]+>Privacy Policy \(opens in new window\)<\/a>\s*[.。]\s*$/s,
+					'在开始使用 AO3 之前，您必须同意我们的<a target="_blank" rel="noopener" href="/tos">服务条款（在新窗口打开）</a>，包括<a target="_blank" rel="noopener" href="/content">内容政策（在新窗口打开）</a>和<a target="_blank" rel="noopener" href="/privacy">隐私政策（在新窗口打开）</a>。'
+				],
+				[
+					'label[for="user_registration_terms_of_service"]',
+					/Yes, I have read the Terms of Service, including the Content Policy and Privacy Policy, and agree to them\./s,
+					'是的，我已阅读并同意服务条款，包括内容政策和隐私政策。'
+				],
+				[
+					'label[for="user_registration_data_processing"]',
+					/By checking this box, you consent to the processing of your personal data in the United States and other jurisdictions in connection with our provision of AO3 and its related services to you\. You acknowledge that the data privacy laws of such jurisdictions may differ from those provided in your jurisdiction\. For more information about how your personal data will be processed, please refer to our Privacy Policy\./s,
+					'勾选此框即表示您同意在美国及其她司法管辖区为向您提供 AO3 及其相关服务而处理您的个人数据。您确认该司法管辖区的数据隐私法律可能与您所在司法管辖区存在差异。有关您的个人数据将如何被处理的更多信息，请参阅我们的隐私政策。'
+				],
+				[
+					'div.userstuff p',
+					/You should soon receive an activation email.*?will come from <strong>(.*?)<\/strong> -- you might want to add this to your address book to make sure you get the email\./s,
+					'您很快就会在提供的邮箱地址收到一封激活邮件。邮件中包含激活账户并完成创建流程所需的链接。激活邮件将由 <strong>$1</strong> 发送 —— 您可以将其添加到通讯录中，以确保能收到邮件。'
+				],
+				[
+					'div.userstuff p',
+					/If you haven't received this email within 24 hours.*?please <a href="\/support">contact Support<\/a> for help\./s,
+					'如果您在 24 小时内未收到邮件，且在垃圾邮件过滤器或社交文件夹中也未找到，请 <a href="/support">联系支持团队</a> 以寻求帮助。'
+				],
+				[
+					'div.userstuff p',
+					/<strong>Important!<\/strong>\s*You must activate your account within 14 days, or your account will expire\. If this happens, you can sign up again using the same invitation\./s,
+					'<strong>重要提示！</strong> 您必须在 14 天内激活账户，否则账户将过期。如果发生这种情况，您可以使用同一份邀请再次注册。'
+				],
 
 				// 标签说明
 				[
@@ -5035,11 +5102,6 @@ const I18N = {
 			'Rape/Non-Con': '强暴/非自愿性行为',
 
 		},
-		'common': {
-			'static': {},
-			'regexp': [],
-			'selector': []
-		},
 		'front_page': {
 			'static': {
 				'What is AO3?': 'AO3 是什么？',
@@ -5049,40 +5111,6 @@ const I18N = {
 			'selector': [
 				['.front.home-banner .heading a', '进入 AO3'],
 			]
-		},
-		// 作品搜索
-		'works_search': {
-			'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-		},
-		'works_search_results': {
-			'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-		},
-		// 用户搜索
-		'people_search': {
-			'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-		},
-		'people_search_results': {
-			'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-		},
-		// 书签搜索
-		'bookmarks_search': {
-			'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-		},
-		'bookmarks_search_results': {
-			'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-		},
-		// 标签搜索
-		'tags_search': {
-			'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-		},
-		'tags_search_results': {
-			'static': {}, 'regexp': [], 'selector': [], 'innerHTML_regexp': []
-		},
-		'dashboard': {
-			'static': {
-			},
-			'regexp': [],
-			'selector': []
 		},
 		'profile': {
 			'static': {
@@ -5270,9 +5298,6 @@ const I18N = {
 				]
 			],
 			'selector': []
-		},
-		'chapters_edit': {
-			'static': {}
 		},
 		'orphans_new': {
 			'static': {
@@ -6129,7 +6154,6 @@ const I18N = {
 		'session_login': {
 			'static': {
 				'Log In': '用户登录',
-				'User name or email': '用户名或邮箱',
 				'Password': '密码',
 				'Remember Me': '记住我',
 				'Forgot password?': '忘记密码?',
@@ -6281,7 +6305,8 @@ const I18N = {
 		'faq_page': {
 			'static': {
 				'Expand Categories': '展开分类',
-				'Collapse Categories': '折叠分类'
+				'Collapse Categories': '折叠分类',
+				'Available Categories': '可用分类'
 			},
 			'innerHTML_regexp': [
 				['h2.heading', /^\s*Archive FAQ\s*$/, 'Archive 常见问题'],
@@ -6294,12 +6319,7 @@ const I18N = {
 					'p.notes',
 					/^\s*Some commonly asked questions about the Archive are answered here\.\s*Questions and answers about our Terms of Service can be found in the <a href="\/tos_faq\?language_id=[\w-]+">(?:TOS FAQ|服务条款常见问题)<\/a>\.\s*You may also like to check out our <a href="\/known_issues\?language_id=[\w-]+">(?:Known Issues|已知问题)<\/a>\.\s*If you need more help, please\s*<a href="\/support\?language_id=[\w-]+">(?:contact Support|联系支持团队)<\/a>[\.。]\s*$/s,
 					'此处解答了一些关于 Archive 的常见问题。有关我们服务条款的问题和答案，请查阅<a href="/tos_faq?language_id=en">服务条款常见问题</a>。您也可以查看我们的<a href="/known_issues?language_id=en">已知问题</a>。如果需要更多帮助，请<a href="/support?language_id=en">联系支持团队</a>。'
-				],
-				[
-					'h3.heading',
-					/^\s*Available Categories\s*(<ul class="showme hidden actions"[\s\S]*?<\/ul>)\s*$/s,
-					'可用分类 $1'
-				],
+				]
 			],
 			'regexp': [],
 			'selector': []
