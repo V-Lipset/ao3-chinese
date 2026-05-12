@@ -1,10 +1,10 @@
-<div align="center"><a name="readme-top"></a>
+<div align="center">
 
-# AO3 汉化插件
+<h1>AO3 汉化插件</h1>
 
-一款开源的翻译工具，专注于提升 AO3 的阅读体验。
+为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
 
- **简体中文** · [English](./README_EN.md) · [文档](https://v-lipset.github.io) · [更新日志](https://github.com/V-Lipset/ao3-chinese/releases) · [QQ 频道](https://pd.qq.com/s/h5cf7c1sd?b=9)
+ 简体中文 · [English](./README_EN.md) · [文档](https://v-lipset.github.io) · [更新日志](https://github.com/V-Lipset/ao3-chinese/releases) · [QQ 频道](https://pd.qq.com/s/h5cf7c1sd?b=9)
 
 <!-- SHIELD GROUP -->
 
@@ -41,7 +41,6 @@
       - [远程版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/main.user.js)
       - [本地版](https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js)
   - 安装脚本后，访问/刷新 [AO3 网站](https://archiveofourown.org/)，界面将自动变为中文。
-  - 如需使用作品翻译功能，请点击 `悬浮球` → 打开设置面板 → 启用翻译功能。启用之后，各页面会出现新增的蓝色翻译按钮，点击即可使用。
 
 ### 📖 使用说明
 
