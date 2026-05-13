@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  一个简单的用户脚本，专注于提升 AO3 的阅读体验
-// @version      1.7.0-2026-05-12
+// @version      1.7.1-2026-05-13
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -18741,7 +18741,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 * 术语表引擎版本号
 	 * 仅在修改了术语表底层解析逻辑（如分词算法、正则生成规则等）时，才手动递增此常量
 	 */
-	const GLOSSARY_ENGINE_VERSION = 1;
+	const GLOSSARY_ENGINE_VERSION = 2;
 
 	/**
 	 * 解析自定义的、非 JSON 格式的术语表文本
@@ -19431,6 +19431,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (unquoted !== normalizedTerm) {
 				isLiteral = true;
 				normalizedTerm = unquoted.trim();
+			}
+
+			if (!isLiteral && !isRegex) {
+				const parts = smartSplit(normalizedTerm, termSeparatorRegex);
+				if (parts.length > 1) {
+					isLiteral = true;
+				}
 			}
 
 			const sanitizedTrans = sanitizeTranslation(normalizedTerm, translation);
