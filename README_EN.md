@@ -1,6 +1,6 @@
-<div align="center">
+<div align="center" markdown="1">
 
-<h1 align="center">AO3 Translator</h1>
+# AO3 Translator
 
 English / [简体中文](./README.md)
 
