@@ -2,13 +2,16 @@
 
 # AO3 Translator
 
-English / [简体中文](./README.md)
+A reading experience enhancement tool for AO3, supporting UI localization and real-time content translation via multiple translation services.
 
-A simple userscript focused on enhancing the reading experience on AO3.
+[简体中文](./README.md) · English · [Documentation](https://v-lipset.github.io) · [Changelog](https://github.com/V-Lipset/ao3-chinese/releases) · [QQ Channel](https://pd.qq.com/s/h5cf7c1sd?b=9)
 
-[![License](https://img.shields.io/badge/License-GPL--3.0-important?logo=gnu)](./LICENSE)
+<!-- SHIELD GROUP -->
 
-[Install](#installation) / [Features](#features) / [Usage](#usage) / [Documentation](https://v-lipset.github.io/docs/)
+[![GitHub release badge][release-shield]][release-link]
+[![GitHub stars badge][stars-shield]][stars-link]
+[![GitHub contributors badge][contributors-shield]][contributors-link]
+![GitHub last commit badge][last-commit-shield]
 
 </div>
 
