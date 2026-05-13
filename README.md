@@ -4,7 +4,7 @@
 
 An extension designed to enhance the Chinese reading experience on Archive of Our Own.
 
-[简体中文](./README_ZH-CN.md) · English · [Docs](https://v-lipset.github.io) · [Changelog](https://github.com/V-Lipset/ao3-chinese/releases) · [QQ Channel](https://pd.qq.com/s/h5cf7c1sd?b=9)
+[简体中文](./README_zh-cn.md) · English · [Docs](https://v-lipset.github.io) · [Changelog](https://github.com/V-Lipset/ao3-chinese/releases) · [QQ Channel](https://pd.qq.com/s/h5cf7c1sd?b=9)
 
 <!-- SHIELD GROUP -->
 
