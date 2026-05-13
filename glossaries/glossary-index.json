@@ -232,5 +232,15 @@
     "maintainer": "Shlylhy",
     "visibility": true,
     "feedback": "https://github.com/shlylhy"
+  },
+  {
+    "name": "Yuri on ICE",
+    "tags": [
+      "冰上的尤里"
+    ],
+    "url": "https://raw.githubusercontent.com/Teyato10969/AO3-Glossary-YOI/refs/heads/main/YOI.txt",
+    "maintainer": "Eros",
+    "visibility": true,
+    "feedback": "https://github.com/Teyato10969"
   }
 ]
