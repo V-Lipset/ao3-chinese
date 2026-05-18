@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
-// @description  一个简单的用户脚本，专注于提升 AO3 的阅读体验
-// @version      1.7.1-2026-05-13
+// @description  为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
+// @version      1.8.0-2026-05-18
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -90,7 +90,8 @@
 		FAB_CLICKED: 'ao3-fab-clicked',
 		STATUS_LIGHT_TOGGLED: 'ao3-status-light-toggled',
 		LOG_ADDED: 'ao3-log-added',
-		GLOSSARY_IMPORTED: 'ao3-glossary-imported'
+		GLOSSARY_IMPORTED: 'ao3-glossary-imported',
+		LAZY_LOAD_MARGIN_CHANGED: 'ao3-lazy-load-margin-changed'
 	};
 
 	/**
@@ -349,106 +350,316 @@
 	const ph = PlaceholderConfig.exampleString;
 
 	/**
-	 * 针对不同目标语言的输出示例数据
+	 * 针对不同目标语言的输出示例数据 (结构化对象)
 	 */
 	const PROMPT_EXAMPLE_OUTPUTS = {
-		'zh-CN': `[#0] 这是<em>第一个</em>句子。\n[#1] ---\n[#2] 她的名字是 ${ph}。`,
-		'zh-TW': `[#0] 這是<em>第一個</em>句子。\n[#1] ---\n[#2] 她的名字是 ${ph}。`,
-		'ar': `[#0] هذه هي الجملة <em>الأولى</em>.\n[#1] ---\n[#2] اسمها هو ${ph}.`,
-		'bg': `[#0] Това е <em>първото</em> изречение.\n[#1] ---\n[#2] Нейното име е ${ph}.`,
-		'bn': `[#0] এটি <em>প্রথম</em> বাক্য।\n[#1] ---\n[#2] তার নাম ${ph}।`,
-		'ca': `[#0] Aquesta és la <em>primera</em> frase.\n[#1] ---\n[#2] El seu nom és ${ph}.`,
-		'cs': `[#0] Toto je <em>první</em> věta.\n[#1] ---\n[#2] Jmenuje se ${ph}.`,
-		'da': `[#0] Dette er den <em>første</em> sætning.\n[#1] ---\n[#2] Hendes navn er ${ph}.`,
-		'de': `[#0] Das ist der <em>erste</em> Satz.\n[#1] ---\n[#2] Ihr Name ist ${ph}.`,
-		'el': `[#0] Αυτή είναι η <em>πρώτη</em> πρόταση.\n[#1] ---\n[#2] Το όνομά της είναι ${ph}.`,
-		'es': `[#0] Esta es la <em>primera</em> frase.\n[#1] ---\n[#2] Su nombre es ${ph}.`,
-		'et': `[#0] See on <em>esimene</em> lause.\n[#1] ---\n[#2] Tema nimi on ${ph}.`,
-		'fa': `[#0] این <em>اولین</em> جمله است.\n[#1] ---\n[#2] نام او ${ph} است.`,
-		'fi': `[#0] Tämä on <em>ensimmäinen</em> lause.\n[#1] ---\n[#2] Hänen nimensä on ${ph}.`,
-		'fr': `[#0] C'est la <em>première</em> phrase.\n[#1] ---\n[#2] Son nom est ${ph}.`,
-		'gu': `[#0] આ <em>પહેલું</em> વાક્ય છે।\n[#1] ---\n[#2] તેનું નામ ${ph} છે।`,
-		'he': `[#0] זהו המשפט ה<em>ראשון</em>.\n[#1] ---\n[#2] שמה הוא ${ph}.`,
-		'hi': `[#0] यह <em>पहला</em> वाक्य है।\n[#1] ---\n[#2] उसका नाम ${ph} है।`,
-		'hr': `[#0] Ovo je <em>prva</em> rečenica.\n[#1] ---\n[#2] Njeno ime je ${ph}.`,
-		'hu': `[#0] Ez az <em>első</em> mondat.\n[#1] ---\n[#2] A neve ${ph}.`,
-		'id': `[#0] Ini adalah kalimat <em>pertama</em>.\n[#1] ---\n[#2] Namanya adalah ${ph}.`,
-		'is': `[#0] Þetta er <em>fyrsta</em> setningin.\n[#1] ---\n[#2] Hún heitir ${ph}.`,
-		'it': `[#0] Questa è la <em>prima</em> frase.\n[#1] ---\n[#2] Il suo nome è ${ph}.`,
-		'ja': `[#0] これは<em>最初の</em>文です。\n[#1] ---\n[#2] 彼女の名前は ${ph} です。`,
-		'kn': `[#0] ಇದು <em>ಮೊದಲ</em> ವಾಕ್ಯ।\n[#1] ---\n[#2] ಅವಳ ಹೆಸರು ${ph}।`,
-		'ko': `[#0] 이것은 <em>첫 번째</em> 문장입니다。\n[#1] ---\n[#2] 그녀의 이름은 ${ph} 입니다。`,
-		'lt': `[#0] Tai yra <em>pirmas</em> sakinys.\n[#1] ---\n[#2] Jos vardas yra ${ph}.`,
-		'lv': `[#0] Šis ir <em>pirmais</em> teikums.\n[#1] ---\n[#2] Viņas vārds ir ${ph}.`,
-		'ml': `[#0] ഇതാണ് <em>ഒന്നാമത്തെ</em> വാക്യം।\n[#1] ---\n[#2] അവളുടെ പേര് ${ph} എന്നാണ്।`,
-		'mr': `[#0] हे <em>पहिले</em> वाक्य आहे।\n[#1] ---\n[#2] तिचे नाव ${ph} आहे।`,
-		'ms': `[#0] Ini adalah ayat <em>pertama</em>.\n[#1] ---\n[#2] Namanya ialah ${ph}.`,
-		'mt': `[#0] Din hija l-<em>ewwel</em> sentenza.\n[#1] ---\n[#2] Jisimha hu ${ph}.`,
-		'nl': `[#0] Dit is de <em>eerste</em> zin.\n[#1] ---\n[#2] Haar naam is ${ph}.`,
-		'no': `[#0] Dette er den <em>første</em> setningen.\n[#1] ---\n[#2] Hennes navn er ${ph}.`,
-		'pa': `[#0] ਇਹ <em>ਪਹਿਲਾ</em> ਵਾਕ ਹੈ।\n[#1] ---\n[#2] ਉਸਦਾ ਨਾਮ ${ph} ਹੈ।`,
-		'pl': `[#0] To jest <em>pierwsze</em> zdanie.\n[#1] ---\n[#2] Nazywa się ${ph}.`,
-		'pt': `[#0] Esta é a <em>primeira</em> frase.\n[#1] ---\n[#2] O nome dela é ${ph}.`,
-		'ro': `[#0] Aceasta este <em>prima</em> propoziție.\n[#1] ---\n[#2] Numele ei este ${ph}.`,
-		'ru': `[#0] Это <em>первое</em> предложение.\n[#1] ---\n[#2] Её зовут ${ph}.`,
-		'sk': `[#0] Toto je <em>prvá</em> veta.\n[#1] ---\n[#2] Volá sa ${ph}.`,
-		'sl': `[#0] To je <em>prvi</em> stavek.\n[#1] ---\n[#2] Ime ji je ${ph}.`,
-		'sv': `[#0] Detta är den <em>första</em> meningen.\n[#1] ---\n[#2] Hennes namn är ${ph}.`,
-		'sw': `[#0] Hii ni sentensi ya <em>kwanza</em>.\n[#1] ---\n[#2] Jina lake ni ${ph}.`,
-		'ta': `[#0] இது <em>முதல்</em> வாக்கியம்.\n[#1] ---\n[#2] அவள் பெயர் ${ph}.`,
-		'te': `[#0] ఇది <em>మొదటి</em> వాక్యం.\n[#1] ---\n[#2] ఆమె పేరు ${ph}.`,
-		'th': `[#0] นี่คือประโยค<em>แรก</em>\n[#1] ---\n[#2] ชื่อของเธอคือ ${ph}`,
-		'tr': `[#0] Bu <em>birinci</em> cümledir.\n[#1] ---\n[#2] Onun adı ${ph}.`,
-		'uk': `[#0] Це <em>перше</em> речення.\n[#1] ---\n[#2] Її звати ${ph}.`,
-		'ur': `[#0] یہ <em>پہلا</em> جملہ ہے۔\n[#1] ---\n[#2] اس کا نام ${ph} ہے۔`,
-		'vi': `[#0] Đây là câu <em>đầu tiên</em>.\n[#1] ---\n[#2] Tên cô ấy là ${ph}.`,
-		'zu': `[#0] Lona umusho <em>wokuqala</em>.\n[#1] ---\n[#2] Igama lakhe ngu-${ph}.`,
-		'default': `[#0] This is the <em>first</em> sentence.\n[#1] ---\n[#2] Her name is ${ph}.`
+		'zh-CN': [
+			{ id: 0, trans: "这是<em>第一个</em>句子。" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `她的名字是 ${ph}。` }
+		],
+		'zh-TW': [
+			{ id: 0, trans: "這是<em>第一個</em>句子。" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `她的名字是 ${ph}。` }
+		],
+		'ar': [
+			{ id: 0, trans: "هذه هي الجملة <em>الأولى</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `اسمها هو ${ph}.` }
+		],
+		'bg': [
+			{ id: 0, trans: "Това е <em>първото</em> изречение." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Нейното име е ${ph}.` }
+		],
+		'bn': [
+			{ id: 0, trans: "এটি <em>প্রথম</em> বাক্য।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `তার নাম ${ph}।` }
+		],
+		'ca': [
+			{ id: 0, trans: "Aquesta és la <em>primera</em> frase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `El seu nom és ${ph}.` }
+		],
+		'cs': [
+			{ id: 0, trans: "Toto je <em>první</em> věta." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Jmenuje se ${ph}.` }
+		],
+		'da': [
+			{ id: 0, trans: "Dette er den <em>første</em> sætning." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hendes navn er ${ph}.` }
+		],
+		'de': [
+			{ id: 0, trans: "Das ist der <em>erste</em> Satz." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Ihr Name ist ${ph}.` }
+		],
+		'el': [
+			{ id: 0, trans: "Αυτή είναι η <em>πρώτη</em> πρόταση." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Το όνομά της είναι ${ph}.` }
+		],
+		'es': [
+			{ id: 0, trans: "Esta es la <em>primera</em> frase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Su nombre es ${ph}.` }
+		],
+		'et': [
+			{ id: 0, trans: "See on <em>esimene</em> lause." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Tema nimi on ${ph}.` }
+		],
+		'fa': [
+			{ id: 0, trans: "این <em>اولین</em> جمله است." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `نام او ${ph} است.` }
+		],
+		'fi': [
+			{ id: 0, trans: "Tämä on <em>ensimmäinen</em> lause." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hänen nimensä on ${ph}.` }
+		],
+		'fr': [
+			{ id: 0, trans: "C'est la <em>première</em> phrase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Son nom est ${ph}.` }
+		],
+		'gu': [
+			{ id: 0, trans: "આ <em>પહેલું</em> વાક્ય છે।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `તેનું નામ ${ph} છે।` }
+		],
+		'he': [
+			{ id: 0, trans: "זהו המשפט ה<em>ראשון</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `שמה הוא ${ph}.` }
+		],
+		'hi': [
+			{ id: 0, trans: "यह <em>पहला</em> वाक्य है।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `उसका नाम ${ph} है।` }
+		],
+		'hr': [
+			{ id: 0, trans: "Ovo je <em>prva</em> rečenica." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Njeno ime je ${ph}.` }
+		],
+		'hu': [
+			{ id: 0, trans: "Ez az <em>első</em> mondat." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `A neve ${ph}.` }
+		],
+		'id': [
+			{ id: 0, trans: "Ini adalah kalimat <em>pertama</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Namanya adalah ${ph}.` }
+		],
+		'is': [
+			{ id: 0, trans: "Þetta er <em>fyrsta</em> setningin." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hún heitir ${ph}.` }
+		],
+		'it': [
+			{ id: 0, trans: "Questa è la <em>prima</em> frase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Il suo nome è ${ph}.` }
+		],
+		'ja': [
+			{ id: 0, trans: "これは<em>最初の</em>文です。" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `彼女の名前は ${ph} です。` }
+		],
+		'kn': [
+			{ id: 0, trans: "ಇದು <em>ಮೊದಲ</em> ವಾಕ್ಯ।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `ಅವಳ ಹೆಸರು ${ph}।` }
+		],
+		'ko': [
+			{ id: 0, trans: "이것은 <em>첫 번째</em> 문장입니다。" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `그녀의 이름은 ${ph} 입니다。` }
+		],
+		'lt': [
+			{ id: 0, trans: "Tai yra <em>pirmas</em> sakinys." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Jos vardas yra ${ph}.` }
+		],
+		'lv': [
+			{ id: 0, trans: "Šis ir <em>pirmais</em> teikums." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Viņas vārds ir ${ph}.` }
+		],
+		'ml': [
+			{ id: 0, trans: "ഇതാണ് <em>ഒന്നാമത്തെ</em> വാക്യം।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `അവളുടെ പേര് ${ph} എന്നാണ്।` }
+		],
+		'mr': [
+			{ id: 0, trans: "हे <em>पहिले</em> वाक्य आहे।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `तिचे नाव ${ph} आहे।` }
+		],
+		'ms': [
+			{ id: 0, trans: "Ini adalah ayat <em>pertama</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Namanya ialah ${ph}.` }
+		],
+		'mt': [
+			{ id: 0, trans: "Din hija l-<em>ewwel</em> sentenza." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Jisimha hu ${ph}.` }
+		],
+		'nl': [
+			{ id: 0, trans: "Dit is de <em>eerste</em> zin." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Haar naam is ${ph}.` }
+		],
+		'no': [
+			{ id: 0, trans: "Dette er den <em>første</em> setningen." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hennes navn er ${ph}.` }
+		],
+		'pa': [
+			{ id: 0, trans: "ਇਹ <em>ਪਹਿਲਾ</em> ਵਾਕ ਹੈ।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `ਉਸਦਾ ਨਾਮ ${ph} ਹੈ।` }
+		],
+		'pl': [
+			{ id: 0, trans: "To jest <em>pierwsze</em> zdanie." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Nazywa się ${ph}.` }
+		],
+		'pt': [
+			{ id: 0, trans: "Esta é a <em>primeira</em> frase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `O nome dela é ${ph}.` }
+		],
+		'ro': [
+			{ id: 0, trans: "Aceasta este <em>prima</em> propoziție." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Numele ei este ${ph}.` }
+		],
+		'ru': [
+			{ id: 0, trans: "Это <em>первое</em> предложение." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Её зовут ${ph}.` }
+		],
+		'sk': [
+			{ id: 0, trans: "Toto je <em>prvá</em> veta." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Volá sa ${ph}.` }
+		],
+		'sl': [
+			{ id: 0, trans: "To je <em>prvi</em> stavek." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Ime ji je ${ph}.` }
+		],
+		'sv': [
+			{ id: 0, trans: "Detta är den <em>första</em> meningen." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hennes namn är ${ph}.` }
+		],
+		'sw': [
+			{ id: 0, trans: "Hii ni sentensi ya <em>kwanza</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Jina lake ni ${ph}.` }
+		],
+		'ta': [
+			{ id: 0, trans: "இது <em>முதல்</em> வாக்கியம்." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `அவள் பெயர் ${ph}.` }
+		],
+		'te': [
+			{ id: 0, trans: "ఇది <em>మొదటి</em> వాక్యం." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `ఆమె పేరు ${ph}.` }
+		],
+		'th': [
+			{ id: 0, trans: "นี่คือประโยค<em>แรก</em>" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `ชื่อของเธอคือ ${ph}` }
+		],
+		'tr': [
+			{ id: 0, trans: "Bu <em>birinci</em> cümledir." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Onun adı ${ph}.` }
+		],
+		'uk': [
+			{ id: 0, trans: "Це <em>перше</em> речення." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Її звати ${ph}.` }
+		],
+		'ur': [
+			{ id: 0, trans: "یہ <em>پہلا</em> جملہ ہے۔" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `اس کا نام ${ph} ہے۔` }
+		],
+		'vi': [
+			{ id: 0, trans: "Đây là câu <em>đầu tiên</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Tên cô ấy là ${ph}.` }
+		],
+		'zu': [
+			{ id: 0, trans: "Lona umusho <em>wokuqala</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Igama lakhe ngu-${ph}.` }
+		],
+		'default': [
+			{ id: 0, trans: "This is the <em>first</em> sentence." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Her name is ${ph}.` }
+		]
 	};
 
 	/**
-	 * 根据目标语言动态生成完整的提示示例
+	 * 根据目标语言动态生成 JSON 格式的提示示例
 	 */
-	function generatePromptExample(toLang, useShortTextMode = false) {
-		const exampleOutputText = PROMPT_EXAMPLE_OUTPUTS[toLang] || PROMPT_EXAMPLE_OUTPUTS['zh-CN'];
-		if (useShortTextMode) {
-			const shortTextExample = exampleOutputText
-				.replace(/\[#0\]\s*/g, '0. ')
-				.replace(/\[#1\]\s*/g, '1. ')
-				.replace(/\[#2\]\s*/g, '2. ');
-			return `### Example Output:\n${shortTextExample}`;
-		}
-		return `### Example Output:\n${exampleOutputText}`;
+	function generatePromptExample(toLang) {
+		const exampleArray = PROMPT_EXAMPLE_OUTPUTS[toLang] || PROMPT_EXAMPLE_OUTPUTS['zh-CN'];
+		const jsonString = JSON.stringify({ translations: exampleArray }, null, 2);
+		return `### Example Output:\n${jsonString}`;
 	}
 
 	/**
-	 * 获取 AI 翻译系统提示词模板
+	 * 获取底层强制的系统指令
+	 */
+	function getSystemDirectives() {
+		return `### CRITICAL OUTPUT INSTRUCTIONS:
+- The input consists of a JSON array of objects, each containing an "id" and "text".
+- Your entire response MUST consist of *only* a valid JSON object containing a "translations" array.
+- Each object in the "translations" array MUST contain the exact same "id" and the polished translation in "trans".
+- Do NOT include any markdown formatting (like \`\`\`json), stage numbers, headers, notes, or explanations in your final output.
+- **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original.
+${PlaceholderConfig.instructionText}
+
+### Example Input:
+[
+  {"id": 0, "text": "This is the <em>first</em> sentence."},
+  {"id": 1, "text": "---"},
+  {"id": 2, "text": "Her name is ${PlaceholderConfig.exampleString}."}
+]
+
+{exampleOutput}`;
+	}
+
+	/**
+	 * 获取 AI 翻译系统提示词模板（暴露给用户的默认值）
 	 */
 	function getSharedSystemPrompt() {
 		return `You are a professional translator fluent in {toLangName}, with particular expertise in translating web novels and online fanfiction from {fromLangName}.
 
-		Your task is to translate multiple text segments provided by the user. For each segment, you will follow an internal three-stage strategy to produce the final, polished translation.
+Your task is to translate multiple text segments provided by the user. For each segment, you will follow an internal three-stage strategy to produce the final, polished translation.
 
-		### Internal Translation Strategy (for each item):
-		1.  **Stage 1 (Internal Thought Process):** Produce a literal, word-for-word translation of the original content.
-		2.  **Stage 2 (Internal Thought Process):** Based on the literal translation, identify any phrasing that is unnatural or does not flow well in the target language.
-		3.  **Stage 3 (Final Output):** Produce a polished, idiomatic translation that fully preserves the original meaning, tone, cultural nuances, and any specialized fandom terminology. The final translation must be natural-sounding, readable, and conform to standard usage in {toLangName}.
+### Internal Translation Strategy (for each item):
+1.  **Stage 1 (Internal Thought Process):** Produce a literal, word-for-word translation of the original content.
+2.  **Stage 2 (Internal Thought Process):** Based on the literal translation, identify any phrasing that is unnatural or does not flow well in the target language.
+3.  **Stage 3 (Final Output):** Produce a polished, idiomatic translation that fully preserves the original meaning, tone, cultural nuances, and any specialized fandom terminology. The final translation must be natural-sounding, readable, and conform to standard usage in {toLangName}.
 
-		### CRITICAL OUTPUT INSTRUCTIONS:
-		- The input consists of multiple segments, each prefixed with an ID tag like [#0], [#1], etc.
-		- Your entire response MUST consist of *only* the polished translations from Stage 3.
-		- You MUST prefix each translated segment with its EXACT corresponding ID tag (e.g., [#0] Translated text...).
-		- Do NOT include any stage numbers, headers, notes, or explanations in your final output.
-		- **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original.
-		${PlaceholderConfig.instructionText}
-
-		### Example Input:
-		[#0] This is the <em>first</em> sentence.
-		[#1] ---
-		[#2] Her name is ${PlaceholderConfig.exampleString}.
-
-		{exampleOutput}
-		`;
+{systemDirectives}`;
 	}
 
 	// 创建一个标准的、兼容OpenAI API的服务配置对象
@@ -604,7 +815,7 @@
 	// 基础参数默认值
 	const BASE_AI_PARAMS = {
 		system_prompt: getSharedSystemPrompt(),
-		user_prompt: `Translate the following numbered list to {toLangName} (output translation only):\n\n{numberedText}`,
+		user_prompt: `Translate the following JSON array to {toLangName} (output JSON only):\n\n{numberedText}`,
 		temperature: 0,
 		chunk_size: CONFIG.SERVICE_CONFIG.default.CHUNK_SIZE,
 		para_limit: CONFIG.SERVICE_CONFIG.default.PARAGRAPH_LIMIT,
@@ -630,6 +841,23 @@
 					params: { ...BASE_AI_PARAMS }
 				};
 
+				// 初始化传统引擎专属配置
+				const traditionalProfile = {
+					id: 'profile_traditional_init',
+					name: '谷歌、微软',
+					isProtected: true,
+					isTraditional: true,
+					services: ['google_translate', 'bing_translator'],
+					params: {
+						...BASE_AI_PARAMS,
+						chunk_size: 3000,
+						para_limit: 15,
+						request_rate: 5,
+						request_capacity: 20,
+						lazy_load_margin: '1200px 0px 10000px 0px'
+					}
+				};
+
 				// 初始化 DeepSeek 配置
 				const deepseekProfile = {
 					id: 'profile_deepseek_init',
@@ -643,7 +871,7 @@
 					}
 				};
 
-				profiles = [defaultProfile, deepseekProfile];
+				profiles = [defaultProfile, traditionalProfile, deepseekProfile];
 				GM_setValue(AI_PROFILES_KEY, profiles);
 				Logger.info('Config', '翻译参数配置已初始化');
 			}
@@ -710,10 +938,6 @@
 		},
 
 		getParamsByEngine(engineId) {
-			if (engineId === 'google_translate' || engineId === 'bing_translator') {
-				return null;
-			}
-
 			const profiles = this.getAllProfiles();
 			const matchedProfile = profiles.find(p => p.services && p.services.includes(engineId));
 
@@ -840,27 +1064,204 @@
 	};
 
 	/**
+	 * 纯 JS SHA-256 实现
+	 * 用于在 window.crypto.subtle 不可用时的安全降级
+	 */
+	function pureSHA256(s) {
+		const utf8Encode = (str) => unescape(encodeURIComponent(str));
+		let ascii = utf8Encode(s);
+		const mathPow = Math.pow;
+		const maxWord = mathPow(2, 32);
+		let result = '';
+		const words = [];
+		const asciiBitLength = ascii.length * 8;
+		let hash = pureSHA256.h = pureSHA256.h || [];
+		let k = pureSHA256.k = pureSHA256.k || [];
+		let primeCounter = k.length;
+		const isComposite = {};
+		for (let candidate = 2; primeCounter < 64; candidate++) {
+			if (!isComposite[candidate]) {
+				for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+				hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+				k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+			}
+		}
+		ascii += '\x80';
+		while (ascii.length % 64 - 56) ascii += '\x00';
+		for (let i = 0; i < ascii.length; i++) {
+			const j = ascii.charCodeAt(i);
+			words[i >> 2] |= j << ((3 - i) % 4) * 8;
+		}
+		words[words.length] = ((asciiBitLength / maxWord) | 0);
+		words[words.length] = (asciiBitLength) | 0;
+		for (let j = 0; j < words.length;) {
+			const w = words.slice(j, j += 16);
+			const oldHash = hash;
+			hash = hash.slice(0, 8);
+			for (let i = 0; i < 64; i++) {
+				const w15 = w[i - 15], w2 = w[i - 2];
+				const a = hash[0], e = hash[4];
+				const temp1 = hash[7]
+					+ ((e >>> 6 | e << 26) ^ (e >>> 11 | e << 21) ^ (e >>> 25 | e << 7))
+					+ ((e & hash[5]) ^ ((~e) & hash[6]))
+					+ k[i]
+					+ (w[i] = (i < 16) ? w[i] : (
+						w[i - 16]
+						+ ((w15 >>> 7 | w15 << 25) ^ (w15 >>> 18 | w15 << 14) ^ (w15 >>> 3))
+						+ w[i - 7]
+						+ ((w2 >>> 17 | w2 << 15) ^ (w2 >>> 19 | w2 << 13) ^ (w2 >>> 10))
+					) | 0);
+				const temp2 = ((a >>> 2 | a << 30) ^ (a >>> 13 | a << 19) ^ (a >>> 22 | a << 10))
+					+ ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+				hash = [(temp1 + temp2) | 0].concat(hash);
+				hash[4] = (hash[4] + temp1) | 0;
+			}
+			for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+		}
+		for (let i = 0; i < 8; i++) {
+			for (let j = 3; j + 1; j--) {
+				const b = (hash[i] >> (j * 8)) & 255;
+				result += ((b < 16) ? 0 : '') + b.toString(16);
+			}
+		}
+		return result;
+	}
+
+	/**
 	 * SHA-256 哈希计算 (用于生成唯一的 Cache Key)
 	 */
 	async function sha256(message) {
 		if (window.crypto && window.crypto.subtle) {
-			const msgBuffer = new TextEncoder().encode(message);
-			const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-			const hashArray = Array.from(new Uint8Array(hashBuffer));
-			return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-		} else {
-			let hash = 5381;
-			for (let i = 0; i < message.length; i++) {
-				hash = ((hash << 5) + hash) ^ message.charCodeAt(i);
+			try {
+				const msgBuffer = new TextEncoder().encode(message);
+				const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+				const hashArray = Array.from(new Uint8Array(hashBuffer));
+				return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+			} catch (e) {
+				return pureSHA256(message);
 			}
-			return (hash >>> 0).toString(16).padStart(8, '0');
+		} else {
+			return pureSHA256(message);
 		}
 	}
 
 	/**
-	 * 构建缓存 Key
+	 * 从 DOM 或 URL 中提取当前翻译单元的作用域 ID (Scope ID)
 	 */
-	async function buildCacheKey(text, fromLang, toLang) {
+	function getScopeId(element) {
+		if (!element) return "global";
+
+		const blurb = element.closest('.blurb');
+		if (blurb) {
+			const classMatch = blurb.className.match(/(work|series)-(\d+)/);
+			if (classMatch) return `${classMatch[1]}_${classMatch[2]}`;
+			
+			const idMatch = blurb.id.match(/^(bookmark|tag_set)_(\d+)/);
+			if (idMatch) return `${idMatch[1]}_${idMatch[2]}`;
+			
+			const collectionLink = blurb.querySelector('h4.heading a[href^="/collections/"]');
+			if (collectionLink) {
+				const collMatch = collectionLink.getAttribute('href').match(/\/collections\/([^\/]+)/);
+				if (collMatch) return `collection_${collMatch[1]}`;
+			}
+		}
+
+		if (element.closest('#workskin, .admin_posts-show, .works-show, .chapters-show')) {
+			const pathname = window.location.pathname;
+			const workMatch = pathname.match(/^\/works\/(\d+)/);
+			if (workMatch) return `work_${workMatch[1]}`;
+			const seriesMatch = pathname.match(/^\/series\/(\d+)/);
+			if (seriesMatch) return `series_${seriesMatch[1]}`;
+			const adminMatch = pathname.match(/^\/admin_posts\/(\d+)/);
+			if (adminMatch) return `admin_post_${adminMatch[1]}`;
+		}
+
+		return "global";
+	}
+
+	const SHORT_TEXT_CONTEXT_THRESHOLD = 50;
+	const SHORT_TEXT_CONTEXT_LIMIT = 30;
+
+	/**
+	 * 获取短文本缓存用的轻量上下文
+	 */
+	function getLightweightCacheContext(element) {
+		const getOriginalText = (node) => {
+			if (!node) return "";
+			if (node.nodeType === Node.TEXT_NODE) {
+				return node.textContent || "";
+			}
+			if (node.nodeType !== Node.ELEMENT_NODE) {
+				return "";
+			}
+
+			const originalWrapper = node.matches('.ao3-original-content, .ao3-original-title, .ao3-tag-original')
+				? node
+				: node.querySelector(':scope > .ao3-original-content, :scope > .ao3-original-title, :scope > .ao3-tag-original');
+			if (originalWrapper) {
+				return originalWrapper.textContent || "";
+			}
+
+			const clone = node.cloneNode(true);
+			clone.querySelectorAll([
+				'.translate-me-ao3-wrapper',
+				'.ao3-translated-content',
+				'.ao3-translated-title',
+				'.ao3-tag-translation',
+				'.translated-tags-container',
+				'.translated-by-ao3-translator-error'
+			].join(', ')).forEach(el => el.remove());
+			return clone.textContent || "";
+		};
+
+		const collect = (isNext) => {
+			let contextText = "";
+			let sibling = isNext ? element?.nextSibling : element?.previousSibling;
+			let attempts = 0;
+
+			const isPluginNode = (node) => {
+				if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+				const cl = node.classList;
+				if (!cl) return false;
+				return cl.contains('translate-me-ao3-wrapper') ||
+					cl.contains('ao3-translated-content') ||
+					cl.contains('ao3-original-content') ||
+					cl.contains('ao3-tag-translation') ||
+					cl.contains('ao3-tag-original') ||
+					cl.contains('translated-tags-container') ||
+					cl.contains('translated-by-ao3-translator-error');
+			};
+
+			while (sibling && attempts < 3) {
+				if (isPluginNode(sibling)) {
+					sibling = isNext ? sibling.nextSibling : sibling.previousSibling;
+					continue;
+				}
+
+				const text = getOriginalText(sibling).replace(/\s+/g, ' ').trim();
+				if (text) {
+					contextText = isNext ? `${contextText} ${text}` : `${text} ${contextText}`;
+					attempts++;
+				}
+
+				sibling = isNext ? sibling.nextSibling : sibling.previousSibling;
+				if (contextText.length >= SHORT_TEXT_CONTEXT_LIMIT) break;
+			}
+
+			contextText = contextText.trim();
+			return isNext ? contextText.substring(0, SHORT_TEXT_CONTEXT_LIMIT) : contextText.slice(-SHORT_TEXT_CONTEXT_LIMIT);
+		};
+
+		return {
+			prev: collect(false),
+			next: collect(true)
+		};
+	}
+
+	/**
+	 * 构建缓存 Key：长文本使用稳定 Key，短文本额外纳入轻量上下文
+	 */
+	async function buildStableCacheKey(text, fromLang, toLang, scopeId = "global", context = null) {
 		const engine = getValidEngineName();
 		const provider = getProviderById(engine);
 		const model = provider ? provider.selectedModel : 'default';
@@ -868,11 +1269,31 @@
 		const params = ProfileManager.getParamsByEngine(engine) || {};
 		const sysPrompt = params.system_prompt || '';
 		const usrPrompt = params.user_prompt || '';
-		const temperature = params.temperature !== undefined ? params.temperature : 'default'; 
-		const reasoningEffort = params.reasoning_effort || 'default'; 
+		const temperature = params.temperature !== undefined ? params.temperature : 'default';
+		const reasoningEffort = params.reasoning_effort || 'default';
 		const glossaryVer = GM_getValue(GLOSSARY_STATE_VERSION_KEY, 0);
-		const postReplaceRules = JSON.stringify(GM_getValue(POST_REPLACE_RULES_KEY, []));
-		const rawString = `${text}|${engine}|${model}|${apiHost}|${fromLang}|${toLang}|${sysPrompt}|${usrPrompt}|${temperature}|${reasoningEffort}|${glossaryVer}|${postReplaceRules}`;
+		const rawRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+		const sortedRules = [...rawRules].sort((a, b) => (a.id || '').localeCompare(b.id || ''));
+		const postReplaceRules = JSON.stringify(sortedRules);
+
+		const rawString = JSON.stringify([
+			'stable_v1',
+			scopeId,
+			context?.prev || '',
+			context?.next || '',
+			text,
+			engine,
+			model,
+			apiHost,
+			fromLang,
+			toLang,
+			sysPrompt,
+			usrPrompt,
+			temperature,
+			reasoningEffort,
+			glossaryVer,
+			postReplaceRules
+		]);
 		return await sha256(rawString);
 	}
 
@@ -882,6 +1303,7 @@
 	const TranslationCacheDB = {
 		dbName: 'AO3TranslatorCacheDB',
 		storeName: 'translations',
+		// IndexedDB 原生结构版本号
 		version: 1,
 		db: null,
 
@@ -900,23 +1322,43 @@
 				
 				request.onsuccess = (event) => {
 					this.db = event.target.result;
-					resolve();
+					// 业务数据版本号：用于在 Key 算法改变时强制清空旧的无效缓存
+					const CURRENT_SCHEMA_VERSION = 1;
+					const savedSchema = GM_getValue('ao3_cache_schema_version', 0);
+					if (savedSchema < CURRENT_SCHEMA_VERSION) {
+						this.clear().then(() => {
+							GM_setValue('ao3_cache_schema_version', CURRENT_SCHEMA_VERSION);
+							Logger.info('System', '缓存数据结构已升级，旧缓存已清空');
+							resolve();
+						});
+					} else {
+						resolve();
+					}
 				};
 				
 				request.onerror = (event) => {
-					Logger.error('System', 'IndexedDB 初始化失败', event.target.error);
-					resolve();
+					if (event.target.error.name === 'VersionError') {
+						event.preventDefault();
+						Logger.warn('System', '检测到 IndexedDB 版本冲突，正在执行降级重建...');
+						const deleteReq = indexedDB.deleteDatabase(this.dbName);
+						deleteReq.onsuccess = () => {
+							const req2 = indexedDB.open(this.dbName, this.version);
+							req2.onupgradeneeded = request.onupgradeneeded;
+							req2.onsuccess = request.onsuccess;
+							req2.onerror = () => resolve();
+						};
+						deleteReq.onerror = () => resolve();
+						deleteReq.onblocked = () => resolve();
+					} else {
+						resolve();
+					}
 				};
-				
-				request.onblocked = () => {
-					Logger.warn('System', 'IndexedDB 访问被阻塞，请关闭其她 AO3 标签页后刷新重试');
-					resolve();
-				};
+				request.onblocked = () => resolve();
 			});
 		},
 
 		async get(keys) {
-			if (!this.db) return keys.map(() => null);
+			if (!this.db || keys.length === 0) return keys.map(() => null);
 			return new Promise((resolve) => {
 				try {
 					const transaction = this.db.transaction([this.storeName], 'readonly');
@@ -924,7 +1366,9 @@
 					const results = new Array(keys.length);
 					let completed = 0;
 
-					if (keys.length === 0) return resolve([]);
+					// 事务级兜底，防止底层异常导致 Promise 永久挂起
+					transaction.onerror = () => resolve(keys.map(() => null));
+					transaction.onabort = () => resolve(keys.map(() => null));
 
 					keys.forEach((key, index) => {
 						const req = store.get(key);
@@ -941,7 +1385,6 @@
 					});
 				} catch (e) {
 					Logger.error('System', 'IndexedDB get 事务创建失败', e);
-					this.db = null;
 					resolve(keys.map(() => null));
 				}
 			});
@@ -953,15 +1396,17 @@
 				try {
 					const transaction = this.db.transaction([this.storeName], 'readwrite');
 					const store = transaction.objectStore(this.storeName);
-					entries.forEach(entry => store.put(entry));
+					
 					transaction.oncomplete = () => {
 						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
 						resolve();
 					};
 					transaction.onerror = () => resolve();
+					transaction.onabort = () => resolve();
+
+					entries.forEach(entry => store.put(entry));
 				} catch (e) {
 					Logger.error('System', 'IndexedDB put 事务创建失败', e);
-					this.db = null;
 					resolve();
 				}
 			});
@@ -985,7 +1430,6 @@
 				});
 			} catch (e) {
 				Logger.error('System', 'IndexedDB updateTimestamps 事务创建失败', e);
-				this.db = null;
 			}
 		},
 
@@ -995,12 +1439,14 @@
 				try {
 					const transaction = this.db.transaction([this.storeName], 'readwrite');
 					const store = transaction.objectStore(this.storeName);
-					keys.forEach(key => store.delete(key));
+					
 					transaction.oncomplete = () => resolve();
 					transaction.onerror = () => resolve();
+					transaction.onabort = () => resolve();
+
+					keys.forEach(key => store.delete(key));
 				} catch (e) {
 					Logger.error('System', 'IndexedDB delete 事务创建失败', e);
-					this.db = null;
 					resolve();
 				}
 			});
@@ -1014,37 +1460,31 @@
 					const store = transaction.objectStore(this.storeName);
 					
 					if (!store.indexNames.contains('textHash')) {
-						Logger.warn('System', 'IndexedDB 缺少 textHash 索引，无法按原文清除缓存');
 						return resolve(0);
 					}
 
 					const index = store.index('textHash');
 					let deletedCount = 0;
 
-					const deletePromises = textHashes.map(hash => {
-						return new Promise(res => {
-							const req = index.getAllKeys(IDBKeyRange.only(hash));
-							req.onsuccess = (e) => {
-								const primaryKeys = e.target.result;
-								primaryKeys.forEach(pk => {
-									store.delete(pk);
-									deletedCount++;
-								});
-								res();
-							};
-							req.onerror = () => res();
-						});
-					});
+					transaction.oncomplete = () => {
+						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+						resolve(deletedCount);
+					};
+					transaction.onerror = () => resolve(deletedCount);
+					transaction.onabort = () => resolve(deletedCount);
 
-					Promise.all(deletePromises).then(() => {
-						transaction.oncomplete = () => {
-							document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
-							resolve(deletedCount);
+					textHashes.forEach(hash => {
+						const req = index.getAllKeys(IDBKeyRange.only(hash));
+						req.onsuccess = (e) => {
+							const primaryKeys = e.target.result;
+							primaryKeys.forEach(pk => {
+								store.delete(pk);
+								deletedCount++;
+							});
 						};
 					});
 				} catch (e) {
 					Logger.error('System', 'IndexedDB deleteByTextHashes 事务创建失败', e);
-					this.db = null;
 					resolve(0);
 				}
 			});
@@ -1056,15 +1496,17 @@
 				try {
 					const transaction = this.db.transaction([this.storeName], 'readwrite');
 					const store = transaction.objectStore(this.storeName);
-					store.clear();
+					
 					transaction.oncomplete = () => {
 						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
 						resolve();
 					};
 					transaction.onerror = () => resolve();
+					transaction.onabort = () => resolve();
+
+					store.clear();
 				} catch (e) {
 					Logger.error('System', 'IndexedDB clear 事务创建失败', e);
-					this.db = null;
 					resolve();
 				}
 			});
@@ -1080,8 +1522,6 @@
 					req.onsuccess = () => resolve(req.result);
 					req.onerror = () => resolve(0);
 				} catch (e) {
-					Logger.error('System', 'IndexedDB count 事务创建失败', e);
-					this.db = null;
 					resolve(0);
 				}
 			});
@@ -1093,17 +1533,19 @@
 				try {
 					const transaction = this.db.transaction([this.storeName], 'readwrite');
 					const store = transaction.objectStore(this.storeName);
-					
-					// 如果索引不存在，直接返回 0
-					if (!store.indexNames.contains('timestamp')) {
-						return resolve(0);
-					}
-					
-					const index = store.index('timestamp');
+					if (!store.indexNames.contains('timestamp')) return resolve(0);
+
 					let deletedCount = 0;
 
-					// 删除过期数据
+					// 事务级兜底，由 oncomplete 统一 resolve
+					transaction.oncomplete = () => resolve(deletedCount);
+					transaction.onerror = () => resolve(deletedCount);
+					transaction.onabort = () => resolve(deletedCount);
+
+					const index = store.index('timestamp');
 					const range = IDBKeyRange.upperBound(expireTime);
+					
+					// 1. 删除过期数据
 					const req = index.openCursor(range);
 					req.onsuccess = (e) => {
 						const cursor = e.target.result;
@@ -1112,7 +1554,7 @@
 							deletedCount++;
 							cursor.continue();
 						} else {
-							// 检查是否超出最大条目数
+							// 2. 检查容量并执行 LRU 清理
 							const countReq = store.count();
 							countReq.onsuccess = () => {
 								const total = countReq.result;
@@ -1127,20 +1569,14 @@
 											deletedLRU++;
 											deletedCount++;
 											lruCursor.continue();
-										} else {
-											resolve(deletedCount);
 										}
 									};
-								} else {
-									resolve(deletedCount);
 								}
 							};
 						}
 					};
-					req.onerror = () => resolve(deletedCount);
 				} catch (e) {
 					Logger.error('System', 'IndexedDB cleanup 事务创建失败', e);
-					this.db = null;
 					resolve(0);
 				}
 			});
@@ -1150,25 +1586,19 @@
 			const isEnabled = GM_getValue('ao3_cache_auto_cleanup_enabled', true);
 			if (!isEnabled) return;
 
-			const lockKey = 'ao3_cache_cleanup_lock';
-			const now = Date.now();
-			const lock = GM_getValue(lockKey, 0);
-			if (now - lock < 60000) return;
-			GM_setValue(lockKey, now);
+			const runCleanup = async () => {
+				const now = Date.now();
+				const lastCheck = GM_getValue('ao3_cache_last_check_time', 0);
+				if (now - lastCheck < 24 * 60 * 60 * 1000) return;
 
-			const lastCheck = GM_getValue('ao3_cache_last_check_time', 0);
-			if (now - lastCheck < 24 * 60 * 60 * 1000) return;
+				let maxItems = parseInt(GM_getValue('ao3_cache_max_items', 100000), 10);
+				let maxDays = parseInt(GM_getValue('ao3_cache_max_days', 30), 10);
+				if (isNaN(maxItems) || maxItems <= 0) maxItems = 100000;
+				if (isNaN(maxDays) || maxDays <= 0) maxDays = 30;
 
-			let maxItems = parseInt(GM_getValue('ao3_cache_max_items', 100000), 10);
-			let maxDays = parseInt(GM_getValue('ao3_cache_max_days', 30), 10);
-
-			if (isNaN(maxItems) || maxItems <= 0) maxItems = 100000;
-			if (isNaN(maxDays) || maxDays <= 0) maxDays = 30;
-
-			const expireTime = now - (maxDays * 24 * 60 * 60 * 1000);
-
-			const run = async () => {
+				const expireTime = now - (maxDays * 24 * 60 * 60 * 1000);
 				const deletedCount = await this.cleanup(maxItems, expireTime);
+				
 				if (deletedCount > 0) {
 					Logger.info('System', `自动清理了 ${deletedCount} 条过期/超量的翻译缓存`);
 					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
@@ -1177,10 +1607,29 @@
 				GM_setValue('ao3_cache_last_check_time', Date.now());
 			};
 
+			const executeWithLock = async () => {
+				// 优先使用 Web Locks API 实现跨标签页原子锁
+				if (navigator.locks && navigator.locks.request) {
+					navigator.locks.request('ao3_cache_cleanup_lock', { mode: 'exclusive', ifAvailable: true }, async (lock) => {
+						if (lock) {
+							await runCleanup();
+						}
+					});
+				} else {
+					// 降级方案：使用 GM_getValue 伪锁
+					const lockKey = 'ao3_cache_cleanup_fallback_lock';
+					const now = Date.now();
+					const lock = GM_getValue(lockKey, 0);
+					if (now - lock < 60000) return;
+					GM_setValue(lockKey, now);
+					await runCleanup();
+				}
+			};
+
 			if (window.requestIdleCallback) {
-				window.requestIdleCallback(() => run());
+				window.requestIdleCallback(() => executeWithLock());
 			} else {
-				setTimeout(run, 5000);
+				setTimeout(executeWithLock, 5000);
 			}
 		}
 	};
@@ -1194,11 +1643,11 @@
 		 */
 		extractText(container, rule) {
 			if (!container) return '';
-			if (rule.isTags) {
+			if (rule && rule.isTags) {
 				const tags = Array.from(container.querySelectorAll('a.tag')).map(a => a.textContent.trim());
 				return tags.join(' ').substring(0, 400);
 			}
-			if (rule.isTitle) {
+			if (rule && rule.isTitle) {
 				const clone = container.cloneNode(true);
 				clone.querySelectorAll('a').forEach(a => {
 					if (a.textContent.match(/^(?:Chapter|第)\s*\d+\s*(?:章)?$/i)) a.remove();
@@ -1234,6 +1683,7 @@
 				detectedLang = userSelectedFromLang;
 			}
 
+			// 只有整页模式才允许跳过翻译
 			if (mode === 'full_page' && detectedLang !== 'auto' && detectedLang === targetLang) {
 				shouldSkip = true;
 			}
@@ -3933,9 +4383,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (key === 'transEngine' && serviceIdMap.has(value)) {
 						finalValue = serviceIdMap.get(value);
 					}
-					if (key === 'from_lang' && (value === 'auto' || value === 'script_auto')) {
-						finalValue = 'auto';
-					}
 
 					if (isOverwrite) {
 						GM_setValue(key, finalValue);
@@ -4441,6 +4888,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		// 统一激活所有数据和状态
 		SettingsSyncManager.syncAll();
+
+		// 强制重置迁移版本号，并对导入的旧数据执行升级
+		GM_setValue('ao3_migration_version', 0);
+		runDataMigration();
 
 		const newMode = GM_getValue('ao3_translation_mode', 'unit');
 		const newTransDesc = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
@@ -5922,35 +6373,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		btnAction.addEventListener('click', async () => {
 			const originalBtnText = btnAction.textContent;
 
-			if (parsedUrls && parsedUrls.feedbackUrl) {
-				const syncStatus = GitHubStatusManager.getSync(parsedUrls.owner, parsedUrls.repo);
-				
-				if (syncStatus === true) {
-					window.open(parsedUrls.feedbackUrl, '_blank');
-					return;
-				} else if (syncStatus === null) {
-					let newTab = window.open('about:blank', '_blank');
-					btnAction.textContent = '检测中...';
-					btnAction.disabled = true;
-					
-					const canUse = await GitHubStatusManager.check(parsedUrls.owner, parsedUrls.repo);
-					
-					if (canUse) {
-						newTab.location.href = parsedUrls.feedbackUrl;
-						btnAction.textContent = originalBtnText;
-						btnAction.disabled = false;
-						return;
-					} else {
-						newTab.close();
-						btnAction.textContent = originalBtnText;
-						btnAction.disabled = false;
-					}
-				}
-			}
-
-			let feedback = parsedMetadata.feedback;
+			// 1. 获取反馈值（优先级 1 & 2）
+			let feedbackValue = parsedMetadata.feedback;
 			
-			if (!feedback) {
+			if (!feedbackValue) {
 				const CACHE_DATA_KEY = 'ao3_online_library_cache_data';
 				const cachedData = GM_getValue(CACHE_DATA_KEY);
 				if (cachedData) {
@@ -5958,7 +6384,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						const allGlossaries = JSON.parse(cachedData);
 						const matchedGlossary = allGlossaries.find(g => g.url === url);
 						if (matchedGlossary && matchedGlossary.feedback) {
-							feedback = matchedGlossary.feedback;
+							feedbackValue = matchedGlossary.feedback;
 						}
 					} catch (e) {
 						Logger.warn('System', '解析在线术语库缓存失败', e);
@@ -5966,18 +6392,62 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				}
 			}
 
-			if (!feedback) {
-				showCustomConfirm('该术语表维护者暂未提供反馈方式。', '提示', { textAlign: 'center', singleButton: true, confirmText: '确认' }).catch(() => {});
-				return;
-			}
-			
-			if (/^https?:\/\//i.test(feedback)) {
-				window.open(feedback, '_blank');
-			} else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(feedback)) {
-				window.location.href = `mailto:${feedback}`;
+			// 辅助函数：执行 GitHub Issues 机制
+			const tryGitHubIssues = async () => {
+				if (parsedUrls && parsedUrls.feedbackUrl) {
+					const syncStatus = GitHubStatusManager.getSync(parsedUrls.owner, parsedUrls.repo);
+					
+					if (syncStatus === true) {
+						window.open(parsedUrls.feedbackUrl, '_blank');
+						return true;
+					} else if (syncStatus === null) {
+						let newTab = window.open('about:blank', '_blank');
+						btnAction.textContent = '检测中...';
+						btnAction.disabled = true;
+						
+						const canUse = await GitHubStatusManager.check(parsedUrls.owner, parsedUrls.repo);
+						
+						btnAction.textContent = originalBtnText;
+						btnAction.disabled = false;
+
+						if (canUse) {
+							newTab.location.href = parsedUrls.feedbackUrl;
+							return true;
+						} else {
+							newTab.close();
+							return false;
+						}
+					}
+				}
+				return false;
+			};
+
+			// 2. 动作路由分发
+			const isGitHubLink = feedbackValue && /^https?:\/\/github\.com\//i.test(feedbackValue);
+
+			if (!feedbackValue || isGitHubLink) {
+				// 分支 A：触发 GitHub Issues 机制（优先级 3）
+				const issueSuccess = await tryGitHubIssues();
+				
+				if (!issueSuccess) {
+					if (isGitHubLink) {
+						// 选项 1（降级打开链接）
+						window.open(feedbackValue, '_blank');
+					} else {
+						// 完全没有反馈方式
+						showCustomConfirm('该术语表维护者暂未提供反馈方式。', '提示', { textAlign: 'center', singleButton: true, confirmText: '确认' }).catch(() => {});
+					}
+				}
+			} else if (/^https?:\/\//i.test(feedbackValue)) {
+				// 分支 B：普通网页链接（非 GitHub）
+				window.open(feedbackValue, '_blank');
+			} else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(feedbackValue)) {
+				// 分支 C：标准邮箱地址
+				window.location.href = `mailto:${feedbackValue}`;
 			} else {
-				showCustomConfirm(`该术语表维护者提供的反馈方式如下：\n\n${feedback}\n\n您可点击 “确定” 将其复制到剪贴板。`, '提示', { textAlign: 'center' })
-					.then(() => navigator.clipboard.writeText(feedback))
+				// 分支 D：其它纯文本
+				showCustomConfirm(`该术语表维护者提供的反馈方式如下：\n\n${feedbackValue}\n\n您可点击 “确定” 将其复制到剪贴板。`, '提示', { textAlign: 'center' })
+					.then(() => navigator.clipboard.writeText(feedbackValue))
 					.catch(() => {});
 			}
 		});
@@ -6054,10 +6524,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const service = services.find(s => s.id === serviceId);
 			if (!service) return;
 
-			const apiKey = (GM_getValue(`${serviceId}_keys_array`, [])[0] || '').trim();
 			const modelsExist = service.models && service.models.length > 0;
 
-			if (service.url && apiKey && !modelsExist) {
+			if (service.url && !modelsExist) {
 				fetchModelsForService(serviceId, service.url);
 			}
 		};
@@ -6066,15 +6535,18 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const serviceName = (getServices().find(s => s.id === serviceId) || {}).name || '新服务';
 			try {
 				const apiKey = (GM_getValue(`${serviceId}_keys_array`, [])[0] || '').trim();
-				if (!apiKey) return;
 
 				const modelsUrl = url.replace(/\/chat\/?(completions)?\/?$/, '') + '/models';
+				const headers = { 'Accept': 'application/json' };
+				if (apiKey) {
+					headers['Authorization'] = `Bearer ${apiKey}`;
+				}
 
 				const response = await new Promise((resolve, reject) => {
 					GM_xmlhttpRequest({
 						method: 'GET',
 						url: modelsUrl,
-						headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+						headers: headers,
 						responseType: 'json',
 						timeout: 15000,
 						onload: res => {
@@ -6436,6 +6908,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	function createServiceAssociationModal(currentProfileId, onConfirm) {
 		if (shadowWrapper.querySelector('#ai-service-overlay')) return;
 
+		const profile = ProfileManager.getProfile(currentProfileId);
+		const isTraditional = profile && profile.isTraditional;
+
 		const overlay = document.createElement('div');
 		overlay.id = 'ai-service-overlay';
 		overlay.className = 'ao3-overlay';
@@ -6444,31 +6919,44 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		modal.id = 'ai-service-modal';
 		modal.className = 'ao3-modal';
 
-		const builtInServices = Object.keys(engineMenuConfig).filter(id =>
-			id !== 'google_translate' && id !== 'bing_translator' && id !== 'add_new_custom'
-		);
-		const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
-		const allServices =[
-			...builtInServices.map(id => ({ id, name: engineMenuConfig[id].displayName })),
-			...customServices.map(s => ({ id: s.id, name: s.name }))
-		];
+		let allServices = [];
+		if (isTraditional) {
+			allServices = [
+				{ id: 'google_translate', name: engineMenuConfig['google_translate'].displayName },
+				{ id: 'bing_translator', name: engineMenuConfig['bing_translator'].displayName }
+			];
+		} else {
+			const builtInServices = Object.keys(engineMenuConfig).filter(id =>
+				id !== 'google_translate' && id !== 'bing_translator' && id !== 'add_new_custom'
+			);
+			const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+			allServices = [
+				...builtInServices.map(id => ({ id, name: engineMenuConfig[id].displayName })),
+				...customServices.map(s => ({ id: s.id, name: s.name }))
+			];
+		}
 
-		const profile = ProfileManager.getProfile(currentProfileId);
-		const associatedServices = new Set(profile ? profile.services :[]);
+		const associatedServices = new Set(profile ? profile.services : []);
 
 		let html = `
+			<style>
+				.ai-service-item.locked { cursor: default !important; }
+				.ai-service-item.locked input { cursor: default !important; pointer-events: none; }
+			</style>
 			<div class="ao3-modal-header">
 				<h3>翻译服务</h3>
-				<div class="ai-select-all-btn">全选</div>
+				<div class="ai-select-all-btn" style="${isTraditional ? 'display:none;' : ''}">全选</div>
 			</div>
 			<div class="ao3-modal-body ao3-custom-scrollbar" id="ai-service-list">
 		`;
 
 		allServices.forEach(service => {
-			const isChecked = associatedServices.has(service.id);
+			const isChecked = isTraditional ? true : associatedServices.has(service.id);
+			const lockedClass = isTraditional ? 'locked' : '';
+			const disabledAttr = isTraditional ? 'disabled' : '';
 			html += `
-				<label class="ai-service-item">
-					<input type="checkbox" value="${service.id}" ${isChecked ? 'checked' : ''}>
+				<label class="ai-service-item ${lockedClass}">
+					<input type="checkbox" value="${service.id}" ${isChecked ? 'checked' : ''} ${disabledAttr}>
 					<span class="ai-service-label">${service.name}</span>
 				</label>
 			`;
@@ -6512,10 +7000,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		modal.querySelector('.cancel').addEventListener('click', cleanup);
 		modal.querySelector('.confirm').addEventListener('click', () => {
-			const selectedIds = Array.from(checkboxes)
-				.filter(cb => cb.checked)
-				.map(cb => cb.value);
-			onConfirm(selectedIds);
+			if (!isTraditional) {
+				const selectedIds = Array.from(checkboxes)
+					.filter(cb => cb.checked)
+					.map(cb => cb.value);
+				onConfirm(selectedIds);
+			}
 			cleanup();
 		});
 
@@ -6580,16 +7070,30 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			return `配置 ${maxNum + 1}`;
 		};
 
-		const updateParamOptions = (isProtected) => {
+		const updateParamOptions = (profile) => {
+			const isProtected = profile.isProtected;
+			const isTraditional = profile.isTraditional;
+
+			const optionsToHideForTraditional = ['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort'];
+			
+			// 恢复所有选项的显示状态
+			Array.from(aiParamSelect.options).forEach(opt => {
+				opt.style.display = '';
+				opt.disabled = false;
+				opt.hidden = false;
+			});
+
 			const renameOption = aiParamSelect.querySelector('option[value="rename_profile"]');
 			const deleteOption = aiParamSelect.querySelector('option[value="delete_profile"]');
 
 			if (isProtected) {
-				if (renameOption) renameOption.remove();
 				if (deleteOption) deleteOption.remove();
-				if (aiParamSelect.value === 'rename_profile' || aiParamSelect.value === 'delete_profile') {
-					aiParamSelect.value = 'system_prompt';
-					GM_setValue(LAST_PARAM_KEY, 'system_prompt');
+				if (!isTraditional && renameOption) renameOption.remove();
+				if (isTraditional && !renameOption) {
+					const opt = document.createElement('option');
+					opt.value = 'rename_profile';
+					opt.textContent = '设置参数配置名';
+					aiParamSelect.appendChild(opt);
 				}
 			} else {
 				if (!renameOption) {
@@ -6603,6 +7107,28 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					opt.value = 'delete_profile';
 					opt.textContent = '删除此参数配置';
 					aiParamSelect.appendChild(opt);
+				}
+			}
+
+			if (isTraditional) {
+				optionsToHideForTraditional.forEach(val => {
+					const opt = aiParamSelect.querySelector(`option[value="${val}"]`);
+					if (opt) {
+						opt.style.display = 'none';
+						opt.hidden = true;
+						opt.disabled = true;
+					}
+				});
+
+				// 如果当前选中的是被隐藏的选项，回退到 chunk_size
+				if (optionsToHideForTraditional.includes(aiParamSelect.value) || aiParamSelect.value === 'delete_profile') {
+					aiParamSelect.value = 'chunk_size';
+					GM_setValue(LAST_PARAM_KEY, 'chunk_size');
+				}
+			} else {
+				if (isProtected && (aiParamSelect.value === 'rename_profile' || aiParamSelect.value === 'delete_profile')) {
+					aiParamSelect.value = 'system_prompt';
+					GM_setValue(LAST_PARAM_KEY, 'system_prompt');
 				}
 			}
 		};
@@ -6634,7 +7160,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			const currentProfile = ProfileManager.getProfile(targetId);
 			if (currentProfile) {
-				updateParamOptions(currentProfile.isProtected);
+				updateParamOptions(currentProfile);
 			}
 
 			return targetId;
@@ -6650,7 +7176,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			// 处理重命名配置
 			if (paramType === 'rename_profile') {
-				if (profile.isProtected) return;
+				if (profile.isProtected && !profile.isTraditional) return;
+				
 				const section = document.createElement('div');
 				section.className = 'settings-group static-label';
 				section.innerHTML = `
@@ -6758,6 +7285,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				profile.params[paramType] = val;
 				ProfileManager.saveProfile(profile);
 				updateInputLabel(inputElement);
+
+				// 如果修改的是懒加载参数，派发全局事件通知引擎
+				if (paramType === 'lazy_load_margin') {
+					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.LAZY_LOAD_MARGIN_CHANGED));
+				}
 			};
 
 			let inputElement;
@@ -6831,7 +7363,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			const profile = ProfileManager.getProfile(aiProfileSelect.value);
-			if (profile) updateParamOptions(profile.isProtected);
+			if (profile) updateParamOptions(profile);
 
 			renderParamEditor();
 		});
@@ -7419,36 +7951,30 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		};
 		const updatePanelPosition = () => {
 			if (panel.style.display !== 'flex') return;
-			if (isMobile()) {
-				panel.classList.add('mobile-fixed-center');
-				panel.style.left = '';
-				panel.style.top = '';
-			} else {
-				panel.classList.remove('mobile-fixed-center');
 
-				const panelWidth = panel.offsetWidth || 300;
-				const panelHeight = panel.offsetHeight || 400;
+			const panelWidth = panel.offsetWidth || 300;
+			const panelHeight = panel.offsetHeight || 400;
 
-				let savedPos = GM_getValue(PANEL_POSITION_KEY);
-				const hasBeenOpened = GM_getValue('panel_has_been_opened_once', false);
-				
-				if (!hasBeenOpened) {
-					const winW = document.documentElement.clientWidth;
-					const winH = window.innerHeight;
-					savedPos = {
-						x: (winW - panelWidth) / 2,
-						y: (winH - panelHeight) / 2
-					};
-					GM_setValue(PANEL_POSITION_KEY, savedPos);
-					GM_setValue('panel_has_been_opened_once', true);
-				} else if (!savedPos || isDragging) {
-					savedPos = { x: panel.offsetLeft, y: panel.offsetTop };
-				}
-				
-				const correctedPos = ensureOnScreen(savedPos, { width: panelWidth, height: panelHeight });
-				panel.style.left = `${correctedPos.x}px`;
-				panel.style.top = `${correctedPos.y}px`;
+			let savedPos = GM_getValue(PANEL_POSITION_KEY);
+			const hasBeenOpened = GM_getValue('panel_has_been_opened_once', false);
+			
+			if (!hasBeenOpened) {
+				const winW = document.documentElement.clientWidth;
+				const winH = window.innerHeight;
+				savedPos = {
+					x: (winW - panelWidth) / 2,
+					y: (winH - panelHeight) / 2
+				};
+				GM_setValue(PANEL_POSITION_KEY, savedPos);
+				GM_setValue('panel_has_been_opened_once', true);
+			} else if (!savedPos || isDragging) {
+				savedPos = { x: panel.offsetLeft, y: panel.offsetTop };
 			}
+			
+			const correctedPos = ensureOnScreen(savedPos, { width: panelWidth, height: panelHeight });
+			panel.style.left = `${correctedPos.x}px`;
+			panel.style.top = `${correctedPos.y}px`;
+
 			repositionActiveDropdown();
 		};
 		const updateAllLabels = () => {
@@ -8236,7 +8762,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				if (isEnabled) {
 					transDesc();
 				} else {
-					TranslationDOMUtils.deepCleanup(document.body);
+					TranslationDOMUtils.deepCleanup(document.body, true);
 				}
 			}
 		});
@@ -8582,6 +9108,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (rawTextCache[urlToRemove]) {
 						delete rawTextCache[urlToRemove];
 						GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, rawTextCache);
+					}
+
+					const parsedUrls = parseGlossaryUrl(urlToRemove);
+					if (parsedUrls) {
+						const githubCacheKey = GitHubStatusManager.CACHE_KEY;
+						const githubCache = GM_getValue(githubCacheKey, {});
+						const repoKey = `${parsedUrls.owner}/${parsedUrls.repo}`;
+						if (githubCache[repoKey]) {
+							delete githubCache[repoKey];
+							GM_setValue(githubCacheKey, githubCache);
+						}
 					}
 
 					invalidateGlossaryCache();
@@ -9052,6 +9589,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const metadata = (triggerElement.id === 'setting-select-glossary-manage') ? GM_getValue(GLOSSARY_METADATA_KEY, {}) : null;
 
 			const createListItem = (option) => {
+				if (option.style.display === 'none' || option.hidden) {
+					return null;
+				}
+
 				if (option.disabled) {
 					const separatorItem = document.createElement('li');
 					separatorItem.style.textAlign = 'center';
@@ -9417,9 +9958,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			const texts = new Set();
 			document.querySelectorAll('.ao3-original-title').forEach(el => {
-				const clone = el.cloneNode(true);
-				clone.querySelectorAll('img, svg').forEach(e => e.remove());
-				texts.add(clone.textContent.trim());
+				const titleNode = el.parentElement;
+				if (titleNode) {
+					const extracted = TitleTranslationManager.extractTextToTranslate(titleNode);
+					if (extracted) {
+						const tempDiv = document.createElement('span');
+						tempDiv.textContent = extracted.textToTranslate;
+						texts.add(tempDiv.innerHTML);
+					}
+				}
 			});
 			document.querySelectorAll('.ao3-original-content, .ao3-tag-original').forEach(el => {
 				texts.add(el.innerHTML);
@@ -9429,8 +9976,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				document.querySelectorAll(rule.selector).forEach(el => {
 					if (!el.dataset.translationState) {
 						if (rule.isTitle) {
-							const { titleTempDiv } = extractTitleForTranslation(el);
-							if (titleTempDiv) texts.add(titleTempDiv.innerHTML);
+							const extracted = TitleTranslationManager.extractTextToTranslate(el);
+							if (extracted) {
+								const tempDiv = document.createElement('span');
+								tempDiv.textContent = extracted.textToTranslate;
+								texts.add(tempDiv.innerHTML);
+							}
 						} else if (rule.isTags) {
 							extractTagsToTranslate(el).forEach(tag => texts.add(tag.innerHTML));
 						} else {
@@ -10594,16 +11145,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		getConfig(engineName) {
-			const isSpecial =['google_translate', 'bing_translator'].includes(engineName);
-			const base = CONFIG.SERVICE_CONFIG[engineName] || CONFIG.SERVICE_CONFIG.default;
-
-			if (isSpecial) {
-				return {
-					rate: base.REQUEST_RATE,
-					capacity: base.REQUEST_CAPACITY
-				};
-			}
-
 			const params = ProfileManager.getParamsByEngine(engineName);
 			return {
 				rate: parseFloat(params.request_rate),
@@ -10720,6 +11261,24 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	const TRADITIONAL_REQUEST_TIMEOUT = 30000;
 
 	/**
+	 * JSON 提取器
+	 */
+	function extractJson(text) {
+		if (!text || typeof text !== 'string') return null;
+		const start = text.indexOf('{');
+		const end = text.lastIndexOf('}');
+		if (start > -1 && end > -1 && end > start) {
+			try {
+				return JSON.parse(text.substring(start, end + 1));
+			} catch (e) {
+				Logger.warn('Translation', 'JSON 解析失败', { textSnippet: text.substring(start, Math.min(start + 100, end)) });
+				return null;
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * 提示词构建器
 	 */
 	const PromptBuilder = {
@@ -10727,34 +11286,29 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const fromLangName = LANG_CODE_TO_NAME[fromLang] || fromLang;
 			const toLangName = LANG_CODE_TO_NAME[toLang] || toLang;
 
-			const totalLength = paragraphs.reduce((sum, p) => sum + p.textContent.length, 0);
-			const avgLength = paragraphs.length > 0 ? totalLength / paragraphs.length : 0;
-			// 仅当平均长度极短，且段落数较多时才使用短模式
-			const useShortTextMode = avgLength < 30 && paragraphs.length > 1;
-
 			const params = ProfileManager.getParamsByEngine(engineId);
 			
 			// 1. 基础 Prompt 替换
 			let finalSystemPrompt = params.system_prompt
 				.replace(/\{fromLangName\}/g, fromLangName)
-				.replace(/\{toLangName\}/g, toLangName)
-				.replace(/\{exampleOutput\}/g, ''); 
+				.replace(/\{toLangName\}/g, toLangName);
 
-			// 2. 动态构建输入文本和强制格式指令
-			let numberedText;
-			let formatInstruction;
-			let exampleOutput = generatePromptExample(toLang, useShortTextMode);
+			// 2. 获取底层系统指令并注入目标语言示例
+			const directives = getSystemDirectives().replace(/\{exampleOutput\}/g, generatePromptExample(toLang));
 
-			if (useShortTextMode) {
-				numberedText = paragraphs.map((p, i) => `${i}. ${p.innerHTML}`).join('\n');
-				formatInstruction = `\n\n[CRITICAL FORMAT INSTRUCTION]\nThe user input is a numbered list (0., 1., 2., etc.). You MUST return the translation in the EXACT same numbered list format. DO NOT use[#0] tags.`;
+			// 3. 变量注入与防误删兜底
+			if (finalSystemPrompt.includes('{systemDirectives}')) {
+				finalSystemPrompt = finalSystemPrompt.replace(/\{systemDirectives\}/g, directives);
 			} else {
-				numberedText = paragraphs.map((p, i) => `[#${i}] ${p.innerHTML}`).join('\n\n');
-				formatInstruction = `\n\n[CRITICAL FORMAT INSTRUCTION]\nThe user input is prefixed with ID tags ([#0], [#1], etc.). You MUST prefix each translated segment with its EXACT corresponding ID tag.`;
+				finalSystemPrompt = `${finalSystemPrompt.trim()}\n\n${directives}`;
 			}
 
-			// 3. 将格式指令和示例附加在 System Prompt 最末尾
-			finalSystemPrompt = `${finalSystemPrompt.trim()}\n${formatInstruction}\n\n${exampleOutput}`;
+			// 4. 构建 JSON 输入数组
+			const inputArray = paragraphs.map((p, i) => ({
+				id: i,
+				text: p.innerHTML
+			}));
+			const numberedText = JSON.stringify(inputArray, null, 2);
 
 			let finalUserPrompt = params.user_prompt
 				.replace(/\{toLangName\}/g, toLangName)
@@ -10764,8 +11318,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				systemPrompt: finalSystemPrompt,
 				userPrompt: finalUserPrompt,
 				temperature: params.temperature,
-				reasoningEffort: params.reasoning_effort,
-				useShortTextMode: useShortTextMode
+				reasoningEffort: params.reasoning_effort
 			};
 		}
 	};
@@ -10882,6 +11435,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							} else {
 								const err = this._normalizeError(res, responseData);
 								if (this.usedApiKey) err.usedKey = this.usedApiKey;
+								
+								// 单 Key 或无 Key 场景下，遇到鉴权错误直接升级为致命错误，中断重试
+								if (err.type === 'auth_error' && this.totalKeys <= 1) {
+									err.originalType = 'auth_error';
+									err.type = 'fatal_error';
+								}
+								
 								reject(err);
 							}
 						},
@@ -10906,12 +11466,16 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 */
 	class OpenAICompatibleClient extends BaseApiClient {
 		async _buildHeaders() {
-			const { key: apiKey } = await _getApiKeyForService(this.provider);
+			const { key: apiKey, totalKeys } = await _getApiKeyForService(this.provider);
 			this.usedApiKey = apiKey;
-			return {
-				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${apiKey}`
+			this.totalKeys = totalKeys;
+			const headers = {
+				'Content-Type': 'application/json'
 			};
+			if (apiKey) {
+				headers['Authorization'] = `Bearer ${apiKey}`;
+			}
+			return headers;
 		}
 
 		_buildBody(payload) {
@@ -11014,13 +11578,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 */
 	class AnthropicClient extends BaseApiClient {
 		async _buildHeaders() {
-			const { key: apiKey } = await _getApiKeyForService(this.provider);
+			const { key: apiKey, totalKeys } = await _getApiKeyForService(this.provider);
 			this.usedApiKey = apiKey;
-			return {
+			this.totalKeys = totalKeys;
+			const headers = {
 				'Content-Type': 'application/json',
-				'x-api-key': apiKey,
 				'anthropic-version': '2023-06-01'
 			};
+			if (apiKey) {
+				headers['x-api-key'] = apiKey;
+			}
+			return headers;
 		}
 
 		_buildBody(payload) {
@@ -11210,8 +11778,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			return new Promise(async (resolve, reject) => {
 				const startTime = Date.now();
 				try {
-					const { key: apiKey } = await _getApiKeyForService(this.provider);
+					const { key: apiKey, totalKeys } = await _getApiKeyForService(this.provider);
 					this.usedApiKey = apiKey;
+					this.totalKeys = totalKeys;
 					const modelId = this.provider.selectedModel;
 
 					if (!modelId) {
@@ -11220,7 +11789,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						return reject(error);
 					}
 
-					const finalUrl = this.provider.apiHost.replace('{model}', modelId) + `?key=${apiKey}`;
+					const finalUrl = this.provider.apiHost.replace('{model}', modelId) + (apiKey ? `?key=${apiKey}` : '');
 					const headers = await this._buildHeaders();
 					const body = this._buildBody(payload);
 
@@ -11265,6 +11834,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							} else {
 								const err = this._normalizeError(res, responseData);
 								if (this.usedApiKey) err.usedKey = this.usedApiKey;
+								
+								// 单 Key 或无 Key 场景下，遇到鉴权错误直接升级为致命错误，中断重试
+								if (err.type === 'auth_error' && this.totalKeys <= 1) {
+									err.originalType = 'auth_error';
+									err.type = 'fatal_error';
+								}
+								
 								reject(err);
 							}
 						},
@@ -12022,7 +12598,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				} catch (error) {
 					// 1. 处理 Key 状态黑名单
 					if (error.usedKey) {
-						if (error.type === 'auth_error') {
+						if (error.type === 'auth_error' || error.originalType === 'auth_error') {
 							KeyBlacklistManager.markDead(error.usedKey);
 							keySwitchCount++;
 						} else if (error.type === 'rate_limit') {
@@ -12050,7 +12626,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					}
 
 					// 5. 只有非 Key 级错误，才消耗常规的 attempt 计数
-					const isKeyError = error.usedKey && (error.type === 'auth_error' || error.type === 'rate_limit');
+					const isKeyError = error.usedKey && (error.type === 'auth_error' || error.originalType === 'auth_error' || error.type === 'rate_limit');
 					if (!isKeyError) attempt++;
 
 					if (attempt >= maxRetries) throw error;
@@ -12077,11 +12653,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	/**
 	 * 远程翻译请求函数
 	 */
-	async function requestRemoteTranslation(paragraphs, { isCancelled = () => false, knownFromLang = null, reqId = 'Unknown', skipRateLimit = false } = {}) {
+	async function requestRemoteTranslation(paragraphs, { isCancelled = () => false, knownFromLang = 'auto', reqId = 'Unknown', skipRateLimit = false } = {}) {
 		const createCancellationError = () => {
 			const error = new Error('用户已取消翻译。');
 			error.type = 'user_cancelled';
-			error.type = 'auth_error';
 			return error;
 		};
 		
@@ -12089,20 +12664,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		
 		const engineName = getValidEngineName();
 		const toLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
-		let fromLang = knownFromLang;
+		const fromLang = knownFromLang || 'auto';
 		
-		if (!fromLang) {
-			const userSelectedFromLang = GM_getValue('from_lang', DEFAULT_CONFIG.GENERAL.from_lang);
-			if (userSelectedFromLang === 'script_auto') {
-				const textToDetect = paragraphs.map(p => p.textContent).join(' ').substring(0, 200);
-				fromLang = await LanguageDetector.detect(textToDetect);
-			} else {
-				fromLang = userSelectedFromLang;
-			}
-		}
-		
-		if (isCancelled()) throw createCancellationError();
-
 		const resourceManager = new ResourceManager(engineName);
 
 		// 包装成单次请求任务
@@ -12119,8 +12682,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			// 传统引擎：Bing
 			if (engineName === 'bing_translator') {
 				const result = await _handleBingRequest(CONFIG.TRANS_ENGINES.bing_translator, paragraphs, fromLang, toLang, reqId);
-				const content = result.snippets.map((c, index) => `[#${index}] ${c}`).join('\n\n');
-				return { content, reasoning: '', meta: { durationMs: result.durationMs }, useShortTextMode: false };
+				return { contentArray: result.snippets, reasoning: '', meta: { durationMs: result.durationMs } };
 			}
 			
 			// 传统引擎：Google
@@ -12134,8 +12696,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					tempDiv.innerHTML = html;
 					return tempDiv.firstElementChild ? tempDiv.firstElementChild.innerHTML : '';
 				});
-				const content = innerContents.map((c, index) => `[#${index}] ${c}`).join('\n\n');
-				return { content, reasoning: '', meta: { durationMs: result.durationMs }, useShortTextMode: false };
+				return { contentArray: innerContents, reasoning: '', meta: { durationMs: result.durationMs } };
 			}
 			
 			// LLM 引擎
@@ -12154,7 +12715,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const result = await client.translate(payload, reqId);
 			
 			// 3. 返回富结果对象
-			return { ...result, useShortTextMode: payload.useShortTextMode };
+			return { ...result };
 		};
 
 		return await RetryManager.execute(singleRequestTask, {
@@ -12169,11 +12730,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	/**
 	 * 段落翻译主函数
 	 */
-	async function translateParagraphs(paragraphs, { isCancelled = () => false, knownFromLang = null, reqId = 'Unknown', skipRateLimit = false } = {}) {
+	async function translateParagraphs(paragraphs, { isCancelled = () => false, knownFromLang = 'auto', reqId = 'Unknown', skipRateLimit = false } = {}) {
 		const createCancellationError = () => {
 			const error = new Error('用户已取消翻译。');
 			error.type = 'user_cancelled';
-			error.type = 'auth_error';
 			return error;
 		};
 
@@ -12184,7 +12744,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			original: p,
 			id: index,
 			isSeparator: p.tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(p.textContent),
-			content: p.innerHTML
+			content: TranslationDOMUtils.sanitizeForTranslation(p) 
 		}));
 
 		const contentToTranslate = indexedParagraphs.filter(p => !p.isSeparator);
@@ -12195,24 +12755,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			return results;
 		}
 
-		// 1. 语言检测
-		let fromLang = knownFromLang;
-		if (!fromLang) {
-			const userSelectedFromLang = GM_getValue('from_lang', DEFAULT_CONFIG.GENERAL.from_lang);
-			if (userSelectedFromLang === 'script_auto') {
-				const textToDetect = paragraphs.map(p => p.textContent).join(' ').substring(0, 200);
-				fromLang = await LanguageDetector.detect(textToDetect);
-			} else {
-				fromLang = userSelectedFromLang;
-			}
-		}
-		if (isCancelled()) throw createCancellationError();
-
+		const fromLang = knownFromLang || 'auto';
 		const toLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
 		const engineName = getValidEngineName();
 
 		// 2. 缓存查询
-		const cacheKeys = await Promise.all(contentToTranslate.map(p => buildCacheKey(p.content, fromLang, toLang)));
+		const cacheKeys = await Promise.all(contentToTranslate.map(async (p) => {
+			const scopeId = getScopeId(p.original);
+			const textContent = p.original.textContent.trim();
+			const context = textContent.length < SHORT_TEXT_CONTEXT_THRESHOLD
+				? getLightweightCacheContext(p.original)
+				: null;
+			return buildStableCacheKey(p.content, fromLang, toLang, scopeId, context);
+		}));
+
 		const cachedResults = await TranslationCacheDB.get(cacheKeys);
 
 		const misses =[];
@@ -12264,16 +12820,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				engine: engineName,
 				paragraphs: misses.length,
 				placeholders: pm.placeholders.size,
-				cacheHits: hits.size
+				cacheHits: hits.size,
+				cacheMisses: misses.length
 			}, reqId);
 
 			// 获取富结果对象
-			const { content: combinedTranslationRaw, reasoning: reasoningText, meta, useShortTextMode } = await requestRemoteTranslation(preprocessedMisses, {
+			const response = await requestRemoteTranslation(preprocessedMisses, {
 				isCancelled,
 				knownFromLang: fromLang,
 				reqId,
 				skipRateLimit
 			});
+
+			const meta = response.meta || {};
+			const reasoningText = response.reasoning || '';
 
 			// 统一日志打印
 			Logger.info('Translation', '翻译解析成功', { 
@@ -12291,79 +12851,70 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				console.groupEnd();
 			}
 
-			let combinedTranslation = combinedTranslationRaw.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
-			combinedTranslation = pm.normalize(combinedTranslation);
-			
 			const parsedMisses = new Map();
 
-			// 解析逻辑
-			if (misses.length === 1) {
-				let cleanText = combinedTranslation.trim();
-				cleanText = cleanText.replace(/^\[#0\]\s*/, '').replace(/^0\.\s*/, '');
-				parsedMisses.set(0, cleanText);
-			} 
-			else if (!useShortTextMode && /\[#\d+\]/.test(combinedTranslation)) {
-				const idRegex = /(?:^|\n)\[#(\d+)\][\s\t]*([\s\S]*?)(?=\n\s*\[#\d+\]|$)/g;
-				let idMatch;
-				while ((idMatch = idRegex.exec(combinedTranslation)) !== null) {
-					const id = parseInt(idMatch[1], 10);
-					const content = idMatch[2].trim();
-					if (content) parsedMisses.set(id, content);
+			if (engineName === 'google_translate' || engineName === 'bing_translator') {
+				// 传统引擎
+				const contentArray = response.contentArray;
+				if (!Array.isArray(contentArray) || contentArray.length !== misses.length) {
+					const err = new Error(`传统翻译引擎返回的数组长度不匹配 (预期: ${misses.length}, 实际: ${contentArray ? contentArray.length : 'undefined'})`);
+					err.type = 'validation_failed';
+					throw err;
 				}
-			} 
-			else if (useShortTextMode && /(?:^|\n)\d+\.\s/.test(combinedTranslation)) {
-				const listRegex = /(?:^|\n)(\d+)\.\s+([\s\S]*?)(?=\n\d+\.\s|$)/g;
-				let listMatch;
-				while ((listMatch = listRegex.exec(combinedTranslation)) !== null) {
-					const id = parseInt(listMatch[1], 10);
-					const content = listMatch[2].trim();
+				contentArray.forEach((text, index) => {
+					if (text) parsedMisses.set(index, String(text).trim());
+				});
+			} else {
+				// LLM 引擎：JSON 结构化解析
+				let combinedTranslation = response.content.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
+				combinedTranslation = pm.normalize(combinedTranslation);
+				
+				const jsonObj = extractJson(combinedTranslation);
+				
+				if (!jsonObj || !Array.isArray(jsonObj.translations)) {
+					const err = new Error('AI 未返回有效的 JSON 格式数据');
+					err.type = 'validation_failed';
+					throw err;
+				}
 
-					if (id >= misses.length) {
-						Logger.warn('Translation', `短文本解析异常：检测到越界 ID ${id}，可能发生内容碰撞`, null, reqId);
-						continue;
+				jsonObj.translations.forEach(item => {
+					if (item && item.id !== undefined && item.trans !== undefined) {
+						parsedMisses.set(parseInt(item.id, 10), String(item.trans).trim());
 					}
-					
-					if (content) parsedMisses.set(id, content);
-				}
-			}
-			else {
-				if (engineName !== 'google_translate' && engineName !== 'bing_translator') {
-					const err = new Error('AI 未返回可识别的分隔符');
+				});
+
+				if (parsedMisses.size !== misses.length) {
+					const err = new Error(`AI 返回的 JSON 数组长度与输入不一致 (预期: ${misses.length}, 实际: ${parsedMisses.size})`);
 					err.type = 'validation_failed';
 					throw err;
 				}
 			}
 
-			if (parsedMisses.size !== misses.length && engineName !== 'google_translate' && engineName !== 'bing_translator') {
-				const err = new Error(`AI 响应格式不一致，检测到段落合并或缺失 (预期: ${misses.length}, 实际: ${parsedMisses.size})`);
-				err.type = 'validation_failed';
-				throw err;
-			}
-
 			// 校验占位符
-			let baseThresholds, currentChunkSize, currentParaLimit;
 			const defaults = CONFIG.SERVICE_CONFIG[engineName]?.VALIDATION || CONFIG.SERVICE_CONFIG.default.VALIDATION;
+			const params = ProfileManager.getParamsByEngine(engineName);
+			const parts = (params.validation_thresholds || '').split(/[,，]/).map(s => parseFloat(s.trim()));
+			const isValid = parts.length >= 4 && !parts.some(isNaN);
+			
+			const baseThresholds = {
+				absolute_loss: isValid ? parts[0] : defaults.absolute_loss,
+				proportional_loss: isValid ? parts[1] : defaults.proportional_loss,
+				proportional_trigger_count: isValid ? parts[2] : defaults.proportional_trigger_count,
+				catastrophic_loss: isValid ? parts[3] : defaults.catastrophic_loss
+			};
+			const currentChunkSize = params.chunk_size;
+			const currentParaLimit = params.para_limit;
 
+			// 统一将译文合并为字符串进行校验
+			let textForValidation = '';
 			if (engineName === 'google_translate' || engineName === 'bing_translator') {
-				baseThresholds = defaults;
-				currentChunkSize = CONFIG.SERVICE_CONFIG[engineName].CHUNK_SIZE;
-				currentParaLimit = CONFIG.SERVICE_CONFIG[engineName].PARAGRAPH_LIMIT;
+				textForValidation = response.contentArray.join(' ');
 			} else {
-				const params = ProfileManager.getParamsByEngine(engineName);
-				const parts = (params.validation_thresholds || '').split(/[,，]/).map(s => parseFloat(s.trim()));
-				const isValid = parts.length >= 4 && !parts.some(isNaN);
-				baseThresholds = {
-					absolute_loss: isValid ? parts[0] : defaults.absolute_loss,
-					proportional_loss: isValid ? parts[1] : defaults.proportional_loss,
-					proportional_trigger_count: isValid ? parts[2] : defaults.proportional_trigger_count,
-					catastrophic_loss: isValid ? parts[3] : defaults.catastrophic_loss
-				};
-				currentChunkSize = params.chunk_size;
-				currentParaLimit = params.para_limit;
+				textForValidation = response.content;
 			}
 
 			const preprocessedText = preprocessedMisses.map(p => p.innerHTML).join(' ');
-			const validation = pm.validate(preprocessedText, combinedTranslation, baseThresholds, currentChunkSize, currentParaLimit);
+			const validation = pm.validate(preprocessedText, textForValidation, baseThresholds, currentChunkSize, currentParaLimit);
 
 			if (!validation.isValid) {
 				Logger.warn('Translation', `占位符校验失败: ${validation.errorReason}`, { totalLoss: validation.totalLoss }, reqId);
@@ -12398,8 +12949,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			if (entriesToSave.length > 0) {
-				TranslationCacheDB.put(entriesToSave);
+				await TranslationCacheDB.put(entriesToSave);
 			}
+		} else {
+			Logger.info('Translation', '任务完成 (命中缓存)', {
+				engine: engineName,
+				paragraphs: contentToTranslate.length,
+				cacheHits: hits.size
+			}, reqId);
 		}
 
 		// 4. 合并最终结果
@@ -12455,9 +13012,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const keys = GM_getValue(arrayKey,[]);
 
 		if (keys.length === 0) {
-			const error = new Error(`请在设置面板中为 ${provider.name} 设置至少一个 API Key。`);
-			error.type = 'auth_error';
-			throw error;
+			if (!provider.isCustom) {
+				const error = new Error(`请在设置面板中为 ${provider.name} 设置至少一个 API Key 。各项翻译服务的 API Key 获取地址：<a href="https://v-lipset.github.io/docs/support/service" target="_blank" style="word-break: break-all;">https://v-lipset.github.io/docs/support/service</a>`);
+				error.type = 'fatal_error';
+				throw error;
+			} else {
+				// 自定义服务允许不填 API Key（兼容本地部署的 LLM）
+				return { key: '', index: 0, totalKeys: 0 };
+			}
 		}
 
 		const lockKey = `${serviceId}_key_lock`;
@@ -12503,7 +13065,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				if (status === 'ACTIVE') {
 					GM_setValue(indexKey, (currentIndex + 1) % keys.length);
 					Logger.info('Network', `API Key 调度: ${provider.name}`, { keyIndex: currentIndex + 1 });
-					return { key: candidateKey, index: currentIndex };
+					return { key: candidateKey, index: currentIndex, totalKeys: keys.length };
 				}
 
 				if (status === 'COOLING') {
@@ -12518,8 +13080,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			// 所有 Key 都不可用
 			const allDead = keys.every(k => KeyBlacklistManager.getStatus(k) === 'DEAD');
 			if (allDead) {
-				const error = new Error(`所有 ${provider.name} 的 API Key 均已失效（欠费/无效/无权限），请检查更新。`);
-				error.type = 'auth_error';
+				const error = new Error(`所有 ${provider.name} 的 API Key 均已失效，请检查更新。`);
+				error.type = 'fatal_error';
 				throw error;
 			}
 
@@ -13364,7 +13926,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (el.style.display === 'none' || el.style.visibility === 'hidden') return true;
 
 			const style = window.getComputedStyle(el);
-			return style.display === 'none' || style.visibility === 'hidden';
+			if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return true;
+
+			// 过滤在屏幕上不占据实际物理像素的节点
+			const rect = el.getBoundingClientRect();
+			if (rect.width === 0 || rect.height === 0) return true;
+
+			return false;
 		}
 
 		/**
@@ -13524,14 +14092,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			this.unitMap = new Map();
 		}
 
-		add(unit, retryCount = 0, unshift = false, priority = 1) {
+		add(unit, retryCount = 0, unshift = false, priority = 1, forcedGroup = null) {
 			if (unit.dataset.translationState && unit.dataset.translationState !== 'queued') return;
 			if (this.unitMap.has(unit)) return;
 
 			unit.dataset.translationState = 'queued';
 			
 			const domIndex = parseInt(unit.dataset.domIndex || '0', 10);
-			const node = { unit, retryCount, domIndex, priority };
+			const node = { unit, retryCount, domIndex, priority, forcedGroup };
 			
 			const targetQueue = priority === 0 ? this.viewportQueue : this.backgroundQueue;
 
@@ -13607,10 +14175,16 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			
 			const firstNode = queueManager.peek();
 			const batchLang = firstNode.unit.dataset.detectedLang || 'auto';
+			const forcedGroup = firstNode.forcedGroup || null;
 
 			while (queueManager.size > 0) {
 				const node = queueManager.peek();
 				const unitLang = node.unit.dataset.detectedLang || 'auto';
+
+				if (forcedGroup && node.forcedGroup !== forcedGroup) {
+					reason = 'forced_group_boundary';
+					break;
+				}
 
 				if (batchNodes.length > 0 && unitLang !== batchLang) {
 					reason = 'language_boundary';
@@ -13634,6 +14208,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 				if (batchNodes.length >= paragraphLimit || currentChars >= chunkSize) {
 					reason = 'full';
+					break;
+				}
+
+				if (forcedGroup && queueManager.size > 0 && queueManager.peek().forcedGroup !== forcedGroup) {
+					reason = 'forced_group_complete';
 					break;
 				}
 			}
@@ -13775,6 +14354,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			this.onComplete = options.onComplete;
 			this.onProgress = options.onProgress;
 			this.onRetryCallback = options.onRetry;
+			this.onActiveStateChange = options.onActiveStateChange;
 			this.containerLang = options.containerLang || "auto";
 			this.useObserver = options.useObserver !== false;
 
@@ -13785,14 +14365,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			this.batchStrategy = new BatchStrategy({
 				getLimits: () => {
-					const isSpecial =['google_translate', 'bing_translator'].includes(engine);
-					const base = CONFIG.SERVICE_CONFIG[engine] || CONFIG.SERVICE_CONFIG.default;
-					if (isSpecial) {
-						return {
-							chunkSize: base.CHUNK_SIZE,
-							paragraphLimit: base.PARAGRAPH_LIMIT
-						};
-					}
 					const params = ProfileManager.getParamsByEngine(engine);
 					return {
 						chunkSize: params.chunk_size,
@@ -13808,50 +14380,52 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			this.viewportObserver = null;
 			this.dwellTimers = new Map();
 
-			if (this.useObserver) {
-				const rootMargin = this._getRootMargin();
-				
-				// 1. 预加载观察者：负责将进入懒加载范围的节点加入后台队列 (优先级 1)
-				this.preloadObserver = new IntersectionObserver((entries) => {
-					if (this.isCancelled()) return;
-					let addedOrRemoved = false;
-					entries.forEach(entry => {
-						const unit = entry.target;
-						if (entry.isIntersecting) {
-							// 进入懒加载范围：启动 200ms 防抖定时器
-							if (!this.dwellTimers.has(unit) && (!unit.dataset.translationState || unit.dataset.translationState === 'queued')) {
-								const timer = setTimeout(() => {
-									this.dwellTimers.delete(unit);
-									// 默认加入后台队列 (优先级 1)
-									this.queueManager.add(unit, 0, false, 1);
-									this.schedule(false);
-								}, 200);
-								this.dwellTimers.set(unit, timer);
-							}
-						} else {
-							// 离开懒加载范围：清除定时器
-							if (this.dwellTimers.has(unit)) {
-								clearTimeout(this.dwellTimers.get(unit));
-								this.dwellTimers.delete(unit);
-							}
-							// 如果节点还在队列中（未开始翻译），直接将其移出队列
-							if (unit.dataset.translationState === 'queued') {
-								this.queueManager.remove(unit);
-								delete unit.dataset.translationState;
-								addedOrRemoved = true;
-							}
-						}
-					});
-					if (addedOrRemoved) this.schedule(false);
-				}, { rootMargin });
+			this.pendingNodes = new Set();
+			this.inFlightBatches = 0;
+			this.isEngineActive = false;
 
-				// 2. 视口观察者：负责精确追踪当前屏幕可见的节点，动态提升/降低其优先级
+			// 记录当前的 rootMargin
+			this.currentRootMargin = this._getRootMargin();
+
+			// 将 preloadObserver 的回调函数提取出来，以便重建时复用
+			this.preloadObserverCallback = (entries) => {
+				if (this.isCancelled()) return;
+				let addedOrRemoved = false;
+				entries.forEach(entry => {
+					const unit = entry.target;
+					if (entry.isIntersecting) {
+						if (!this.dwellTimers.has(unit) && (!unit.dataset.translationState || unit.dataset.translationState === 'queued')) {
+							const timer = setTimeout(() => {
+								this.dwellTimers.delete(unit);
+								this.queueManager.add(unit, 0, false, 1);
+								this.schedule(false);
+							}, 200);
+							this.dwellTimers.set(unit, timer);
+						}
+					} else {
+						if (this.dwellTimers.has(unit)) {
+							clearTimeout(this.dwellTimers.get(unit));
+							this.dwellTimers.delete(unit);
+						}
+						if (unit.dataset.translationState === 'queued') {
+							this.queueManager.remove(unit);
+							delete unit.dataset.translationState;
+							addedOrRemoved = true;
+						}
+					}
+				});
+				if (addedOrRemoved) this.schedule(false);
+			};
+
+			if (this.useObserver) {
+				// 使用提取的回调函数和记录的 margin 初始化
+				this.preloadObserver = new IntersectionObserver(this.preloadObserverCallback, { rootMargin: this.currentRootMargin });
+
 				this.viewportObserver = new IntersectionObserver((entries) => {
 					if (this.isCancelled()) return;
 					let changed = false;
 					entries.forEach(entry => {
 						const unit = entry.target;
-						// 仅当节点还在队列中时，才更新其优先级
 						if (this.queueManager.unitMap.has(unit)) {
 							const priority = entry.isIntersecting ? 0 : 1;
 							this.queueManager.updatePriority(unit, priority);
@@ -13865,40 +14439,76 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			this.timer = null;
 			this.detectedLang = null;
 			this.prependNodes = options.prependNodes ||[];
-			this.totalUnits = 0;
-			this.processedUnits = 0;
 			this.currentDomIndex = 0;
 			this.hasError = false;
+			
 			this.prependNodes.forEach((n, i) => {
 				if (!n.dataset.translationState || n.dataset.translationState === 'queued') {
 					n.dataset.domIndex = -(this.prependNodes.length - i);
+					this.pendingNodes.add(n);
 					this.queueManager.add(n, 0, false, 0);
-					this.totalUnits++;
 				}
 			});
+
+			// 绑定并监听懒加载参数变更事件
+			this._onMarginChange = this._handleMarginChange.bind(this);
+			document.addEventListener(CUSTOM_EVENTS.LAZY_LOAD_MARGIN_CHANGED, this._onMarginChange);
+		}
+
+		// 处理懒加载参数变更
+		_handleMarginChange() {
+			if (!this.useObserver || this.isCancelled()) return;
+			
+			const newMargin = this._getRootMargin();
+			if (newMargin === this.currentRootMargin) return;
+			
+			Logger.info('Translation', `懒加载范围已动态更新: ${this.currentRootMargin} -> ${newMargin}`);
+			this.currentRootMargin = newMargin;
+			
+			// 1. 销毁旧的观察者
+			if (this.preloadObserver) {
+				this.preloadObserver.disconnect();
+			}
+			
+			// 2. 使用新参数创建新的观察者
+			this.preloadObserver = new IntersectionObserver(this.preloadObserverCallback, { rootMargin: this.currentRootMargin });
+			
+			// 3. 遍历所有待处理节点，重新加入观察
+			this.pendingNodes.forEach(unit => {
+				if (!unit.classList.contains('ao3-title-translatable-temp')) {
+					this.preloadObserver.observe(unit);
+				}
+			});
+			
+			// 4. 触发一次调度，让新观察者立刻生效
+			this.schedule(false);
+		}
+
+		_updateActiveState() {
+			const isActive = this.queueManager.size > 0 || this.inFlightBatches > 0;
+			if (this.isEngineActive !== isActive) {
+				this.isEngineActive = isActive;
+				if (this.onActiveStateChange) {
+					this.onActiveStateChange(isActive);
+				}
+			}
 		}
 
 		async start() {
 			try {
 				const unitGenerator = this.normalizer.generateUnits(this.container);
-				let sampleBatch =[];
-				let detectionAttempted = false;
 
 				for await (const unit of unitGenerator) {
 					if (this.isCancelled()) break;
 					if (unit.dataset.translationState && unit.dataset.translationState !== 'queued') continue;
 
-					this.totalUnits++;
-					unit.dataset.domIndex = this.currentDomIndex++;
-
-					if (!this.detectedLang && !detectionAttempted && !this.prependNodes.includes(unit)) {
-						sampleBatch.push(unit);
-						if (sampleBatch.length >= 5) {
-							await this._detectLanguage(sampleBatch);
-							detectionAttempted = true;
-							sampleBatch =[];
-						}
+					// 统一继承语言状态
+					if (!unit.dataset.detectedLang) {
+						unit.dataset.detectedLang = this.container.dataset.detectedLang || this.containerLang || 'auto';
 					}
+
+					this.pendingNodes.add(unit);
+					unit.dataset.domIndex = this.currentDomIndex++;
 
 					if (this.useObserver) {
 						this.preloadObserver.observe(unit);
@@ -13907,17 +14517,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						this.queueManager.add(unit, 0, false, 0);
 					}
 
-					// 防抖调度：每加入一个节点，重置 50ms 定时器
 					this.schedule(false);
-				}
-
-				if (!this.detectedLang && !detectionAttempted && sampleBatch.length > 0) {
-					await this._detectLanguage(sampleBatch);
 				}
 
 				this.schedule(true);
 
-				if (this.totalUnits === 0) {
+				if (this.pendingNodes.size === 0) {
 					this._finish();
 				}
 			} catch (e) {
@@ -13935,8 +14540,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		async runLoop(force) {
 			if (this.isCancelled()) return;
 			
+			this._updateActiveState();
+
 			if (this.queueManager.size === 0) {
-				if (this.processedUnits >= this.totalUnits) this._finish();
+				if (this.pendingNodes.size === 0 && this.inFlightBatches === 0) {
+					this._finish();
+				}
 				return;
 			}
 
@@ -13957,7 +14566,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			const tokenResult = await this.resourceManager.acquireToken();
 			if (!tokenResult.success) {
-				batchNodes.reverse().forEach(node => this.queueManager.add(node.unit, node.retryCount, true, node.priority));
+				batchNodes.reverse().forEach(node => this.queueManager.add(node.unit, node.retryCount, true, node.priority, node.forcedGroup || null));
 				this.timer = setTimeout(() => this.runLoop(force), tokenResult.waitTime + 50);
 				return;
 			}
@@ -13970,6 +14579,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		async _executeBatch(batchNodes, batchLang) {
+			this.inFlightBatches++;
+			this._updateActiveState();
+
 			const batch = batchNodes.map(n => n.unit);
 			batch.forEach(el => {
 				el.dataset.translationState = 'translating';
@@ -13995,18 +14607,24 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (this.viewportObserver) this.viewportObserver.unobserve(el);
 
 					if (el.dataset.translationState !== 'translating') continue;
-					this.processedUnits++;
 
 					if (el.tagName === 'HR') {
 						el.dataset.translationState = 'translated';
+						this.pendingNodes.delete(el);
 						continue;
 					}
 
 					const res = results.get(el);
 					if (res) {
 						this.renderer.applyResult(el, res, this.onRetryCallback);
+						this.pendingNodes.delete(el);
+						if (res.status !== 'success') {
+							this.hasError = true;
+						}
 					} else {
 						this.renderer.applyResult(el, { status: 'error', content: '底层异常：翻译结果丢失' }, this.onRetryCallback);
+						this.pendingNodes.delete(el);
+						this.hasError = true;
 					}
 					await TimeSlicer.yieldIfNeeded();
 				}
@@ -14019,10 +14637,16 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					Logger.warn('Translation', `批次重试耗尽或校验失败，触发二分降级策略`, { batchSize: batchNodes.length });
 					const mid = Math.ceil(batchNodes.length / 2);
 					const batchA = batchNodes.slice(0, mid);
-					const batchB = batchNodes.slice(mid);[batchB, batchA].forEach(subBatch => {
+					const batchB = batchNodes.slice(mid);
+					const splitGroupBase = `${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
+					[
+						{ nodes: batchB, group: `${splitGroupBase}_b` },
+						{ nodes: batchA, group: `${splitGroupBase}_a` }
+					].forEach(({ nodes, group }) => {
+						const subBatch = nodes.slice();
 						subBatch.reverse().forEach(node => {
 							node.unit.dataset.translationState = 'queued';
-							this.queueManager.add(node.unit, node.retryCount, true, node.priority); 
+							this.queueManager.add(node.unit, node.retryCount + 1, true, node.priority, group); 
 						});
 					});
 					this.schedule(true);
@@ -14034,33 +14658,18 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				this.hasError = true;
 				for (const node of batchNodes) {
 					if (node.unit.dataset.translationState !== 'translating') continue;
-					this.processedUnits++;
 					this.renderer.applyResult(node.unit, { status: 'error', content: e.message }, this.onRetryCallback);
+					this.pendingNodes.delete(node.unit);
 				}
 			} finally {
-				if (this.onProgress) this.onProgress(this.processedUnits, this.totalUnits);
+				this.inFlightBatches--;
+				this._updateActiveState();
 				this.schedule(false);
-			}
-		}
-
-		async _detectLanguage(samples) {
-			const userSelectedFromLang = GM_getValue('from_lang', 'auto');
-			if (userSelectedFromLang === 'script_auto') {
-				const textToDetect = samples.map(p => p.textContent).join(' ').substring(0, 200);
-				this.detectedLang = await LanguageDetector.detect(textToDetect);
-				Logger.info('Translation', `自动检测源语言: ${this.detectedLang}`);
-			} else {
-				this.detectedLang = userSelectedFromLang;
 			}
 		}
 
 		_getRootMargin() {
 			const engineName = getValidEngineName();
-			const isSpecial =['google_translate', 'bing_translator'].includes(engineName);
-			const base = CONFIG.SERVICE_CONFIG[engineName] || CONFIG.SERVICE_CONFIG.default;
-			if (isSpecial) {
-				return base.LAZY_LOAD_ROOT_MARGIN;
-			}
 			const params = ProfileManager.getParamsByEngine(engineName);
 			return params.lazy_load_margin;
 		}
@@ -14079,25 +14688,26 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				this.dwellTimers.forEach(timer => clearTimeout(timer));
 				this.dwellTimers.clear();
 			}
+			document.removeEventListener(CUSTOM_EVENTS.LAZY_LOAD_MARGIN_CHANGED, this._onMarginChange);
 		}
 
 		addUnits(units) {
-			let addedCount = 0;
 			units.forEach(u => {
 				if (u.dataset.translationState && u.dataset.translationState !== 'queued') return;
 				
 				if (u.dataset.domIndex === undefined) {
 					u.dataset.domIndex = this.currentDomIndex++;
 				}
+				
+				this.pendingNodes.add(u);
+
 				if (this.useObserver && !u.classList.contains('ao3-title-translatable-temp')) {
 					this.preloadObserver.observe(u);
 					this.viewportObserver.observe(u);
 				} else {
 					this.queueManager.add(u, 0, false, 0);
 				}
-				addedCount++;
 			});
-			this.totalUnits += addedCount;
 			this.schedule(false);
 		}
 
@@ -14176,13 +14786,35 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			return units;
 		},
 
-		deepCleanup(container) {
+		// 剔除第三方插件注入的不可见节点
+		sanitizeForTranslation(element) {
+			const clone = element.cloneNode(true);
+			const junkSelectors = [
+				'.notranslate', 
+				'[translate="no"]', 
+				'[style*="display: none"]', 
+				'[style*="display:none"]', 
+				'[aria-hidden="true"]'
+			];
+			const junkElements = clone.querySelectorAll(junkSelectors.join(', '));
+			junkElements.forEach(el => el.remove());
+			return clone.innerHTML;
+		},
+
+		deepCleanup(container, isFullCleanup = false) {
 			if (!container) return;
 			// 1. 移除所有错误提示和按钮包装器
-			container.querySelectorAll('.translated-by-ao3-translator-error, .translate-me-ao3-wrapper').forEach(el => el.remove());
+			if (isFullCleanup) {
+				container.querySelectorAll('.translated-by-ao3-translator-error, .translate-me-ao3-wrapper').forEach(el => el.remove());
+			} else {
+				container.querySelectorAll('.translated-by-ao3-translator-error').forEach(el => el.remove());
+			}
 			
 			// 2. 还原所有带有翻译状态的单元
-			container.querySelectorAll('[data-translation-state]').forEach(unit => this.unwrapUnit(unit));
+			container.querySelectorAll('[data-translation-state]').forEach(unit => {
+				if (!isFullCleanup && unit.classList.contains('translate-me-ao3-wrapper')) return;
+				this.unwrapUnit(unit);
+			});
 			
 			// 3. 移除所有译文容器
 			container.querySelectorAll('.ao3-translated-content, .ao3-translated-title, .ao3-tag-translation, .translated-tags-container').forEach(el => el.remove());
@@ -14190,6 +14822,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			// 4. 还原被拆分的文本块
 			container.querySelectorAll('.ao3-text-block').forEach(block => {
 				block.replaceWith(...block.childNodes);
+			});
+			if (container.dataset && container.dataset.brSplit) {
+				delete container.dataset.brSplit;
+			}
+			container.querySelectorAll('[data-br-split]').forEach(el => {
+				delete el.dataset.brSplit;
 			});
 
 			// 5. 还原标签结构
@@ -14202,9 +14840,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			});
 
 			// 6. 重置单元模式的逻辑锁标记，允许重新扫描
-			container.querySelectorAll('[data-translation-handled]').forEach(el => {
-				delete el.dataset.translationHandled;
-			});
+			if (isFullCleanup) {
+				if (container.dataset && container.dataset.translationHandled) {
+					delete container.dataset.translationHandled;
+				}
+				container.querySelectorAll('[data-translation-handled]').forEach(el => {
+					delete el.dataset.translationHandled;
+				});
+			}
 		}
 	};
 
@@ -14274,19 +14917,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	};
 
 	/**
-	 * 提取标题节点用于翻译
+	 * 标题翻译管理器：集中管理标题的提取、渲染、错误处理与状态清理
 	 */
-	function extractTitleForTranslation(containerElement) {
-		let titleNode = null;
-		let titleTempDiv = null;
-		let isChapterTitle = false;
-		let originalTitleText = '';
+	const TitleTranslationManager = {
+		registry: new Map(),
+		nextId: 1,
 
-		// 1. 定位标题节点
-		if (containerElement.matches('h2.title.heading, h3.title, .news.module .header h3.heading')) {
-			titleNode = containerElement;
-		}
-		else {
+		generateId() {
+			return `ctrl_${this.nextId++}`;
+		},
+
+		findTitleNode(containerElement) {
+			if (containerElement.matches('h2.title.heading, h3.title, .news.module .header h3.heading')) {
+				return containerElement;
+			}
 			let prefaceGroup = containerElement.previousElementSibling;
 			while (prefaceGroup && !prefaceGroup.classList.contains('preface')) {
 				prefaceGroup = prefaceGroup.previousElementSibling;
@@ -14295,73 +14939,196 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				prefaceGroup = Array.from(containerElement.parentElement.children).find(c => c.classList.contains('preface'));
 			}
 			if (prefaceGroup) {
-				titleNode = prefaceGroup.querySelector('h3.title');
+				const h3 = prefaceGroup.querySelector('h3.title');
+				if (h3) return h3;
 			}
-			if (!titleNode) {
-				const workPreface = containerElement.closest('.preface.group') || document.querySelector('.preface.group');
-				if (workPreface) {
-					titleNode = workPreface.querySelector('h2.title.heading');
-				}
+			const workPreface = containerElement.closest('.preface.group') || document.querySelector('.preface.group');
+			if (workPreface) {
+				const h2 = workPreface.querySelector('h2.title.heading');
+				if (h2) return h2;
 			}
-		}
+			return null;
+		},
 
-		if (!titleNode || titleNode.querySelector('.ao3-translated-title')) {
-			return { titleNode: null, titleTempDiv: null, originalTitleText: '', isChapterTitle: false };
-		}
+		extractTextToTranslate(titleNode) {
+			const isChapterTitle = titleNode.matches('h3.title');
+			let textToTranslate = '';
+			let isValid = true;
 
-		// 2. 判断标题类型
-		isChapterTitle = titleNode.matches('h3.title');
+			if (isChapterTitle) {
+				const fullText = titleNode.textContent.trim();
+				const simpleChapterRegex = /^(?:Chapter|第)\s*\d+\s*(?:章)?$/i;
+				const link = titleNode.querySelector('a');
 
-		// 检查是否已经存在 temp div，如果存在则直接复用并清除状态
-		titleTempDiv = titleNode.querySelector('.ao3-title-translatable-temp');
-		if (titleTempDiv) {
-			delete titleTempDiv.dataset.translationState;
-			return { titleNode, titleTempDiv, originalTitleText: titleTempDiv.textContent, isChapterTitle };
-		}
-
-		// 3. 提取需要翻译的纯文本
-		let textToTranslate = '';
-		let isValid = true;
-
-		if (isChapterTitle) {
-			const fullText = titleNode.textContent.trim();
-			const simpleChapterRegex = /^(?:Chapter|第)\s*\d+\s*(?:章)?$/i;
-			const link = titleNode.querySelector('a');
-
-			if (link) {
-				const linkText = link.textContent;
-				const remaining = fullText.replace(linkText, '').trim();
-				if (!remaining || /^[:：]\s*$/.test(remaining)) {
+				if (link) {
+					const linkText = link.textContent;
+					const remaining = fullText.replace(linkText, '').trim();
+					if (!remaining || /^[:：]\s*$/.test(remaining)) {
+						isValid = false;
+					} else {
+						textToTranslate = remaining.replace(/^[:：]\s*/, '');
+					}
+				} else if (simpleChapterRegex.test(fullText)) {
 					isValid = false;
 				} else {
-					textToTranslate = remaining.replace(/^[:：]\s*/, '');
+					textToTranslate = fullText;
 				}
-			} else if (simpleChapterRegex.test(fullText)) {
-				isValid = false;
 			} else {
-				textToTranslate = fullText;
+				const clone = titleNode.cloneNode(true);
+				clone.querySelectorAll('img, svg, .ao3-title-translatable-temp, .ao3-translated-title').forEach(el => el.remove());
+				textToTranslate = clone.textContent.trim();
 			}
-		} else {
-			const clone = titleNode.cloneNode(true);
-			// 在克隆节点中移除可能残留的 temp div，确保文本纯净
-			clone.querySelectorAll('img, svg, .ao3-title-translatable-temp').forEach(el => el.remove());
-			textToTranslate = clone.textContent.trim();
-		}
 
-		// 4. 组装返回结果
-		if (isValid && textToTranslate) {
-			titleTempDiv = document.createElement('span');
-			titleTempDiv.className = 'ao3-title-translatable-temp';
-			titleTempDiv.style.display = 'none';
-			titleTempDiv.textContent = textToTranslate;
-			originalTitleText = textToTranslate;
-			titleNode.appendChild(titleTempDiv);
-		} else {
-			titleNode = null; 
-		}
+			if (!isValid || !textToTranslate) return null;
+			return { textToTranslate, isChapterTitle };
+		},
 
-		return { titleNode, titleTempDiv, originalTitleText, isChapterTitle };
-	}
+		getOrPrepareTitle(containerElement, controllerId) {
+			const titleNode = this.findTitleNode(containerElement);
+			if (!titleNode) return null;
+
+			// 1. 检查是否已被接管
+			if (this.registry.has(titleNode)) {
+				const record = this.registry.get(titleNode);
+				if (record.ownerId !== controllerId) {
+					return null;
+				}
+				return record;
+			}
+
+			// 2. 检查是否已被整页模式或其它机制翻译
+			if (titleNode.dataset.translationState === 'translated-title' || titleNode.querySelector('.ao3-translated-title')) {
+				return null;
+			}
+
+			// 3. 提取并准备临时节点
+			const extracted = this.extractTextToTranslate(titleNode);
+			if (!extracted) return null;
+			const { textToTranslate, isChapterTitle } = extracted;
+
+			const tempDiv = document.createElement('span');
+			tempDiv.className = 'ao3-title-translatable-temp';
+			tempDiv.style.display = 'none';
+			tempDiv.textContent = textToTranslate;
+			titleNode.appendChild(tempDiv);
+
+			const record = {
+				ownerId: controllerId,
+				titleNode,
+				tempDiv,
+				originalText: textToTranslate,
+				isChapterTitle,
+				errorElement: null
+			};
+
+			this.registry.set(titleNode, record);
+			return record;
+		},
+
+		renderSuccess(record, translatedText) {
+			const { titleNode, originalText, isChapterTitle, tempDiv } = record;
+			const finalTitleContent = AdvancedTranslationCleaner.cleanTitle(translatedText, originalText);
+			titleNode.dataset.translationState = 'translated-title';
+
+			let originalWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-original-title'));
+			if (!originalWrapper) {
+				originalWrapper = document.createElement('span');
+				originalWrapper.className = 'ao3-original-title';
+				while (titleNode.firstChild) {
+					if (titleNode.firstChild !== tempDiv) {
+						originalWrapper.appendChild(titleNode.firstChild);
+					} else {
+						titleNode.removeChild(titleNode.firstChild);
+					}
+				}
+				titleNode.appendChild(originalWrapper);
+			}
+
+			let translatedWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-translated-title'));
+			if (translatedWrapper) translatedWrapper.remove();
+
+			translatedWrapper = document.createElement('span');
+			translatedWrapper.className = 'ao3-translated-title';
+
+			if (isChapterTitle) {
+				const translatedContent = originalWrapper.cloneNode(true);
+				translatedContent.className = '';
+				const link = translatedContent.querySelector('a');
+				if (link) {
+					let next = link.nextSibling;
+					while (next) { const toRemove = next; next = next.nextSibling; toRemove.remove(); }
+					translatedContent.appendChild(document.createTextNode(`: ${finalTitleContent}`));
+				} else {
+					translatedContent.textContent = finalTitleContent;
+				}
+				while (translatedContent.firstChild) translatedWrapper.appendChild(translatedContent.firstChild);
+			} else {
+				translatedWrapper.textContent = finalTitleContent;
+			}
+
+			titleNode.appendChild(translatedWrapper);
+			if (tempDiv.parentNode) tempDiv.remove();
+			
+			if (record.errorElement) {
+				record.errorElement.remove();
+				record.errorElement = null;
+			}
+		},
+
+		renderError(record, errorMessage, onRetry) {
+			const { titleNode, tempDiv } = record;
+			titleNode.dataset.translationState = 'error';
+			tempDiv.dataset.translationState = 'error';
+
+			if (record.errorElement) {
+				record.errorElement.remove();
+			}
+
+			record.errorElement = TranslationDOMUtils.createErrorDisplay(errorMessage, () => {
+				if (record.errorElement) {
+					record.errorElement.remove();
+					record.errorElement = null;
+				}
+				titleNode.dataset.translationState = 'queued';
+				delete tempDiv.dataset.translationState;
+				onRetry(tempDiv);
+			});
+			titleNode.after(record.errorElement);
+		},
+
+		clearForController(controllerId) {
+			for (const [titleNode, record] of this.registry.entries()) {
+				if (record.ownerId === controllerId) {
+					this._clearRecord(record);
+					this.registry.delete(titleNode);
+				}
+			}
+		},
+
+		_clearRecord(record) {
+			const { titleNode, tempDiv, errorElement } = record;
+			delete titleNode.dataset.translationState;
+			
+			const originalWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-original-title'));
+			if (originalWrapper) {
+				while (originalWrapper.firstChild) titleNode.insertBefore(originalWrapper.firstChild, originalWrapper);
+				originalWrapper.remove();
+			}
+			
+			const translatedWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-translated-title'));
+			if (translatedWrapper) translatedWrapper.remove();
+
+			if (tempDiv && tempDiv.parentNode) tempDiv.remove();
+			if (errorElement && errorElement.parentNode) errorElement.remove();
+		},
+
+		clearAll() {
+			for (const record of this.registry.values()) {
+				this._clearRecord(record);
+			}
+			this.registry.clear();
+		}
+	};
 
 	/**
 	 * 通用翻译控制器基座：管理状态切换、RunID 校验及 UI 更新
@@ -14454,79 +15221,48 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	function createTranslationController(options) {
 		const { containerElement, buttonWrapper, originalButtonText, isLazyLoad } = options;
 		let activeTask = null;
-		let translatedTitleElement = null;
 		let errorElement = null;
+		const controllerId = TitleTranslationManager.generateId();
 
 		const controller = createBaseController({
 			buttonWrapper,
 			originalButtonText,
 			onStart: async (isCancelled, onDone) => {
 				try {
-					const { titleNode, titleTempDiv, originalTitleText, isChapterTitle } = extractTitleForTranslation(containerElement);
+					const rule = JSON.parse(containerElement.dataset.translationRule || '{}');
+					const { detectedLang } = await LanguageDetectionManager.processContainer(containerElement, rule, 'unit');
+					containerElement.dataset.detectedLang = detectedLang;
 
+					const titleRecord = TitleTranslationManager.getOrPrepareTitle(containerElement, controllerId);
 					const customRenderers = new Map();
-					if (titleTempDiv) {
-						customRenderers.set(titleTempDiv, (_node, result) => {
+					const prependNodes = [];
+
+					if (titleRecord) {
+						titleRecord.tempDiv.dataset.detectedLang = detectedLang;
+						prependNodes.push(titleRecord.tempDiv);
+						customRenderers.set(titleRecord.tempDiv, (_node, result) => {
 							if (result.status === 'success') {
-								const finalTitleContent = AdvancedTranslationCleaner.cleanTitle(result.content, originalTitleText);
-								titleNode.dataset.translationState = 'translated-title';
-
-								let originalWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-original-title'));
-								if (!originalWrapper) {
-									originalWrapper = document.createElement('span');
-									originalWrapper.className = 'ao3-original-title';
-									while (titleNode.firstChild) originalWrapper.appendChild(titleNode.firstChild);
-									titleNode.appendChild(originalWrapper);
-								}
-
-								let translatedWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-translated-title'));
-								if (translatedWrapper) translatedWrapper.remove();
-
-								translatedWrapper = document.createElement('span');
-								translatedWrapper.className = 'ao3-translated-title';
-
-                                if (isChapterTitle) {
-									const translatedContent = originalWrapper.cloneNode(true);
-									translatedContent.className = '';
-									const link = translatedContent.querySelector('a');
-									if (link) {
-										let next = link.nextSibling;
-										while (next) { const toRemove = next; next = next.nextSibling; toRemove.remove(); }
-										translatedContent.appendChild(document.createTextNode(`: ${finalTitleContent}`));
-									} else {
-										translatedContent.textContent = finalTitleContent;
-									}
-									while (translatedContent.firstChild) translatedWrapper.appendChild(translatedContent.firstChild);
-								} else {
-									translatedWrapper.textContent = finalTitleContent;
-								}
-
-								titleNode.appendChild(translatedWrapper);
-								translatedTitleElement = translatedWrapper;
-								_node.remove();
+								TitleTranslationManager.renderSuccess(titleRecord, result.content);
 							} else {
-								titleNode.dataset.translationState = 'error';
-								const errEl = TranslationDOMUtils.createErrorDisplay(result.content, () => {
-									errEl.remove();
-									titleNode.dataset.translationState = 'queued';
-									delete titleTempDiv.dataset.translationState;
+								TitleTranslationManager.renderError(titleRecord, result.content, (retryNode) => {
 									if (activeTask) {
 										if (controller.state === 'complete') {
 											controller.state = 'running';
 											controller.updateButtonState('翻译中…', 'state-running');
 										}
-										activeTask.addUnits([titleTempDiv]);
+										activeTask.addUnits([retryNode]);
 										activeTask.scheduleProcessing(true);
 									}
 								});
-								titleNode.after(errEl);
 							}
 						});
 					}
 
 					activeTask = runUniversalTranslationEngine({
-						containerElement, isCancelled, onComplete: onDone, useObserver: isLazyLoad,
-						prependNodes: titleTempDiv ? [titleTempDiv] :[],
+						containerElement, 
+						containerLang: detectedLang,
+						isCancelled, onComplete: onDone, useObserver: isLazyLoad,
+						prependNodes: prependNodes,
 						customRenderers: customRenderers,
 						onRetry: () => {
 							const failed = TranslationDOMUtils.resetFailedUnits(containerElement);
@@ -14558,20 +15294,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				});
 			},
 			onClear: () => {
-				TranslationDOMUtils.deepCleanup(containerElement);
-				if (translatedTitleElement) {
-					const titleNode = translatedTitleElement.parentElement;
-					if (titleNode) {
-						delete titleNode.dataset.translationState;
-						const originalWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-original-title'));
-						if (originalWrapper) {
-							while (originalWrapper.firstChild) titleNode.insertBefore(originalWrapper.firstChild, originalWrapper);
-							originalWrapper.remove();
-						}
-					}
-					translatedTitleElement.remove();
-					translatedTitleElement = null;
-				}
+				TranslationDOMUtils.deepCleanup(containerElement, false);
+				TitleTranslationManager.clearForController(controllerId);
 				if (errorElement) { errorElement.remove(); errorElement = null; }
 			}
 		});
@@ -14598,6 +15322,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (el.dataset.translationState !== 'translated') delete el.dataset.translationState;
 				});
 
+				const rule = JSON.parse(summaryElement.dataset.translationRule || '{}');
+				const { detectedLang } = await LanguageDetectionManager.processContainer(summaryElement, rule, 'unit');
+				summaryElement.dataset.detectedLang = detectedLang;
+
 				let tagsFinished = false;
 				let summaryFinished = false;
 
@@ -14607,7 +15335,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					}
 				};
 
-				runTagsTranslationEngine(tagsElement, isCancelled)
+				// 传递 detectedLang 给标签引擎
+				runTagsTranslationEngine(tagsElement, isCancelled, detectedLang, false)
 					.then(() => {
 						tagsFinished = true;
 					})
@@ -14621,6 +15350,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 				activeSummaryTask = runUniversalTranslationEngine({
 					containerElement: summaryElement,
+					containerLang: detectedLang,
 					isCancelled,
 					onComplete: () => {
 						summaryFinished = true;
@@ -14640,7 +15370,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						const hasFailedTags = tagsElement.querySelector('[data-translation-state="error"]');
 						if (hasFailedTags) {
 							tagsFinished = false;
-							runTagsTranslationEngine(tagsElement, isCancelled)
+							runTagsTranslationEngine(tagsElement, isCancelled, detectedLang, false)
 								.then(() => {
 									tagsFinished = true;
 								})
@@ -14660,8 +15390,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				activeSummaryTask = null;
 			},
 			onClear: () => {
-				TranslationDOMUtils.deepCleanup(summaryElement);
-				TranslationDOMUtils.deepCleanup(tagsElement);
+				TranslationDOMUtils.deepCleanup(summaryElement, false);
+				TranslationDOMUtils.deepCleanup(tagsElement, false);
 			}
 		});
 
@@ -14680,7 +15410,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			originalButtonText,
 			onStart: async (isCancelled, onDone) => {
 				try {
-					await runTagsTranslationEngine(containerElement, isCancelled);
+					const rule = JSON.parse(containerElement.dataset.translationRule || '{}');
+					const { detectedLang } = await LanguageDetectionManager.processContainer(containerElement, rule, 'unit');
+					containerElement.dataset.detectedLang = detectedLang;
+
+					await runTagsTranslationEngine(containerElement, isCancelled, detectedLang, false);
 					if (isCancelled()) return;
 					onDone();
 				} catch (error) {
@@ -14694,7 +15428,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				}
 			},
 			onClear: () => {
-				TranslationDOMUtils.deepCleanup(containerElement);
+				TranslationDOMUtils.deepCleanup(containerElement, false);
 				if (errorElement) { errorElement.remove(); errorElement = null; }
 			}
 		});
@@ -15024,67 +15758,28 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			// 策略：处理标题
 			processTitle(container, detectedLang) {
-				const { titleNode, titleTempDiv, originalTitleText, isChapterTitle } = extractTitleForTranslation(container);
+				const titleRecord = TitleTranslationManager.getOrPrepareTitle(container, 'full_page');
 				
-				if (titleTempDiv) {
-					titleTempDiv.dataset.detectedLang = detectedLang;
+				if (titleRecord) {
+					titleRecord.tempDiv.dataset.detectedLang = detectedLang;
 					
 					// 注册自定义渲染逻辑
-					customRenderers.set(titleTempDiv, (_node, result) => {
+					customRenderers.set(titleRecord.tempDiv, (_node, result) => {
 						if (result.status === 'success') {
-							const finalTitleContent = AdvancedTranslationCleaner.cleanTitle(result.content, originalTitleText);
-							container.dataset.translationState = 'translated-title';
-
-							let originalWrapper = Array.from(container.children).find(c => c.classList.contains('ao3-original-title'));
-							if (!originalWrapper) {
-								originalWrapper = document.createElement('span');
-								originalWrapper.className = 'ao3-original-title';
-								while (container.firstChild) originalWrapper.appendChild(container.firstChild);
-								container.appendChild(originalWrapper);
-							}
-
-							let translatedWrapper = Array.from(container.children).find(c => c.classList.contains('ao3-translated-title'));
-							if (translatedWrapper) translatedWrapper.remove();
-
-							translatedWrapper = document.createElement('span');
-							translatedWrapper.className = 'ao3-translated-title';
-
-							if (isChapterTitle) {
-								const translatedContent = originalWrapper.cloneNode(true);
-								translatedContent.className = '';
-								const aLink = translatedContent.querySelector('a');
-								if (aLink) {
-									let next = aLink.nextSibling;
-									while (next) { const toRemove = next; next = next.nextSibling; toRemove.remove(); }
-									translatedContent.appendChild(document.createTextNode(`: ${finalTitleContent}`));
-								} else {
-									translatedContent.textContent = finalTitleContent;
-								}
-								while (translatedContent.firstChild) translatedWrapper.appendChild(translatedContent.firstChild);
-							} else {
-								translatedWrapper.textContent = finalTitleContent;
-							}
-
-							container.appendChild(translatedWrapper);
-							_node.remove();
+							TitleTranslationManager.renderSuccess(titleRecord, result.content);
 						} else {
-							container.dataset.translationState = 'error';
-							const errEl = TranslationDOMUtils.createErrorDisplay(result.content, () => {
-								errEl.remove();
-								container.dataset.translationState = 'queued';
-								delete titleTempDiv.dataset.translationState;
+							TitleTranslationManager.renderError(titleRecord, result.content, (retryNode) => {
 								if (globalEngine) {
 									taskManager.addTask('main-engine');
-									globalEngine.addUnits([titleTempDiv]);
+									globalEngine.addUnits([retryNode]);
 								}
 							});
-							container.after(errEl);
 						}
 					});
 
 					if (globalEngine) {
 						taskManager.addTask('main-engine');
-						globalEngine.addUnits([titleTempDiv]);
+						globalEngine.addUnits([titleRecord.tempDiv]);
 					}
 					container.dataset.translationState = 'queued';
 				} else {
@@ -15155,21 +15850,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			taskManager.clearAll();
 			customRenderers.clear();
 			
-			TranslationDOMUtils.deepCleanup(document.body);
+			TranslationDOMUtils.deepCleanup(document.body, true);
+			TitleTranslationManager.clearAll();
+			
 			document.querySelectorAll('[data-translation-state]').forEach(el => delete el.dataset.translationState);
 			document.querySelectorAll('[data-detected-lang]').forEach(el => delete el.dataset.detectedLang);
-			document.querySelectorAll('.ao3-translated-title').forEach(el => {
-				const titleNode = el.parentElement;
-				if (titleNode) {
-					delete titleNode.dataset.translationState;
-					const originalWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-original-title'));
-					if (originalWrapper) {
-						while (originalWrapper.firstChild) titleNode.insertBefore(originalWrapper.firstChild, originalWrapper);
-						originalWrapper.remove();
-					}
-				}
-				el.remove();
-			});
 		};
 
 		const startFullPageTranslation = async () => {
@@ -15182,7 +15867,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const initTaskId = Symbol('init-detection');
 			taskManager.addTask(initTaskId);
 
-			// 初始化全局翻译引擎
 			globalEngine = new UniversalEngine({
 				containerElement: document.body,
 				isCancelled: () => !stateManager.isActive,
@@ -15207,6 +15891,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							globalEngine.addUnits([unit]);
 							globalEngine.scheduleProcessing(true);
 						}
+					}
+				},
+				onActiveStateChange: (isActive) => {
+					if (isActive) {
+						taskManager.addTask('main-engine-active');
+					} else {
+						taskManager.removeTask('main-engine-active');
 					}
 				},
 				customRenderers: customRenderers,
@@ -16662,7 +17353,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 * 采用线性任务队列模式，确保迁移的顺序性、容错性和可扩展性
 	 */
 	function runDataMigration() {
-		const CURRENT_MIGRATION_VERSION = 3;
+		const CURRENT_MIGRATION_VERSION = 4;
 		let savedVersion = GM_getValue('ao3_migration_version', 0);
 
 		if (savedVersion >= CURRENT_MIGRATION_VERSION) {
@@ -16899,6 +17590,81 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						GM_setValue('from_lang', 'script_auto');
 					}
 				}
+			},
+			{
+				version: 4,
+				name: 'V4 提示词结构化输出与传统引擎专属配置',
+				migrate: () => {
+					let profiles = GM_getValue(AI_PROFILES_KEY);
+					if (Array.isArray(profiles)) {
+						let profilesChanged = false;
+						
+						// 1. 提示词结构化输出与变量化升级
+						profiles.forEach(p => {
+							if (p.params) {
+								// 迁移 System Prompt (引入 {systemDirectives} 变量)
+								if (p.params.system_prompt && !p.params.system_prompt.includes('{systemDirectives}')) {
+									let sp = p.params.system_prompt;
+									const splitKeyword = '### CRITICAL OUTPUT INSTRUCTIONS:';
+									const splitIndex = sp.indexOf(splitKeyword);
+									
+									if (splitIndex !== -1) {
+										// 找到旧版硬编码指令，切掉并替换为变量
+										sp = sp.substring(0, splitIndex).trim() + '\n\n{systemDirectives}';
+									} else {
+										// 找不到分隔符，直接在末尾追加变量
+										sp = sp.trim() + '\n\n{systemDirectives}';
+									}
+									
+									p.params.system_prompt = sp;
+									profilesChanged = true;
+								}
+
+								// 迁移 User Prompt (改为 JSON 格式)
+								if (p.params.user_prompt) {
+									let up = p.params.user_prompt;
+									const oldUserPrompt = /Translate the following numbered list to \{toLangName\} \(output translation only\):/gi;
+									const newUserPrompt = 'Translate the following JSON array to {toLangName} (output JSON only):';
+									up = up.replace(oldUserPrompt, newUserPrompt);
+									
+									if (up !== p.params.user_prompt) {
+										p.params.user_prompt = up;
+										profilesChanged = true;
+									}
+								}
+							}
+						});
+						
+						// 2. 注入传统翻译引擎专属配置
+						const hasTraditional = profiles.some(p => p.isTraditional || p.id === 'profile_traditional_init');
+						if (!hasTraditional) {
+							const traditionalProfile = {
+								id: 'profile_traditional_init',
+								name: '谷歌、微软',
+								isProtected: true,
+								isTraditional: true,
+								services: ['google_translate', 'bing_translator'],
+								params: {
+									...BASE_AI_PARAMS,
+									chunk_size: 3000,
+									para_limit: 15,
+									request_rate: 5,
+									request_capacity: 20,
+									lazy_load_margin: '1200px 0px 10000px 0px'
+								}
+							};
+							const defaultIndex = profiles.findIndex(p => p.id === 'profile_default');
+							if (defaultIndex !== -1) {
+								profiles.splice(defaultIndex + 1, 0, traditionalProfile);
+							} else {
+								profiles.unshift(traditionalProfile);
+							}
+							profilesChanged = true;
+						}
+
+						if (profilesChanged) GM_setValue(AI_PROFILES_KEY, profiles);
+					}
+				}
 			}
 		];
 
@@ -17088,7 +17854,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			/* 5. 设置面板样式 */
 			#ao3-trans-settings-panel { display: none; position: fixed; z-index: 200; width: 300px; border-radius: 12px; overflow: hidden; flex-direction: column; max-height: 85vh; background-color: var(--ao3-bg); color: var(--ao3-text); border: none; box-shadow: var(--ao3-shadow); font-family: var(--ao3-font); }
 			#ao3-trans-settings-panel.dragging { opacity: 0.8; transition: opacity 0.2s ease-in-out; }
-			#ao3-trans-settings-panel.mobile-fixed-center { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%; max-height: 90vh !important; }
 			.settings-panel-header { padding: 0px 4px 0px 16px; border-bottom: none !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); z-index: 10; cursor: move; user-select: none; display: flex; justify-content: space-between; align-items: center; height: 42px; box-sizing: border-box; flex-shrink: 0; background-color: var(--ao3-bg); }
 			.settings-panel-header-title { display: flex; align-items: center; gap: 8px; }
 			.settings-panel-header-title h2 { margin: 0; font-size: 16px; font-weight: bold; font-family: inherit; }
@@ -17114,7 +17879,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			.settings-group textarea.settings-control { height: 72px !important; min-height: 72px !important; max-height: 72px !important; line-height: 1.5; padding-top: 8px; padding-bottom: 8px; resize: none; }
 			.settings-group .settings-control:hover:not(:disabled) { border-color: var(--ao3-border-hover); }
 			.settings-group .settings-control:focus { border-color: var(--ao3-border-hover); border-width: 1px; }
-			.settings-group .settings-control:disabled { opacity: 1; border-color: var(--ao3-border); color: var(--ao3-text-secondary); -webkit-text-fill-color: var(--ao3-text-secondary); }
+			.settings-group .settings-control:disabled { opacity: 1; border-color: var(--ao3-border); color: var(--ao3-text); -webkit-text-fill-color: var(--ao3-text); background-color: var(--ao3-bg); }
 			.settings-group .settings-control::placeholder { color: var(--ao3-text-placeholder); -webkit-text-fill-color: var(--ao3-text-placeholder); }
 			.settings-group .settings-label { position: absolute; top: 50%; transform: translateY(-50%); left: 12px; font-size: 14px; color: var(--ao3-text-secondary); pointer-events: none; transition: all 0.2s ease; padding: 0 4px; background-color: var(--ao3-bg); }
 			.settings-group .settings-control:focus + .settings-label, .settings-group .settings-control.has-value + .settings-label { top: 0; left: 10px; font-size: 12px; color: var(--ao3-text-secondary); }
@@ -17142,7 +17907,18 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			.service-details-toggle-btn { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 8px solid var(--ao3-primary); border-top: 0; transition: transform 0.3s ease; }
 			.service-details-toggle-btn.collapsed { transform: rotate(180deg); }
 			.pseudo-select { cursor: pointer; height: 40px; line-height: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; display: flex; align-items: center; outline: none; -webkit-tap-highlight-color: transparent; }
-			
+			/* 媒体查询 */
+			@media (max-width: 767px) {
+				#ao3-trans-settings-panel {
+					top: 50% !important;
+					left: 50% !important;
+					transform: translate(-50%, -50%) !important;
+					width: 85% !important;
+					max-width: 380px !important;
+					max-height: 90vh !important;
+				}
+			}
+
 			/* 6. 下拉菜单 */
 			.custom-dropdown-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 2000; }
 			.custom-dropdown-menu { position: fixed; border-radius: 8px; border: none; z-index: 2001; overflow: hidden; opacity: 0; transform: scale(0.95) translateY(-10px); transform-origin: top center; transition: opacity 0.15s ease-out, transform 0.15s ease-out; box-sizing: border-box; background-color: var(--ao3-bg); color: var(--ao3-text); box-shadow: var(--ao3-shadow); }
@@ -17373,8 +18149,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
             body.ao3-translation-only .ao3-translated-title { margin-top: 0 !important; }
             li.post .userstuff { margin-bottom: 15px; }
             li.post .userstuff .ao3-translated-content { margin-bottom: 0; }
-            .translate-me-ao3-wrapper { border: none; background: transparent; box-shadow: none; margin-top: 15px; margin-bottom: 5px; clear: both; display: block; }
-            .translate-me-ao3-button { color: #1b95e0; font-size: small; cursor: pointer; display: inline-block; margin-left: 10px; }
+			.translate-me-ao3-wrapper { border: none; background: transparent; box-shadow: none; margin-top: 15px; margin-bottom: 5px; clear: both; display: block; -webkit-tap-highlight-color: transparent; }
+			.translate-me-ao3-button { color: #1b95e0; font-size: small; cursor: pointer; display: inline-block; margin-left: 10px; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
             .translated-tags-container { margin-top: 15px; margin-bottom: 10px; }
             .collection.profile .primary.header.module .translate-me-ao3-wrapper, .collection.home .primary.header.module .translate-me-ao3-wrapper { clear: none !important; margin-left: 120px !important; margin-top: 15px !important; width: auto !important; }
             p.kudos { line-height: 1.5; }
@@ -18448,6 +19224,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (blurbContainer && !element.classList.contains('tags') && (element.classList.contains('summary') || element.closest('.summary'))) {
 						linkedTagsNode = blurbContainer.querySelector('ul.tags.commas');
 					}
+
+					element.dataset.translationRule = JSON.stringify(rule);
 
 					addTranslationButton(element, rule.text, rule.above || false, rule.isLazyLoad || false, rule.isTags || false, linkedTagsNode, rule.insertInside || false);
 				});
