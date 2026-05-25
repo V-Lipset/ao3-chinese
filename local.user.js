@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
-// @version      1.8.0-2026-05-18
+// @version      1.9.0-2026-05-25
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -54,6 +54,7 @@
 // @grant        GM_notification
 // @grant        GM_addStyle
 // @grant        GM_getResourceURL
+// @grant        GM_addValueChangeListener
 // @grant        GM_download
 // @grant        GM_info
 // ==/UserScript==
@@ -960,7 +961,8 @@ Your task is to translate multiple text segments provided by the user. For each 
 	const FORMATTING_SELECTED_ID_KEY = 'ao3_formatting_selected_id';
 
 	const DEFAULT_FORMAT_PARAMS = {
-		indent: 'false',
+		indent: 'original',
+		indentElements: ['work_text'],
 		fontSize: '100',
 		letterSpacing: '0',
 		lineHeight: '1.5',
@@ -995,6 +997,30 @@ Your task is to translate multiple text segments provided by the user. For each 
 			const selectedId = GM_getValue(FORMATTING_SELECTED_ID_KEY);
 			const profiles = this.getAllProfiles();
 			return profiles.find(p => p.id === selectedId) || profiles[0];
+		},
+
+		getIndentSelectors() {
+			const profile = this.getCurrentProfile();
+			if (!profile || !profile.params || profile.params.indent === 'original') return [];
+			
+			const elements = profile.params.indentElements || ['work_text'];
+			const selectors = [];
+			const map = {
+				work_text: '#chapters .userstuff',
+				summary: '.summary .userstuff',
+				notes: '.notes .userstuff',
+				comments: '.comment .userstuff'
+			};
+			
+			elements.forEach(el => {
+				if (map[el]) selectors.push(map[el]);
+			});
+			
+			if (elements.includes('other')) {
+				selectors.push('.userstuff:not(#chapters .userstuff):not(.summary .userstuff):not(.notes .userstuff):not(.comment .userstuff)');
+			}
+			
+			return selectors;
 		},
 
 		saveProfile(updatedProfile) {
@@ -6251,7 +6277,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							if (isCleanedUp) return;
 							isCleanedUp = true;
 							document.title = originalTitle;
-							if (document.body.contains(iframe)) document.body.removeChild(iframe);
+							setTimeout(() => {
+								if (document.body.contains(iframe)) {
+									document.body.removeChild(iframe);
+								}
+							}, 500);
 							resolve();
 						};
 
@@ -6365,10 +6395,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const exportContainerName = panel.querySelector('#export-container-name');
 			const exportContainerEdit = panel.querySelector('#export-container-edit');
 			const exportTemplateNameInput = panel.querySelector('#export-template-name');
-			const btnExportSaveName = panel.querySelector('#btn-export-save-name');
-			const btnOpenStyleEditor = panel.querySelector('#btn-open-style-editor');
-			const btnExportFormatChoose = panel.querySelector('#btn-export-format-choose');
-			const btnExportExecute = panel.querySelector('#btn-export-execute');
 
 			const renderExportManage = () => {
 				const format = exportFormatSelect.value;
@@ -6410,109 +6436,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					exportContainerEdit.style.display = 'block';
 				}
 			};
-
-			exportFormatSelect.addEventListener('change', (e) => {
-				GM_setValue('ao3_export_last_format', e.target.value);
-				renderExportManage();
-			});
-
-			exportTemplateSelect.addEventListener('change', (e) => {
-				const format = exportFormatSelect.value;
-				if (e.target.value === 'create_new') {
-					const newId = `template_${Date.now()}`;
-					const templates = ExportTemplateStore.getTemplates(format);
-					let maxNum = 0;
-					templates.forEach(t => {
-						const match = t.name.match(/^自定义 (\d+)$/);
-						if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
-					});
-					const newTemplate = {
-						id: newId,
-						name: `自定义 ${maxNum + 1}`,
-						isProtected: false,
-						css: ExportTemplateStore.DEFAULT_TEMPLATES[format][0].css 
-					};
-					ExportTemplateStore.saveTemplate(format, newTemplate);
-					const selectedTemplates = GM_getValue('ao3_export_selected_templates');
-					selectedTemplates[format] = newId;
-					GM_setValue('ao3_export_selected_templates', selectedTemplates);
-					exportActionSelect.value = 'name';
-					GM_setValue('ao3_export_last_action', 'name');
-					renderExportManage();
-				} else {
-					const selectedTemplates = GM_getValue('ao3_export_selected_templates');
-					selectedTemplates[format] = e.target.value;
-					GM_setValue('ao3_export_selected_templates', selectedTemplates);
-					renderExportManage();
-				}
-			});
-
-			exportActionSelect.addEventListener('change', (e) => {
-				const action = e.target.value;
-				if (action !== 'delete') {
-					GM_setValue('ao3_export_last_action', action);
-				}
-				if (action === 'delete') {
-					const format = exportFormatSelect.value;
-					const currentId = exportTemplateSelect.value;
-					const template = ExportTemplateStore.getTemplate(format, currentId);
-					
-					showCustomConfirm(`您确定要删除 ${template.name} 模板吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
-						.then(() => {
-							ExportTemplateStore.deleteTemplate(format, currentId);
-							const selectedTemplates = GM_getValue('ao3_export_selected_templates');
-							selectedTemplates[format] = ExportTemplateStore.getTemplates(format)[0].id;
-							GM_setValue('ao3_export_selected_templates', selectedTemplates);
-							exportActionSelect.value = 'name';
-							GM_setValue('ao3_export_last_action', 'name');
-							renderExportManage();
-						})
-						.catch(() => {
-							exportActionSelect.value = 'name';
-							GM_setValue('ao3_export_last_action', 'name');
-							renderExportManage();
-						});
-				} else {
-					renderExportManage();
-				}
-			});
-
-			btnExportSaveName.addEventListener('click', () => {
-				const format = exportFormatSelect.value;
-				const currentId = exportTemplateSelect.value;
-				const template = ExportTemplateStore.getTemplate(format, currentId);
-				
-				if (template) {
-					const newName = exportTemplateNameInput.value.trim();
-					if (newName) {
-						template.name = newName;
-						ExportTemplateStore.saveTemplate(format, template);
-						renderExportManage();
-					}
-				}
-			});
-
-			btnOpenStyleEditor.addEventListener('click', () => {
-				const format = exportFormatSelect.value;
-				const currentId = exportTemplateSelect.value;
-				openExportStyleModal(format, currentId);
-			});
-
-			btnExportFormatChoose.addEventListener('click', () => {
-				openExportFormatModal();
-			});
-
-			btnExportExecute.addEventListener('click', () => {
-				const formats = GM_getValue('ao3_export_selected_formats', ['html']);
-				if (formats.length === 0) {
-					showCustomConfirm('请先在“格式选择”中勾选需要导出的格式。', '提示', { textAlign: 'center' })
-						.then(() => openExportFormatModal())
-						.catch(() => {});
-					return;
-				}
-				ExportEngine.executeExport();
-			});
-
 			return { renderExportManage };
 		}
 	}
@@ -6598,7 +6521,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 * 清理段落开头的全角空格、NBSP、换行符等手动缩进，防止与 CSS 缩进叠加
 	 */
 	function cleanManualIndents(rootNode = document) {
-		const selectors = '.userstuff p, .userstuff .ao3-text-block';
+		const baseSelectors = FormattingManager.getIndentSelectors();
+		if (baseSelectors.length === 0) return;
+
+		const selectors = baseSelectors.map(sel => `${sel} p, ${sel} .ao3-text-block`).join(', ');
 		let elements =[];
 		
 		if (rootNode.matches && rootNode.matches(selectors)) elements.push(rootNode);
@@ -6670,32 +6596,44 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		// 3. 缩进接管逻辑
-		cssParts.push(`
-			.userstuff p, 
-			.userstuff .ao3-text-block {
-				text-indent: ${indentValue} !important;
-				padding-left: 0 !important;
-				margin-left: 0 !important;
-			}
+		const indentMode = opts.indent || 'original';
+		if (indentMode !== 'original') {
+			const indentValue = indentMode === 'force_indent' ? '2em' : '0';
+			const baseSelectors = FormattingManager.getIndentSelectors();
 			
-			.userstuff p:has(.ao3-text-block),
-			.userstuff p:has(.ao3-original-content) {
-				text-indent: 0 !important;
+			if (baseSelectors.length > 0) {
+				const selP = baseSelectors.map(sel => `${sel} p, ${sel} .ao3-text-block`).join(',\n');
+				const selPHas = baseSelectors.map(sel => `${sel} p:has(.ao3-text-block), ${sel} p:has(.ao3-original-content)`).join(',\n');
+				const selBlockNot = baseSelectors.map(sel => `${sel} .ao3-text-block:not(:has(.ao3-original-content))`).join(',\n');
+				const selOrig = baseSelectors.map(sel => `${sel} .ao3-original-content`).join(',\n');
+				const selTrans = baseSelectors.map(sel => `${sel} .ao3-translated-content`).join(',\n');
+
+				cssParts.push(`
+					${selP} {
+						text-indent: ${indentValue} !important;
+						padding-left: 0 !important;
+						margin-left: 0 !important;
+					}
+					
+					${selPHas} {
+						text-indent: 0 !important;
+					}
+					
+					${selBlockNot} {
+						margin-left: ${indentValue} !important;
+					}
+					
+					${selOrig} {
+						margin-left: ${indentValue} !important;
+					}
+					
+					${selTrans} {
+						text-indent: ${indentValue} !important;
+						display: block;
+					}
+				`);
 			}
-			
-			.userstuff .ao3-text-block:not(:has(.ao3-original-content)) {
-				margin-left: ${indentValue} !important;
-			}
-			
-			.userstuff .ao3-original-content {
-				margin-left: ${indentValue} !important;
-			}
-			
-			.userstuff .ao3-translated-content {
-				text-indent: ${indentValue} !important;
-				display: block;
-			}
-		`);
+		}
 
 		splitBrParagraphs();
 		cleanManualIndents();
@@ -8999,6 +8937,24 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			fmtPropertySelect: panel.querySelector('#setting-fmt-property'),
 			fmtValueContainer: panel.querySelector('#setting-fmt-value-container'),
 			cacheAutoCleanupSelect: panel.querySelector('#setting-cache-auto-cleanup-enabled'),
+			// 悬浮球管理相关
+			fabManageSection: panel.querySelector('#editable-section-fab-manage'),
+			fabModeSelect: panel.querySelector('#fab-manage-mode-select'),
+			fabGestureSelect: panel.querySelector('#fab-manage-gesture-select'),
+			fabActionSelect: panel.querySelector('#fab-manage-action-select'),
+			// 导出管理相关
+			exportManageSection: panel.querySelector('#editable-section-export-manage'),
+			exportFormatSelect: panel.querySelector('#export-format-select'),
+			exportTemplateSelect: panel.querySelector('#export-template-select'),
+			exportActionSelect: panel.querySelector('#export-action-select'),
+			exportContainerName: panel.querySelector('#export-container-name'),
+			exportContainerEdit: panel.querySelector('#export-container-edit'),
+			exportTemplateNameInput: panel.querySelector('#export-template-name'),
+			btnExportSaveName: panel.querySelector('#btn-export-save-name'),
+			btnOpenStyleEditor: panel.querySelector('#btn-open-style-editor'),
+			exportActionsContainer: panel.querySelector('#export-actions-container'),
+			btnExportFormatChoose: panel.querySelector('#btn-export-format-choose'),
+			btnExportExecute: panel.querySelector('#btn-export-execute')
 		};
 	}
 
@@ -10434,2387 +10390,34 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		});
 	}
 
+	/**************************************************************************
+	 * 设置面板：核心架构与 UI 工具类
+	 **************************************************************************/
+
 	/**
-	 * 初始化 AI 设置逻辑
+	 * 面板 UI 工具类：负责独立、无状态的 UI 交互
 	 */
-	function initializeAiSettingsLogic(panelElements) {
-		const {
-			aiProfileSelect, aiServiceTrigger, aiParamSelect, aiParamInputArea
-		} = panelElements;
-
-		const LAST_PROFILE_KEY = 'ao3_ai_settings_last_profile';
-		const LAST_PARAM_KEY = 'ao3_ai_settings_last_param';
-
+	class PanelUIUtils {
 		/**
-		 * 校验 AI 参数合法性
+		 * 启用列表的拖拽排序功能
 		 */
-		const validateAiParam = (value, config) => {
-			if (!config.validation) return { valid: true, value: value };
-
-			const num = parseFloat(value);
-			const { min, max, step } = config.validation;
-			const label = config.label;
-
-			if (isNaN(num)) {
-				return { valid: false, message: `${label} 必须是有效的数字。` };
-			}
-
-			if (min !== undefined && num < min) {
-				return { valid: false, message: `${label} 不能小于 ${min}。` };
-			}
-
-			if (max !== undefined && num > max) {
-				return { valid: false, message: `${label} 不能大于 ${max}。` };
-			}
-
-			if (step !== undefined) {
-				const remainder = (num - (min || 0)) % step;
-				if (remainder > 0.00001 && Math.abs(remainder - step) > 0.00001) {
-					return { valid: false, message: `${label} 的步长必须是 ${step}。` };
-				}
-			}
-
-			return { valid: true, value: num };
-		};
-
-		const generateNewProfileName = (profiles) => {
-			let maxNum = 0;
-			const regex = /^配置 (\d+)$/;
-			profiles.forEach(p => {
-				const match = p.name.match(regex);
-				if (match) {
-					const num = parseInt(match[1], 10);
-					if (num > maxNum) maxNum = num;
-				}
-			});
-			return `配置 ${maxNum + 1}`;
-		};
-
-		const updateParamOptions = (profile) => {
-			const isProtected = profile.isProtected;
-			const isTraditional = profile.isTraditional;
-
-			const optionsToHideForTraditional = ['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort'];
-			
-			// 恢复所有选项的显示状态
-			Array.from(aiParamSelect.options).forEach(opt => {
-				opt.style.display = '';
-				opt.disabled = false;
-				opt.hidden = false;
-			});
-
-			const renameOption = aiParamSelect.querySelector('option[value="rename_profile"]');
-			const deleteOption = aiParamSelect.querySelector('option[value="delete_profile"]');
-
-			if (isProtected) {
-				if (deleteOption) deleteOption.remove();
-				if (!isTraditional && renameOption) renameOption.remove();
-				if (isTraditional && !renameOption) {
-					const opt = document.createElement('option');
-					opt.value = 'rename_profile';
-					opt.textContent = '设置参数配置名';
-					aiParamSelect.appendChild(opt);
-				}
-			} else {
-				if (!renameOption) {
-					const opt = document.createElement('option');
-					opt.value = 'rename_profile';
-					opt.textContent = '设置参数配置名';
-					aiParamSelect.appendChild(opt);
-				}
-				if (!deleteOption) {
-					const opt = document.createElement('option');
-					opt.value = 'delete_profile';
-					opt.textContent = '删除此参数配置';
-					aiParamSelect.appendChild(opt);
-				}
-			}
-
-			if (isTraditional) {
-				optionsToHideForTraditional.forEach(val => {
-					const opt = aiParamSelect.querySelector(`option[value="${val}"]`);
-					if (opt) {
-						opt.style.display = 'none';
-						opt.hidden = true;
-						opt.disabled = true;
-					}
-				});
-
-				// 如果当前选中的是被隐藏的选项，回退到 chunk_size
-				if (optionsToHideForTraditional.includes(aiParamSelect.value) || aiParamSelect.value === 'delete_profile') {
-					aiParamSelect.value = 'chunk_size';
-					GM_setValue(LAST_PARAM_KEY, 'chunk_size');
-				}
-			} else {
-				if (isProtected && (aiParamSelect.value === 'rename_profile' || aiParamSelect.value === 'delete_profile')) {
-					aiParamSelect.value = 'system_prompt';
-					GM_setValue(LAST_PARAM_KEY, 'system_prompt');
-				}
-			}
-		};
-
-		const refreshProfileSelect = () => {
-			const profiles = ProfileManager.getAllProfiles();
-			const savedId = GM_getValue(LAST_PROFILE_KEY);
-			let targetId = savedId;
-
-			if (!profiles.find(p => p.id === savedId)) {
-				targetId = profiles[0].id;
-			}
-
-			aiProfileSelect.innerHTML = '';
-			profiles.forEach(p => {
-				const option = document.createElement('option');
-				option.value = p.id;
-				option.textContent = p.name;
-				aiProfileSelect.appendChild(option);
-			});
-
-			const createOption = document.createElement('option');
-			createOption.value = 'create_new';
-			createOption.textContent = '新建配置';
-			aiProfileSelect.appendChild(createOption);
-
-			aiProfileSelect.value = targetId;
-			GM_setValue(LAST_PROFILE_KEY, targetId);
-
-			const currentProfile = ProfileManager.getProfile(targetId);
-			if (currentProfile) {
-				updateParamOptions(currentProfile);
-			}
-
-			return targetId;
-		};
-
-		const renderParamEditor = () => {
-			const profileId = aiProfileSelect.value;
-			const profile = ProfileManager.getProfile(profileId);
-			if (!profile) return;
-
-			const paramType = aiParamSelect.value;
-			aiParamInputArea.innerHTML = '';
-
-			// 处理重命名配置
-			if (paramType === 'rename_profile') {
-				if (profile.isProtected && !profile.isTraditional) return;
-				
-				const section = document.createElement('div');
-				section.className = 'settings-group static-label';
-				section.innerHTML = `
-					<div class="input-wrapper">
-						<input type="text" id="ai-profile-rename-input" class="settings-control settings-input" value="${profile.name}" spellcheck="false">
-						<label for="ai-profile-rename-input" class="settings-label">配置名称</label>
-						<button class="settings-action-button-inline">保存</button>
-					</div>
-				`;
-				section.querySelector('button').addEventListener('click', () => {
-					const newName = section.querySelector('input').value.trim();
-					if (newName) {
-						profile.name = newName;
-						ProfileManager.saveProfile(profile);
-						refreshProfileSelect();
-					}
-				});
-				aiParamInputArea.appendChild(section);
-				updateInputLabel(section.querySelector('input'));
-				return;
-			}
-
-			const paramConfig = {
-				system_prompt: { type: 'textarea', label: 'System Prompt', autoSave: true },
-				user_prompt: { type: 'textarea', label: 'User Prompt', autoSave: true },
-				temperature: {
-					type: 'number',
-					label: 'Temperature',
-					attrs: { min: 0, max: 2, step: 0.1 },
-					hint: ' (0-2)',
-					validation: { min: 0, max: 2, step: 0.1 },
-					defaultKey: 'temperature'
-				},
-				reasoning_effort: {
-					type: 'select',
-					label: '推理深度',
-					options:[
-						{ value: 'default', text: 'Default' },
-						{ value: 'low', text: 'Low' },
-						{ value: 'medium', text: 'Medium' },
-						{ value: 'high', text: 'High' }
-					],
-					defaultKey: 'reasoning_effort'
-				},
-				chunk_size: {
-					type: 'number',
-					label: '每次翻译文本量',
-					attrs: { min: 100, step: 100 },
-					validation: { min: 100, step: 100 },
-					defaultKey: 'chunk_size'
-				},
-				para_limit: {
-					type: 'number',
-					label: '每次翻译段落数',
-					attrs: { min: 1, step: 1 },
-					validation: { min: 1, step: 1 },
-					defaultKey: 'para_limit'
-				},
-				request_rate: {
-					type: 'number',
-					label: '平均每秒请求数',
-					attrs: { min: 0.1, step: 0.1 },
-					hint: ' (req/s)',
-					validation: { min: 0.1, step: 0.1 },
-					defaultKey: 'request_rate'
-				},
-				request_capacity: {
-					type: 'number',
-					label: '最大突发请求数',
-					attrs: { min: 1, step: 1 },
-					hint: ' (burst)',
-					validation: { min: 1, step: 1 },
-					defaultKey: 'request_capacity'
-				},
-				lazy_load_margin: { type: 'text', label: '懒加载参数设置', hint: ' (px)' },
-				validation_thresholds: { type: 'text', label: '占位符校验阈值', hint: ' (Abs, Ratio, Base, Zero)' }
-			};
-
-			const config = paramConfig[paramType];
-			if (!config) return;
-
-			const section = document.createElement('div');
-			const inputId = `ai-param-input-${paramType}`;
-			
-			// 保存逻辑
-			const saveValue = () => {
-				let val = inputElement.value;
-				
-				// 仅对非下拉框进行合法性校验
-				if (config.type !== 'select') {
-					const validationResult = validateAiParam(val, config);
-					if (!validationResult.valid) {
-						const defaultValue = BASE_AI_PARAMS[config.defaultKey];
-						GM_notification({
-							title: '参数设置错误',
-							text: `${validationResult.message}\n已自动重置为默认值：${defaultValue}。`
-						});
-						val = defaultValue;
-						inputElement.value = val;
-					} else {
-						val = validationResult.value;
-					}
-				}
-
-				profile.params[paramType] = val;
-				ProfileManager.saveProfile(profile);
-				updateInputLabel(inputElement);
-
-				// 如果修改的是懒加载参数，派发全局事件通知引擎
-				if (paramType === 'lazy_load_margin') {
-					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.LAZY_LOAD_MARGIN_CHANGED));
-				}
-			};
-
-			let inputElement;
-
-			if (config.type === 'select') {
-				section.className = 'settings-group static-label settings-group-select';
-				inputElement = document.createElement('select');
-				inputElement.className = 'settings-control settings-select custom-styled-select';
-				
-				config.options.forEach(opt => {
-					const option = document.createElement('option');
-					option.value = opt.value;
-					option.textContent = opt.text;
-					inputElement.appendChild(option);
-				});
-				inputElement.value = profile.params[paramType] || BASE_AI_PARAMS[config.defaultKey];
-
-				inputElement.addEventListener('change', saveValue);
-				
-				section.appendChild(inputElement);
-			} else {
-				// 普通输入框样式
-				section.className = 'settings-group static-label';
-				const inputWrapper = document.createElement('div');
-				inputWrapper.className = 'input-wrapper';
-				
-				inputElement = document.createElement(config.type === 'textarea' ? 'textarea' : 'input');
-				inputElement.className = 'settings-control settings-input';
-				inputElement.setAttribute('spellcheck', 'false');
-				if (config.type !== 'textarea') inputElement.type = config.type;
-				if (config.attrs) Object.entries(config.attrs).forEach(([k, v]) => inputElement.setAttribute(k, v));
-				inputElement.value = profile.params[paramType];
-
-				inputWrapper.appendChild(inputElement);
-				
-				if (config.autoSave) {
-					inputElement.addEventListener('blur', saveValue);
-				} else {
-					const saveBtn = document.createElement('button');
-					saveBtn.className = 'settings-action-button-inline';
-					saveBtn.textContent = '保存';
-					saveBtn.addEventListener('click', saveValue);
-					inputWrapper.appendChild(saveBtn);
-				}
-				section.appendChild(inputWrapper);
-			}
-
-			inputElement.id = inputId;
-			const label = document.createElement('label');
-			label.className = 'settings-label';
-			label.htmlFor = inputId;
-			label.textContent = config.label + (config.hint || '');
-			section.appendChild(label);
-
-			aiParamInputArea.appendChild(section);
-			updateInputLabel(inputElement);
-		};
-
-		aiProfileSelect.addEventListener('change', () => {
-			if (aiProfileSelect.value === 'create_new') {
-				const profiles = ProfileManager.getAllProfiles();
-				const newName = generateNewProfileName(profiles);
-				const newId = ProfileManager.createProfile(newName);
-				refreshProfileSelect();
-				aiProfileSelect.value = newId;
-				GM_setValue(LAST_PROFILE_KEY, newId);
-				aiParamSelect.value = 'system_prompt';
-				GM_setValue(LAST_PARAM_KEY, 'system_prompt');
-			} else {
-				GM_setValue(LAST_PROFILE_KEY, aiProfileSelect.value);
-			}
-
-			const profile = ProfileManager.getProfile(aiProfileSelect.value);
-			if (profile) updateParamOptions(profile);
-
-			renderParamEditor();
-		});
-
-		aiServiceTrigger.addEventListener('click', () => {
-			const profileId = aiProfileSelect.value;
-			createServiceAssociationModal(profileId, (selectedIds) => {
-				ProfileManager.updateServiceAssociation(profileId, selectedIds);
-			});
-		});
-
-		aiParamSelect.addEventListener('change', () => {
-			const paramType = aiParamSelect.value;
-
-			if (paramType === 'delete_profile') {
-				const profileId = aiProfileSelect.value;
-				const profile = ProfileManager.getProfile(profileId);
-
-				if (profile && !profile.isProtected) {
-					showCustomConfirm(`您确定要删除 ${profile.name} 参数配置吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
-						.then(() => {
-							ProfileManager.deleteProfile(profileId);
-							refreshProfileSelect();
-							aiParamSelect.value = 'system_prompt';
-							GM_setValue(LAST_PARAM_KEY, 'system_prompt');
-							renderParamEditor();
-						})
-						.catch(() => {
-							const lastParam = GM_getValue(LAST_PARAM_KEY, 'system_prompt');
-							const safeParam = lastParam === 'delete_profile' ? 'system_prompt' : lastParam;
-							aiParamSelect.value = safeParam;
-							renderParamEditor();
-						});
-				}
-				return;
-			}
-
-			GM_setValue(LAST_PARAM_KEY, paramType);
-			renderParamEditor();
-		});
-
-		return {
-			refresh: () => {
-				refreshProfileSelect();
-				const lastParam = GM_getValue(LAST_PARAM_KEY, 'system_prompt');
-				const safeParam = lastParam === 'delete_profile' ? 'system_prompt' : lastParam;
-				aiParamSelect.value = safeParam;
-				renderParamEditor();
-			}
-		};
-	}
-
-	/**
-	 * 设置面板的内部逻辑
-	 */
-	function initializeSettingsPanelLogic(panelElements, rerenderMenuCallback, onPanelCloseCallback) {
-		let ignoreNextOutsideClickTime = 0;
-		const setIgnoreOutsideClick = () => {
-			ignoreNextOutsideClickTime = Date.now();
-		};
-
-		const {
-			panel, closeBtn, header, masterSwitch, swapLangBtn, engineSelect, fromLangSelect, toLangSelect,
-			modelGroup, modelSelect, displayModeSelect,
-			apiKeyGroup, apiKeyInput, apiKeySaveBtn, customServiceContainer,
-			serviceDetailsToggleContainer, serviceDetailsToggleBtn,
-			glossaryActionsSelect, editableSections,
-			aiSettingsSection,
-			langDetectSection, langDetectSelect,
-			localManageSection, localGlossarySelect, localEditModeSelect,
-			localContainerName, localContainerTranslation, localContainerForbidden,
-			localGlossaryNameInput, localGlossarySaveNameBtn,
-			localSensitiveInput, localSensitiveSaveBtn,
-			localInsensitiveInput, localInsensitiveSaveBtn,
-			localForbiddenInput, localForbiddenSaveBtn,
-			onlineManageSection, glossaryImportUrlInput, glossaryImportSaveBtn,
-			openOnlineLibraryBtn, viewImportedGlossaryContainer, viewImportedGlossaryBtn,
-			glossaryManageSelect, glossaryManageDetailsContainer, glossaryManageInfo, glossaryManageDeleteBtn,
-			postReplaceSection, postReplaceSelect, postReplaceEditModeSelect,
-			postReplaceContainerName, postReplaceContainerSettings,
-			postReplaceNameInput, postReplaceSaveNameBtn,
-			postReplaceInput, postReplaceSaveBtn,
-			dataSyncActionsContainer, importDataBtn, exportDataBtn,
-			debugModeSection, logLevelSelect, viewLogsBtn, logAutoClearSelect,
-			blockerSection, blockerDimensionSelect, blockerSubDimensionSelect, blockerInputArea, blockerActionsContainer, toggleBlockerBtn, toggleReasonsBtn,
-			formattingSection, fmtProfileSelect, fmtPropertySelect, fmtValueContainer,
-			cacheAutoCleanupSelect
-		} = panelElements;
-
-		const PANEL_POSITION_KEY = 'ao3_panel_position';
-		const GLOSSARY_ACTION_KEY = 'ao3_glossary_last_action';
-		const LOCAL_GLOSSARY_SELECTED_ID_KEY = 'ao3_local_glossary_selected_id';
-		const LOCAL_GLOSSARY_EDIT_MODE_KEY = 'ao3_local_glossary_edit_mode';
-		const BLOCKER_VIEW_KEY = 'ao3_blocker_current_view';
-		const BLOCKER_SUB_VIEW_KEY = 'ao3_blocker_current_sub_view';
-		const TRANSLATION_MODE_KEY = 'ao3_translation_mode';
-		const AUTO_TRANSLATE_KEY = 'ao3_auto_translate';
-		const FAB_MANAGE_MODE_KEY = 'ao3_fab_manage_mode';
-		const FAB_MANAGE_GESTURE_KEY = 'ao3_fab_manage_gesture';
-		const CACHE_MANAGE_MODE_KEY = 'ao3_cache_manage_mode';
-
-		const cacheManageSection = panel.querySelector('#editable-section-cache-manage');
-		const cacheModeSelect = panel.querySelector('#cache-manage-mode-select');
-		const cacheManualContainer = panel.querySelector('#cache-manage-manual-container');
-		const cacheAutoContainer = panel.querySelector('#cache-manage-auto-container');
-		const btnClearCurrentPage = panel.querySelector('#btn-clear-current-page-cache');
-		const btnClearAllCache = panel.querySelector('#btn-clear-all-cache');
-		const inputCacheMaxItems = panel.querySelector('#setting-input-cache-max-items');
-		const btnCacheMaxItemsSave = panel.querySelector('#setting-btn-cache-max-items-save');
-		const inputCacheMaxDays = panel.querySelector('#setting-input-cache-max-days');
-		const btnCacheMaxDaysSave = panel.querySelector('#setting-btn-cache-max-days-save');
-		const cacheCountDisplay = panel.querySelector('#cache-count-display');
-		const fabManageSection = panel.querySelector('#editable-section-fab-manage');
-		const fabModeSelect = panel.querySelector('#fab-manage-mode-select');
-		const fabGestureSelect = panel.querySelector('#fab-manage-gesture-select');
-		const fabActionSelect = panel.querySelector('#fab-manage-action-select');
-
-		// 导出相关的 DOM 元素获取
-		const exportManageSection = panel.querySelector('#editable-section-export-manage');
-		const exportFormatSelect = panel.querySelector('#export-format-select');
-		const exportTemplateSelect = panel.querySelector('#export-template-select');
-		const exportActionSelect = panel.querySelector('#export-action-select');
-		const exportContainerName = panel.querySelector('#export-container-name');
-		const exportContainerEdit = panel.querySelector('#export-container-edit');
-		const exportTemplateNameInput = panel.querySelector('#export-template-name');
-		const btnExportSaveName = panel.querySelector('#btn-export-save-name');
-		const btnOpenStyleEditor = panel.querySelector('#btn-open-style-editor');
-		const exportActionsContainer = panel.querySelector('#export-actions-container');
-		const btnExportFormatChoose = panel.querySelector('#btn-export-format-choose');
-		const btnExportExecute = panel.querySelector('#btn-export-execute');
-		// 初始化导出 UI 控制器
-		const exportUI = ExportUIController.init(panel);
-		const renderExportManage = exportUI.renderExportManage;
-
-		// 获取当前模式，默认为 'unit' (单元模式)
-		let currentMode = GM_getValue(TRANSLATION_MODE_KEY, 'unit');
-
-		// 更新面板 UI 以反映当前模式
-		const updatePanelModeUI = () => {
-			const isFullPage = currentMode === 'full_page';
-			const switchLabel = panel.querySelector('.settings-switch-group:first-child .settings-label');
-
-			if (isFullPage) {
-				document.body.classList.add('ao3-full-page-mode');
-				if (switchLabel) switchLabel.textContent = '自动翻译页面';
-				masterSwitch.checked = GM_getValue(AUTO_TRANSLATE_KEY, false);
-			} else {
-				document.body.classList.remove('ao3-full-page-mode');
-				if (switchLabel) switchLabel.textContent = '显示翻译按钮';
-				masterSwitch.checked = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
-			}
-		};
-
-		// 切换模式逻辑
-		const toggleTranslationMode = () => {
-			currentMode = currentMode === 'unit' ? 'full_page' : 'unit';
-			GM_setValue(TRANSLATION_MODE_KEY, currentMode);
-
-			if (currentMode === 'full_page') {
-				const hasSwitched = GM_getValue('has_switched_to_full_page_once', false);
-				if (!hasSwitched) {
-					GM_setValue('has_switched_to_full_page_once', true);
-					GM_setValue('from_lang', 'script_auto');
-					if (fromLangSelect) {
-						fromLangSelect.value = 'script_auto';
-						updateInputLabel(fromLangSelect);
-					}
-				}
-			}
-
-			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.MODE_CHANGED, { detail: { mode: currentMode } }));
-
-			updatePanelModeUI();
-			syncPanelState();
-		};
-
-		let isDragging = false;
-		let origin = { x: 0, y: 0 }, startPosition = { x: 0, y: 0 };
-		let activeDropdown = null;
-		let isEditingBuiltInModel = false;
-
-		const customServiceManager = createCustomServiceManager(panelElements);
-		const aiSettingsLogic = initializeAiSettingsLogic(panelElements);
-
-		const saveSetting = (key, value, defaultValue) => {
-			if (value === defaultValue) {
-				GM_deleteValue(key);
-			} else {
-				GM_setValue(key, value);
-			}
-		};
-
-		const blockerConfig = {
-			tags: {
-				black: { label: '标签黑名单', keys: ['ao3_blocker_tags_black'], ph: "'*标签 1*', '标签 2'-'标签 3'" },
-				white: { label: '标签白名单', keys: ['ao3_blocker_tags_white'], ph: "'*标签 1*', '标签 2'+'标签 3'" }
-			},
-			content: {
-				author: { label: '作者黑名单', keys: ['ao3_blocker_content_author'], ph: '作者名 1, 作者名 2, 作者名 3' },
-				id: { label: '作品黑名单', keys: ['ao3_blocker_content_id'], ph: '作品 ID 1, 作品 ID 2, 作品 ID 3' },
-				title: { label: '标题黑名单', keys: ['ao3_blocker_content_title'], ph: '关键词 1, 关键词 2, 关键词 3' },
-				summary: { label: '简介黑名单', keys: ['ao3_blocker_content_summary'], ph: '关键词 1, 关键词 2, 关键词 3' }
-			},
-			stats: {
-				words: { label: '字数范围', keys: ['ao3_blocker_stats_min_words', 'ao3_blocker_stats_max_words'], ph: '1000-10000', isRange: true },
-				chapters: { label: '章节范围', keys: ['ao3_blocker_stats_min_chapters', 'ao3_blocker_stats_max_chapters'], ph: '2-50', isRange: true },
-				update: { label: '更新时间', inputLabel: 'n 月内未更新 (连载)', keys: ['ao3_blocker_stats_update'], ph: '6' },
-				crossover: { label: '同人圈数', inputLabel: '最大数量限制', keys: ['ao3_blocker_stats_crossover'], ph: '5' },
-				lang: { label: '语言筛选', inputLabel: '仅显示的语言', keys: ['ao3_blocker_adv_lang'], ph: '中文-普通话 國語, English' }
-			},
-			advanced: {
-				pairing: {
-					label: '主要关系筛选',
-					getInputLabel: () => {
-						const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_rel', DEFAULT_CONFIG.BLOCKER.adv_scope_rel)) || 1;
-						return scope === 1 ? '第 1 个关系标签' : `前 ${scope} 个关系标签`;
-					},
-					keys: ['ao3_blocker_adv_pairing'],
-					ph: "'关系 1', '关系 2', '关系 3'"
-				},
-				char: {
-					label: '主要角色筛选',
-					getInputLabel: () => {
-						const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_char', DEFAULT_CONFIG.BLOCKER.adv_scope_char)) || 5;
-						return scope === 1 ? '第 1 个角色标签' : `前 ${scope} 个角色标签`;
-					},
-					keys: ['ao3_blocker_adv_char'],
-					ph: "'角色 1', '角色 2', '角色 3'"
-				},
-				scope: {
-					label: '调整检索深度',
-					isDual: true,
-					keys: ['ao3_blocker_adv_scope_rel', 'ao3_blocker_adv_scope_char'],
-					labels: ['主要关系检索深度', '主要角色检索深度'],
-					phs: ['1', '5']
-				}
-			}
-		};
-
-		const fetchModelsForBuiltInService = async (engineId) => {
-			const config = engineMenuConfig[engineId];
-			const apiConfig = CONFIG.TRANS_ENGINES[engineId];
-			if (!config || !apiConfig) return;
-
-			const serviceName = config.displayName;
-			const customMappingKey = `${engineId}_custom_model_mapping`;
-			
-			const apiKey = (GM_getValue(`${engineId}_keys_array`, [])[0] || '').trim();
-			if (!apiKey) {
-				notifyAndLog(`请先设置 ${serviceName} 的 API Key。`, '获取失败', 'error');
-				renderBuiltInModelUI(engineId);
-				return;
-			}
-
-			let baseUrl = apiConfig.url_api || apiConfig.url;
-			if (!baseUrl) {
-				notifyAndLog(`无法获取 ${serviceName} 的接口地址。`, '获取失败', 'error');
-				renderBuiltInModelUI(engineId);
-				return;
-			}
-
-			let modelsUrl = baseUrl.replace(/\/chat\/?(completions)?\/?$/, '') + '/models';
-			
-			if (engineId === 'google_ai') {
-				modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-			} else if (engineId === 'anthropic') {
-				modelsUrl = 'https://api.anthropic.com/v1/models';
-			}
-
-			try {
-				const select = modelGroup.querySelector('select');
-				let originalValue = null;
-				if (select) {
-					originalValue = GM_getValue(config.modelGmKey);
-					const fetchOption = select.querySelector('option[value="FETCH_MODELS_INLINE"]');
-					if (fetchOption) fetchOption.textContent = '获取中...';
-					select.disabled = true;
-				}
-
-				const headers = { 'Accept': 'application/json' };
-				if (engineId === 'anthropic') {
-					headers['x-api-key'] = apiKey;
-					headers['anthropic-version'] = '2023-06-01';
-				} else if (engineId !== 'google_ai') {
-					headers['Authorization'] = `Bearer ${apiKey}`;
-				}
-
-				const response = await new Promise((resolve, reject) => {
-					GM_xmlhttpRequest({
-						method: 'GET',
-						url: modelsUrl,
-						headers: headers,
-						responseType: 'json',
-						timeout: 15000,
-						onload: res => {
-							if (res.status === 200 && res.response) {
-								resolve(res.response);
-							} else {
-								reject(new Error(`服务器返回状态 ${res.status}。`));
-							}
-						},
-						onerror: () => reject(new Error('网络请求失败。')),
-						ontimeout: () => reject(new Error('请求超时。'))
-					});
-				});
-
-				let models =[];
-				if (engineId === 'google_ai') {
-					const modelsList = getNestedProperty(response, 'models') ||[];
-					models = modelsList.map(m => m.name.replace('models/', ''));
-				} else {
-					const dataList = getNestedProperty(response, 'data') || response;
-					if (Array.isArray(dataList)) {
-						models = dataList.map(m => m.id).filter(Boolean);
-					}
-				}
-
-				if (!Array.isArray(models) || models.length === 0) {
-					throw new Error('API 返回的数据格式不正确或模型列表为空。');
-				}
-
-				const newMapping = {};
-				models.forEach(modelId => {
-					newMapping[modelId] = modelId;
-				});
-
-				GM_setValue(customMappingKey, newMapping);
-				
-				if (config.modelGmKey) {
-					if (models.includes(originalValue)) {
-						GM_setValue(config.modelGmKey, originalValue);
-					} else {
-						GM_setValue(config.modelGmKey, models[0]);
-					}
-				}
-
-				notifyAndLog(`成功获取 ${models.length} 个模型。`, '获取成功', 'info');
-				renderBuiltInModelUI(engineId);
-
-			} catch (error) {
-				Logger.error('Network', `获取内置服务模型失败: ${error.message}`);
-				notifyAndLog(`获取模型失败：${error.message}`, '操作失败', 'error');
-				renderBuiltInModelUI(engineId);
-			}
-		};
-
-		function renderBuiltInModelUI(engineId) {
-			const config = engineMenuConfig[engineId];
-			if (engineId.startsWith('custom_')) {
-				if (!modelGroup.contains(modelSelect)) {
-					modelGroup.innerHTML = '';
-					modelGroup.appendChild(modelSelect);
-					let label = modelGroup.querySelector(`label[for="${modelSelect.id}"]`);
-					if (!label) {
-						label = document.createElement('label');
-						label.htmlFor = modelSelect.id;
-						label.className = 'settings-label';
-						label.textContent = '使用模型';
-						modelGroup.appendChild(label);
-					}
-					modelGroup.className = 'settings-group settings-group-select';
-				}
-				modelGroup.style.display = 'block';
-				customServiceManager.renderDisplayModeModelSelect(engineId);
-				updateInputLabel(modelSelect);
-				return;
-			}
-			modelGroup.innerHTML = '';
-			modelGroup.style.display = 'none';
-
-			if (!config || !config.modelMapping) return;
-
-			modelGroup.style.display = 'block';
-			const customMappingKey = `${engineId}_custom_model_mapping`;
-			const currentMapping = GM_getValue(customMappingKey) || config.modelMapping;
-
-			if (isEditingBuiltInModel) {
-				modelGroup.className = 'settings-group static-label';
-
-				const wrapper = document.createElement('div');
-				wrapper.className = 'input-wrapper';
-
-				const input = document.createElement('input');
-				input.type = 'text';
-				input.className = 'settings-control settings-input';
-				input.value = stringifyModelObject(currentMapping).replace(/\n/g, ' ');
-				input.placeholder = "'ID 1': '名称 1', 'ID 2': '名称 2'";
-				input.spellcheck = false;
-
-				const label = document.createElement('label');
-				label.className = 'settings-label';
-				label.textContent = '编辑模型 ID';
-
-				const saveBtn = document.createElement('button');
-				saveBtn.className = 'settings-action-button-inline';
-				saveBtn.textContent = '保存';
-
-				saveBtn.addEventListener('click', () => {
-					const newMapping = parseModelString(input.value);
-					if (Object.keys(newMapping).length === 0) {
-						GM_deleteValue(customMappingKey);
-					} else {
-						GM_setValue(customMappingKey, newMapping);
-					}
-
-					isEditingBuiltInModel = false;
-					renderBuiltInModelUI(engineId);
-				});
-
-				wrapper.appendChild(input);
-				wrapper.appendChild(label);
-				wrapper.appendChild(saveBtn);
-				modelGroup.appendChild(wrapper);
-				updateInputLabel(input);
-
-			} else {
-				modelGroup.className = 'settings-group settings-group-select';
-
-				const select = document.createElement('select');
-				select.id = 'setting-trans-model';
-				select.className = 'settings-control settings-select custom-styled-select';
-
-				Object.keys(currentMapping).forEach(modelId => {
-					const option = document.createElement('option');
-					option.value = modelId;
-					option.textContent = currentMapping[modelId];
-					select.appendChild(option);
-				});
-
-				const fetchOption = document.createElement('option');
-				fetchOption.value = 'FETCH_MODELS_INLINE';
-				fetchOption.textContent = '获取模型 ID';
-				select.appendChild(fetchOption);
-
-				const editOption = document.createElement('option');
-				editOption.value = 'EDIT_MODELS_INLINE';
-				editOption.textContent = '编辑模型 ID';
-				select.appendChild(editOption);
-
-				const resetOption = document.createElement('option');
-				resetOption.value = 'RESET_MODELS_INLINE';
-				resetOption.textContent = '重置模型 ID';
-				select.appendChild(resetOption);
-				const savedModel = GM_getValue(config.modelGmKey);
-				if (savedModel && currentMapping[savedModel]) {
-					select.value = savedModel;
-				} else {
-					const firstModel = Object.keys(currentMapping)[0];
-					select.value = firstModel;
-					GM_setValue(config.modelGmKey, firstModel);
-				}
-
-				select.addEventListener('change', () => {
-					if (select.value === 'FETCH_MODELS_INLINE') {
-						fetchModelsForBuiltInService(engineId);
-					} else if (select.value === 'EDIT_MODELS_INLINE') {
-						isEditingBuiltInModel = true;
-						renderBuiltInModelUI(engineId);
-					} else if (select.value === 'RESET_MODELS_INLINE') {
-						GM_deleteValue(customMappingKey);
-						renderBuiltInModelUI(engineId);
-					} else {
-						GM_setValue(config.modelGmKey, select.value);
-					}
-				});
-
-				const label = document.createElement('label');
-				label.htmlFor = 'setting-trans-model';
-				label.className = 'settings-label';
-				label.textContent = '使用模型';
-
-				modelGroup.appendChild(select);
-				modelGroup.appendChild(label);
-				updateInputLabel(select);
-			}
-		}
-
-		function updateApiKeySection(engineId) {
-			const config = engineMenuConfig[engineId];
-			if (config && config.requiresApiKey) {
-				apiKeyGroup.style.display = 'block';
-				const stringKeyName = `${engineId}_keys_string`;
-				apiKeyInput.value = GM_getValue(stringKeyName, '');
-				apiKeyGroup.querySelector('.settings-label').textContent = `设置 ${config.displayName} API Key`;
-				apiKeyInput.placeholder = 'Key 1，Key 2，Key 3';
-				updateInputLabel(apiKeyInput);
-			} else {
-				apiKeyGroup.style.display = 'none';
-			}
-		}
-
-		function updateUiForEngine(engineId) {
-			customServiceContainer.style.display = 'none';
-			modelGroup.style.display = 'none';
-			apiKeyGroup.style.display = 'none';
-			serviceDetailsToggleContainer.style.display = 'none';
-
-			if (engineId.startsWith('custom_')) {
-				customServiceManager.enterEditMode(engineId);
-				serviceDetailsToggleContainer.style.display = 'flex';
-			} else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
-				serviceDetailsToggleContainer.style.display = 'flex';
-				customServiceContainer.style.display = 'flex';
-			} else {
-				const isBuiltInSimple = engineId === 'google_translate' || engineId === 'bing_translator';
-				if (!isBuiltInSimple) {
-					serviceDetailsToggleContainer.style.display = 'flex';
-					renderBuiltInModelUI(engineId);
-					updateApiKeySection(engineId);
-				}
-			}
-
-			if (serviceDetailsToggleContainer.style.display === 'flex') {
-				const isCollapsed = GM_getValue(`service_collapsed_${engineId}`, false);
-				serviceDetailsToggleBtn.classList.toggle('collapsed', isCollapsed);
-				if (isCollapsed) {
-					modelGroup.style.display = 'none';
-					apiKeyGroup.style.display = 'none';
-					if (engineId.startsWith('custom_') || engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
-						customServiceContainer.style.display = 'none';
-					}
-				}
-			}
-
-			updateAllLabels();
-		}
-
-		const populateEngineSelect = () => {
-			engineSelect.innerHTML = '';
-			const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
-			const createOption = (engineId, config) => {
-				const option = document.createElement('option');
-				option.value = engineId;
-				option.textContent = config.displayName;
-				return option;
-			};
-			engineSelect.appendChild(createOption('google_translate', engineMenuConfig['google_translate']));
-			engineSelect.appendChild(createOption('bing_translator', engineMenuConfig['bing_translator']));
-			const sortedBuiltInServices = Object.keys(engineMenuConfig)
-				.filter(id => id !== 'google_translate' && id !== 'bing_translator' && id !== ADD_NEW_CUSTOM_SERVICE_ID)
-				.sort((a, b) => engineMenuConfig[a].displayName.localeCompare(engineMenuConfig[b].displayName));
-			sortedBuiltInServices.forEach(id => {
-				engineSelect.appendChild(createOption(id, engineMenuConfig[id]));
-			});
-			customServices.forEach(service => {
-				const option = document.createElement('option');
-				option.value = service.id;
-				option.textContent = service.name || `默认 ${customServices.indexOf(service) + 1}`;
-				option.dataset.isCustom = 'true';
-				engineSelect.appendChild(option);
-			});
-			engineSelect.appendChild(createOption(ADD_NEW_CUSTOM_SERVICE_ID, engineMenuConfig[ADD_NEW_CUSTOM_SERVICE_ID]));
-		};
-
-		function syncPanelState() {
-			currentMode = GM_getValue(TRANSLATION_MODE_KEY, 'unit');
-			
-			updatePanelModeUI();
-			const isEnabled = currentMode === 'full_page' ? GM_getValue(AUTO_TRANSLATE_KEY, false) : GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
-			masterSwitch.checked = isEnabled;
-			populateEngineSelect();
-			const currentEngine = getValidEngineName();
-			engineSelect.value = currentEngine;
-			updateUiForEngine(currentEngine);
-			fromLangSelect.value = GM_getValue('from_lang', DEFAULT_CONFIG.GENERAL.from_lang);
-			toLangSelect.value = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
-			updateSwapButtonState();
-			displayModeSelect.value = GM_getValue('translation_display_mode', DEFAULT_CONFIG.GENERAL.translation_display_mode);
-			applyDisplayModeChange(displayModeSelect.value);
-			exportFormatSelect.value = GM_getValue('ao3_export_last_format', 'html');
-			exportActionSelect.value = GM_getValue('ao3_export_last_action', 'name');
-
-			updateAllLabels();
-		}
-
-		const isMobile = () => window.innerWidth < 768;
-		const ensureOnScreen = (pos, size) => {
-			const newPos = { ...pos };
-			const winW = document.documentElement.clientWidth;
-			const winH = window.innerHeight;
-			const margin = 10;
-			newPos.x = Math.max(margin, Math.min(newPos.x, winW - size.width - margin));
-			newPos.y = Math.max(margin, Math.min(newPos.y, winH - size.height - margin));
-			return newPos;
-		};
-		const updatePanelPosition = () => {
-			if (panel.style.display !== 'flex') return;
-
-			const panelWidth = panel.offsetWidth || 300;
-			const panelHeight = panel.offsetHeight || 400;
-
-			let savedPos = GM_getValue(PANEL_POSITION_KEY);
-			const hasBeenOpened = GM_getValue('panel_has_been_opened_once', false);
-			
-			if (!hasBeenOpened) {
-				const winW = document.documentElement.clientWidth;
-				const winH = window.innerHeight;
-				savedPos = {
-					x: (winW - panelWidth) / 2,
-					y: (winH - panelHeight) / 2
-				};
-				GM_setValue(PANEL_POSITION_KEY, savedPos);
-				GM_setValue('panel_has_been_opened_once', true);
-			} else if (!savedPos || isDragging) {
-				savedPos = { x: panel.offsetLeft, y: panel.offsetTop };
-			}
-			
-			const correctedPos = ensureOnScreen(savedPos, { width: panelWidth, height: panelHeight });
-			panel.style.left = `${correctedPos.x}px`;
-			panel.style.top = `${correctedPos.y}px`;
-
-			repositionActiveDropdown();
-		};
-		const updateAllLabels = () => {
-			panel.querySelectorAll('.settings-control').forEach(updateInputLabel);
-		};
-
-		function populateLocalGlossarySelect() {
-			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-			localGlossarySelect.innerHTML = '';
-			glossaries.forEach(g => {
-				const option = document.createElement('option');
-				option.value = g.id;
-				option.textContent = g.name;
-				option.dataset.isLocalGlossary = 'true';
-				localGlossarySelect.appendChild(option);
-			});
-			const createOption = document.createElement('option');
-			createOption.value = 'create_new';
-			createOption.textContent = '新建术语表';
-			localGlossarySelect.appendChild(createOption);
-		}
-
-		function loadLocalGlossaryData(id) {
-			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-			const glossary = glossaries.find(g => g.id === id);
-			if (glossary) {
-				localGlossaryNameInput.value = glossary.name;
-				localSensitiveInput.value = glossary.sensitive || '';
-				localInsensitiveInput.value = glossary.insensitive || '';
-				localForbiddenInput.value = glossary.forbidden || '';
-				updateAllLabels();
-			}
-		}
-
-		function generateNewGlossaryName(glossaries) {
-			const prefix = "术语表 ";
-			let maxNum = 0;
-			glossaries.forEach(g => {
-				if (g.name.startsWith(prefix)) {
-					const num = parseInt(g.name.slice(prefix.length), 10);
-					if (!isNaN(num) && num > maxNum) maxNum = num;
-				}
-			});
-			return prefix + (maxNum + 1);
-		}
-
-		function handleDeleteLocalGlossary(id) {
-			let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-			glossaries = glossaries.filter(g => g.id !== id);
-			if (glossaries.length === 0) {
-				glossaries.push({
-					id: `local_${Date.now()}`,
-					name: '默认',
-					sensitive: '',
-					insensitive: '',
-					forbidden: '',
-					enabled: true
-				});
-			}
-			GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-
-			const currentSelected = localGlossarySelect.value;
-			let nextId = glossaries[0].id;
-			if (id === currentSelected) {
-				GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, nextId);
-			}
-
-			populateLocalGlossarySelect();
-			const newSelected = (id === currentSelected) ? nextId : currentSelected;
-			localGlossarySelect.value = newSelected;
-			loadLocalGlossaryData(newSelected);
-
-			localEditModeSelect.value = 'name';
-			updateLocalEditVisibility();
-			GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
-
-			SettingsSyncManager.syncGlossary();
-		}
-
-		function updateLocalEditVisibility() {
-			const mode = localEditModeSelect.value;
-			localContainerName.style.display = 'none';
-			localContainerTranslation.style.display = 'none';
-			localContainerForbidden.style.display = 'none';
-
-			if (mode === 'name') {
-				localContainerName.style.display = 'block';
-			} else if (mode === 'translation') {
-				localContainerTranslation.style.display = 'flex';
-			} else if (mode === 'forbidden') {
-				localContainerForbidden.style.display = 'block';
-			}
-		}
-
-		function populatePostReplaceSelect() {
-			const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-			postReplaceSelect.innerHTML = '';
-			rules.forEach(r => {
-				const option = document.createElement('option');
-				option.value = r.id;
-				option.textContent = r.name;
-				option.dataset.isPostReplaceRule = 'true';
-				postReplaceSelect.appendChild(option);
-			});
-			const createOption = document.createElement('option');
-			createOption.value = 'create_new';
-			createOption.textContent = '新建替换规则';
-			postReplaceSelect.appendChild(createOption);
-		}
-
-		function loadPostReplaceData(id) {
-			const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-			const rule = rules.find(r => r.id === id);
-			if (rule) {
-				postReplaceNameInput.value = rule.name;
-				postReplaceInput.value = rule.content || '';
-				updateAllLabels();
-			}
-		}
-
-		function generateNewPostReplaceName(rules) {
-			const prefix = "规则 ";
-			let maxNum = 0;
-			rules.forEach(r => {
-				if (r.name.startsWith(prefix)) {
-					const num = parseInt(r.name.slice(prefix.length), 10);
-					if (!isNaN(num) && num > maxNum) maxNum = num;
-				}
-			});
-			return prefix + (maxNum + 1);
-		}
-
-		function handleDeletePostReplaceRule(id) {
-			let rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-			rules = rules.filter(r => r.id !== id);
-			if (rules.length === 0) {
-				rules.push({
-					id: `replace_${Date.now()}`,
-					name: '默认',
-					content: '',
-					enabled: true
-				});
-			}
-			GM_setValue(POST_REPLACE_RULES_KEY, rules);
-
-			const currentSelected = postReplaceSelect.value;
-			let nextId = rules[0].id;
-			if (id === currentSelected) {
-				GM_setValue(POST_REPLACE_SELECTED_ID_KEY, nextId);
-			}
-
-			populatePostReplaceSelect();
-			const newSelected = (id === currentSelected) ? nextId : currentSelected;
-			postReplaceSelect.value = newSelected;
-			loadPostReplaceData(newSelected);
-
-			postReplaceEditModeSelect.value = 'name';
-			updatePostReplaceEditVisibility();
-			GM_setValue(POST_REPLACE_EDIT_MODE_KEY, 'name');
-
-			SettingsSyncManager.syncGlossary();
-		}
-
-		function updatePostReplaceEditVisibility() {
-			const mode = postReplaceEditModeSelect.value;
-			postReplaceContainerName.style.display = 'none';
-			postReplaceContainerSettings.style.display = 'none';
-
-			if (mode === 'name') {
-				postReplaceContainerName.style.display = 'block';
-			} else if (mode === 'settings') {
-				postReplaceContainerSettings.style.display = 'block';
-			}
-		}
-
-		const toggleEditableSection = (sectionToShow) => {
-			editableSections.forEach(s => s.style.display = 'none');
-			dataSyncActionsContainer.style.display = 'none';
-			blockerActionsContainer.style.display = 'none';
-			exportActionsContainer.style.display = 'none';
-			if (sectionToShow) {
-				sectionToShow.style.display = 'flex';
-				if (sectionToShow.id === 'editable-section-blocker') {
-					blockerActionsContainer.style.display = 'flex';
-				}
-				if (sectionToShow.id === 'editable-section-export-manage') {
-					exportActionsContainer.style.display = 'flex';
-				}
-				const input = sectionToShow.querySelector('.settings-control');
-				if (input) updateInputLabel(input);
-			}
-		};
-
-		const updateBlockerButtonText = () => {
-			toggleBlockerBtn.textContent = GM_getValue('ao3_blocker_enabled', DEFAULT_CONFIG.BLOCKER.enabled) ? '禁用作品屏蔽' : '启用作品屏蔽';
-			toggleReasonsBtn.textContent = GM_getValue('ao3_blocker_show_reasons', DEFAULT_CONFIG.BLOCKER.show_reasons) ? '隐藏屏蔽原因' : '显示屏蔽原因';
-		};
-
-		const renderBlockerSubDimensions = () => {
-			const dimension = blockerDimensionSelect.value;
-			const subConfig = blockerConfig[dimension];
-			blockerSubDimensionSelect.innerHTML = '';
-			Object.keys(subConfig).forEach(key => {
-				const option = document.createElement('option');
-				option.value = key;
-				option.textContent = subConfig[key].label;
-				blockerSubDimensionSelect.appendChild(option);
-			});
-			const savedSub = GM_getValue(BLOCKER_SUB_VIEW_KEY, DEFAULT_CONFIG.BLOCKER.current_sub_view);
-			if (savedSub && subConfig[savedSub]) {
-				blockerSubDimensionSelect.value = savedSub;
-			} else {
-				blockerSubDimensionSelect.selectedIndex = 0;
-			}
-			renderBlockerInput();
-		};
-
-		const renderBlockerInput = () => {
-			const dimension = blockerDimensionSelect.value;
-			const subDimension = blockerSubDimensionSelect.value;
-			const config = blockerConfig[dimension][subDimension];
-			blockerInputArea.innerHTML = '';
-
-			if (config.isDual) {
-				config.keys.forEach((key, index) => {
-					const group = document.createElement('div');
-					group.className = 'settings-group static-label';
-					const labelText = config.labels[index];
-					const placeholder = config.phs[index];
-					const inputId = `input-blocker-val-${index}`;
-
-					group.innerHTML = `
-                        <div class="input-wrapper">
-                            <input type="text" id="${inputId}" class="settings-control settings-input" placeholder="${placeholder}" spellcheck="false">
-                            <label for="${inputId}" class="settings-label">${labelText}</label>
-                            <button class="settings-action-button-inline">保存</button>
-                        </div>
-                    `;
-					const input = group.querySelector('input');
-					const defaultKey = key.replace('ao3_blocker_', '');
-					const defaultValue = DEFAULT_CONFIG.BLOCKER[defaultKey] || '';
-					input.value = GM_getValue(key, defaultValue);
-					group.querySelector('button').addEventListener('click', () => {
-						const val = input.value.trim();
-						saveSetting(key, val, defaultValue);
-						updateInputLabel(input);
-						SettingsSyncManager.syncBlocker('full');
-					});
-					blockerInputArea.appendChild(group);
-					updateInputLabel(input);
-				});
-			} else {
-				const group = document.createElement('div');
-				group.className = 'settings-group static-label';
-
-				let displayLabel = config.label;
-				if (config.getInputLabel) {
-					displayLabel = config.getInputLabel();
-				} else if (config.inputLabel) {
-					displayLabel = config.inputLabel;
-				}
-
-				group.innerHTML = `
-                    <div class="input-wrapper">
-                        <input type="text" id="input-blocker-val" class="settings-control settings-input" placeholder="${config.ph}" spellcheck="false">
-                        <label for="input-blocker-val" class="settings-label">${displayLabel}</label>
-                        <button class="settings-action-button-inline">保存</button>
-                    </div>
-                `;
-				const input = group.querySelector('input');
-
-				if (config.isRange) {
-					const defaultKeyMin = config.keys[0].replace('ao3_blocker_', '');
-					const defaultKeyMax = config.keys[1].replace('ao3_blocker_', '');
-					const min = GM_getValue(config.keys[0], DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
-					const max = GM_getValue(config.keys[1], DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
-					if (min && max) input.value = `${min}-${max}`;
-					else if (min) input.value = min;
-					else if (max) input.value = `-${max}`;
-				} else {
-					const defaultKey = config.keys[0].replace('ao3_blocker_', '');
-					const defaultValue = DEFAULT_CONFIG.BLOCKER[defaultKey] || '';
-					input.value = GM_getValue(config.keys[0], defaultValue);
-				}
-
-				group.querySelector('button').addEventListener('click', () => {
-					const val = input.value.trim();
-					if (config.isRange) {
-						const defaultKeyMin = config.keys[0].replace('ao3_blocker_', '');
-						const defaultKeyMax = config.keys[1].replace('ao3_blocker_', '');
-
-						const parts = val.split(/[-－—]/);
-						if (parts.length >= 2) {
-							saveSetting(config.keys[0], parts[0].trim(), DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
-							saveSetting(config.keys[1], parts[1].trim(), DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
-						} else {
-							saveSetting(config.keys[0], val, DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
-							saveSetting(config.keys[1], '', DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
-						}
-					} else {
-						const defaultKey = config.keys[0].replace('ao3_blocker_', '');
-						saveSetting(config.keys[0], val, DEFAULT_CONFIG.BLOCKER[defaultKey] || '');
-					}
-					updateInputLabel(input);
-					SettingsSyncManager.syncBlocker('full');
-				});
-
-				blockerInputArea.appendChild(group);
-				updateInputLabel(input);
-			}
-		};
-
-		const saveApiKey = () => {
-			const engineId = engineSelect.value;
-			const value = apiKeyInput.value;
-			let serviceIdToUpdate;
-			if (engineId.startsWith('custom_')) {
-				serviceIdToUpdate = engineId;
-			} else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID && customServiceManager.isPending()) {
-				serviceIdToUpdate = customServiceManager.ensureServiceExists();
-			} else {
-				serviceIdToUpdate = engineId;
-			}
-			if (!serviceIdToUpdate) {
-				return;
-			}
-			const stringKeyName = `${serviceIdToUpdate}_keys_string`;
-			const arrayKeyName = `${serviceIdToUpdate}_keys_array`;
-			GM_setValue(stringKeyName, value);
-			const keysArray = value.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
-			GM_setValue(arrayKeyName, keysArray);
-			GM_deleteValue(`${serviceIdToUpdate}_key_index`);
-		};
-
-		const resetDeleteButton = () => {
-			glossaryManageDeleteBtn.textContent = '删除';
-			glossaryManageDeleteBtn.removeAttribute('data-confirming');
-		};
-
-		const populateManageGlossary = () => {
-			const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-			const urls = Object.keys(metadata);
-			const lastSelectedUrl = GM_getValue(LAST_SELECTED_GLOSSARY_KEY, null);
-			glossaryManageSelect.innerHTML = '';
-			if (urls.length === 0) {
-				glossaryManageSelect.innerHTML = '<option value="" disabled selected>暂无术语表</option>';
-				glossaryManageSelect.disabled = true;
-				glossaryManageDetailsContainer.style.display = 'none';
-			} else {
-				urls.forEach(url => {
-					const filename = url.split('/').pop();
-					const lastDotIndex = filename.lastIndexOf('.');
-					const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
-					const name = decodeURIComponent(baseName);
-					const option = document.createElement('option');
-					option.value = url;
-					option.textContent = name;
-					option.title = name;
-					glossaryManageSelect.appendChild(option);
-				});
-				glossaryManageSelect.disabled = false;
-				if (lastSelectedUrl && urls.includes(lastSelectedUrl)) {
-					glossaryManageSelect.value = lastSelectedUrl;
-				} else {
-					glossaryManageSelect.selectedIndex = 0;
-				}
-			}
-			glossaryManageSelect.dispatchEvent(new Event('change'));
-			resetDeleteButton();
-		};
-
-		const renderFabManage = () => {
-			const config = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
-			const mode = fabModeSelect.value;
-			const gesture = fabGestureSelect.value;
-
-			fabActionSelect.innerHTML = '';
-			
-			const addOption = (val, text) => {
-				const opt = document.createElement('option');
-				opt.value = val;
-				opt.textContent = text;
-				fabActionSelect.appendChild(opt);
-			};
-
-			addOption('toggle_panel', '打开/关闭设置面板');
-			
-			// 仅在“整页翻译模式”下，才添加“触发翻译/清除译文”选项
-			if (mode === 'full_page') {
-				addOption('toggle_translate', '触发翻译/清除译文');
-			}
-			
-			addOption('clear_cache', '清除当前页面缓存');
-			addOption('export_work', '导出当前作品');
-			addOption('none', '无操作');
-
-			let savedAction = config[mode][gesture] || 'none';
-
-			// 安全校验：如果当前是单元模式，且保存的动作是不合法的 toggle_translate，则强制重置为 none
-			if (mode === 'unit' && savedAction === 'toggle_translate') {
-				savedAction = 'none';
-				config[mode][gesture] = savedAction;
-				GM_setValue('ao3_fab_actions', config);
-			}
-
-			fabActionSelect.value = savedAction;
-			
-			// 刷新输入框的 Label 浮动状态
-			if (typeof updateInputLabel === 'function') {
-				updateInputLabel(fabActionSelect);
-			}
-		};
-
-		fabModeSelect.addEventListener('change', () => {
-			GM_setValue(FAB_MANAGE_MODE_KEY, fabModeSelect.value);
-			renderFabManage();
-		});
-		
-		fabGestureSelect.addEventListener('change', () => {
-			GM_setValue(FAB_MANAGE_GESTURE_KEY, fabGestureSelect.value);
-			renderFabManage();
-		});
-		
-		fabActionSelect.addEventListener('change', () => {
-			const config = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
-			const mode = fabModeSelect.value;
-			const gesture = fabGestureSelect.value;
-			config[mode][gesture] = fabActionSelect.value;
-			GM_setValue('ao3_fab_actions', config);
-		});
-
-		// 监听全局清除缓存事件，触发按钮点击
-		document.addEventListener(CUSTOM_EVENTS.CLEAR_PAGE_CACHE, () => {
-			if (btnClearCurrentPage) btnClearCurrentPage.click();
-		});
-
-		const handleExport = async () => {
-			try {
-				const availableItems = DATA_CATEGORIES.map(cat => ({
-					...cat,
-					checked: true,
-					disabled: false
-				}));
-
-				const selectionResult = await createSelectionModal(
-					'数据导出',
-					availableItems,
-					'export',
-					'ao3_export_selection_memory'
-				);
-
-				const data = await exportAllData(selectionResult.ids);
-				const jsonString = JSON.stringify(data, null, 2);
-				const dateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' })
-					.replace(/:/g, '-')
-					.replace(' ', '_');
-				saveFile(jsonString, `AO3-Translator-Config-${dateStr}.json`, 'application/json');
-			} catch (e) {
-				if (e.message !== 'User cancelled') {
-					notifyAndLog(`导出失败: ${e.message}`, '操作失败', 'error');
-				}
-			}
-		};
-
-		const handleImport = () => {
-			const input = document.createElement('input');
-			input.type = 'file';
-			input.accept = '.json';
-			input.onchange = (e) => {
-				const file = e.target.files[0];
-				if (!file) return;
-
-				const reader = new FileReader();
-				reader.onload = async (event) => {
-					try {
-						const jsonData = JSON.parse(event.target.result);
-						if (!jsonData.data) throw new Error("文件缺少 data 字段");
-
-						const hasData = (catId, allData) => {
-							const data = allData[catId];
-							const hasContent = (val) => {
-								if (!val) return false;
-								if (typeof val === 'string') return val.trim() !== '';
-								if (Array.isArray(val)) return val.length > 0;
-								if (typeof val === 'object') return Object.keys(val).length > 0;
-								return false;
-							};
-
-							switch (catId) {
-								case 'staticKeys':
-								case 'apiKeys':
-								case 'modelSelections':
-								case 'aiParameters':
-								case 'blockerSettings':
-									return data ? Object.keys(data).length > 0 : false;
-								case 'uiState':
-									return data ? !!(data.fabPosition || data.panelPosition) : false;
-								case 'customServices':
-									return data ? Array.isArray(data) && data.length > 0 : false;
-								case 'glossaries':
-									return data ? (hasContent(data.customGlossaries) ||
-										hasContent(data.importedGlossaries) ||
-										hasContent(data.local) ||
-										hasContent(data.forbidden) ||
-										hasContent(data.onlineMetadata)) : false;
-								case 'postReplace':
-									return (data && (hasContent(data.postReplaceRules) || 
-										hasContent(data.postReplaceString) || 
-										hasContent(data.postReplace))) ||
-										(allData.glossaries && (hasContent(allData.glossaries.postReplaceRules) ||
-										hasContent(allData.glossaries.postReplaceString) ||
-										hasContent(allData.glossaries.postReplace)));
-								case 'formatting':
-									return data ? Object.keys(data).length > 0 : false;
-								case 'fabActions':
-									return data ? Object.keys(data).length > 0 : false;
-								case 'exportTemplates':
-									return data ? data.templates && Object.keys(data.templates).length > 0 : false;
-								case 'cacheSettings':
-									return data ? data.maxItems !== undefined || data.maxDays !== undefined : false;
-								default:
-									return false;
-							}
-						};
-
-						const availableItems = DATA_CATEGORIES.map(cat => {
-							const dataExists = hasData(cat.id, jsonData.data);
-							return {
-								...cat,
-								checked: dataExists,
-								label: cat.label,
-								disabled: !dataExists
-							};
-						});
-
-						const validItems = availableItems.filter(item => !item.disabled);
-
-						if (validItems.length === 0) {
-							notifyAndLog('该文件中没有可导入的有效数据。', '导入失败', 'error');
-							return;
-						}
-
-						const selectionResult = await createSelectionModal(
-							'数据导入',
-							availableItems,
-							'import',
-							null
-						);
-
-						if (selectionResult && selectionResult.ids.length > 0) {
-							const result = await importAllData(jsonData, selectionResult.ids, selectionResult.mode);
-							Logger.info('Data', result.message);
-						}
-					} catch (err) {
-						if (err.message !== 'User cancelled') {
-							notifyAndLog(`导入失败: ${err.message}`, '导入错误', 'error');
-						}
-					}
-				};
-				reader.readAsText(file);
-			};
-			input.click();
-		};
-
-		const togglePanel = () => {
-			const isOpening = panel.style.display !== 'flex';
-			if (isOpening) {
-				editableSections.forEach(s => s.style.display = 'none');
-				dataSyncActionsContainer.style.display = 'none';
-				blockerActionsContainer.style.display = 'none';
-				syncPanelState();
-				const lastAction = GM_getValue(GLOSSARY_ACTION_KEY, '');
-				glossaryActionsSelect.value = lastAction;
-				if (lastAction) {
-					glossaryActionsSelect.dispatchEvent(new Event('change', { bubbles: true }));
-				} else {
-					glossaryActionsSelect.value = "";
-				}
-				panel.style.display = 'flex';
-				updatePanelPosition();
-			} else {
-				if (customServiceManager.isPending()) {
-					customServiceManager.cancelPending();
-				}
-				cleanupAllEmptyCustomServices();
-				panel.style.display = 'none';
-				if (onPanelCloseCallback) onPanelCloseCallback();
-			}
-			if (rerenderMenuCallback) rerenderMenuCallback();
-		};
-
-		const updateSwapButtonState = () => {
-			const val = fromLangSelect.value;
-			const isAutoDetect = val === 'auto' || val === 'script_auto';
-			swapLangBtn.disabled = isAutoDetect;
-		};
-
-		const handleLanguageChange = () => {
-			if (glossaryActionsSelect.value === 'ai_settings') {
-				aiSettingsLogic.refresh();
-			} else if (glossaryActionsSelect.value === 'formatting') {
-				renderFormattingEditor();
-			}
-		};
-
-		applyFormatting();
-
-		const renderFormattingEditor = () => {
-			const currentProfile = FormattingManager.getCurrentProfile();
-			if (!currentProfile) return;
-
-			const savedProp = GM_getValue('formatting_last_prop', 'letterSpacing');
-			const safeProp = (savedProp === 'deleteProfile') ? 'letterSpacing' : savedProp;
-			fmtPropertySelect.value = safeProp;
-
-			const profiles = FormattingManager.getAllProfiles();
-			fmtProfileSelect.innerHTML = '';
-			profiles.forEach(p => {
-				const option = document.createElement('option');
-				option.value = p.id;
-				option.textContent = p.name;
-				fmtProfileSelect.appendChild(option);
-			});
-			const createOption = document.createElement('option');
-			createOption.value = 'create_new';
-			createOption.textContent = '新建方案';
-			fmtProfileSelect.appendChild(createOption);
-
-			fmtProfileSelect.value = currentProfile.id;
-
-			const prop = fmtPropertySelect.value;
-			fmtValueContainer.innerHTML = '';
-
-			if (prop === 'deleteProfile') {
-				return;
-			}
-
-			if (prop === 'profileName') {
-				const wrapper = document.createElement('div');
-				wrapper.className = 'settings-group static-label';
-				const inputId = 'fmt-profile-rename-input';
-				wrapper.innerHTML = `
-                    <div class="input-wrapper">
-                        <input type="text" id="${inputId}" name="fmt_profile_name" class="settings-control settings-input" value="${currentProfile.name}" spellcheck="false">
-                        <label for="${inputId}" class="settings-label">方案名称</label>
-                        <button class="settings-action-button-inline">保存</button>
-                    </div>
-                `;
-				const input = wrapper.querySelector('input');
-				wrapper.querySelector('button').addEventListener('click', () => {
-					const newName = input.value.trim();
-					if (newName) {
-						currentProfile.name = newName;
-						FormattingManager.saveProfile(currentProfile);
-						renderFormattingEditor();
-					}
-				});
-				fmtValueContainer.appendChild(wrapper);
-				updateInputLabel(input);
-			} else {
-				const wrapper = document.createElement('div');
-				wrapper.className = 'settings-group settings-group-select static-label';
-				const select = document.createElement('select');
-				select.id = 'fmt-value-select';
-				select.name = 'fmt_value';
-				select.className = 'settings-control settings-select custom-styled-select';
-
-				const addOpt = (val, text, selectedVal) => {
-					const option = document.createElement('option');
-					option.value = val;
-					option.textContent = text;
-					if (String(val) === String(selectedVal)) option.selected = true;
-					select.appendChild(option);
-				};
-
-				const opts = currentProfile.params;
-				let labelText = '';
-
-				if (prop === 'indent') {
-					labelText = '首行缩进';
-					addOpt('true', '启用', opts.indent);
-					addOpt('false', '禁用', opts.indent);
-				} else if (prop === 'fontSize') {
-					labelText = '文字大小';
-					for (let i = 50; i <= 200; i += 5) {
-						addOpt(i, i + '%', opts.fontSize);
-					}
-				} else if (prop === 'letterSpacing') {
-					labelText = '字间距';
-					for (let i = 0; i <= 5; i += 0.5) {
-						addOpt(i, i + 'px', opts.letterSpacing);
-					}
-				} else if (prop === 'lineHeight') {
-					labelText = '行间距';
-					for (let i = 0.8; i <= 2.0; i = parseFloat((i + 0.1).toFixed(1))) {
-						addOpt(i, i, opts.lineHeight);
-					}
-				} else if (prop === 'margins') {
-					labelText = '页边距';
-					for (let i = 0; i <= 40; i += 5) {
-						addOpt(i, i + '%', opts.margins);
-					}
-				}
-
-				select.addEventListener('change', (e) => {
-					currentProfile.params[prop] = e.target.value;
-					FormattingManager.saveProfile(currentProfile);
-					SettingsSyncManager.syncFormatting();
-				});
-
-				const label = document.createElement('label');
-				label.htmlFor = 'fmt-value-select';
-				label.className = 'settings-label';
-				label.textContent = labelText;
-
-				wrapper.appendChild(select);
-				wrapper.appendChild(label);
-				fmtValueContainer.appendChild(wrapper);
-				updateInputLabel(select);
-			}
-
-			updateAllLabels();
-		};
-
-		fmtProfileSelect.addEventListener('change', (e) => {
-			if (e.target.value === 'create_new') {
-				const newId = FormattingManager.createProfile();
-				FormattingManager.setCurrentId(newId);
-				SettingsSyncManager.syncFormatting();
-				GM_setValue('formatting_last_prop', 'profileName');
-				renderFormattingEditor();
-			} else {
-				FormattingManager.setCurrentId(e.target.value);
-				SettingsSyncManager.syncFormatting();
-				renderFormattingEditor();
-			}
-		});
-
-		fmtPropertySelect.addEventListener('change', (e) => {
-			const prop = e.target.value;
-			if (prop === 'deleteProfile') {
-				const currentProfile = FormattingManager.getCurrentProfile();
-				showCustomConfirm(`您确定要删除 ${currentProfile.name} 格式方案吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
-					.then(() => {
-						FormattingManager.deleteProfile(currentProfile.id);
-						SettingsSyncManager.syncFormatting();
-						fmtPropertySelect.value = 'profileName';
-						GM_setValue('formatting_last_prop', 'profileName');
-						renderFormattingEditor();
-					})
-					.catch(() => {
-						const lastProp = GM_getValue('formatting_last_prop', 'letterSpacing');
-						fmtPropertySelect.value = lastProp;
-						renderFormattingEditor();
-					});
-			} else {
-				GM_setValue('formatting_last_prop', prop);
-				renderFormattingEditor();
-			}
-		});
-
-		panel.addEventListener('change', (e) => {
-			if (e.target.classList.contains('settings-control')) {
-				updateInputLabel(e.target);
-			}
-		});
-		panel.addEventListener('input', (e) => {
-			if (e.target.classList.contains('settings-control')) {
-				updateInputLabel(e.target);
-			}
-		});
-
-		masterSwitch.addEventListener('change', () => {
-			const isEnabled = masterSwitch.checked;
-			if (currentMode === 'full_page') {
-				GM_setValue(AUTO_TRANSLATE_KEY, isEnabled);
-				document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.AUTO_TRANSLATE_CHANGED, { detail: { enabled: isEnabled } }));
-			} else {
-				saveSetting('enable_transDesc', isEnabled, DEFAULT_CONFIG.GENERAL.enable_transDesc);
-				FeatureSet.enable_transDesc = isEnabled;
-				syncPanelState();
-				if (typeof fabLogic !== 'undefined' && fabLogic.toggleFabVisibility) {
-					fabLogic.toggleFabVisibility();
-				}
-				if (isEnabled) {
-					transDesc();
-				} else {
-					TranslationDOMUtils.deepCleanup(document.body, true);
-				}
-			}
-		});
-
-		swapLangBtn.addEventListener('click', () => {
-			if (swapLangBtn.disabled) return;
-			const fromLang = fromLangSelect.value;
-			const toLang = toLangSelect.value;
-			fromLangSelect.value = toLang;
-			toLangSelect.value = fromLang;
-			saveSetting('from_lang', toLang, DEFAULT_CONFIG.GENERAL.from_lang);
-			saveSetting('to_lang', fromLang, DEFAULT_CONFIG.GENERAL.to_lang);
-			fromLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
-			toLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
-		});
-
-		fromLangSelect.addEventListener('change', () => {
-			const newLang = fromLangSelect.value;
-			saveSetting('from_lang', newLang, DEFAULT_CONFIG.GENERAL.from_lang);
-			updateSwapButtonState();
-			handleLanguageChange();
-		});
-
-		toLangSelect.addEventListener('change', () => {
-			const newLang = toLangSelect.value;
-			saveSetting('to_lang', newLang, DEFAULT_CONFIG.GENERAL.to_lang);
-			handleLanguageChange();
-		});
-
-		engineSelect.addEventListener('change', () => {
-			if (customServiceManager.isPending()) {
-				customServiceManager.cancelPending();
-			}
-			const newEngine = engineSelect.value;
-			if (newEngine === ADD_NEW_CUSTOM_SERVICE_ID) {
-				customServiceManager.startPendingCreation();
-				updateUiForEngine(newEngine);
-			} else {
-				saveSetting('transEngine', newEngine, DEFAULT_CONFIG.ENGINE.current);
-				updateUiForEngine(newEngine);
-				isEditingBuiltInModel = false;
-			}
-		});
-
-		modelSelect.addEventListener('change', () => {
-			const engineId = engineSelect.value;
-			if (engineId.startsWith('custom_')) {
-				if (!modelSelect.disabled) {
-					GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${engineId}`, modelSelect.value);
-				}
-			} else {
-				if (modelSelect.value === 'FETCH_MODELS_INLINE') {
-					fetchModelsForBuiltInService(engineId);
-				} else if (modelSelect.value === 'EDIT_MODELS_INLINE') {
-					isEditingBuiltInModel = true;
-					renderBuiltInModelUI(engineId);
-				} else if (modelSelect.value === 'RESET_MODELS_INLINE') {
-					GM_deleteValue(`${engineId}_custom_model_mapping`);
-					renderBuiltInModelUI(engineId);
-				} else {
-					const config = engineMenuConfig[engineId];
-					if (config && config.modelGmKey) {
-						GM_setValue(config.modelGmKey, modelSelect.value);
-					}
-				}
-			}
-		});
-
-		displayModeSelect.addEventListener('change', () => {
-			const newMode = displayModeSelect.value;
-			saveSetting('translation_display_mode', newMode, DEFAULT_CONFIG.GENERAL.translation_display_mode);
-			applyDisplayModeChange(newMode);
-		});
-
-		apiKeySaveBtn.addEventListener('click', saveApiKey);
-
-		serviceDetailsToggleContainer.addEventListener('click', () => {
-			const engineId = engineSelect.value;
-			const isCollapsed = serviceDetailsToggleBtn.classList.contains('collapsed');
-			const newState = !isCollapsed;
-			serviceDetailsToggleBtn.classList.toggle('collapsed', newState);
-			GM_setValue(`service_collapsed_${engineId}`, newState);
-			updateUiForEngine(engineId);
-		});
-
-		glossaryActionsSelect.addEventListener('change', () => {
-			const action = glossaryActionsSelect.value;
-			GM_setValue(GLOSSARY_ACTION_KEY, action);
-			toggleEditableSection(null);
-			switch (action) {
-				case 'ai_settings':
-					toggleEditableSection(aiSettingsSection);
-					aiSettingsLogic.refresh();
-					break;
-				case 'lang_detect':
-					langDetectSelect.value = GM_getValue('lang_detector', DEFAULT_CONFIG.GENERAL.lang_detector);
-					toggleEditableSection(langDetectSection);
-					break;
-				case 'local_manage':
-					let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-					if (glossaries.length === 0) {
-						const defaultGlossary = {
-							id: `local_${Date.now()}`,
-							name: '默认',
-							sensitive: '',
-							insensitive: '',
-							forbidden: '',
-							enabled: true
-						};
-						glossaries.push(defaultGlossary);
-						GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-					}
-					populateLocalGlossarySelect();
-					glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-					const savedId = GM_getValue(LOCAL_GLOSSARY_SELECTED_ID_KEY);
-
-					const savedMode = GM_getValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'translation');
-
-					let targetId;
-					if (glossaries.length > 0) {
-						const exists = glossaries.some(g => g.id === savedId);
-						targetId = exists ? savedId : glossaries[0].id;
-					}
-
-					if (targetId) {
-						localGlossarySelect.value = targetId;
-						loadLocalGlossaryData(targetId);
-					}
-
-					localEditModeSelect.value = savedMode;
-					updateLocalEditVisibility();
-					toggleEditableSection(localManageSection);
-					break;
-				case 'online_manage':
-					populateManageGlossary();
-					toggleEditableSection(onlineManageSection);
-					break;
-				case 'post_replace':
-					let rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-					let isInitializedDefault = false;
-					if (rules.length === 0) {
-						const defaultRule = {
-							id: `replace_${Date.now()}`,
-							name: '默认',
-							content: '',
-							enabled: true
-						};
-						rules.push(defaultRule);
-						GM_setValue(POST_REPLACE_RULES_KEY, rules);
-						isInitializedDefault = true;
-					}
-					populatePostReplaceSelect();
-					const currentRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-					const savedReplaceId = GM_getValue(POST_REPLACE_SELECTED_ID_KEY);
-
-					let targetReplaceId;
-					if (currentRules.length > 0) {
-						const exists = currentRules.some(r => r.id === savedReplaceId);
-						targetReplaceId = exists ? savedReplaceId : currentRules[0].id;
-					}
-
-					if (targetReplaceId) {
-						postReplaceSelect.value = targetReplaceId;
-						loadPostReplaceData(targetReplaceId);
-					}
-					let targetMode;
-					if (isInitializedDefault) {
-						targetMode = 'settings';
-						GM_setValue(POST_REPLACE_EDIT_MODE_KEY, 'settings');
-					} else {
-						targetMode = GM_getValue(POST_REPLACE_EDIT_MODE_KEY, 'settings');
-					}
-
-					postReplaceEditModeSelect.value = targetMode;
-					updatePostReplaceEditVisibility();
-					toggleEditableSection(postReplaceSection);
-					break;
-				case 'debug_mode':
-					logLevelSelect.value = Logger.config.level;
-					logAutoClearSelect.value = Logger.config.autoClearDays;
-					toggleEditableSection(debugModeSection);
-					break;
-				case 'data_sync':
-					dataSyncActionsContainer.style.display = 'flex';
-					break;
-				case 'blocker_manage':
-					blockerDimensionSelect.value = GM_getValue(BLOCKER_VIEW_KEY, DEFAULT_CONFIG.BLOCKER.current_view);
-					renderBlockerSubDimensions();
-					updateBlockerButtonText();
-					toggleEditableSection(blockerSection);
-					break;
-				case 'formatting':
-					toggleEditableSection(formattingSection);
-					renderFormattingEditor();
-					break;
-				case 'export_manage':
-					toggleEditableSection(exportManageSection);
-					renderExportManage();
-					break;
-				case 'cache_manage':
-					toggleEditableSection(cacheManageSection);
-					cacheModeSelect.value = GM_getValue(CACHE_MANAGE_MODE_KEY, 'manual');
-					cacheModeSelect.dispatchEvent(new Event('change'));
-					updateCacheCountDisplay();
-					break;
-				case 'fab_manage':
-					fabModeSelect.value = GM_getValue(FAB_MANAGE_MODE_KEY, 'unit');
-					fabGestureSelect.value = GM_getValue(FAB_MANAGE_GESTURE_KEY, 'click');
-					toggleEditableSection(fabManageSection);
-					renderFabManage();
-					break;
-				default:
-					break;
-			}
-			syncPanelState();
-		});
-
-		langDetectSelect.addEventListener('change', () => {
-			saveSetting('lang_detector', langDetectSelect.value, DEFAULT_CONFIG.GENERAL.lang_detector);
-		});
-
-		localGlossarySelect.addEventListener('change', () => {
-			if (localGlossarySelect.value === 'create_new') {
-				const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-				const newId = `local_${Date.now()}`;
-				const newName = generateNewGlossaryName(glossaries);
-				const newGlossary = {
-					id: newId,
-					name: newName,
-					sensitive: '',
-					insensitive: '',
-					forbidden: '',
-					enabled: true
-				};
-				glossaries.push(newGlossary);
-				GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-				populateLocalGlossarySelect();
-				localGlossarySelect.value = newId;
-				loadLocalGlossaryData(newId);
-				SettingsSyncManager.syncGlossary();
-				GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, newId);
-				localEditModeSelect.value = 'name';
-				GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
-			} else {
-				loadLocalGlossaryData(localGlossarySelect.value);
-				GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, localGlossarySelect.value);
-			}
-			updateLocalEditVisibility();
-		});
-
-		localEditModeSelect.addEventListener('change', () => {
-			const mode = localEditModeSelect.value;
-			if (mode === 'delete') {
-				const glossaryName = localGlossarySelect.options[localGlossarySelect.selectedIndex].text;
-				const confirmMessage = `您确定要删除 ${glossaryName} 术语表吗？\n\n注意：此操作无法撤销。</span>`;
-				showCustomConfirm(confirmMessage, '提示', { textAlign: 'center' })
-					.then(() => {
-						handleDeleteLocalGlossary(localGlossarySelect.value);
-					})
-					.catch(() => {
-						const previousMode = GM_getValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
-						localEditModeSelect.value = previousMode;
-					});
-			} else {
-				updateLocalEditVisibility();
-				GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, mode);
-			}
-		});
-
-		localGlossarySaveNameBtn.addEventListener('click', () => {
-			const id = localGlossarySelect.value;
-			const newName = localGlossaryNameInput.value.trim();
-			if (id && newName) {
-				const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-				const index = glossaries.findIndex(g => g.id === id);
-				if (index !== -1) {
-					glossaries[index].name = newName;
-					GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-					const currentSelection = localGlossarySelect.value;
-					populateLocalGlossarySelect();
-					localGlossarySelect.value = currentSelection;
-				}
-			}
-		});
-
-		const saveLocalContent = (field, inputElement) => {
-			const id = localGlossarySelect.value;
-			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-			const index = glossaries.findIndex(g => g.id === id);
-			if (index !== -1) {
-				glossaries[index][field] = inputElement.value;
-				GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-				SettingsSyncManager.syncGlossary();
-			}
-		};
-
-		localSensitiveSaveBtn.addEventListener('click', () => saveLocalContent('sensitive', localSensitiveInput));
-		localInsensitiveSaveBtn.addEventListener('click', () => saveLocalContent('insensitive', localInsensitiveInput));
-		localForbiddenSaveBtn.addEventListener('click', () => saveLocalContent('forbidden', localForbiddenInput));
-
-		glossaryImportSaveBtn.addEventListener('click', async () => {
-			const url = glossaryImportUrlInput.value.trim();
-			if (url) {
-				const result = await importOnlineGlossary(url);
-				if (result.success) {
-					invalidateGlossaryCache();
-					GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
-					if (glossaryActionsSelect.value === 'online_manage') {
-						populateManageGlossary();
-					}
-				}
-			}
-		});
-
-		glossaryManageSelect.addEventListener('change', () => {
-			const url = glossaryManageSelect.value;
-			if (url) {
-				GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
-				const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-				const currentMeta = metadata[url] || {};
-				glossaryManageInfo.textContent = `版本号：${currentMeta.version || '未知'} ，维护者：${currentMeta.maintainer || '未知'}`;
-				glossaryManageDetailsContainer.style.display = 'flex';
-				viewImportedGlossaryContainer.style.display = 'flex';
-			} else {
-				glossaryManageDetailsContainer.style.display = 'none';
-				viewImportedGlossaryContainer.style.display = 'none';
-			}
-			resetDeleteButton();
-		});
-
-		glossaryManageDeleteBtn.addEventListener('click', () => {
-			if (glossaryManageDeleteBtn.dataset.confirming) {
-				const urlToRemove = glossaryManageSelect.value;
-				if (urlToRemove) {
-					const allGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-					const allMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-					delete allGlossaries[urlToRemove];
-					delete allMetadata[urlToRemove];
-					GM_setValue(IMPORTED_GLOSSARY_KEY, allGlossaries);
-					GM_setValue(GLOSSARY_METADATA_KEY, allMetadata);
-
-					const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
-					if (rawTextCache[urlToRemove]) {
-						delete rawTextCache[urlToRemove];
-						GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, rawTextCache);
-					}
-
-					const parsedUrls = parseGlossaryUrl(urlToRemove);
-					if (parsedUrls) {
-						const githubCacheKey = GitHubStatusManager.CACHE_KEY;
-						const githubCache = GM_getValue(githubCacheKey, {});
-						const repoKey = `${parsedUrls.owner}/${parsedUrls.repo}`;
-						if (githubCache[repoKey]) {
-							delete githubCache[repoKey];
-							GM_setValue(githubCacheKey, githubCache);
-						}
-					}
-
-					invalidateGlossaryCache();
-					populateManageGlossary();
-					updateInputLabel(glossaryManageSelect);
-				}
-			} else {
-				glossaryManageDeleteBtn.textContent = '确认删除';
-				glossaryManageDeleteBtn.setAttribute('data-confirming', 'true');
-			}
-		});
-
-		postReplaceSelect.addEventListener('change', () => {
-			if (postReplaceSelect.value === 'create_new') {
-				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-				const newId = `replace_${Date.now()}`;
-				const newName = generateNewPostReplaceName(rules);
-				const newRule = {
-					id: newId,
-					name: newName,
-					content: '',
-					enabled: true
-				};
-				rules.push(newRule);
-				GM_setValue(POST_REPLACE_RULES_KEY, rules);
-				populatePostReplaceSelect();
-				postReplaceSelect.value = newId;
-				loadPostReplaceData(newId);
-				SettingsSyncManager.syncGlossary();
-				GM_setValue(POST_REPLACE_SELECTED_ID_KEY, newId);
-				postReplaceEditModeSelect.value = 'name';
-				GM_setValue(POST_REPLACE_EDIT_MODE_KEY, 'name');
-			} else {
-				loadPostReplaceData(postReplaceSelect.value);
-				GM_setValue(POST_REPLACE_SELECTED_ID_KEY, postReplaceSelect.value);
-			}
-			updatePostReplaceEditVisibility();
-		});
-
-		postReplaceEditModeSelect.addEventListener('change', () => {
-			const mode = postReplaceEditModeSelect.value;
-			if (mode === 'delete') {
-				const ruleName = postReplaceSelect.options[postReplaceSelect.selectedIndex].text;
-				const confirmMessage = `您确定要删除 ${ruleName} 替换规则吗？\n\n注意：此操作无法撤销。</span>`;
-				showCustomConfirm(confirmMessage, '提示', { textAlign: 'center' })
-					.then(() => {
-						handleDeletePostReplaceRule(postReplaceSelect.value);
-					})
-					.catch(() => {
-						const previousMode = GM_getValue(POST_REPLACE_EDIT_MODE_KEY, 'name');
-						postReplaceEditModeSelect.value = previousMode;
-					});
-			} else {
-				updatePostReplaceEditVisibility();
-				GM_setValue(POST_REPLACE_EDIT_MODE_KEY, mode);
-			}
-		});
-
-		postReplaceSaveNameBtn.addEventListener('click', () => {
-			const id = postReplaceSelect.value;
-			const newName = postReplaceNameInput.value.trim();
-			if (id && newName) {
-				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-				const index = rules.findIndex(r => r.id === id);
-				if (index !== -1) {
-					rules[index].name = newName;
-					GM_setValue(POST_REPLACE_RULES_KEY, rules);
-					const currentSelection = postReplaceSelect.value;
-					populatePostReplaceSelect();
-					postReplaceSelect.value = currentSelection;
-				}
-			}
-		});
-
-		postReplaceSaveBtn.addEventListener('click', () => {
-			const id = postReplaceSelect.value;
-			const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-			const index = rules.findIndex(r => r.id === id);
-			if (index !== -1) {
-				rules[index].content = postReplaceInput.value;
-				GM_setValue(POST_REPLACE_RULES_KEY, rules);
-				SettingsSyncManager.syncGlossary();
-			}
-		});
-
-		logLevelSelect.addEventListener('change', () => {
-			Logger.setLevel(logLevelSelect.value);
-		});
-
-		logAutoClearSelect.addEventListener('change', () => {
-			Logger.setAutoClear(parseInt(logAutoClearSelect.value, 10));
-		});
-
-		viewLogsBtn.addEventListener('click', () => {
-			setTimeout(() => {
-				openLogModal();
-			}, 10);
-		});
-
-		importDataBtn.addEventListener('click', () => handleImport());
-		exportDataBtn.addEventListener('click', handleExport);
-
-		openOnlineLibraryBtn.addEventListener('click', () => {
-			openOnlineLibraryModal();
-		});
-
-		viewImportedGlossaryBtn.addEventListener('click', () => {
-			const url = glossaryManageSelect.value;
-			if (url) {
-				openGlossaryViewModal(url); 
-			}
-		});
-
-		closeBtn.addEventListener('click', togglePanel);
-
-		header.addEventListener('dblclick', (e) => {
-			if (e.target.closest('.settings-panel-close-btn')) return;
-			toggleTranslationMode();
-		});
-		header.addEventListener('mousedown', (e) => {
-			if (isMobile()) return;
-			isDragging = true;
-			panel.classList.add('dragging');
-			origin = { x: e.clientX, y: e.clientY };
-			startPosition = { x: panel.offsetLeft, y: panel.offsetTop };
-		});
-		document.addEventListener('mousemove', (e) => {
-			if (!isDragging) return;
-			const newPos = {
-				x: startPosition.x + e.clientX - origin.x,
-				y: startPosition.y + e.clientY - origin.y
-			};
-			const correctedPos = ensureOnScreen(newPos, panel.getBoundingClientRect());
-			panel.style.left = `${correctedPos.x}px`;
-			panel.style.top = `${correctedPos.y}px`;
-			repositionActiveDropdown();
-		});
-		document.addEventListener('mouseup', () => {
-			if (!isDragging) return;
-			isDragging = false;
-			panel.classList.remove('dragging');
-			const finalPos = { x: panel.offsetLeft, y: panel.offsetTop };
-			GM_setValue(PANEL_POSITION_KEY, finalPos);
-		});
-
-		const debouncedResizeHandler = debounce(() => {
-			updatePanelPosition();
-		}, 150);
-		window.addEventListener('resize', debouncedResizeHandler);
-
-        const handleClickOutside = (event) => {
-			if (panel.style.display !== 'flex') return;
-			if (Date.now() - ignoreNextOutsideClickTime < 500) return;
-			
-			// 使用 composedPath 穿透 Shadow DOM 获取真实的点击路径
-			const path = event.composedPath();
-			
-			// 忽略点击面板本身或悬浮球
-			const fabContainer = shadowWrapper.querySelector('#ao3-trans-fab-container');
-			if (path.includes(panel) || (fabContainer && path.includes(fabContainer))) {
-				return;
-			}
-			
-			// 忽略点击任何弹窗或下拉菜单遮罩
-			if (shadowWrapper.querySelector('.ao3-overlay') || shadowWrapper.querySelector('.custom-dropdown-backdrop')) {
-				return;
-			}
-			
-			togglePanel();
-		};
-
-		document.addEventListener('mousedown', handleClickOutside, true);
-
-		let isPanelSyncPending = false;
-		document.addEventListener(CUSTOM_EVENTS.PANEL_STATE_SYNC, () => {
-			if (panel.style.display !== 'flex') return;
-			if (isPanelSyncPending) return;
-			
-			isPanelSyncPending = true;
-			requestAnimationFrame(() => {
-				syncPanelState();
-				isPanelSyncPending = false;
-			});
-		});
-
-		const populateLangSelects = () => {
-			const fromOptions = [
-				{ value: 'script_auto', text: '自动检测' },
-				{ value: 'auto', text: '自主判断' },
-				...ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }))
-			];
-			const toOptions = ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }));
-			const createOptions = (select, options) => {
-				select.innerHTML = '';
-				options.forEach(({ value, text }) => {
-					const option = document.createElement('option');
-					option.value = value;
-					option.textContent = text;
-					select.appendChild(option);
-				});
-			};
-			createOptions(fromLangSelect, fromOptions);
-			createOptions(toLangSelect, toOptions);
-		};
-
-		populateLangSelects();
-		populateEngineSelect();
-		syncPanelState();
-
-		const repositionActiveDropdown = () => {
-			if (!activeDropdown || !activeDropdown.menu || !activeDropdown.trigger) {
-				return;
-			}
-			const { menu, trigger } = activeDropdown;
-
-			const rect = trigger.getBoundingClientRect();
-			const viewportWidth = window.innerWidth;
-			const viewportHeight = window.innerHeight;
-			const actualMenuWidth = rect.width;
-			const actualMenuHeight = menu.offsetHeight; 
-
-			requestAnimationFrame(() => {
-				menu.style.width = `${actualMenuWidth}px`;
-				
-				let left = rect.left;
-				let top = rect.bottom + 4;
-				let transformOrigin = 'top center';
-
-				if (left + actualMenuWidth > viewportWidth - 10) {
-					left = viewportWidth - actualMenuWidth - 10;
-				}
-
-				if (top + actualMenuHeight > viewportHeight - 10) {
-					top = rect.top - actualMenuHeight - 4;
-					transformOrigin = 'bottom center';
-				}
-
-				menu.style.left = `${left}px`;
-				menu.style.top = `${top}px`;
-				menu.style.transformOrigin = transformOrigin;
-			});
-		};
-
-		function enableDragSort(ulElement, onOrderChange) {
-			let dragTimer = null;
-			let isDragging = false;
-			let dragItem = null;
-			let ghostItem = null;
-			let startY = 0;
-			let ghostHeight = 0;
-			let touchId = null;
-
-			let containerRect = null;
-
-			const clearTimer = () => {
-				if (dragTimer) {
-					clearTimeout(dragTimer);
-					dragTimer = null;
-				}
-			};
+		static enableDragSort(ulElement, onOrderChange) {
+			let dragTimer = null, isDragging = false, dragItem = null, ghostItem = null;
+			let startY = 0, ghostHeight = 0, touchId = null, containerRect = null;
+
+			const clearTimer = () => { if (dragTimer) { clearTimeout(dragTimer); dragTimer = null; } };
 
 			const handleStart = (e) => {
 				if (e.target.tagName === 'BUTTON') return;
-
 				const li = e.target.closest('li');
 				if (!li || li.dataset.value === 'create_new' || li.classList.contains('disabled')) return;
 
 				const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
 				touchId = e.type.startsWith('touch') ? e.touches[0].identifier : null;
-
 				startY = clientY;
 
 				clearTimer();
-				dragTimer = setTimeout(() => {
-					startDrag(li, clientY);
-				}, 300);
+				dragTimer = setTimeout(() => startDrag(li, clientY), 300);
 
 				if (e.type.startsWith('touch')) {
 					li.addEventListener('touchmove', checkMoveTolerance, { passive: false });
@@ -12828,14 +10431,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			const checkMoveTolerance = (e) => {
 				const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
-				if (Math.abs(clientY - startY) > 5) {
-					cancelDrag(e);
-				}
+				if (Math.abs(clientY - startY) > 5) cancelDrag(e);
 			};
 
 			const cancelDrag = (e) => {
 				clearTimer();
-				const li = e.target.closest('li');
+				const li = e.target?.closest('li');
 				if (li) {
 					li.removeEventListener('touchmove', checkMoveTolerance);
 					li.removeEventListener('touchend', cancelDrag);
@@ -12846,11 +10447,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			};
 
 			const startDrag = (li) => {
-				isDragging = true;
-				dragItem = li;
-
+				isDragging = true; dragItem = li;
 				ulElement.classList.add('is-sorting');
-
 				containerRect = ulElement.getBoundingClientRect();
 				const itemRect = dragItem.getBoundingClientRect();
 				ghostHeight = itemRect.height;
@@ -12866,17 +10464,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				ghostItem = dragItem.cloneNode(true);
 				ghostItem.classList.add('drag-ghost');
 				ghostItem.classList.remove('drag-placeholder');
-
-				ghostItem.style.width = `${itemRect.width}px`;
-				ghostItem.style.height = `${itemRect.height}px`;
-				ghostItem.style.top = `${itemRect.top}px`;
-				ghostItem.style.left = `${itemRect.left}px`;
-				ghostItem.style.backgroundColor = bgColor;
+				ghostItem.style.cssText = `width: ${itemRect.width}px; height: ${itemRect.height}px; top: ${itemRect.top}px; left: ${itemRect.left}px; background-color: ${bgColor};`;
 
 				document.body.appendChild(ghostItem);
-
 				dragItem.classList.add('drag-placeholder');
-
 				document.body.classList.add('ao3-dragging-active');
 
 				document.addEventListener('mousemove', handleMove, { passive: false });
@@ -12889,32 +10480,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				if (!isDragging || !ghostItem) return;
 				e.preventDefault();
 
-				let clientY;
-				if (e.type.startsWith('touch')) {
-					const touch = Array.from(e.touches).find(t => t.identifier === touchId);
-					if (!touch) return;
-					clientY = touch.clientY;
-				} else {
-					clientY = e.clientY;
-				}
+				let clientY = e.type.startsWith('touch') 
+					? Array.from(e.touches).find(t => t.identifier === touchId)?.clientY 
+					: e.clientY;
+				if (clientY === undefined) return;
 
 				let ghostTop = clientY - (ghostHeight / 2);
-				const minTop = containerRect.top;
-				const maxTop = containerRect.bottom - ghostHeight;
-
-				if (ghostTop < minTop) ghostTop = minTop;
-				if (ghostTop > maxTop) ghostTop = maxTop;
-
+				ghostTop = Math.max(containerRect.top, Math.min(ghostTop, containerRect.bottom - ghostHeight));
 				ghostItem.style.top = `${ghostTop}px`;
 
 				const ghostCenterY = ghostTop + (ghostHeight / 2);
-
-				const siblings = Array.from(ulElement.children).filter(el =>
-					el !== dragItem &&
-					el !== ghostItem &&
-					el.dataset.value !== 'create_new' &&
-					!el.classList.contains('disabled')
-				);
+				const siblings = Array.from(ulElement.children).filter(el => el !== dragItem && el !== ghostItem && el.dataset.value !== 'create_new' && !el.classList.contains('disabled'));
 
 				const hitSibling = siblings.find(sibling => {
 					const rect = sibling.getBoundingClientRect();
@@ -12922,59 +10498,35 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				});
 
 				if (hitSibling) {
-					const rect = hitSibling.getBoundingClientRect();
-					const siblingCenterY = rect.top + (rect.height / 2);
-
-					if (ghostCenterY < siblingCenterY) {
-						if (dragItem.nextElementSibling !== hitSibling) {
-							ulElement.insertBefore(dragItem, hitSibling);
-						}
-					} else {
-						if (dragItem.previousElementSibling !== hitSibling) {
-							ulElement.insertBefore(dragItem, hitSibling.nextElementSibling);
-						}
+					const siblingCenterY = hitSibling.getBoundingClientRect().top + (hitSibling.getBoundingClientRect().height / 2);
+					if (ghostCenterY < siblingCenterY && dragItem.nextElementSibling !== hitSibling) {
+						ulElement.insertBefore(dragItem, hitSibling);
+					} else if (ghostCenterY >= siblingCenterY && dragItem.previousElementSibling !== hitSibling) {
+						ulElement.insertBefore(dragItem, hitSibling.nextElementSibling);
 					}
-				} else {
-					if (siblings.length > 0) {
-						const firstRect = siblings[0].getBoundingClientRect();
-						const lastRect = siblings[siblings.length - 1].getBoundingClientRect();
-
-						if (ghostCenterY < firstRect.top) {
-							ulElement.insertBefore(dragItem, siblings[0]);
-						} else if (ghostCenterY > lastRect.bottom) {
-							ulElement.insertBefore(dragItem, siblings[siblings.length - 1].nextElementSibling);
-						}
-					}
+				} else if (siblings.length > 0) {
+					if (ghostCenterY < siblings[0].getBoundingClientRect().top) ulElement.insertBefore(dragItem, siblings[0]);
+					else if (ghostCenterY > siblings[siblings.length - 1].getBoundingClientRect().bottom) ulElement.insertBefore(dragItem, siblings[siblings.length - 1].nextElementSibling);
 				}
 			};
 
 			const handleEnd = () => {
 				if (!isDragging) return;
 				isDragging = false;
-
 				ulElement.classList.remove('is-sorting');
-
 				if (ghostItem) ghostItem.remove();
-
 				if (dragItem) {
 					dragItem.style.transition = 'none';
 					dragItem.classList.remove('drag-placeholder');
-					setTimeout(() => {
-						dragItem.style.transition = '';
-					}, 50);
+					setTimeout(() => dragItem.style.transition = '', 50);
 				}
-
 				document.body.classList.remove('ao3-dragging-active');
-
 				document.removeEventListener('mousemove', handleMove);
 				document.removeEventListener('mouseup', handleEnd);
 				document.removeEventListener('touchmove', handleMove);
 				document.removeEventListener('touchend', handleEnd);
 
-				const newOrder = Array.from(ulElement.children)
-					.map(li => li.dataset.value)
-					.filter(val => val && val !== 'create_new');
-
+				const newOrder = Array.from(ulElement.children).map(li => li.dataset.value).filter(val => val && val !== 'create_new');
 				if (onOrderChange) onOrderChange(newOrder);
 			};
 
@@ -12982,16 +10534,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			ulElement.addEventListener('touchstart', handleStart, { passive: false });
 		}
 
-		function createCustomDropdown(triggerElement) {
-			if (shadowWrapper.querySelector('.custom-dropdown-backdrop')) {
-				return;
-			}
-			if (triggerElement.disabled || triggerElement.options.length === 0 || (triggerElement.options.length === 1 && triggerElement.options[0].disabled)) {
-				return;
-			}
-			if (triggerElement.parentElement) {
-				triggerElement.parentElement.classList.add('dropdown-active');
-			}
+		/**
+		 * 创建自定义下拉菜单
+		 */
+		static createCustomDropdown(triggerElement, shadowWrapper) {
+			if (shadowWrapper.querySelector('.custom-dropdown-backdrop')) return;
+			if (triggerElement.disabled || triggerElement.options.length === 0 || (triggerElement.options.length === 1 && triggerElement.options[0].disabled)) return;
+
+			if (triggerElement.parentElement) triggerElement.parentElement.classList.add('dropdown-active');
 
 			const backdrop = document.createElement('div');
 			backdrop.className = 'custom-dropdown-backdrop';
@@ -12999,487 +10549,2404 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			
 			const menu = document.createElement('div');
 			menu.className = 'custom-styled-dropdown-menu custom-dropdown-menu';
-			
-			if (triggerElement.classList.contains('small-select')) {
-				menu.classList.add('small-menu');
-			}
+			if (triggerElement.classList.contains('small-select')) menu.classList.add('small-menu');
 
 			const list = document.createElement('ul');
 			menu.appendChild(list);
-			const metadata = (triggerElement.id === 'setting-select-glossary-manage') ? GM_getValue(GLOSSARY_METADATA_KEY, {}) : null;
 
-			const createListItem = (option) => {
-				if (option.style.display === 'none' || option.hidden) {
-					return null;
-				}
+			// 渲染列表项
+			Array.from(triggerElement.options).forEach(option => {
+				if (option.style.display === 'none' || option.hidden) return;
 
 				if (option.disabled) {
-					const separatorItem = document.createElement('li');
-					separatorItem.style.textAlign = 'center';
-					separatorItem.style.color = '#ccc';
-					separatorItem.style.cursor = 'default';
-					separatorItem.classList.add('disabled');
-					separatorItem.textContent = option.textContent;
-					return separatorItem;
+					const separator = document.createElement('li');
+					separator.style.cssText = 'text-align: center; color: #ccc; cursor: default;';
+					separator.classList.add('disabled');
+					separator.textContent = option.textContent;
+					list.appendChild(separator);
+					return;
 				}
-				const listItem = document.createElement('li');
-				listItem.dataset.value = option.value;
-				if (option.selected) {
-					listItem.classList.add('selected');
-				}
+
+				const li = document.createElement('li');
+				li.dataset.value = option.value;
+				if (option.selected) li.classList.add('selected');
+
 				const textSpan = document.createElement('span');
 				textSpan.className = 'item-text';
 				textSpan.textContent = option.textContent;
 				textSpan.title = option.textContent;
-				if (option.style.color) {
-					textSpan.style.color = option.style.color;
-				}
-				listItem.appendChild(textSpan);
+				if (option.style.color) textSpan.style.color = option.style.color;
+				li.appendChild(textSpan);
+
 				const actionsDiv = document.createElement('div');
 				actionsDiv.className = 'item-actions';
-				if (triggerElement.id === 'setting-select-glossary-manage' && metadata && metadata[option.value]) {
-					const toggleBtn = document.createElement('button');
-					toggleBtn.className = 'item-action-btn toggle-glossary';
-					const isEnabled = metadata[option.value].enabled !== false;
 
+				// 根据 option 的 dataset 渲染操作按钮
+				if (option.dataset.toggleable === 'true') {
+					const toggleBtn = document.createElement('button');
+					toggleBtn.className = 'item-action-btn toggle-btn';
+					const isEnabled = option.dataset.enabled !== 'false';
 					toggleBtn.innerHTML = isEnabled ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
-					
 					toggleBtn.title = isEnabled ? '点击禁用' : '点击启用';
 					if (!isEnabled) toggleBtn.classList.add('is-disabled');
-					toggleBtn.dataset.url = option.value;
+					toggleBtn.dataset.value = option.value;
 					actionsDiv.appendChild(toggleBtn);
 				}
-				if (option.dataset.isCustom === 'true') {
+
+				if (option.dataset.deletable === 'true') {
 					const deleteBtn = document.createElement('button');
-					deleteBtn.className = 'item-action-btn delete';
+					deleteBtn.className = 'item-action-btn delete-btn';
 					deleteBtn.title = '删除';
 					deleteBtn.innerHTML = SVG_ICONS.delete;
 					deleteBtn.dataset.value = option.value;
 					actionsDiv.appendChild(deleteBtn);
-				} else if (option.dataset.isLocalGlossary === 'true') {
-					const toggleBtn = document.createElement('button');
-					toggleBtn.className = 'item-action-btn toggle-local';
-					const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY,[]);
-					const glossary = glossaries.find(g => g.id === option.value);
-					const isEnabled = glossary ? (glossary.enabled !== false) : true;
-					toggleBtn.innerHTML = isEnabled ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
-					toggleBtn.title = isEnabled ? '点击禁用' : '点击启用';
-					if (!isEnabled) toggleBtn.classList.add('is-disabled');
-					toggleBtn.dataset.value = option.value;
-					actionsDiv.appendChild(toggleBtn);
-				} else if (option.dataset.isPostReplaceRule === 'true') {
-					const toggleBtn = document.createElement('button');
-					toggleBtn.className = 'item-action-btn toggle-post-replace';
-					const rules = GM_getValue(POST_REPLACE_RULES_KEY,[]);
-					const rule = rules.find(r => r.id === option.value);
-					const isEnabled = rule ? (rule.enabled !== false) : true;
-					toggleBtn.innerHTML = isEnabled ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
-					toggleBtn.title = isEnabled ? '点击禁用' : '点击启用';
-					if (!isEnabled) toggleBtn.classList.add('is-disabled');
-					toggleBtn.dataset.value = option.value;
-					actionsDiv.appendChild(toggleBtn);
 				}
-				listItem.appendChild(actionsDiv);
-				return listItem;
-			};
 
-			Array.from(triggerElement.options).forEach(option => {
-				const item = createListItem(option);
-				if (item) list.appendChild(item);
+				li.appendChild(actionsDiv);
+				list.appendChild(li);
 			});
 
 			shadowWrapper.appendChild(menu);
 
-			if (triggerElement.id === 'setting-local-glossary-select') {
-				enableDragSort(list, (newOrderIds) => {
-					const currentGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-					const glossaryMap = new Map(currentGlossaries.map(g => [g.id, g]));
-					const newGlossaries = newOrderIds.map(id => glossaryMap.get(id)).filter(Boolean);
-
-					if (newGlossaries.length === currentGlossaries.length) {
-
-						GM_setValue(CUSTOM_GLOSSARIES_KEY, newGlossaries);
-
-						const select = document.getElementById('setting-local-glossary-select');
-						if (select) {
-							const savedValue = select.value;
-
-							const createOption = select.querySelector('option[value="create_new"]');
-							select.innerHTML = '';
-							newGlossaries.forEach(g => {
-								const opt = document.createElement('option');
-								opt.value = g.id;
-								opt.textContent = g.name;
-								opt.dataset.isLocalGlossary = 'true';
-								select.appendChild(opt);
-							});
-							if (createOption) select.appendChild(createOption);
-
-							select.value = savedValue;
-						}
-						SettingsSyncManager.syncGlossary();
-					}
-				});
-			} else if (triggerElement.id === 'setting-select-glossary-manage') {
-				enableDragSort(list, (newOrderUrls) => {
-					GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, newOrderUrls);
-
-					const select = document.getElementById('setting-select-glossary-manage');
-					if (select) {
-						const savedValue = select.value;
-
-						select.innerHTML = '';
-						newOrderUrls.forEach(url => {
-							const filename = url.split('/').pop();
-							const lastDotIndex = filename.lastIndexOf('.');
-							const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
-							const name = decodeURIComponent(baseName);
-							const opt = document.createElement('option');
-							opt.value = url;
-							opt.textContent = name;
-							opt.title = name;
-							select.appendChild(opt);
-						});
-
-						select.value = savedValue;
-					}
-					SettingsSyncManager.syncGlossary();
-				});
-			} else if (triggerElement.id === 'setting-post-replace-select') {
-				enableDragSort(list, (newOrderIds) => {
-					const currentRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-					const ruleMap = new Map(currentRules.map(r => [r.id, r]));
-					const newRules = newOrderIds.map(id => ruleMap.get(id)).filter(Boolean);
-
-					if (newRules.length === currentRules.length) {
-						GM_setValue(POST_REPLACE_RULES_KEY, newRules);
-
-						const select = document.getElementById('setting-post-replace-select');
-						if (select) {
-							const savedValue = select.value;
-							const createOption = select.querySelector('option[value="create_new"]');
-							select.innerHTML = '';
-							newRules.forEach(r => {
-								const opt = document.createElement('option');
-								opt.value = r.id;
-								opt.textContent = r.name;
-								opt.dataset.isPostReplaceRule = 'true';
-								select.appendChild(opt);
-							});
-							if (createOption) select.appendChild(createOption);
-							select.value = savedValue;
-						}
-						SettingsSyncManager.syncGlossary();
-					}
+			// 绑定拖拽排序
+			if (triggerElement.dataset.sortable === 'true') {
+				this.enableDragSort(list, (newOrder) => {
+					triggerElement.dispatchEvent(new CustomEvent('ao3-dropdown-reorder', { detail: { newOrder } }));
 				});
 			}
 
-			activeDropdown = { menu: menu, trigger: triggerElement };
-			repositionActiveDropdown();
+			// 定位逻辑
+			const reposition = () => {
+				const rect = triggerElement.getBoundingClientRect();
+				const vw = window.innerWidth, vh = window.innerHeight;
+				const menuW = rect.width, menuH = menu.offsetHeight; 
+				
+				menu.style.width = `${menuW}px`;
+				let left = rect.left, top = rect.bottom + 4, origin = 'top center';
+
+				if (left + menuW > vw - 10) left = vw - menuW - 10;
+				if (top + menuH > vh - 10) { top = rect.top - menuH - 4; origin = 'bottom center'; }
+
+				menu.style.cssText += `left: ${left}px; top: ${top}px; transform-origin: ${origin};`;
+			};
+
+			reposition();
 			const selectedItem = list.querySelector('.selected');
-			if (selectedItem) {
-				selectedItem.scrollIntoView({ block: 'center', behavior: 'instant' });
-			}
-			requestAnimationFrame(() => {
-				menu.classList.add('visible');
-			});
+			if (selectedItem) selectedItem.scrollIntoView({ block: 'center', behavior: 'instant' });
+			requestAnimationFrame(() => menu.classList.add('visible'));
+
 			const closeMenu = () => {
-				if (triggerElement.parentElement) {
-					triggerElement.parentElement.classList.remove('dropdown-active');
-				}
+				if (triggerElement.parentElement) triggerElement.parentElement.classList.remove('dropdown-active');
 				menu.classList.remove('visible');
 				backdrop.remove();
 				setTimeout(() => menu.remove(), 200);
-				activeDropdown = null;
 			};
+
+			// 事件委托处理点击
 			list.addEventListener('click', (e) => {
-				const targetBtn = e.target.closest('.item-action-btn');
-				
-				if (targetBtn) {
+				const btn = e.target.closest('.item-action-btn');
+				if (btn) {
 					e.stopPropagation();
-					if (targetBtn.classList.contains('toggle-glossary')) {
-						const url = targetBtn.dataset.url;
-						const currentMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-						if (currentMetadata[url]) {
-							const currentState = currentMetadata[url].enabled !== false;
-							currentMetadata[url].enabled = !currentState;
-							GM_setValue(GLOSSARY_METADATA_KEY, currentMetadata);
-							invalidateGlossaryCache();
-							targetBtn.innerHTML = !currentState ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
-							targetBtn.title = !currentState ? '点击禁用' : '点击启用';
-							targetBtn.classList.toggle('is-disabled', currentState);
-						}
-					} else if (targetBtn.classList.contains('toggle-local')) {
-						const id = targetBtn.dataset.value;
-						const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY,[]);
-						const index = glossaries.findIndex(g => g.id === id);
-						if (index !== -1) {
-							const currentState = glossaries[index].enabled !== false;
-							glossaries[index].enabled = !currentState;
-							GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-							SettingsSyncManager.syncGlossary();
-							targetBtn.innerHTML = !currentState ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
-							targetBtn.title = !currentState ? '点击禁用' : '点击启用';
-							targetBtn.classList.toggle('is-disabled', currentState);
-						}
-					} else if (targetBtn.classList.contains('toggle-post-replace')) {
-						const id = targetBtn.dataset.value;
-						const rules = GM_getValue(POST_REPLACE_RULES_KEY,[]);
-						const index = rules.findIndex(r => r.id === id);
-						if (index !== -1) {
-							const currentState = rules[index].enabled !== false;
-							rules[index].enabled = !currentState;
-							GM_setValue(POST_REPLACE_RULES_KEY, rules);
-							SettingsSyncManager.syncGlossary();
-							targetBtn.innerHTML = !currentState ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
-							targetBtn.title = !currentState ? '点击禁用' : '点击启用';
-							targetBtn.classList.toggle('is-disabled', currentState);
-						}
-					} else if (targetBtn.classList.contains('delete')) {
-						if (targetBtn.dataset.confirming) {
-							const value = targetBtn.dataset.value;
-							if (triggerElement.id === 'setting-trans-engine') {
-								if (typeof customServiceManager !== 'undefined') {
-									customServiceManager.deleteService(value);
-								}
-							}
+					const value = btn.dataset.value;
+					if (btn.classList.contains('toggle-btn')) {
+						triggerElement.dispatchEvent(new CustomEvent('ao3-dropdown-action', { detail: { action: 'toggle', value, button: btn } }));
+					} else if (btn.classList.contains('delete-btn')) {
+						if (btn.dataset.confirming) {
+							triggerElement.dispatchEvent(new CustomEvent('ao3-dropdown-action', { detail: { action: 'delete', value } }));
 							closeMenu();
 						} else {
-							list.querySelectorAll('.delete[data-confirming]').forEach(btn => {
-								btn.title = '删除';
-								delete btn.dataset.confirming;
-							});
-							targetBtn.title = '确认删除';
-							targetBtn.dataset.confirming = 'true';
+							list.querySelectorAll('.delete-btn[data-confirming]').forEach(b => { b.title = '删除'; delete b.dataset.confirming; });
+							btn.title = '确认删除'; btn.dataset.confirming = 'true';
 						}
 					}
 					return;
 				}
 
-				// 处理列表项的选择逻辑
 				const li = e.target.closest('li');
-				if (li && typeof li.dataset.value !== 'undefined') {
+				if (li && li.dataset.value !== undefined) {
 					triggerElement.value = li.dataset.value;
 					triggerElement.dispatchEvent(new Event('change', { bubbles: true }));
 					closeMenu();
 				}
 			});
+
 			backdrop.addEventListener('mousedown', closeMenu);
 		}
+	}
 
-		document.addEventListener('mousedown', (e) => {
-			const path = e.composedPath();
-			const select = path.find(el => el.classList && el.classList.contains('settings-select') && el.classList.contains('custom-styled-select'));
-			
-			if (select) {
-				if (path.includes(panel) || path.find(el => el.id === 'ao3-log-modal')) {
-					e.preventDefault();
-					setTimeout(() => createCustomDropdown(select), 10);
-				}
-			}
-		}, true);
+	/**
+	 * 设置模块基类：规范化生命周期与事件绑定
+	 */
+	class BaseSettingsModule {
+		constructor(controller, sectionId) {
+			this.controller = controller;
+			this.panel = controller.panel;
+			this.container = sectionId ? this.panel.querySelector(`#${sectionId}`) : null;
+		}
 
-		customServiceContainer.addEventListener('change', (e) => {
-			if (e.target.id === 'custom-service-action-select') {
-				const serviceId = engineSelect.value;
-				const newAction = e.target.value;
-				if (serviceId && serviceId.startsWith('custom_')) {
-					const lastActionKey = `custom_service_last_action_${serviceId}`;
-					GM_setValue(lastActionKey, newAction);
-					customServiceManager.enterEditMode(serviceId);
-				} else if (customServiceManager.isPending()) {
-					customServiceManager.updatePendingSection(newAction);
-				}
-			}
-		});
+		// 生命周期钩子
+		onInit() {}
+		onShow() {}
+		onHide() {}
+		onSync() {}
 
-		blockerDimensionSelect.addEventListener('change', () => {
-			GM_setValue(BLOCKER_VIEW_KEY, blockerDimensionSelect.value);
-			renderBlockerSubDimensions();
-		});
+		// 辅助方法：获取 DOM
+		$(selector) { return this.panel.querySelector(selector); }
+		$$(selector) { return this.panel.querySelectorAll(selector); }
 
-		blockerSubDimensionSelect.addEventListener('change', () => {
-			GM_setValue(BLOCKER_SUB_VIEW_KEY, blockerSubDimensionSelect.value);
-			renderBlockerInput();
-		});
-
-		toggleBlockerBtn.addEventListener('click', () => {
-			const newState = !GM_getValue('ao3_blocker_enabled', DEFAULT_CONFIG.BLOCKER.enabled);
-			saveSetting('ao3_blocker_enabled', newState, DEFAULT_CONFIG.BLOCKER.enabled);
-			updateBlockerButtonText();
-			SettingsSyncManager.syncBlocker('full');
-		});
-
-		toggleReasonsBtn.addEventListener('click', () => {
-			const newState = !GM_getValue('ao3_blocker_show_reasons', DEFAULT_CONFIG.BLOCKER.show_reasons);
-			saveSetting('ao3_blocker_show_reasons', newState, DEFAULT_CONFIG.BLOCKER.show_reasons);
-			updateBlockerButtonText();
-			SettingsSyncManager.syncBlocker('full');
-		});
-
-		document.addEventListener(CUSTOM_EVENTS.GLOSSARY_IMPORTED, () => {
-			if (glossaryActionsSelect.value === 'online_manage') {
-				populateManageGlossary();
-			}
-		});
-
-		const updateCacheCountDisplay = async () => {
-			cacheCountDisplay.textContent = '已缓存：计算中...';
-			try {
-				const count = await TranslationCacheDB.count();
-				const lastCleanup = GM_getValue('ao3_cache_last_cleanup_time', 0);
-				
-				let lastCleanupStr = '从未';
-				if (lastCleanup > 0) {
-					const date = new Date(lastCleanup);
-					const year = date.getFullYear();
-					const month = String(date.getMonth() + 1).padStart(2, '0');
-					const day = String(date.getDate()).padStart(2, '0');
-					lastCleanupStr = `${year}-${month}-${day}`;
-				}
-				
-				cacheCountDisplay.textContent = `已缓存：${count.toLocaleString()} 项，上次清理：${lastCleanupStr}`;
-			} catch (e) {
-				Logger.error('System', '获取缓存统计失败', e);
-				cacheCountDisplay.textContent = '已缓存：统计失败';
-			}
-		};
-
-			cacheModeSelect.addEventListener('change', () => {
-			GM_setValue(CACHE_MANAGE_MODE_KEY, cacheModeSelect.value);
-			if (cacheModeSelect.value === 'manual') {
-				cacheManualContainer.style.display = 'flex';
-				cacheAutoContainer.style.display = 'none';
+		// 辅助方法：更新 Input Label 浮动状态
+		updateLabel(input) {
+			if (!input) return;
+			if (input.value && (input.tagName !== 'SELECT' || input.options[input.selectedIndex]?.disabled !== true)) {
+				input.classList.add('has-value');
 			} else {
-				cacheManualContainer.style.display = 'none';
-				cacheAutoContainer.style.display = 'flex';
-				cacheAutoCleanupSelect.value = GM_getValue('ao3_cache_auto_cleanup_enabled', true) ? 'true' : 'false';
-				inputCacheMaxItems.value = GM_getValue('ao3_cache_max_items', 100000);
-				inputCacheMaxDays.value = GM_getValue('ao3_cache_max_days', 30);
-				updateInputLabel(inputCacheMaxItems);
-				updateInputLabel(inputCacheMaxDays);
+				input.classList.remove('has-value');
 			}
-		});
+		}
+	}
 
-		cacheAutoCleanupSelect.addEventListener('change', () => {
-			const isEnabled = cacheAutoCleanupSelect.value === 'true';
-			GM_setValue('ao3_cache_auto_cleanup_enabled', isEnabled);
-		});
+	/**
+	 * 主面板控制器：负责容器拖拽、路由分发、全局事件委托与通用交互
+	 */
+	class SettingsPanelController {
+		constructor(panelElements, rerenderMenuCallback, onPanelCloseCallback) {
+			this.panelElements = panelElements;
+			this.panel = panelElements.panel;
+			this.header = panelElements.header;
+			this.closeBtn = panelElements.closeBtn;
+			this.rerenderMenuCallback = rerenderMenuCallback;
+			this.onPanelCloseCallback = onPanelCloseCallback;
+			
+			this.modules = new Map();
+			this.currentSectionId = null;
+			this.isDragging = false;
+			this.ignoreNextOutsideClickTime = 0;
 
-		document.addEventListener(CUSTOM_EVENTS.CACHE_UPDATED, () => {
-			if (panel.style.display === 'flex' && cacheManageSection.style.display !== 'none') {
-				updateCacheCountDisplay();
+			// 全局路由表
+			this.routeMap = {
+				'ai_settings': 'editable-section-ai-settings',
+				'local_manage': 'editable-section-local-manage',
+				'online_manage': 'editable-section-online-manage',
+				'post_replace': 'editable-section-post-replace',
+				'lang_detect': 'editable-section-lang-detect',
+				'debug_mode': 'editable-section-debug-mode',
+				'blocker_manage': 'editable-section-blocker',
+				'formatting': 'editable-section-formatting',
+				'export_manage': 'editable-section-export-manage',
+				'cache_manage': 'editable-section-cache-manage',
+				'fab_manage': 'editable-section-fab-manage',
+				'data_sync': 'data-sync-actions-container'
+			};
+
+			this.initCoreEvents();
+		}
+
+		registerModule(id, moduleInstance) {
+			this.modules.set(id, moduleInstance);
+			moduleInstance.onInit();
+		}
+
+		getModule(id) {
+			return this.modules.get(id);
+		}
+
+		// 路由切换
+		switchSection(sectionId) {
+			this.panel.querySelectorAll('.editable-section, .data-sync-actions-container, #blocker-actions-container, #export-actions-container').forEach(el => el.style.display = 'none');
+			
+			if (this.currentSectionId && this.modules.has(this.currentSectionId)) {
+				this.modules.get(this.currentSectionId).onHide();
 			}
-		});
 
-		btnClearCurrentPage.addEventListener('click', async () => {
-			const originalText = btnClearCurrentPage.textContent;
-			btnClearCurrentPage.textContent = '清理中...';
+			this.currentSectionId = sectionId;
 
-			const texts = new Set();
-			document.querySelectorAll('.ao3-original-title').forEach(el => {
-				const titleNode = el.parentElement;
-				if (titleNode) {
-					const extracted = TitleTranslationManager.extractTextToTranslate(titleNode);
-					if (extracted) {
-						const tempDiv = document.createElement('span');
-						tempDiv.textContent = extracted.textToTranslate;
-						texts.add(tempDiv.innerHTML);
+			if (sectionId && this.modules.has(sectionId)) {
+				const module = this.modules.get(sectionId);
+				if (module.container) module.container.style.display = 'flex';
+				module.onShow();
+			}
+		}
+
+		syncAllModules() {
+			this.modules.forEach(mod => mod.onSync());
+		}
+
+		setIgnoreOutsideClick() {
+			this.ignoreNextOutsideClickTime = Date.now();
+		}
+
+		togglePanel() {
+			const isOpening = this.panel.style.display !== 'flex';
+			if (isOpening) {
+				this.syncAllModules();
+				this.panel.style.display = 'flex';
+				this.updatePosition();
+			} else {
+				const servicesMod = this.getModule('global-services');
+				if (servicesMod && servicesMod.customManager.isPending()) {
+					servicesMod.customManager.cancelPending();
+				}
+				cleanupAllEmptyCustomServices();
+
+				this.panel.style.display = 'none';
+				if (this.onPanelCloseCallback) this.onPanelCloseCallback();
+			}
+			if (this.rerenderMenuCallback) this.rerenderMenuCallback();
+		}
+
+		updatePosition() {
+			if (this.panel.style.display !== 'flex') return;
+			const panelWidth = this.panel.offsetWidth || 300;
+			const panelHeight = this.panel.offsetHeight || 400;
+			let savedPos = GM_getValue('ao3_panel_position');
+			const hasBeenOpened = GM_getValue('panel_has_been_opened_once', false);
+			
+			if (!hasBeenOpened) {
+				savedPos = { x: (window.innerWidth - panelWidth) / 2, y: (window.innerHeight - panelHeight) / 2 };
+				GM_setValue('ao3_panel_position', savedPos);
+				GM_setValue('panel_has_been_opened_once', true);
+			} else if (!savedPos || this.isDragging) {
+				savedPos = { x: this.panel.offsetLeft, y: this.panel.offsetTop };
+			}
+			
+			const margin = 10;
+			savedPos.x = Math.max(margin, Math.min(savedPos.x, window.innerWidth - panelWidth - margin));
+			savedPos.y = Math.max(margin, Math.min(savedPos.y, window.innerHeight - panelHeight - margin));
+			
+			this.panel.style.left = `${savedPos.x}px`;
+			this.panel.style.top = `${savedPos.y}px`;
+		}
+
+		initCoreEvents() {
+			// 1. 拖拽逻辑
+			let origin = { x: 0, y: 0 }, startPos = { x: 0, y: 0 };
+			this.header.addEventListener('mousedown', (e) => {
+				if (window.innerWidth < 768 || e.target.closest('.settings-panel-close-btn')) return;
+				this.isDragging = true;
+				this.panel.classList.add('dragging');
+				origin = { x: e.clientX, y: e.clientY };
+				startPos = { x: this.panel.offsetLeft, y: this.panel.offsetTop };
+			});
+			document.addEventListener('mousemove', (e) => {
+				if (!this.isDragging) return;
+				this.panel.style.left = `${startPos.x + e.clientX - origin.x}px`;
+				this.panel.style.top = `${startPos.y + e.clientY - origin.y}px`;
+			});
+			document.addEventListener('mouseup', () => {
+				if (!this.isDragging) return;
+				this.isDragging = false;
+				this.panel.classList.remove('dragging');
+				const finalPos = { x: this.panel.offsetLeft, y: this.panel.offsetTop };
+				GM_setValue('ao3_panel_position', finalPos);
+				
+				this.updatePosition();
+			});
+			// 双击顶栏切换翻译模式 (整页/单元)
+			this.header.addEventListener('dblclick', (e) => {
+				if (e.target.closest('.settings-panel-close-btn')) return;
+				const generalModule = this.getModule('global-general');
+				if (generalModule) {
+					generalModule.toggleTranslationMode();
+				}
+			});
+
+			// 2. 关闭按钮与外部点击
+			this.closeBtn.addEventListener('click', () => this.togglePanel());
+			document.addEventListener('mousedown', (e) => {
+				if (this.panel.style.display !== 'flex' || Date.now() - this.ignoreNextOutsideClickTime < 500) return;
+				const path = e.composedPath();
+				const fabContainer = shadowWrapper.querySelector('#ao3-trans-fab-container');
+				if (path.includes(this.panel) || (fabContainer && path.includes(fabContainer))) return;
+				
+				if (shadowWrapper.querySelector('.ao3-overlay') || shadowWrapper.querySelector('.custom-dropdown-backdrop')) return;
+				if (path.some(el => el.classList && el.classList.contains('custom-dropdown-menu'))) return;
+				
+				this.togglePanel();
+			}, true);
+
+			// 3. 窗口大小改变
+			window.addEventListener('resize', debounce(() => this.updatePosition(), 150));
+
+			// 4. 全局下拉菜单拦截
+			document.addEventListener('mousedown', (e) => {
+				const path = e.composedPath();
+				const select = path.find(el => el.classList?.contains('custom-styled-select'));
+				if (select && (path.includes(this.panel) || path.find(el => el.id === 'ao3-log-modal'))) {
+					e.preventDefault();
+					setTimeout(() => PanelUIUtils.createCustomDropdown(select, shadowWrapper), 10);
+				}
+			}, true);
+
+			// 5. 跨标签页同步监听
+			document.addEventListener(CUSTOM_EVENTS.PANEL_STATE_SYNC, () => {
+				if (this.panel.style.display === 'flex') {
+					requestAnimationFrame(() => this.syncAllModules());
+				}
+			});
+
+			// 6. 全局 Input 动画效果委托
+			this.panel.addEventListener('input', (e) => {
+				if (e.target.classList.contains('settings-control')) {
+					const module = this.getModule(this.currentSectionId);
+					if (module) module.updateLabel(e.target);
+				}
+			});
+			this.panel.addEventListener('change', (e) => {
+				if (e.target.classList.contains('settings-control')) {
+					const module = this.getModule(this.currentSectionId);
+					if (module) module.updateLabel(e.target);
+				}
+			});
+
+			// 7. 模块路由选择器绑定
+			const glossaryActionsSelect = this.panel.querySelector('#setting-glossary-actions');
+			glossaryActionsSelect.addEventListener('change', () => {
+				const action = glossaryActionsSelect.value;
+				GM_setValue('ao3_glossary_last_action', action);
+				const sectionId = this.routeMap[action];
+				this.switchSection(sectionId || null);
+			});
+
+			// 8. 全局输入失去焦点自动保存监听器
+			this.panel.addEventListener('focusout', (e) => {
+				if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+					const wrapper = e.target.closest('.input-wrapper');
+					if (wrapper) {
+						const saveBtn = wrapper.querySelector('.settings-action-button-inline');
+						if (saveBtn && e.relatedTarget !== saveBtn) {
+							saveBtn.click(); 
+						}
 					}
 				}
 			});
-			document.querySelectorAll('.ao3-original-content, .ao3-tag-original').forEach(el => {
-				texts.add(el.innerHTML);
+
+			// 9. 全局保存按钮反馈特效
+			this.panel.addEventListener('click', (e) => {
+				const btn = e.target.closest('.settings-action-button-inline');
+				if (btn && btn.textContent === '保存') {
+					if (btn.disabled) return;
+					if (e.isTrusted) {
+						btn.disabled = true;
+						btn.textContent = '✓';
+						setTimeout(() => {
+							btn.textContent = '保存';
+							btn.disabled = false;
+						}, 1000);
+					}
+				}
 			});
-			
-			TRANSLATION_TARGET_RULES.universal.forEach(rule => {
-				document.querySelectorAll(rule.selector).forEach(el => {
-					if (!el.dataset.translationState) {
-						if (rule.isTitle) {
-							const extracted = TitleTranslationManager.extractTextToTranslate(el);
-							if (extracted) {
-								const tempDiv = document.createElement('span');
-								tempDiv.textContent = extracted.textToTranslate;
-								texts.add(tempDiv.innerHTML);
-							}
-						} else if (rule.isTags) {
-							extractTagsToTranslate(el).forEach(tag => texts.add(tag.innerHTML));
+
+			// 10. 页面失去焦点时自动失焦当前输入框
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'hidden' && this.panel.style.display === 'flex') {
+					if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+						document.activeElement.blur();
+					}
+				}
+			});
+		}
+	}
+
+	/**************************************************************************
+	 * 设置面板子模块
+	 **************************************************************************/
+
+	/**
+	 * 屏蔽设置模块
+	 */
+	class BlockerSettingsModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-blocker');
+			this.actionsContainer = this.$('#blocker-actions-container');
+			this.dimensionSelect = this.$('#blocker-dimension-select');
+			this.subDimensionSelect = this.$('#blocker-sub-dimension-select');
+			this.inputArea = this.$('#blocker-input-area');
+			this.toggleBlockerBtn = this.$('#btn-toggle-blocker');
+			this.toggleReasonsBtn = this.$('#btn-toggle-reasons');
+
+			this.BLOCKER_VIEW_KEY = 'ao3_blocker_current_view';
+			this.BLOCKER_SUB_VIEW_KEY = 'ao3_blocker_current_sub_view';
+
+			this.blockerConfig = {
+				tags: {
+					black: { label: '标签黑名单', keys: ['ao3_blocker_tags_black'], ph: "'*标签 1*', '标签 2'-'标签 3'" },
+					white: { label: '标签白名单', keys: ['ao3_blocker_tags_white'], ph: "'*标签 1*', '标签 2'+'标签 3'" }
+				},
+				content: {
+					author: { label: '作者黑名单', keys: ['ao3_blocker_content_author'], ph: '作者名 1, 作者名 2, 作者名 3' },
+					id: { label: '作品黑名单', keys: ['ao3_blocker_content_id'], ph: '作品 ID 1, 作品 ID 2, 作品 ID 3' },
+					title: { label: '标题黑名单', keys: ['ao3_blocker_content_title'], ph: '关键词 1, 关键词 2, 关键词 3' },
+					summary: { label: '简介黑名单', keys: ['ao3_blocker_content_summary'], ph: '关键词 1, 关键词 2, 关键词 3' }
+				},
+				stats: {
+					words: { label: '字数范围', keys: ['ao3_blocker_stats_min_words', 'ao3_blocker_stats_max_words'], ph: '1000-10000', isRange: true },
+					chapters: { label: '章节范围', keys: ['ao3_blocker_stats_min_chapters', 'ao3_blocker_stats_max_chapters'], ph: '2-50', isRange: true },
+					update: { label: '更新时间', inputLabel: 'n 月内未更新 (连载)', keys: ['ao3_blocker_stats_update'], ph: '6' },
+					crossover: { label: '同人圈数', inputLabel: '最大数量限制', keys: ['ao3_blocker_stats_crossover'], ph: '5' },
+					lang: { label: '语言筛选', inputLabel: '仅显示的语言', keys: ['ao3_blocker_adv_lang'], ph: '中文-普通话 國語, English' }
+				},
+				advanced: {
+					pairing: {
+						label: '主要关系筛选',
+						getInputLabel: () => {
+							const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_rel', DEFAULT_CONFIG.BLOCKER.adv_scope_rel)) || 1;
+							return scope === 1 ? '第 1 个关系标签' : `前 ${scope} 个关系标签`;
+						},
+						keys: ['ao3_blocker_adv_pairing'],
+						ph: "'关系 1', '关系 2', '关系 3'"
+					},
+					char: {
+						label: '主要角色筛选',
+						getInputLabel: () => {
+							const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_char', DEFAULT_CONFIG.BLOCKER.adv_scope_char)) || 5;
+							return scope === 1 ? '第 1 个角色标签' : `前 ${scope} 个角色标签`;
+						},
+						keys: ['ao3_blocker_adv_char'],
+						ph: "'角色 1', '角色 2', '角色 3'"
+					},
+					scope: {
+						label: '调整检索深度',
+						isDual: true,
+						keys: ['ao3_blocker_adv_scope_rel', 'ao3_blocker_adv_scope_char'],
+						labels: ['主要关系检索深度', '主要角色检索深度'],
+						phs: ['1', '5']
+					}
+				}
+			};
+		}
+
+		onInit() {
+			this.initEvents();
+		}
+
+		onShow() {
+			this.actionsContainer.style.display = 'flex';
+			this.dimensionSelect.value = GM_getValue(this.BLOCKER_VIEW_KEY, DEFAULT_CONFIG.BLOCKER.current_view);
+			this.renderSubDimensions();
+			this.updateButtonText();
+		}
+
+		onHide() {
+			this.actionsContainer.style.display = 'none';
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.renderInput();
+				this.updateButtonText();
+			}
+		}
+
+		saveSetting(key, value, defaultValue) {
+			if (value === defaultValue) GM_deleteValue(key);
+			else GM_setValue(key, value);
+		}
+
+		updateButtonText() {
+			this.toggleBlockerBtn.textContent = GM_getValue('ao3_blocker_enabled', DEFAULT_CONFIG.BLOCKER.enabled) ? '禁用作品屏蔽' : '启用作品屏蔽';
+			this.toggleReasonsBtn.textContent = GM_getValue('ao3_blocker_show_reasons', DEFAULT_CONFIG.BLOCKER.show_reasons) ? '隐藏屏蔽原因' : '显示屏蔽原因';
+		}
+
+		renderSubDimensions() {
+			const dimension = this.dimensionSelect.value;
+			const subConfig = this.blockerConfig[dimension];
+			this.subDimensionSelect.innerHTML = '';
+			Object.keys(subConfig).forEach(key => {
+				const option = document.createElement('option');
+				option.value = key;
+				option.textContent = subConfig[key].label;
+				this.subDimensionSelect.appendChild(option);
+			});
+			const savedSub = GM_getValue(this.BLOCKER_SUB_VIEW_KEY, DEFAULT_CONFIG.BLOCKER.current_sub_view);
+			if (savedSub && subConfig[savedSub]) {
+				this.subDimensionSelect.value = savedSub;
+			} else {
+				this.subDimensionSelect.selectedIndex = 0;
+			}
+			this.renderInput();
+		}
+
+		renderInput() {
+			const dimension = this.dimensionSelect.value;
+			const subDimension = this.subDimensionSelect.value;
+			const config = this.blockerConfig[dimension][subDimension];
+			this.inputArea.innerHTML = '';
+
+			if (config.isDual) {
+				config.keys.forEach((key, index) => {
+					const group = document.createElement('div');
+					group.className = 'settings-group static-label';
+					const labelText = config.labels[index];
+					const placeholder = config.phs[index];
+					const inputId = `input-blocker-val-${index}`;
+
+					group.innerHTML = `
+						<div class="input-wrapper">
+							<input type="text" id="${inputId}" class="settings-control settings-input" placeholder="${placeholder}" spellcheck="false">
+							<label for="${inputId}" class="settings-label">${labelText}</label>
+							<button class="settings-action-button-inline">保存</button>
+						</div>
+					`;
+					const input = group.querySelector('input');
+					const defaultKey = key.replace('ao3_blocker_', '');
+					const defaultValue = DEFAULT_CONFIG.BLOCKER[defaultKey] || '';
+					input.value = GM_getValue(key, defaultValue);
+					
+					group.querySelector('button').addEventListener('click', () => {
+						this.saveSetting(key, input.value.trim(), defaultValue);
+						this.updateLabel(input);
+						SettingsSyncManager.syncBlocker('full');
+					});
+					this.inputArea.appendChild(group);
+					this.updateLabel(input);
+				});
+			} else {
+				const group = document.createElement('div');
+				group.className = 'settings-group static-label';
+				let displayLabel = config.getInputLabel ? config.getInputLabel() : (config.inputLabel || config.label);
+
+				group.innerHTML = `
+					<div class="input-wrapper">
+						<input type="text" id="input-blocker-val" class="settings-control settings-input" placeholder="${config.ph}" spellcheck="false">
+						<label for="input-blocker-val" class="settings-label">${displayLabel}</label>
+						<button class="settings-action-button-inline">保存</button>
+					</div>
+				`;
+				const input = group.querySelector('input');
+
+				if (config.isRange) {
+					const defaultKeyMin = config.keys[0].replace('ao3_blocker_', '');
+					const defaultKeyMax = config.keys[1].replace('ao3_blocker_', '');
+					const min = GM_getValue(config.keys[0], DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
+					const max = GM_getValue(config.keys[1], DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
+					if (min && max) input.value = `${min}-${max}`;
+					else if (min) input.value = min;
+					else if (max) input.value = `-${max}`;
+				} else {
+					const defaultKey = config.keys[0].replace('ao3_blocker_', '');
+					input.value = GM_getValue(config.keys[0], DEFAULT_CONFIG.BLOCKER[defaultKey] || '');
+				}
+
+				group.querySelector('button').addEventListener('click', () => {
+					const val = input.value.trim();
+					if (config.isRange) {
+						const defaultKeyMin = config.keys[0].replace('ao3_blocker_', '');
+						const defaultKeyMax = config.keys[1].replace('ao3_blocker_', '');
+						const parts = val.split(/[-－—]/);
+						if (parts.length >= 2) {
+							this.saveSetting(config.keys[0], parts[0].trim(), DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
+							this.saveSetting(config.keys[1], parts[1].trim(), DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
 						} else {
-							const normalizer = new DOMNormalizer();
-							const walker = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT, {
-								acceptNode: (node) => {
-									if (normalizer._isHidden(node)) return NodeFilter.FILTER_REJECT;
-									return NodeFilter.FILTER_ACCEPT;
+							this.saveSetting(config.keys[0], val, DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
+							this.saveSetting(config.keys[1], '', DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
+						}
+					} else {
+						const defaultKey = config.keys[0].replace('ao3_blocker_', '');
+						this.saveSetting(config.keys[0], val, DEFAULT_CONFIG.BLOCKER[defaultKey] || '');
+					}
+					this.updateLabel(input);
+					SettingsSyncManager.syncBlocker('full');
+				});
+
+				this.inputArea.appendChild(group);
+				this.updateLabel(input);
+			}
+		}
+
+		initEvents() {
+			this.dimensionSelect.addEventListener('change', () => {
+				GM_setValue(this.BLOCKER_VIEW_KEY, this.dimensionSelect.value);
+				this.renderSubDimensions();
+			});
+
+			this.subDimensionSelect.addEventListener('change', () => {
+				GM_setValue(this.BLOCKER_SUB_VIEW_KEY, this.subDimensionSelect.value);
+				this.renderInput();
+			});
+
+			this.toggleBlockerBtn.addEventListener('click', () => {
+				const newState = !GM_getValue('ao3_blocker_enabled', DEFAULT_CONFIG.BLOCKER.enabled);
+				this.saveSetting('ao3_blocker_enabled', newState, DEFAULT_CONFIG.BLOCKER.enabled);
+				this.updateButtonText();
+				SettingsSyncManager.syncBlocker('full');
+			});
+
+			this.toggleReasonsBtn.addEventListener('click', () => {
+				const newState = !GM_getValue('ao3_blocker_show_reasons', DEFAULT_CONFIG.BLOCKER.show_reasons);
+				this.saveSetting('ao3_blocker_show_reasons', newState, DEFAULT_CONFIG.BLOCKER.show_reasons);
+				this.updateButtonText();
+				SettingsSyncManager.syncBlocker('full');
+			});
+		}
+	}
+
+	/**
+	 * 缓存管理模块
+	 */
+	class CacheSettingsModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-cache-manage');
+			this.modeSelect = this.$('#cache-manage-mode-select');
+			this.manualContainer = this.$('#cache-manage-manual-container');
+			this.autoContainer = this.$('#cache-manage-auto-container');
+			this.btnClearCurrent = this.$('#btn-clear-current-page-cache');
+			this.btnClearAll = this.$('#btn-clear-all-cache');
+			this.inputMaxItems = this.$('#setting-input-cache-max-items');
+			this.btnMaxItemsSave = this.$('#setting-btn-cache-max-items-save');
+			this.inputMaxDays = this.$('#setting-input-cache-max-days');
+			this.btnMaxDaysSave = this.$('#setting-btn-cache-max-days-save');
+			this.autoCleanupSelect = this.$('#setting-cache-auto-cleanup-enabled');
+			this.countDisplay = this.$('#cache-count-display');
+
+			this.CACHE_MANAGE_MODE_KEY = 'ao3_cache_manage_mode';
+		}
+
+		onInit() {
+			this.initEvents();
+			document.addEventListener(CUSTOM_EVENTS.CACHE_UPDATED, () => {
+				if (this.container.style.display === 'flex') this.updateCountDisplay();
+			});
+			document.addEventListener(CUSTOM_EVENTS.CLEAR_PAGE_CACHE, () => {
+				if (this.btnClearCurrent) this.btnClearCurrent.click();
+			});
+		}
+
+		onShow() {
+			this.modeSelect.value = GM_getValue(this.CACHE_MANAGE_MODE_KEY, 'manual');
+			this.modeSelect.dispatchEvent(new Event('change'));
+			this.updateCountDisplay();
+		}
+
+		async updateCountDisplay() {
+			this.countDisplay.textContent = '已缓存：计算中...';
+			try {
+				const count = await TranslationCacheDB.count();
+				const lastCleanup = GM_getValue('ao3_cache_last_cleanup_time', 0);
+				let lastCleanupStr = '从未';
+				if (lastCleanup > 0) {
+					const date = new Date(lastCleanup);
+					lastCleanupStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+				}
+				this.countDisplay.textContent = `已缓存：${count.toLocaleString()} 项，上次清理：${lastCleanupStr}`;
+			} catch (e) {
+				Logger.error('System', '获取缓存统计失败', e);
+				this.countDisplay.textContent = '已缓存：统计失败';
+			}
+		}
+
+		initEvents() {
+			this.modeSelect.addEventListener('change', () => {
+				GM_setValue(this.CACHE_MANAGE_MODE_KEY, this.modeSelect.value);
+				if (this.modeSelect.value === 'manual') {
+					this.manualContainer.style.display = 'flex';
+					this.autoContainer.style.display = 'none';
+				} else {
+					this.manualContainer.style.display = 'none';
+					this.autoContainer.style.display = 'flex';
+					this.autoCleanupSelect.value = GM_getValue('ao3_cache_auto_cleanup_enabled', true) ? 'true' : 'false';
+					this.inputMaxItems.value = GM_getValue('ao3_cache_max_items', 100000);
+					this.inputMaxDays.value = GM_getValue('ao3_cache_max_days', 30);
+					this.updateLabel(this.inputMaxItems);
+					this.updateLabel(this.inputMaxDays);
+				}
+			});
+
+			this.autoCleanupSelect.addEventListener('change', () => {
+				GM_setValue('ao3_cache_auto_cleanup_enabled', this.autoCleanupSelect.value === 'true');
+			});
+
+			this.btnMaxItemsSave.addEventListener('click', () => {
+				const val = parseInt(this.inputMaxItems.value, 10);
+				if (!isNaN(val) && val > 0) GM_setValue('ao3_cache_max_items', val);
+			});
+
+			this.btnMaxDaysSave.addEventListener('click', () => {
+				const val = parseInt(this.inputMaxDays.value, 10);
+				if (!isNaN(val) && val > 0) GM_setValue('ao3_cache_max_days', val);
+			});
+
+			this.btnClearCurrent.addEventListener('click', async () => {
+				const originalText = this.btnClearCurrent.textContent;
+				this.btnClearCurrent.textContent = '清理中...';
+
+				const texts = new Set();
+				document.querySelectorAll('.ao3-original-title').forEach(el => {
+					const titleNode = el.parentElement;
+					if (titleNode) {
+						const extracted = TitleTranslationManager.extractTextToTranslate(titleNode);
+						if (extracted) {
+							const tempDiv = document.createElement('span');
+							tempDiv.textContent = extracted.textToTranslate;
+							texts.add(tempDiv.innerHTML);
+						}
+					}
+				});
+				document.querySelectorAll('.ao3-original-content, .ao3-tag-original').forEach(el => texts.add(el.innerHTML));
+				
+				TRANSLATION_TARGET_RULES.universal.forEach(rule => {
+					document.querySelectorAll(rule.selector).forEach(el => {
+						if (!el.dataset.translationState) {
+							if (rule.isTitle) {
+								const extracted = TitleTranslationManager.extractTextToTranslate(el);
+								if (extracted) {
+									const tempDiv = document.createElement('span');
+									tempDiv.textContent = extracted.textToTranslate;
+									texts.add(tempDiv.innerHTML);
 								}
-							});
-							let node;
-							while ((node = walker.nextNode())) {
-								if (node.classList.contains('ao3-text-block') || node.tagName === 'HR' || (normalizer._isBlockNode(node) && !normalizer._hasBlockChild(node))) {
-									const content = node.textContent.trim();
-									if (content && !['Summary', 'Notes', 'Work Text', 'Chapter Text'].includes(content)) {
-										texts.add(node.innerHTML);
+							} else if (rule.isTags) {
+								extractTagsToTranslate(el).forEach(tag => texts.add(tag.innerHTML));
+							} else {
+								const normalizer = new DOMNormalizer();
+								const walker = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT, {
+									acceptNode: (node) => normalizer._isHidden(node) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+								});
+								let node;
+								while ((node = walker.nextNode())) {
+									if (node.classList.contains('ao3-text-block') || node.tagName === 'HR' || (normalizer._isBlockNode(node) && !normalizer._hasBlockChild(node))) {
+										const content = node.textContent.trim();
+										if (content && !['Summary', 'Notes', 'Work Text', 'Chapter Text'].includes(content)) {
+											texts.add(node.innerHTML);
+										}
 									}
 								}
 							}
 						}
-					}
+					});
 				});
+
+				if (texts.size === 0) {
+					this.btnClearCurrent.textContent = '无缓存可清理';
+					setTimeout(() => this.btnClearCurrent.textContent = originalText, 2000);
+					return;
+				}
+
+				const textHashes = await Promise.all(Array.from(texts).map(t => sha256(t)));
+				const deletedCount = await TranslationCacheDB.deleteByTextHashes(textHashes);
+				
+				if (deletedCount > 0) {
+					GM_setValue('ao3_cache_last_cleanup_time', Date.now());
+					this.btnClearCurrent.textContent = `成功清除 ${deletedCount} 项缓存`;
+				} else {
+					this.btnClearCurrent.textContent = '无缓存可清理';
+				}
+				
+				document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+				setTimeout(() => this.btnClearCurrent.textContent = originalText, 2000);
 			});
 
-			if (texts.size === 0) {
-				Logger.info('System', '当前页面没有找到可清除的缓存条目。');
-				btnClearCurrentPage.textContent = '无缓存可清理';
-				setTimeout(() => btnClearCurrentPage.textContent = originalText, 2000);
+			this.btnClearAll.addEventListener('click', () => {
+				showCustomConfirm('您确定要清除所有翻译缓存吗？\n注意：此操作无法撤销。', '提示', { textAlign: 'center' })
+					.then(async () => {
+						const originalText = this.btnClearAll.textContent;
+						this.btnClearAll.textContent = '清理中...';
+						await TranslationCacheDB.clear();
+						GM_setValue('ao3_cache_last_cleanup_time', Date.now());
+						this.btnClearAll.textContent = '清理成功';
+						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+						setTimeout(() => this.btnClearAll.textContent = originalText, 2000);
+					}).catch(() => {});
+			});
+		}
+	}
+
+	/**
+	 * 翻译参数设置模块
+	 */
+	class AiSettingsModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-ai-settings');
+			this.profileSelect = this.$('#ai-profile-select');
+			this.serviceTrigger = this.$('#ai-service-association-trigger');
+			this.paramSelect = this.$('#ai-param-select');
+			this.inputArea = this.$('#ai-param-input-area');
+			this.LAST_PROFILE_KEY = 'ao3_ai_settings_last_profile';
+			this.LAST_PARAM_KEY = 'ao3_ai_settings_last_param';
+		}
+
+		onInit() { this.initEvents(); }
+		onShow() { this.refresh(); }
+		onSync() { if (this.container.style.display === 'flex') this.refresh(); }
+
+		validateAiParam(value, config) {
+			if (!config.validation) return { valid: true, value: value };
+			const num = parseFloat(value);
+			const { min, max, step } = config.validation;
+			if (isNaN(num)) return { valid: false, message: `${config.label} 必须是有效的数字。` };
+			if (min !== undefined && num < min) return { valid: false, message: `${config.label} 不能小于 ${min}。` };
+			if (max !== undefined && num > max) return { valid: false, message: `${config.label} 不能大于 ${max}。` };
+			if (step !== undefined) {
+				const remainder = (num - (min || 0)) % step;
+				if (remainder > 0.00001 && Math.abs(remainder - step) > 0.00001) {
+					return { valid: false, message: `${config.label} 的步长必须是 ${step}。` };
+				}
+			}
+			return { valid: true, value: num };
+		}
+
+		generateNewProfileName(profiles) {
+			let maxNum = 0;
+			profiles.forEach(p => {
+				const match = p.name.match(/^配置 (\d+)$/);
+				if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+			});
+			return `配置 ${maxNum + 1}`;
+		}
+
+		updateParamOptions(profile) {
+			let currentVal = this.paramSelect.value;
+			Array.from(this.paramSelect.options).forEach(opt => { opt.style.display = ''; opt.disabled = false; opt.hidden = false; });
+
+			const renameOption = this.paramSelect.querySelector('option[value="rename_profile"]');
+			const deleteOption = this.paramSelect.querySelector('option[value="delete_profile"]');
+
+			if (profile.isProtected) {
+				if (deleteOption) deleteOption.remove();
+				if (!profile.isTraditional && renameOption) renameOption.remove();
+				if (profile.isTraditional && !renameOption) {
+					const opt = document.createElement('option'); opt.value = 'rename_profile'; opt.textContent = '设置参数配置名'; this.paramSelect.appendChild(opt);
+				}
+			} else {
+				if (!renameOption) { const opt = document.createElement('option'); opt.value = 'rename_profile'; opt.textContent = '设置参数配置名'; this.paramSelect.appendChild(opt); }
+				if (!deleteOption) { const opt = document.createElement('option'); opt.value = 'delete_profile'; opt.textContent = '删除此参数配置'; this.paramSelect.appendChild(opt); }
+			}
+
+			if (profile.isTraditional) {
+				['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort'].forEach(val => {
+					const opt = this.paramSelect.querySelector(`option[value="${val}"]`);
+					if (opt) { opt.style.display = 'none'; opt.hidden = true; opt.disabled = true; }
+				});
+				if (['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort', 'delete_profile'].includes(currentVal)) {
+					currentVal = 'chunk_size'; GM_setValue(this.LAST_PARAM_KEY, 'chunk_size');
+				}
+			} else {
+				if (profile.isProtected && (currentVal === 'rename_profile' || currentVal === 'delete_profile')) {
+					currentVal = 'system_prompt'; GM_setValue(this.LAST_PARAM_KEY, 'system_prompt');
+				}
+			}
+			this.paramSelect.value = currentVal;
+		}
+
+		refreshProfileSelect() {
+			const profiles = ProfileManager.getAllProfiles();
+			let targetId = GM_getValue(this.LAST_PROFILE_KEY);
+			if (!profiles.find(p => p.id === targetId)) targetId = profiles[0].id;
+
+			this.profileSelect.innerHTML = '';
+			profiles.forEach(p => {
+				const option = document.createElement('option'); option.value = p.id; option.textContent = p.name; this.profileSelect.appendChild(option);
+			});
+			const createOption = document.createElement('option'); createOption.value = 'create_new'; createOption.textContent = '新建配置'; this.profileSelect.appendChild(createOption);
+
+			this.profileSelect.value = targetId;
+			GM_setValue(this.LAST_PROFILE_KEY, targetId);
+
+			const currentProfile = ProfileManager.getProfile(targetId);
+			if (currentProfile) this.updateParamOptions(currentProfile);
+			return targetId;
+		}
+
+		renderParamEditor() {
+			const profile = ProfileManager.getProfile(this.profileSelect.value);
+			if (!profile) return;
+			const paramType = this.paramSelect.value;
+			this.inputArea.innerHTML = '';
+
+			if (paramType === 'rename_profile') {
+				if (profile.isProtected && !profile.isTraditional) return;
+				const section = document.createElement('div'); section.className = 'settings-group static-label';
+				section.innerHTML = `<div class="input-wrapper"><input type="text" id="ai-profile-rename-input" class="settings-control settings-input" value="${profile.name}" spellcheck="false"><label for="ai-profile-rename-input" class="settings-label">配置名称</label><button class="settings-action-button-inline">保存</button></div>`;
+				section.querySelector('button').addEventListener('click', () => {
+					const newName = section.querySelector('input').value.trim();
+					if (newName) { profile.name = newName; ProfileManager.saveProfile(profile); this.refreshProfileSelect(); }
+				});
+				this.inputArea.appendChild(section); this.updateLabel(section.querySelector('input'));
 				return;
 			}
 
-			const textHashes = await Promise.all(Array.from(texts).map(t => sha256(t)));
-			const deletedCount = await TranslationCacheDB.deleteByTextHashes(textHashes);
-			
-			if (deletedCount > 0) {
-				Logger.info('System', `已清除当前页面的 ${deletedCount} 项缓存。`);
-				GM_setValue('ao3_cache_last_cleanup_time', Date.now());
-				btnClearCurrentPage.textContent = `成功清除 ${deletedCount} 项缓存`;
+			const paramConfig = {
+				system_prompt: { type: 'textarea', label: 'System Prompt', autoSave: true },
+				user_prompt: { type: 'textarea', label: 'User Prompt', autoSave: true },
+				temperature: { type: 'number', label: 'Temperature', attrs: { min: 0, max: 2, step: 0.1 }, hint: ' (0-2)', validation: { min: 0, max: 2, step: 0.1 }, defaultKey: 'temperature' },
+				reasoning_effort: { type: 'select', label: '推理深度', options: [{ value: 'default', text: 'Default' }, { value: 'low', text: 'Low' }, { value: 'medium', text: 'Medium' }, { value: 'high', text: 'High' }], defaultKey: 'reasoning_effort' },
+				chunk_size: { type: 'number', label: '每次翻译文本量', attrs: { min: 100, step: 100 }, validation: { min: 100, step: 100 }, defaultKey: 'chunk_size' },
+				para_limit: { type: 'number', label: '每次翻译段落数', attrs: { min: 1, step: 1 }, validation: { min: 1, step: 1 }, defaultKey: 'para_limit' },
+				request_rate: { type: 'number', label: '平均每秒请求数', attrs: { min: 0.1, step: 0.1 }, hint: ' (req/s)', validation: { min: 0.1, step: 0.1 }, defaultKey: 'request_rate' },
+				request_capacity: { type: 'number', label: '最大突发请求数', attrs: { min: 1, step: 1 }, hint: ' (burst)', validation: { min: 1, step: 1 }, defaultKey: 'request_capacity' },
+				lazy_load_margin: { type: 'text', label: '懒加载参数设置', hint: ' (px)' },
+				validation_thresholds: { type: 'text', label: '占位符校验阈值', hint: ' (Abs, Ratio, Base, Zero)' }
+			};
+
+			const config = paramConfig[paramType];
+			if (!config) return;
+
+			const section = document.createElement('div');
+			const inputId = `ai-param-input-${paramType}`;
+			let inputElement;
+
+			const saveValue = () => {
+				let val = inputElement.value;
+				if (config.type !== 'select') {
+					const validationResult = this.validateAiParam(val, config);
+					if (!validationResult.valid) {
+						const defaultValue = BASE_AI_PARAMS[config.defaultKey];
+						GM_notification({ title: '参数设置错误', text: `${validationResult.message}\n已自动重置为默认值：${defaultValue}。` });
+						val = defaultValue; inputElement.value = val;
+					} else { val = validationResult.value; }
+				}
+				profile.params[paramType] = val;
+				ProfileManager.saveProfile(profile);
+				this.updateLabel(inputElement);
+				if (paramType === 'lazy_load_margin') document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.LAZY_LOAD_MARGIN_CHANGED));
+			};
+
+			if (config.type === 'select') {
+				section.className = 'settings-group static-label settings-group-select';
+				inputElement = document.createElement('select'); inputElement.className = 'settings-control settings-select custom-styled-select';
+				config.options.forEach(opt => { const option = document.createElement('option'); option.value = opt.value; option.textContent = opt.text; inputElement.appendChild(option); });
+				inputElement.value = profile.params[paramType] || BASE_AI_PARAMS[config.defaultKey];
+				inputElement.addEventListener('change', saveValue);
+				section.appendChild(inputElement);
 			} else {
-				Logger.info('System', '当前页面条目尚未被缓存，无需清理。');
-				btnClearCurrentPage.textContent = '无缓存可清理';
+				section.className = 'settings-group static-label';
+				const inputWrapper = document.createElement('div'); inputWrapper.className = 'input-wrapper';
+				inputElement = document.createElement(config.type === 'textarea' ? 'textarea' : 'input');
+				inputElement.className = 'settings-control settings-input'; inputElement.setAttribute('spellcheck', 'false');
+				if (config.type !== 'textarea') inputElement.type = config.type;
+				if (config.attrs) Object.entries(config.attrs).forEach(([k, v]) => inputElement.setAttribute(k, v));
+				inputElement.value = profile.params[paramType];
+				inputWrapper.appendChild(inputElement);
+				if (config.autoSave) inputElement.addEventListener('blur', saveValue);
+				else {
+					const saveBtn = document.createElement('button'); saveBtn.className = 'settings-action-button-inline'; saveBtn.textContent = '保存';
+					saveBtn.addEventListener('click', saveValue); inputWrapper.appendChild(saveBtn);
+				}
+				section.appendChild(inputWrapper);
 			}
+
+			inputElement.id = inputId;
+			const label = document.createElement('label'); label.className = 'settings-label'; label.htmlFor = inputId; label.textContent = config.label + (config.hint || '');
+			section.appendChild(label);
+			this.inputArea.appendChild(section);
+			this.updateLabel(inputElement);
+		}
+
+		refresh() {
+			const lastParam = GM_getValue(this.LAST_PARAM_KEY, 'system_prompt');
+			this.paramSelect.value = lastParam === 'delete_profile' ? 'system_prompt' : lastParam;
+			this.refreshProfileSelect();
+			this.renderParamEditor();
+		}
+
+		initEvents() {
+			this.profileSelect.addEventListener('change', () => {
+				if (this.profileSelect.value === 'create_new') {
+					const newId = ProfileManager.createProfile(this.generateNewProfileName(ProfileManager.getAllProfiles()));
+					this.refreshProfileSelect();
+					this.profileSelect.value = newId; GM_setValue(this.LAST_PROFILE_KEY, newId);
+					this.paramSelect.value = 'system_prompt'; GM_setValue(this.LAST_PARAM_KEY, 'system_prompt');
+				} else {
+					GM_setValue(this.LAST_PROFILE_KEY, this.profileSelect.value);
+				}
+				const profile = ProfileManager.getProfile(this.profileSelect.value);
+				if (profile) this.updateParamOptions(profile);
+				this.renderParamEditor();
+			});
+
+			this.serviceTrigger.addEventListener('click', () => {
+				const profileId = this.profileSelect.value;
+				createServiceAssociationModal(profileId, (selectedIds) => { ProfileManager.updateServiceAssociation(profileId, selectedIds); });
+			});
+
+			this.paramSelect.addEventListener('change', () => {
+				const paramType = this.paramSelect.value;
+				if (paramType === 'delete_profile') {
+					const profile = ProfileManager.getProfile(this.profileSelect.value);
+					if (profile && !profile.isProtected) {
+						showCustomConfirm(`您确定要删除 ${profile.name} 参数配置吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+							.then(() => {
+								ProfileManager.deleteProfile(profile.id);
+								this.refreshProfileSelect();
+								this.paramSelect.value = 'system_prompt'; GM_setValue(this.LAST_PARAM_KEY, 'system_prompt');
+								this.renderParamEditor();
+							}).catch(() => {
+								const lastParam = GM_getValue(this.LAST_PARAM_KEY, 'system_prompt');
+								this.paramSelect.value = lastParam === 'delete_profile' ? 'system_prompt' : lastParam;
+								this.renderParamEditor();
+							});
+					}
+					return;
+				}
+				GM_setValue(this.LAST_PARAM_KEY, paramType);
+				this.renderParamEditor();
+			});
+		}
+	}
+
+	/**
+	 * 本地术语表管理模块
+	 */
+	class LocalGlossaryModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-local-manage');
+			this.select = this.$('#setting-local-glossary-select');
+			this.modeSelect = this.$('#setting-local-edit-mode');
+			this.containerName = this.$('#local-edit-container-name');
+			this.containerTranslation = this.$('#local-edit-container-translation');
+			this.containerForbidden = this.$('#local-edit-container-forbidden');
+			this.nameInput = this.$('#setting-local-glossary-name');
+			this.sensitiveInput = this.$('#setting-input-local-sensitive');
+			this.insensitiveInput = this.$('#setting-input-local-insensitive');
+			this.forbiddenInput = this.$('#setting-input-local-forbidden');
 			
-			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
-			setTimeout(() => btnClearCurrentPage.textContent = originalText, 2000);
-		});
+			this.SELECTED_ID_KEY = 'ao3_local_glossary_selected_id';
+			this.EDIT_MODE_KEY = 'ao3_local_glossary_edit_mode';
+		}
 
-		btnClearAllCache.addEventListener('click', () => {
-			showCustomConfirm('您确定要清除所有翻译缓存吗？\n注意：此操作无法撤销。', '提示', { textAlign: 'center' })
-				.then(async () => {
-					const originalText = btnClearAllCache.textContent;
-					btnClearAllCache.textContent = '清理中...';
-					
-					await TranslationCacheDB.clear();
-					Logger.info('System', '所有翻译缓存已清除。');
-					GM_setValue('ao3_cache_last_cleanup_time', Date.now());
-					
-					btnClearAllCache.textContent = '清理成功';
-					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
-					setTimeout(() => btnClearAllCache.textContent = originalText, 2000);
-				}).catch(() => {});
-		});
+		onInit() { this.initEvents(); }
+		
+		onShow() {
+			let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+			if (glossaries.length === 0) {
+				glossaries = [{ id: `local_${Date.now()}`, name: '默认', sensitive: '', insensitive: '', forbidden: '', enabled: true }];
+				GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+			}
+			this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY), GM_getValue(this.EDIT_MODE_KEY, 'name'));
+		}
 
-		btnCacheMaxItemsSave.addEventListener('click', () => {
-			const val = parseInt(inputCacheMaxItems.value, 10);
-			if (!isNaN(val) && val > 0) {
-				GM_setValue('ao3_cache_max_items', val);
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY, this.select.value), GM_getValue(this.EDIT_MODE_KEY, 'name'));
+			}
+		}
+
+		populateSelect() {
+			this.select.innerHTML = '';
+			GM_getValue(CUSTOM_GLOSSARIES_KEY, []).forEach(g => {
+				const option = document.createElement('option'); 
+				option.value = g.id; 
+				option.textContent = g.name; 
+				option.dataset.isLocalGlossary = 'true'; 
+				option.dataset.toggleable = 'true';
+				option.dataset.enabled = g.enabled !== false ? 'true' : 'false';
+				this.select.appendChild(option);
+			});
+			const createOption = document.createElement('option'); createOption.value = 'create_new'; createOption.textContent = '新建术语表'; this.select.appendChild(createOption);
+		}
+
+		loadData(id) {
+			const glossary = GM_getValue(CUSTOM_GLOSSARIES_KEY, []).find(g => g.id === id);
+			if (!glossary) {
+				this.nameInput.value = ''; this.sensitiveInput.value = ''; this.insensitiveInput.value = ''; this.forbiddenInput.value = '';
+			} else {
+				this.nameInput.value = glossary.name || ''; this.sensitiveInput.value = glossary.sensitive || ''; this.insensitiveInput.value = glossary.insensitive || ''; this.forbiddenInput.value = glossary.forbidden || '';
+			}
+			[this.nameInput, this.sensitiveInput, this.insensitiveInput, this.forbiddenInput].forEach(el => this.updateLabel(el));
+		}
+
+		reloadEditor(targetId, targetMode) {
+			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+			if (glossaries.length === 0) return;
+			this.populateSelect();
+			const nextId = glossaries.some(g => g.id === targetId) ? targetId : glossaries[0].id;
+			this.select.value = nextId; GM_setValue(this.SELECTED_ID_KEY, nextId);
+			const mode = targetMode || GM_getValue(this.EDIT_MODE_KEY, 'name');
+			this.modeSelect.value = mode; GM_setValue(this.EDIT_MODE_KEY, mode);
+			this.loadData(nextId);
+			this.updateVisibility();
+		}
+
+		updateVisibility() {
+			const mode = this.modeSelect.value;
+			this.containerName.style.display = mode === 'name' ? 'block' : 'none';
+			this.containerTranslation.style.display = mode === 'translation' ? 'flex' : 'none';
+			this.containerForbidden.style.display = mode === 'forbidden' ? 'block' : 'none';
+		}
+
+		saveContent(field, inputElement) {
+			const id = this.select.value; if (!id) return;
+			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+			const index = glossaries.findIndex(g => g.id === id);
+			if (index === -1) return;
+			const newValue = field === 'name' ? inputElement.value.trim() : inputElement.value;
+			if (glossaries[index][field] === newValue) return;
+			glossaries[index][field] = newValue;
+			GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+			this.reloadEditor(id, this.modeSelect.value);
+			SettingsSyncManager.syncGlossary(false);
+		}
+
+		initEvents() {
+			this.select.addEventListener('ao3-dropdown-action', (e) => {
+				if (e.detail.action === 'toggle') {
+					const id = e.detail.value;
+					const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+					const index = glossaries.findIndex(g => g.id === id);
+					if (index !== -1) {
+						const currentState = glossaries[index].enabled !== false;
+						glossaries[index].enabled = !currentState;
+						GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+						SettingsSyncManager.syncGlossary(false);
+						
+						const btn = e.detail.button;
+						btn.innerHTML = !currentState ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
+						btn.title = !currentState ? '点击禁用' : '点击启用';
+						btn.classList.toggle('is-disabled', currentState);
+						
+						const option = this.select.querySelector(`option[value="${id}"]`);
+						if (option) option.dataset.enabled = (!currentState).toString();
+					}
+				}
+			});
+
+			this.select.addEventListener('change', () => {
+				if (this.select.value === 'create_new') {
+					const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+					let maxNum = 0; glossaries.forEach(g => { const m = g.name.match(/^术语表 (\d+)$/); if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10)); });
+					const newId = `local_${Date.now()}`;
+					glossaries.push({ id: newId, name: `术语表 ${maxNum + 1}`, sensitive: '', insensitive: '', forbidden: '', enabled: true });
+					GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+					this.reloadEditor(newId, 'name'); SettingsSyncManager.syncGlossary(false);
+				} else {
+					this.reloadEditor(this.select.value);
+				}
+			});
+
+			this.modeSelect.addEventListener('change', () => {
+				if (this.modeSelect.value === 'delete') {
+					showCustomConfirm(`您确定要删除 ${this.select.options[this.select.selectedIndex].text} 术语表吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+						.then(() => {
+							let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []).filter(g => g.id !== this.select.value);
+							if (glossaries.length === 0) glossaries.push({ id: `local_${Date.now()}`, name: '默认', sensitive: '', insensitive: '', forbidden: '', enabled: true });
+							GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+							const nextId = glossaries[0].id;
+							GM_setValue(this.SELECTED_ID_KEY, nextId); GM_setValue(this.EDIT_MODE_KEY, 'name');
+							this.reloadEditor(nextId, 'name'); SettingsSyncManager.syncGlossary(false);
+						}).catch(() => { this.modeSelect.value = GM_getValue(this.EDIT_MODE_KEY, 'name'); });
+				} else {
+					this.updateVisibility(); GM_setValue(this.EDIT_MODE_KEY, this.modeSelect.value);
+				}
+			});
+
+			this.$('#setting-btn-local-glossary-save-name').addEventListener('click', () => this.saveContent('name', this.nameInput));
+			this.$('#setting-btn-local-sensitive-save').addEventListener('click', () => this.saveContent('sensitive', this.sensitiveInput));
+			this.$('#setting-btn-local-insensitive-save').addEventListener('click', () => this.saveContent('insensitive', this.insensitiveInput));
+			this.$('#setting-btn-local-forbidden-save').addEventListener('click', () => this.saveContent('forbidden', this.forbiddenInput));
+		}
+	}
+
+	/**
+	 * 在线术语表管理模块
+	 */
+	class OnlineGlossaryModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-online-manage');
+			this.urlInput = this.$('#setting-input-glossary-import-url');
+			this.select = this.$('#setting-select-glossary-manage');
+			this.detailsContainer = this.$('#online-glossary-details-container');
+			this.infoText = this.$('#online-glossary-info');
+			this.deleteBtn = this.$('#online-glossary-delete-btn');
+			this.viewContainer = this.$('#view-imported-glossary-container');
+		}
+
+		onInit() {
+			this.initEvents();
+			document.addEventListener(CUSTOM_EVENTS.GLOSSARY_IMPORTED, () => {
+				if (this.container.style.display === 'flex') this.populateSelect();
+			});
+		}
+
+		onShow() { this.populateSelect(); }
+		onSync() { if (this.container.style.display === 'flex') this.populateSelect(); }
+
+		populateSelect() {
+			const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+			const urls = Object.keys(metadata);
+			const lastSelectedUrl = GM_getValue(LAST_SELECTED_GLOSSARY_KEY, null);
+			this.select.innerHTML = '';
+			if (urls.length === 0) {
+				this.select.innerHTML = '<option value="" disabled selected>暂无术语表</option>';
+				this.select.disabled = true;
+				this.detailsContainer.style.display = 'none';
+			} else {
+				urls.forEach(url => {
+					const name = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
+					const option = document.createElement('option'); 
+					option.value = url; 
+					option.textContent = name; 
+					option.title = name; 
+					option.dataset.toggleable = 'true';
+					option.dataset.enabled = metadata[url].enabled !== false ? 'true' : 'false';
+					this.select.appendChild(option);
+				});
+				this.select.disabled = false;
+				this.select.value = (lastSelectedUrl && urls.includes(lastSelectedUrl)) ? lastSelectedUrl : urls[0];
+			}
+			this.select.dispatchEvent(new Event('change'));
+			this.updateLabel(this.select);
+			this.resetDeleteButton();
+		}
+
+		resetDeleteButton() {
+			this.deleteBtn.textContent = '删除';
+			this.deleteBtn.removeAttribute('data-confirming');
+		}
+
+		initEvents() {
+			this.select.addEventListener('ao3-dropdown-action', (e) => {
+				if (e.detail.action === 'toggle') {
+					const url = e.detail.value;
+					const currentMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+					if (currentMetadata[url]) {
+						const currentState = currentMetadata[url].enabled !== false;
+						currentMetadata[url].enabled = !currentState;
+						GM_setValue(GLOSSARY_METADATA_KEY, currentMetadata);
+						invalidateGlossaryCache();
+						
+						const btn = e.detail.button;
+						btn.innerHTML = !currentState ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
+						btn.title = !currentState ? '点击禁用' : '点击启用';
+						btn.classList.toggle('is-disabled', currentState);
+						
+						const option = this.select.querySelector(`option[value="${url}"]`);
+						if (option) option.dataset.enabled = (!currentState).toString();
+					}
+				}
+			});
+
+			this.$('#setting-btn-glossary-import-save').addEventListener('click', async () => {
+				const url = this.urlInput.value.trim();
+				if (url) {
+					const result = await importOnlineGlossary(url);
+					if (result.success) {
+						invalidateGlossaryCache();
+						GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
+						this.populateSelect();
+					}
+				}
+			});
+
+			this.select.addEventListener('change', () => {
+				const url = this.select.value;
+				if (url) {
+					GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
+					const currentMeta = GM_getValue(GLOSSARY_METADATA_KEY, {})[url] || {};
+					this.infoText.textContent = `版本号：${currentMeta.version || '未知'} ，维护者：${currentMeta.maintainer || '未知'}`;
+					this.detailsContainer.style.display = 'flex';
+					this.viewContainer.style.display = 'flex';
+				} else {
+					this.detailsContainer.style.display = 'none';
+					this.viewContainer.style.display = 'none';
+				}
+				this.resetDeleteButton();
+			});
+
+			this.deleteBtn.addEventListener('click', () => {
+				if (this.deleteBtn.dataset.confirming) {
+					const urlToRemove = this.select.value;
+					if (urlToRemove) {
+						const allGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
+						const allMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+						delete allGlossaries[urlToRemove]; delete allMetadata[urlToRemove];
+						GM_setValue(IMPORTED_GLOSSARY_KEY, allGlossaries); GM_setValue(GLOSSARY_METADATA_KEY, allMetadata);
+
+						const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
+						if (rawTextCache[urlToRemove]) { delete rawTextCache[urlToRemove]; GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, rawTextCache); }
+
+						const parsedUrls = parseGlossaryUrl(urlToRemove);
+						if (parsedUrls) {
+							const githubCache = GM_getValue(GitHubStatusManager.CACHE_KEY, {});
+							const repoKey = `${parsedUrls.owner}/${parsedUrls.repo}`;
+							if (githubCache[repoKey]) { delete githubCache[repoKey]; GM_setValue(GitHubStatusManager.CACHE_KEY, githubCache); }
+						}
+						invalidateGlossaryCache(); this.populateSelect(); this.updateLabel(this.select);
+					}
+				} else {
+					this.deleteBtn.textContent = '确认删除'; this.deleteBtn.setAttribute('data-confirming', 'true');
+				}
+			});
+
+			this.$('#btn-open-online-library').addEventListener('click', () => openOnlineLibraryModal());
+			this.$('#btn-view-imported-glossary').addEventListener('click', () => { if (this.select.value) openGlossaryViewModal(this.select.value); });
+		}
+	}
+
+	/**
+	 * 译文后处理替换模块
+	 */
+	class PostReplaceModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-post-replace');
+			this.select = this.$('#setting-post-replace-select');
+			this.modeSelect = this.$('#setting-post-replace-edit-mode');
+			this.containerName = this.$('#post-replace-container-name');
+			this.containerSettings = this.$('#post-replace-container-settings');
+			this.nameInput = this.$('#setting-post-replace-name');
+			this.contentInput = this.$('#setting-input-post-replace');
+			
+			this.SELECTED_ID_KEY = 'ao3_post_replace_selected_id';
+			this.EDIT_MODE_KEY = 'ao3_post_replace_edit_mode';
+		}
+
+		onInit() { this.initEvents(); }
+
+		onShow() {
+			let rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+			let isInitializedDefault = false;
+			if (rules.length === 0) {
+				rules.push({ id: `replace_${Date.now()}`, name: '默认', content: '', enabled: true });
+				GM_setValue(POST_REPLACE_RULES_KEY, rules);
+				isInitializedDefault = true;
+			}
+			this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY), isInitializedDefault ? 'settings' : GM_getValue(this.EDIT_MODE_KEY, 'settings'));
+			if (isInitializedDefault) GM_setValue(this.EDIT_MODE_KEY, 'settings');
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY, this.select.value), GM_getValue(this.EDIT_MODE_KEY, 'name'));
+			}
+		}
+
+		populateSelect() {
+			this.select.innerHTML = '';
+			GM_getValue(POST_REPLACE_RULES_KEY, []).forEach(r => {
+				const option = document.createElement('option'); 
+				option.value = r.id; 
+				option.textContent = r.name; 
+				option.dataset.isPostReplaceRule = 'true'; 
+				option.dataset.toggleable = 'true';
+				option.dataset.enabled = r.enabled !== false ? 'true' : 'false';
+				this.select.appendChild(option);
+			});
+			const createOption = document.createElement('option'); createOption.value = 'create_new'; createOption.textContent = '新建替换规则'; this.select.appendChild(createOption);
+		}
+
+		loadData(id) {
+			const rule = GM_getValue(POST_REPLACE_RULES_KEY, []).find(r => r.id === id);
+			if (!rule) {
+				this.nameInput.value = ''; this.contentInput.value = '';
+			} else {
+				this.nameInput.value = rule.name || ''; this.contentInput.value = rule.content || '';
+			}
+			[this.nameInput, this.contentInput].forEach(el => this.updateLabel(el));
+		}
+
+		reloadEditor(targetId, targetMode) {
+			const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+			if (rules.length === 0) return;
+			this.populateSelect();
+			const nextId = rules.some(r => r.id === targetId) ? targetId : rules[0].id;
+			this.select.value = nextId; GM_setValue(this.SELECTED_ID_KEY, nextId);
+			const mode = targetMode || GM_getValue(this.EDIT_MODE_KEY, 'name');
+			this.modeSelect.value = mode; GM_setValue(this.EDIT_MODE_KEY, mode);
+			this.loadData(nextId);
+			this.updateVisibility();
+		}
+
+		updateVisibility() {
+			const mode = this.modeSelect.value;
+			this.containerName.style.display = mode === 'name' ? 'block' : 'none';
+			this.containerSettings.style.display = mode === 'settings' ? 'block' : 'none';
+		}
+
+		initEvents() {
+			this.select.addEventListener('ao3-dropdown-action', (e) => {
+				if (e.detail.action === 'toggle') {
+					const id = e.detail.value;
+					const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+					const index = rules.findIndex(r => r.id === id);
+					if (index !== -1) {
+						const currentState = rules[index].enabled !== false;
+						rules[index].enabled = !currentState;
+						GM_setValue(POST_REPLACE_RULES_KEY, rules);
+						SettingsSyncManager.syncGlossary(false);
+						
+						const btn = e.detail.button;
+						btn.innerHTML = !currentState ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
+						btn.title = !currentState ? '点击禁用' : '点击启用';
+						btn.classList.toggle('is-disabled', currentState);
+						
+						const option = this.select.querySelector(`option[value="${id}"]`);
+						if (option) option.dataset.enabled = (!currentState).toString();
+					}
+				}
+			});
+
+			this.select.addEventListener('change', () => {
+				if (this.select.value === 'create_new') {
+					const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+					let maxNum = 0; rules.forEach(r => { const m = r.name.match(/^规则 (\d+)$/); if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10)); });
+					const newId = `replace_${Date.now()}`;
+					rules.push({ id: newId, name: `规则 ${maxNum + 1}`, content: '', enabled: true });
+					GM_setValue(POST_REPLACE_RULES_KEY, rules);
+					this.reloadEditor(newId, 'name'); SettingsSyncManager.syncGlossary(false);
+				} else {
+					this.reloadEditor(this.select.value);
+				}
+			});
+
+			this.modeSelect.addEventListener('change', () => {
+				if (this.modeSelect.value === 'delete') {
+					showCustomConfirm(`您确定要删除 ${this.select.options[this.select.selectedIndex].text} 替换规则吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+						.then(() => {
+							let rules = GM_getValue(POST_REPLACE_RULES_KEY, []).filter(r => r.id !== this.select.value);
+							if (rules.length === 0) rules.push({ id: `replace_${Date.now()}`, name: '默认', content: '', enabled: true });
+							GM_setValue(POST_REPLACE_RULES_KEY, rules);
+							const nextId = rules[0].id;
+							GM_setValue(this.SELECTED_ID_KEY, nextId); GM_setValue(this.EDIT_MODE_KEY, 'name');
+							this.reloadEditor(nextId, 'name'); SettingsSyncManager.syncGlossary(false);
+						}).catch(() => { this.modeSelect.value = GM_getValue(this.EDIT_MODE_KEY, 'name'); });
+				} else {
+					this.updateVisibility(); GM_setValue(this.EDIT_MODE_KEY, this.modeSelect.value);
+				}
+			});
+
+			this.$('#setting-btn-post-replace-save-name').addEventListener('click', () => {
+				const id = this.select.value; const newName = this.nameInput.value.trim();
+				if (!id || !newName) return;
+				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+				const index = rules.findIndex(r => r.id === id);
+				if (index === -1 || rules[index].name === newName) return;
+				rules[index].name = newName; GM_setValue(POST_REPLACE_RULES_KEY, rules);
+				this.reloadEditor(id, this.modeSelect.value); SettingsSyncManager.syncGlossary(false);
+			});
+
+			this.$('#setting-btn-post-replace-save').addEventListener('click', () => {
+				const id = this.select.value; if (!id) return;
+				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+				const index = rules.findIndex(r => r.id === id);
+				if (index === -1 || rules[index].content === this.contentInput.value) return;
+				rules[index].content = this.contentInput.value; GM_setValue(POST_REPLACE_RULES_KEY, rules);
+				this.reloadEditor(id, this.modeSelect.value); SettingsSyncManager.syncGlossary(false);
+			});
+		}
+	}
+
+	/**
+	 * 常规设置模块：原文语言与目标语言
+	 */
+	class GeneralSettingsModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, null);
+			this.masterSwitch = this.$('#setting-master-switch');
+			this.swapLangBtn = this.$('#swap-lang-btn');
+			this.fromLangSelect = this.$('#setting-from-lang');
+			this.toLangSelect = this.$('#setting-to-lang');
+			this.displayModeSelect = this.$('#setting-display-mode');
+
+			this.TRANSLATION_MODE_KEY = 'ao3_translation_mode';
+			this.AUTO_TRANSLATE_KEY = 'ao3_auto_translate';
+		}
+
+		onInit() {
+			this.populateLangSelects();
+			this.initEvents();
+		}
+
+		onSync() { this.syncUI(); }
+
+		populateLangSelects() {
+			const fromOptions = [
+				{ value: 'script_auto', text: '自动检测' },
+				{ value: 'auto', text: '自主判断' },
+				...ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }))
+			];
+			const toOptions = ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }));
+			
+			const fill = (select, opts) => {
+				select.innerHTML = '';
+				opts.forEach(o => {
+					const opt = document.createElement('option'); opt.value = o.value; opt.textContent = o.text; select.appendChild(opt);
+				});
+			};
+			fill(this.fromLangSelect, fromOptions);
+			fill(this.toLangSelect, toOptions);
+		}
+
+		syncUI() {
+			const currentMode = GM_getValue(this.TRANSLATION_MODE_KEY, 'unit');
+			const isFullPage = currentMode === 'full_page';
+			const switchLabel = this.panel.querySelector('.settings-switch-group:first-child .settings-label');
+
+			if (isFullPage) {
+				document.body.classList.add('ao3-full-page-mode');
+				if (switchLabel) switchLabel.textContent = '自动翻译页面';
+				this.masterSwitch.checked = GM_getValue(this.AUTO_TRANSLATE_KEY, false);
+			} else {
+				document.body.classList.remove('ao3-full-page-mode');
+				if (switchLabel) switchLabel.textContent = '显示翻译按钮';
+				this.masterSwitch.checked = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
+			}
+
+			this.fromLangSelect.value = GM_getValue('from_lang', DEFAULT_CONFIG.GENERAL.from_lang);
+			this.toLangSelect.value = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
+			this.displayModeSelect.value = GM_getValue('translation_display_mode', DEFAULT_CONFIG.GENERAL.translation_display_mode);
+			this.updateSwapButtonState();
+			applyDisplayModeChange(this.displayModeSelect.value);
+			[this.fromLangSelect, this.toLangSelect, this.displayModeSelect].forEach(el => this.updateLabel(el));
+		}
+
+		updateSwapButtonState() {
+			const val = this.fromLangSelect.value;
+			this.swapLangBtn.disabled = (val === 'auto' || val === 'script_auto');
+		}
+
+		initEvents() {
+			this.masterSwitch.addEventListener('change', () => {
+				const currentMode = GM_getValue(this.TRANSLATION_MODE_KEY, 'unit');
+				const isEnabled = this.masterSwitch.checked;
+				if (currentMode === 'full_page') {
+					GM_setValue(this.AUTO_TRANSLATE_KEY, isEnabled);
+					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.AUTO_TRANSLATE_CHANGED, { detail: { enabled: isEnabled } }));
+				} else {
+					GM_setValue('enable_transDesc', isEnabled);
+					FeatureSet.enable_transDesc = isEnabled;
+					this.syncUI();
+					if (typeof fabLogic !== 'undefined' && fabLogic.toggleFabVisibility) fabLogic.toggleFabVisibility();
+					if (isEnabled) transDesc();
+					else TranslationDOMUtils.deepCleanup(document.body, true);
+				}
+			});
+
+			this.swapLangBtn.addEventListener('click', () => {
+				if (this.swapLangBtn.disabled) return;
+				const fromLang = this.fromLangSelect.value;
+				const toLang = this.toLangSelect.value;
+				this.fromLangSelect.value = toLang; this.toLangSelect.value = fromLang;
+				GM_setValue('from_lang', toLang); GM_setValue('to_lang', fromLang);
+				this.fromLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
+				this.toLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
+			});
+
+			this.fromLangSelect.addEventListener('change', () => {
+				GM_setValue('from_lang', this.fromLangSelect.value);
+				this.updateSwapButtonState();
+				this.controller.syncAllModules();
+			});
+
+			this.toLangSelect.addEventListener('change', () => {
+				GM_setValue('to_lang', this.toLangSelect.value);
+				this.controller.syncAllModules();
+			});
+
+			this.displayModeSelect.addEventListener('change', () => {
+				GM_setValue('translation_display_mode', this.displayModeSelect.value);
+				applyDisplayModeChange(this.displayModeSelect.value);
+			});
+		}
+
+		toggleTranslationMode() {
+			let currentMode = GM_getValue(this.TRANSLATION_MODE_KEY, 'unit');
+			currentMode = currentMode === 'unit' ? 'full_page' : 'unit';
+			GM_setValue(this.TRANSLATION_MODE_KEY, currentMode);
+
+			if (currentMode === 'full_page') {
+				const hasSwitched = GM_getValue('has_switched_to_full_page_once', false);
+				if (!hasSwitched) {
+					GM_setValue('has_switched_to_full_page_once', true);
+					GM_setValue('from_lang', 'script_auto');
+				}
+			}
+
+			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.MODE_CHANGED, { detail: { mode: currentMode } }));
+			this.controller.syncAllModules();
+		}
+	}
+
+	/**
+	 * 翻译服务与自定义服务模块
+	 */
+	class TranslationServiceModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, null);
+			this.engineSelect = this.$('#setting-trans-engine');
+			this.detailsToggleContainer = this.$('#service-details-toggle-container');
+			this.detailsToggleBtn = this.$('.service-details-toggle-btn');
+			this.customContainer = this.$('#custom-service-container');
+			this.modelGroup = this.$('#setting-model-group');
+			this.modelSelect = this.$('#setting-trans-model');
+			this.apiKeyGroup = this.$('#api-key-group');
+			this.apiKeyInput = this.$('#setting-input-apikey');
+			this.apiKeySaveBtn = this.$('#setting-btn-apikey-save');
+			this.customManager = createCustomServiceManager(this.controller.panelElements);
+			this.isEditingBuiltInModel = false;
+		}
+
+		onInit() {
+			this.populateEngineSelect();
+			this.initEvents();
+		}
+
+		onSync() {
+			this.populateEngineSelect();
+			this.syncEngineState();
+		}
+
+		populateEngineSelect() {
+			this.engineSelect.innerHTML = '';
+			const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+			const addOpt = (val, name, isCustom = false) => {
+				const opt = document.createElement('option'); opt.value = val; opt.textContent = name;
+				if (isCustom) {
+					opt.dataset.isCustom = 'true';
+					opt.dataset.deletable = 'true';
+				}
+				this.engineSelect.appendChild(opt);
+			};
+			addOpt('google_translate', engineMenuConfig['google_translate'].displayName);
+			addOpt('bing_translator', engineMenuConfig['bing_translator'].displayName);
+			Object.keys(engineMenuConfig)
+				.filter(id => id !== 'google_translate' && id !== 'bing_translator' && id !== ADD_NEW_CUSTOM_SERVICE_ID)
+				.sort((a, b) => engineMenuConfig[a].displayName.localeCompare(engineMenuConfig[b].displayName))
+				.forEach(id => addOpt(id, engineMenuConfig[id].displayName));
+			customServices.forEach(s => addOpt(s.id, s.name || '未命名服务', true));
+			addOpt(ADD_NEW_CUSTOM_SERVICE_ID, engineMenuConfig[ADD_NEW_CUSTOM_SERVICE_ID].displayName);
+		}
+
+		syncEngineState() {
+			if (this.customManager.isPending()) this.customManager.cancelPending();
+			const engineId = getValidEngineName();
+			this.engineSelect.value = engineId;
+			this.updateUiForEngine(engineId);
+			this.isEditingBuiltInModel = false;
+		}
+
+		updateUiForEngine(engineId) {
+			this.customContainer.style.display = 'none';
+			this.modelGroup.style.display = 'none';
+			this.apiKeyGroup.style.display = 'none';
+			this.detailsToggleContainer.style.display = 'none';
+
+			if (engineId.startsWith('custom_')) {
+				this.customManager.enterEditMode(engineId);
+				this.detailsToggleContainer.style.display = 'flex';
+			} else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
+				this.detailsToggleContainer.style.display = 'flex';
+				this.customContainer.style.display = 'flex';
+			} else {
+				const isSimple = engineId === 'google_translate' || engineId === 'bing_translator';
+				if (!isSimple) {
+					this.detailsToggleContainer.style.display = 'flex';
+					this.renderBuiltInModelUI(engineId);
+					this.updateApiKeySection(engineId);
+				}
+			}
+
+			if (this.detailsToggleContainer.style.display === 'flex') {
+				const isCollapsed = GM_getValue(`service_collapsed_${engineId}`, false);
+				this.detailsToggleBtn.classList.toggle('collapsed', isCollapsed);
+				if (isCollapsed) {
+					this.modelGroup.style.display = 'none';
+					this.apiKeyGroup.style.display = 'none';
+					if (engineId.startsWith('custom_') || engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
+						this.customContainer.style.display = 'none';
+					}
+				}
+			}
+			[this.engineSelect, this.modelSelect, this.apiKeyInput].forEach(el => this.updateLabel(el));
+		}
+
+		updateApiKeySection(engineId) {
+			const config = engineMenuConfig[engineId];
+			if (config?.requiresApiKey) {
+				this.apiKeyGroup.style.display = 'block';
+				this.apiKeyInput.value = GM_getValue(`${engineId}_keys_string`, '');
+				this.apiKeyGroup.querySelector('.settings-label').textContent = `设置 ${config.displayName} API Key`;
+				this.apiKeyInput.placeholder = 'Key 1，Key 2，Key 3';
+			} else {
+				this.apiKeyGroup.style.display = 'none';
+			}
+		}
+
+		async fetchModelsForBuiltIn(engineId) {
+			const config = engineMenuConfig[engineId];
+			const apiConfig = CONFIG.TRANS_ENGINES[engineId];
+			if (!config || !apiConfig) return;
+			const apiKey = (GM_getValue(`${engineId}_keys_array`, [])[0] || '').trim();
+			if (!apiKey) { notifyAndLog(`请先设置 ${config.displayName} 的 API Key。`, '获取失败', 'error'); this.renderBuiltInModelUI(engineId); return; }
+
+			let baseUrl = apiConfig.url_api || apiConfig.url;
+			let modelsUrl = baseUrl.replace(/\/chat\/?(completions)?\/?$/, '') + '/models';
+			if (engineId === 'google_ai') modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+			else if (engineId === 'anthropic') modelsUrl = 'https://api.anthropic.com/v1/models';
+
+			try {
+				const select = this.modelSelect;
+				let originalValue = select ? GM_getValue(config.modelGmKey) : null;
+				if (select) {
+					const opt = select.querySelector('option[value="FETCH_MODELS_INLINE"]');
+					if (opt) opt.textContent = '获取中...';
+					select.disabled = true;
+				}
+
+				const headers = { 'Accept': 'application/json' };
+				if (engineId === 'anthropic') { headers['x-api-key'] = apiKey; headers['anthropic-version'] = '2023-06-01'; }
+				else if (engineId !== 'google_ai') { headers['Authorization'] = `Bearer ${apiKey}`; }
+
+				const response = await new Promise((resolve, reject) => {
+					GM_xmlhttpRequest({
+						method: 'GET', url: modelsUrl, headers: headers, responseType: 'json', timeout: 15000,
+						onload: res => res.status === 200 && res.response ? resolve(res.response) : reject(new Error(`HTTP ${res.status}`))	,
+						onerror: () => reject(new Error('网络请求失败')), ontimeout: () => reject(new Error('请求超时'))
+					});
+				});
+
+				let models =[];
+				if (engineId === 'google_ai') {
+					models = (getNestedProperty(response, 'models') || []).map(m => m.name.replace('models/', ''));
+				} else {
+					const dataList = getNestedProperty(response, 'data') || response;
+					if (Array.isArray(dataList)) models = dataList.map(m => m.id).filter(Boolean);
+				}
+
+				if (models.length === 0) throw new Error('模型列表为空');
+
+				const newMapping = {}; models.forEach(m => newMapping[m] = m);
+				GM_setValue(`${engineId}_custom_model_mapping`, newMapping);
+				GM_setValue(config.modelGmKey, models.includes(originalValue) ? originalValue : models[0]);
+
+				this.renderBuiltInModelUI(engineId);
+			} catch (error) {
+				Logger.error('Network', `获取模型失败: ${error.message}`);
+				notifyAndLog(`获取模型失败：${error.message}`, '操作失败', 'error');
+				this.renderBuiltInModelUI(engineId);
+			}
+		}
+
+		renderBuiltInModelUI(engineId) {
+			const config = engineMenuConfig[engineId];
+			if (engineId.startsWith('custom_')) {
+				if (!this.modelGroup.contains(this.modelSelect)) {
+					this.modelGroup.innerHTML = ''; this.modelGroup.appendChild(this.modelSelect);
+					const label = document.createElement('label'); label.htmlFor = this.modelSelect.id; label.className = 'settings-label'; label.textContent = '使用模型';
+					this.modelGroup.appendChild(label);
+					this.modelGroup.className = 'settings-group settings-group-select';
+				}
+				this.modelGroup.style.display = 'block';
+				this.customManager.renderDisplayModeModelSelect(engineId);
+				this.updateLabel(this.modelSelect);
+				return;
+			}
+			this.modelGroup.innerHTML = ''; this.modelGroup.style.display = 'none';
+			if (!config?.modelMapping) return;
+
+			this.modelGroup.style.display = 'block';
+			const customMappingKey = `${engineId}_custom_model_mapping`;
+			const currentMapping = GM_getValue(customMappingKey) || config.modelMapping;
+
+			if (this.isEditingBuiltInModel) {
+				this.modelGroup.className = 'settings-group static-label';
+				const wrapper = document.createElement('div'); wrapper.className = 'input-wrapper';
+				const input = document.createElement('input'); input.type = 'text'; input.className = 'settings-control settings-input';
+				input.value = stringifyModelObject(currentMapping).replace(/\n/g, ' ');
+				input.placeholder = "'ID 1': '名称 1', 'ID 2': '名称 2'"; input.spellcheck = false;
+
+				const label = document.createElement('label'); label.className = 'settings-label'; label.textContent = '编辑模型 ID';
+				const saveBtn = document.createElement('button'); saveBtn.className = 'settings-action-button-inline'; saveBtn.textContent = '保存';
+
+				saveBtn.addEventListener('click', () => {
+					const newMapping = parseModelString(input.value);
+					if (Object.keys(newMapping).length === 0) GM_deleteValue(customMappingKey);
+					else GM_setValue(customMappingKey, newMapping);
+					this.isEditingBuiltInModel = false; this.renderBuiltInModelUI(engineId);
+				});
+
+				wrapper.appendChild(input); wrapper.appendChild(label); wrapper.appendChild(saveBtn);
+				this.modelGroup.appendChild(wrapper); this.updateLabel(input);
+			} else {
+				this.modelGroup.className = 'settings-group settings-group-select';
+				const select = document.createElement('select'); select.id = 'setting-trans-model'; select.className = 'settings-control settings-select custom-styled-select';
+				Object.keys(currentMapping).forEach(mId => {
+					const option = document.createElement('option'); option.value = mId; option.textContent = currentMapping[mId]; select.appendChild(option);
+				});
+				const fetchOption = document.createElement('option'); fetchOption.value = 'FETCH_MODELS_INLINE'; fetchOption.textContent = '获取模型 ID'; select.appendChild(fetchOption);
+				const editOption = document.createElement('option'); editOption.value = 'EDIT_MODELS_INLINE'; editOption.textContent = '编辑模型 ID'; select.appendChild(editOption);
+				const resetOption = document.createElement('option'); resetOption.value = 'RESET_MODELS_INLINE'; resetOption.textContent = '重置模型 ID'; select.appendChild(resetOption);
+
+				const savedModel = GM_getValue(config.modelGmKey);
+				if (savedModel && currentMapping[savedModel]) select.value = savedModel;
+				else { const first = Object.keys(currentMapping)[0]; select.value = first; GM_setValue(config.modelGmKey, first); }
+
+				select.addEventListener('change', () => {
+					if (select.value === 'FETCH_MODELS_INLINE') this.fetchModelsForBuiltIn(engineId);
+					else if (select.value === 'EDIT_MODELS_INLINE') { this.isEditingBuiltInModel = true; this.renderBuiltInModelUI(engineId); }
+					else if (select.value === 'RESET_MODELS_INLINE') { GM_deleteValue(customMappingKey); this.renderBuiltInModelUI(engineId); }
+					else GM_setValue(config.modelGmKey, select.value);
+				});
+
+				const label = document.createElement('label'); label.htmlFor = 'setting-trans-model'; label.className = 'settings-label'; label.textContent = '使用模型';
+				this.modelGroup.appendChild(select); this.modelGroup.appendChild(label);
+				this.updateLabel(select);
+			}
+		}
+
+		saveApiKey() {
+			const engineId = this.engineSelect.value;
+			const value = this.apiKeyInput.value;
+			let serviceIdToUpdate = engineId.startsWith('custom_') ? engineId 
+				: (engineId === ADD_NEW_CUSTOM_SERVICE_ID && this.customManager.isPending() ? this.customManager.ensureServiceExists() : engineId);
+			if (!serviceIdToUpdate) return;
+
+			GM_setValue(`${serviceIdToUpdate}_keys_string`, value);
+			const keysArray = value.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+			GM_setValue(`${serviceIdToUpdate}_keys_array`, keysArray);
+			GM_deleteValue(`${serviceIdToUpdate}_key_index`);
+		}
+
+		initEvents() {
+			this.engineSelect.addEventListener('ao3-dropdown-action', (e) => {
+				if (e.detail.action === 'delete') {
+					this.customManager.deleteService(e.detail.value);
+				}
+			});
+
+			this.engineSelect.addEventListener('change', () => {
+				if (this.customManager.isPending()) this.customManager.cancelPending();
+				const newEngine = this.engineSelect.value;
+				if (newEngine === ADD_NEW_CUSTOM_SERVICE_ID) {
+					this.customManager.startPendingCreation();
+					this.updateUiForEngine(newEngine);
+				} else {
+					GM_setValue('transEngine', newEngine);
+					this.updateUiForEngine(newEngine);
+					this.isEditingBuiltInModel = false;
+				}
+			});
+
+			this.apiKeySaveBtn.addEventListener('click', () => this.saveApiKey());
+
+			this.detailsToggleContainer.addEventListener('click', () => {
+				const engineId = this.engineSelect.value;
+				const isCollapsed = this.detailsToggleBtn.classList.contains('collapsed');
+				GM_setValue(`service_collapsed_${engineId}`, !isCollapsed);
+				this.updateUiForEngine(engineId);
+			});
+
+			this.customContainer.addEventListener('change', (e) => {
+				if (e.target.id === 'custom-service-action-select') {
+					const serviceId = this.engineSelect.value;
+					const newAction = e.target.value;
+					if (serviceId && serviceId.startsWith('custom_')) {
+						GM_setValue(`custom_service_last_action_${serviceId}`, newAction);
+						this.customManager.enterEditMode(serviceId);
+					} else if (this.customManager.isPending()) {
+						this.customManager.updatePendingSection(newAction);
+					}
+				}
+			});
+		}
+	}
+
+	/**
+	 * 语言检测配置模块
+	 */
+	class LangDetectModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-lang-detect');
+			this.select = this.$('#setting-lang-detector');
+		}
+
+		onInit() {
+			this.select.addEventListener('change', () => {
+				GM_setValue('lang_detector', this.select.value);
+			});
+		}
+
+		onShow() {
+			this.select.value = GM_getValue('lang_detector', DEFAULT_CONFIG.GENERAL.lang_detector);
+			this.updateLabel(this.select);
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.select.value = GM_getValue('lang_detector', DEFAULT_CONFIG.GENERAL.lang_detector);
+			}
+		}
+	}
+
+	/**
+	 * 调试模式模块
+	 */
+	class DebugModeModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-debug-mode');
+			this.levelSelect = this.$('#setting-log-level');
+			this.clearSelect = this.$('#setting-log-auto-clear');
+			this.viewBtn = this.$('#btn-view-logs');
+		}
+
+		onInit() {
+			this.levelSelect.addEventListener('change', () => Logger.setLevel(this.levelSelect.value));
+			this.clearSelect.addEventListener('change', () => Logger.setAutoClear(parseInt(this.clearSelect.value, 10)));
+			this.viewBtn.addEventListener('click', () => setTimeout(() => openLogModal(), 10));
+		}
+
+		onShow() {
+			this.levelSelect.value = Logger.config.level;
+			this.clearSelect.value = Logger.config.autoClearDays;
+			[this.levelSelect, this.clearSelect].forEach(el => this.updateLabel(el));
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.levelSelect.value = Logger.config.level;
+				this.clearSelect.value = Logger.config.autoClearDays;
+			}
+		}
+	}
+
+	/**
+	 * 备份、合并与导入导出模块
+	 */
+	class DataSyncModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'data-sync-actions-container');
+			this.importBtn = this.$('#btn-import-data');
+			this.exportBtn = this.$('#btn-export-data');
+		}
+
+		onInit() {
+			this.importBtn.addEventListener('click', () => this.handleImport());
+			this.exportBtn.addEventListener('click', () => this.handleExport());
+		}
+
+		handleExport = async () => {
+			try {
+				const availableItems = DATA_CATEGORIES.map(cat => ({ ...cat, checked: true, disabled: false }));
+				const selectionResult = await createSelectionModal('数据导出', availableItems, 'export', 'ao3_export_selection_memory');
+				const data = await exportAllData(selectionResult.ids);
+				const dateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).replace(/:/g, '-').replace(' ', '_');
+				saveFile(JSON.stringify(data, null, 2), `AO3-Translator-Config-${dateStr}.json`, 'application/json');
+			} catch (e) {
+				if (e.message !== 'User cancelled') notifyAndLog(`导出失败: ${e.message}`, '操作失败', 'error');
+			}
+		};
+
+		handleImport = () => {
+			const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+			input.onchange = (e) => {
+				const file = e.target.files[0]; if (!file) return;
+				const reader = new FileReader();
+				reader.onload = async (event) => {
+					try {
+						const jsonData = JSON.parse(event.target.result);
+						if (!jsonData.data) throw new Error("文件缺少 data 字段");
+
+						const hasData = (catId, allData) => {
+							const data = allData[catId];
+							const hasContent = (val) => {
+								if (!val) return false;
+								if (typeof val === 'string') return val.trim() !== '';
+								if (Array.isArray(val)) return val.length > 0;
+								return typeof val === 'object' && Object.keys(val).length > 0;
+							};
+							switch (catId) {
+								case 'staticKeys': case 'apiKeys': case 'modelSelections': case 'aiParameters': case 'blockerSettings':
+									return data ? Object.keys(data).length > 0 : false;
+								case 'uiState': return data ? !!(data.fabPosition || data.panelPosition) : false;
+								case 'customServices': return data ? Array.isArray(data) && data.length > 0 : false;
+								case 'glossaries': return data ? (hasContent(data.customGlossaries) || hasContent(data.importedGlossaries) || hasContent(data.local) || hasContent(data.forbidden) || hasContent(data.onlineMetadata)) : false;
+								case 'postReplace': return (data && (hasContent(data.postReplaceRules) || hasContent(data.postReplaceString) || hasContent(data.postReplace))) || (allData.glossaries && (hasContent(allData.glossaries.postReplaceRules) || hasContent(allData.glossaries.postReplaceString) || hasContent(allData.glossaries.postReplace)));
+								case 'formatting': return data ? Object.keys(data).length > 0 : false;
+								case 'fabActions': return data ? Object.keys(data).length > 0 : false;
+								case 'exportTemplates': return data ? data.templates && Object.keys(data.templates).length > 0 : false;
+								case 'cacheSettings': return data ? data.maxItems !== undefined || data.maxDays !== undefined : false;
+								default: return false;
+							}
+						};
+
+						const availableItems = DATA_CATEGORIES.map(cat => {
+							const dataExists = hasData(cat.id, jsonData.data);
+							return { ...cat, checked: dataExists, label: cat.label, disabled: !dataExists };
+						});
+
+						const validItems = availableItems.filter(item => !item.disabled);
+						if (validItems.length === 0) { notifyAndLog('该文件中没有可导入的有效数据。', '导入失败', 'error'); return; }
+
+						const selectionResult = await createSelectionModal('数据导入', availableItems, 'import', null);
+						if (selectionResult && selectionResult.ids.length > 0) {
+							const result = await importAllData(jsonData, selectionResult.ids, selectionResult.mode);
+							Logger.info('Data', result.message);
+						}
+					} catch (err) {
+						if (err.message !== 'User cancelled') notifyAndLog(`导入失败: ${err.message}`, '导入错误', 'error');
+					}
+				};
+				reader.readAsText(file);
+			};
+			input.click();
+		};
+	}
+
+	/**
+	 * 文章格式排版微调模块
+	 */
+	class FormattingModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-formatting');
+			this.profileSelect = this.$('#setting-fmt-profile');
+			this.propertySelect = this.$('#setting-fmt-property');
+			this.valueContainer = this.$('#setting-fmt-value-container');
+		}
+
+		onInit() { this.initEvents(); }
+		onShow() { this.render(); }
+		onSync() { if (this.container.style.display === 'flex') this.render(); }
+
+		render() {
+			const currentProfile = FormattingManager.getCurrentProfile();
+			if (!currentProfile) return;
+
+			const savedProp = GM_getValue('formatting_last_prop', 'letterSpacing');
+			const safeProp = (savedProp === 'deleteProfile') ? 'letterSpacing' : savedProp;
+			this.propertySelect.value = safeProp;
+
+			this.profileSelect.innerHTML = '';
+			FormattingManager.getAllProfiles().forEach(p => {
+				const option = document.createElement('option'); option.value = p.id; option.textContent = p.name; this.profileSelect.appendChild(option);
+			});
+			const createOption = document.createElement('option'); createOption.value = 'create_new'; createOption.textContent = '新建方案'; this.profileSelect.appendChild(createOption);
+			this.profileSelect.value = currentProfile.id;
+
+			const prop = this.propertySelect.value;
+			if (this.valueContainer.dataset.renderedProp === prop) {
+				if (prop === 'profileName') {
+					const input = this.valueContainer.querySelector('#fmt-profile-rename-input');
+					if (input && document.activeElement !== input) input.value = currentProfile.name;
+				} else {
+					const select = this.valueContainer.querySelector('#fmt-value-select');
+					if (select) select.value = currentProfile.params[prop];
+					if (prop === 'indent') {
+						const wrapper = this.valueContainer.querySelector('#fmt-indent-elements-wrapper');
+						if (wrapper) wrapper.style.display = currentProfile.params.indent !== 'original' ? 'block' : 'none';
+					}
+				}
+				this.updateLabel(this.profileSelect);
+				return;
+			}
+
+			this.valueContainer.innerHTML = '';
+			this.valueContainer.dataset.renderedProp = prop;
+
+			if (prop === 'deleteProfile') return;
+
+			if (prop === 'profileName') {
+				const wrapper = document.createElement('div'); wrapper.className = 'settings-group static-label';
+				wrapper.innerHTML = `<div class="input-wrapper"><input type="text" id="fmt-profile-rename-input" name="fmt_profile_name" class="settings-control settings-input" value="${currentProfile.name}" spellcheck="false"><label for="fmt-profile-rename-input" class="settings-label">方案名称</label><button class="settings-action-button-inline">保存</button></div>`;
+				const input = wrapper.querySelector('input');
+				wrapper.querySelector('button').addEventListener('click', () => {
+					const newName = input.value.trim();
+					if (newName) {
+						currentProfile.name = newName; FormattingManager.saveProfile(currentProfile);
+						const opt = this.profileSelect.querySelector(`option[value="${currentProfile.id}"]`);
+						if (opt) opt.textContent = newName;
+					}
+				});
+				this.valueContainer.appendChild(wrapper); this.updateLabel(input);
+			} else {
+				const wrapper = document.createElement('div'); wrapper.className = 'settings-group settings-group-select static-label';
+				const select = document.createElement('select'); select.id = 'fmt-value-select'; select.name = 'fmt_value'; select.className = 'settings-control settings-select custom-styled-select';
+
+				const addOpt = (val, text, selectedVal) => {
+					const opt = document.createElement('option'); opt.value = val; opt.textContent = text;
+					if (String(val) === String(selectedVal)) opt.selected = true;
+					select.appendChild(opt);
+				};
+
+				const opts = currentProfile.params;
+				let labelText = '';
+				let extraWrapper = null;
+
+				if (prop === 'indent') {
+					labelText = '首行缩进';
+					addOpt('original', '保持原排版', opts.indent); addOpt('force_indent', '强制首行缩进', opts.indent); addOpt('force_zero', '强制取消缩进', opts.indent);
+
+					extraWrapper = document.createElement('div'); extraWrapper.className = 'settings-group static-label settings-group-select';
+					extraWrapper.style.marginTop = '16px'; extraWrapper.id = 'fmt-indent-elements-wrapper';
+					extraWrapper.style.display = opts.indent !== 'original' ? 'block' : 'none';
+
+					const pseudoSelect = document.createElement('div'); pseudoSelect.className = 'settings-control settings-select pseudo-select'; pseudoSelect.textContent = '选择生效区域';
+					const elemLabel = document.createElement('span'); elemLabel.className = 'settings-label'; elemLabel.textContent = '生效区域';
+
+					extraWrapper.appendChild(pseudoSelect); extraWrapper.appendChild(elemLabel);
+					pseudoSelect.addEventListener('click', () => {
+						if (currentProfile.params.indent === 'original') return;
+						const items = [{ id: 'work_text', label: 'Work Text' }, { id: 'summary', label: 'Summary' }, { id: 'notes', label: 'Notes' }, { id: 'comments', label: 'Comments' }, { id: 'other', label: 'Other' }];
+						const currentElements = currentProfile.params.indentElements || ['work_text'];
+						items.forEach(item => item.checked = currentElements.includes(item.id));
+
+						createSelectionModal('生效区域', items, 'export', null)
+							.then(res => {
+								currentProfile.params.indentElements = res.ids; FormattingManager.saveProfile(currentProfile); applyFormatting();
+							}).catch(() => {});
+					});
+				} else if (prop === 'fontSize') {
+					labelText = '文字大小'; for (let i = 50; i <= 200; i += 5) addOpt(i, i + '%', opts.fontSize);
+				} else if (prop === 'letterSpacing') {
+					labelText = '字间距'; for (let i = 0; i <= 5; i += 0.5) addOpt(i, i + 'px', opts.letterSpacing);
+				} else if (prop === 'lineHeight') {
+					labelText = '行间距'; for (let i = 0.8; i <= 2.0; i = parseFloat((i + 0.1).toFixed(1))) addOpt(i, i, opts.lineHeight);
+				} else if (prop === 'margins') {
+					labelText = '页边距'; for (let i = 0; i <= 40; i += 5) addOpt(i, i + '%', opts.margins);
+				}
+
+				select.addEventListener('change', (e) => {
+					currentProfile.params[prop] = e.target.value; FormattingManager.saveProfile(currentProfile); applyFormatting();
+					if (prop === 'indent' && extraWrapper) extraWrapper.style.display = e.target.value !== 'original' ? 'block' : 'none';
+				});
+
+				const label = document.createElement('label'); label.htmlFor = 'fmt-value-select'; label.className = 'settings-label'; label.textContent = labelText;
+				wrapper.appendChild(select); wrapper.appendChild(label); this.valueContainer.appendChild(wrapper);
+				if (extraWrapper) this.valueContainer.appendChild(extraWrapper);
+				this.updateLabel(select);
+			}
+			this.updateLabel(this.profileSelect);
+		}
+
+		initEvents() {
+			this.profileSelect.addEventListener('change', (e) => {
+				if (e.target.value === 'create_new') {
+					const newId = FormattingManager.createProfile(); FormattingManager.setCurrentId(newId); applyFormatting();
+					GM_setValue('formatting_last_prop', 'profileName'); this.valueContainer.dataset.renderedProp = ''; this.render();
+				} else {
+					FormattingManager.setCurrentId(e.target.value); applyFormatting(); this.render();
+				}
+			});
+
+			this.propertySelect.addEventListener('change', (e) => {
+				const prop = e.target.value;
+				if (prop === 'deleteProfile') {
+					const currentProfile = FormattingManager.getCurrentProfile();
+					showCustomConfirm(`您确定要删除 ${currentProfile.name} 格式方案吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+						.then(() => {
+							FormattingManager.deleteProfile(currentProfile.id); applyFormatting();
+							this.propertySelect.value = 'profileName'; GM_setValue('formatting_last_prop', 'profileName');
+							this.valueContainer.dataset.renderedProp = ''; this.render();
+						}).catch(() => { this.propertySelect.value = GM_getValue('formatting_last_prop', 'letterSpacing'); });
+				} else {
+					GM_setValue('formatting_last_prop', prop); this.valueContainer.dataset.renderedProp = ''; this.render();
+				}
+			});
+		}
+	}
+
+	/**
+	 * 作品导出设置模块
+	 */
+	class ExportModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-export-manage');
+			this.actionsContainer = this.$('#export-actions-container');
+			this.formatSelect = this.$('#export-format-select');
+			this.templateSelect = this.$('#export-template-select');
+			this.actionSelect = this.$('#export-action-select');
+			this.containerName = this.$('#export-container-name');
+			this.containerEdit = this.$('#export-container-edit');
+			this.templateNameInput = this.$('#export-template-name');
+			this.saveNameBtn = this.$('#btn-export-save-name');
+			this.openStyleEditorBtn = this.$('#btn-open-style-editor');
+			this.formatChooseBtn = this.$('#btn-export-format-choose');
+			this.executeBtn = this.$('#btn-export-execute');
+			
+			this.exportUI = ExportUIController.init(this.panel);
+		}
+
+		onInit() { this.initEvents(); }
+
+		onShow() {
+			this.actionsContainer.style.display = 'flex';
+			this.formatSelect.value = GM_getValue('ao3_export_last_format', 'html');
+			this.actionSelect.value = GM_getValue('ao3_export_last_action', 'name');
+			this.exportUI.renderExportManage();
+			[this.formatSelect, this.templateSelect, this.actionSelect, this.templateNameInput].forEach(el => this.updateLabel(el));
+		}
+
+		onHide() { this.actionsContainer.style.display = 'none'; }
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.formatSelect.value = GM_getValue('ao3_export_last_format', 'html');
+				this.actionSelect.value = GM_getValue('ao3_export_last_action', 'name');
+				this.exportUI.renderExportManage();
+				[this.formatSelect, this.templateSelect, this.actionSelect, this.templateNameInput].forEach(el => this.updateLabel(el));
+			}
+		}
+
+		initEvents() {
+			this.formatSelect.addEventListener('change', (e) => {
+				GM_setValue('ao3_export_last_format', e.target.value);
+				this.exportUI.renderExportManage();
+			});
+
+			this.templateSelect.addEventListener('change', (e) => {
+				const format = this.formatSelect.value;
+				if (e.target.value === 'create_new') {
+					const newId = `template_${Date.now()}`;
+					const templates = ExportTemplateStore.getTemplates(format);
+					let maxNum = 0; templates.forEach(t => { const m = t.name.match(/^自定义 (\d+)$/); if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10)); });
+					ExportTemplateStore.saveTemplate(format, { id: newId, name: `自定义 ${maxNum + 1}`, isProtected: false, css: ExportTemplateStore.DEFAULT_TEMPLATES[format][0].css });
+					const selectedTemplates = GM_getValue('ao3_export_selected_templates'); selectedTemplates[format] = newId; GM_setValue('ao3_export_selected_templates', selectedTemplates);
+					this.actionSelect.value = 'name'; GM_setValue('ao3_export_last_action', 'name');
+					this.exportUI.renderExportManage();
+				} else {
+					const selectedTemplates = GM_getValue('ao3_export_selected_templates'); selectedTemplates[format] = e.target.value; GM_setValue('ao3_export_selected_templates', selectedTemplates);
+					this.exportUI.renderExportManage();
+				}
+			});
+
+			this.actionSelect.addEventListener('change', (e) => {
+				const action = e.target.value;
+				if (action !== 'delete') GM_setValue('ao3_export_last_action', action);
+				if (action === 'delete') {
+					const format = this.formatSelect.value; const currentId = this.templateSelect.value;
+					const template = ExportTemplateStore.getTemplate(format, currentId);
+					showCustomConfirm(`您确定要删除 ${template.name} 模板吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+						.then(() => {
+							ExportTemplateStore.deleteTemplate(format, currentId);
+							const selectedTemplates = GM_getValue('ao3_export_selected_templates'); selectedTemplates[format] = ExportTemplateStore.getTemplates(format)[0].id; GM_setValue('ao3_export_selected_templates', selectedTemplates);
+							this.actionSelect.value = 'name'; GM_setValue('ao3_export_last_action', 'name');
+							this.exportUI.renderExportManage();
+						}).catch(() => { this.actionSelect.value = 'name'; GM_setValue('ao3_export_last_action', 'name'); this.exportUI.renderExportManage(); });
+				} else {
+					this.exportUI.renderExportManage();
+				}
+			});
+
+			this.saveNameBtn.addEventListener('click', () => {
+				const template = ExportTemplateStore.getTemplate(this.formatSelect.value, this.templateSelect.value);
+				if (template) {
+					const newName = this.templateNameInput.value.trim();
+					if (newName) { template.name = newName; ExportTemplateStore.saveTemplate(this.formatSelect.value, template); this.exportUI.renderExportManage(); }
+				}
+			});
+
+			this.openStyleEditorBtn.addEventListener('click', () => openExportStyleModal(this.formatSelect.value, this.templateSelect.value));
+			this.formatChooseBtn.addEventListener('click', () => openExportFormatModal());
+			this.executeBtn.addEventListener('click', () => {
+				const formats = GM_getValue('ao3_export_selected_formats', ['html']);
+				if (formats.length === 0) { showCustomConfirm('请先在“格式选择”中勾选需要导出的格式。', '提示', { textAlign: 'center' }).then(() => openExportFormatModal()).catch(() => {}); return; }
+				ExportEngine.executeExport();
+			});
+		}
+	}
+
+	/**
+	 * 悬浮球行为自定义模块
+	 */
+	class FabManageModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-fab-manage');
+			this.modeSelect = this.$('#fab-manage-mode-select');
+			this.gestureSelect = this.$('#fab-manage-gesture-select');
+			this.actionSelect = this.$('#fab-manage-action-select');
+		}
+
+		onInit() { this.initEvents(); }
+
+		onShow() {
+			this.modeSelect.value = GM_getValue('ao3_fab_manage_mode', 'unit');
+			this.gestureSelect.value = GM_getValue('ao3_fab_manage_gesture', 'click');
+			this.render();
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.modeSelect.value = GM_getValue('ao3_fab_manage_mode', 'unit');
+				this.gestureSelect.value = GM_getValue('ao3_fab_manage_gesture', 'click');
+				this.render();
+			}
+		}
+
+		render() {
+			const config = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
+			const mode = this.modeSelect.value;
+			const gesture = this.gestureSelect.value;
+
+			this.actionSelect.innerHTML = '';
+			const addOpt = (val, text) => {
+				const opt = document.createElement('option'); opt.value = val; opt.textContent = text; this.actionSelect.appendChild(opt);
+			};
+			addOpt('toggle_panel', '打开/关闭设置面板');
+			if (mode === 'full_page') addOpt('toggle_translate', '触发翻译/清除译文');
+			addOpt('clear_cache', '清除当前页面缓存');
+			addOpt('export_work', '导出当前作品');
+			addOpt('none', '无操作');
+
+			let savedAction = config[mode][gesture] || 'none';
+			if (mode === 'unit' && savedAction === 'toggle_translate') {
+				savedAction = 'none'; config[mode][gesture] = savedAction; GM_setValue('ao3_fab_actions', config);
+			}
+			this.actionSelect.value = savedAction;
+			[this.modeSelect, this.gestureSelect, this.actionSelect].forEach(el => this.updateLabel(el));
+		}
+
+		initEvents() {
+			this.modeSelect.addEventListener('change', () => {
+				GM_setValue('ao3_fab_manage_mode', this.modeSelect.value); this.render();
+			});
+			this.gestureSelect.addEventListener('change', () => {
+				GM_setValue('ao3_fab_manage_gesture', this.gestureSelect.value); this.render();
+			});
+			this.actionSelect.addEventListener('change', () => {
+				const config = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
+				config[this.modeSelect.value][this.gestureSelect.value] = this.actionSelect.value;
+				GM_setValue('ao3_fab_actions', config);
+			});
+		}
+	}
+
+	/**
+	 * 设置面板逻辑初始化主函数
+	 */
+	function initializeSettingsPanelLogic(panelElements, rerenderMenuCallback, onPanelCloseCallback) {
+		// 1. 实例化主控制器
+		const controller = new SettingsPanelController(panelElements, rerenderMenuCallback, onPanelCloseCallback);
+
+		// 2. 注册模块
+		controller.registerModule('editable-section-blocker', new BlockerSettingsModule(controller));
+		controller.registerModule('editable-section-cache-manage', new CacheSettingsModule(controller));
+		controller.registerModule('editable-section-ai-settings', new AiSettingsModule(controller));
+		controller.registerModule('editable-section-local-manage', new LocalGlossaryModule(controller));
+		controller.registerModule('editable-section-online-manage', new OnlineGlossaryModule(controller));
+		controller.registerModule('editable-section-post-replace', new PostReplaceModule(controller));
+		controller.registerModule('editable-section-lang-detect', new LangDetectModule(controller));
+		controller.registerModule('editable-section-debug-mode', new DebugModeModule(controller));
+		controller.registerModule('data-sync-actions-container', new DataSyncModule(controller));
+		controller.registerModule('editable-section-formatting', new FormattingModule(controller));
+		controller.registerModule('editable-section-export-manage', new ExportModule(controller));
+		controller.registerModule('editable-section-fab-manage', new FabManageModule(controller));
+		controller.registerModule('global-general', new GeneralSettingsModule(controller));
+		controller.registerModule('global-services', new TranslationServiceModule(controller));
+
+		// 3. 执行首次数据同步
+		controller.syncAllModules();
+
+		// 4. 读取上次保留的动作路由并初始化默认展现状态
+		const lastAction = GM_getValue('ao3_glossary_last_action', '');
+		const glossaryActionsSelect = panelElements.panel.querySelector('#setting-glossary-actions');
+		glossaryActionsSelect.value = lastAction;
+		
+		if (lastAction) {
+			const sectionId = controller.routeMap[lastAction];
+			controller.switchSection(sectionId || null);
+		} else {
+			glossaryActionsSelect.value = "";
+			controller.switchSection(null);
+		}
+
+		// 5. 初始化所有非重置全局组件的初始 UI 属性
+		panelElements.panel.querySelectorAll('.settings-control').forEach(el => {
+			if (el.value && (el.tagName !== 'SELECT' || el.options[el.selectedIndex]?.disabled !== true)) {
+				el.classList.add('has-value');
 			}
 		});
 
-		btnCacheMaxDaysSave.addEventListener('click', () => {
-			const val = parseInt(inputCacheMaxDays.value, 10);
-			if (!isNaN(val) && val > 0) {
-				GM_setValue('ao3_cache_max_days', val);
-			}
-		});
-
-		return { togglePanel, panel, setIgnoreOutsideClick };
+		// 6. 返回暴露接口
+		return {
+			togglePanel: () => controller.togglePanel(),
+			panel: controller.panel,
+			setIgnoreOutsideClick: () => controller.setIgnoreOutsideClick()
+		};
 	}
 
 	/**************************************************************************
@@ -14200,6 +13667,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			displayName: 'Google AI',
 			modelGmKey: 'google_ai_model',
 			modelMapping: {
+				'gemini-3.5-flash': 'Gemini 3.5 Flash',
 				"gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
 				"gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite",
 				"gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite Preview",
@@ -15903,7 +15371,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
-	 * 核心语言检测服务，默认使用 Microsoft
+	 * 核心语言检测服务
 	 */
 	const FRANC_LANG_MAP = {
 		'cmn': 'zh-CN', 'eng': 'en', 'spa': 'es', 'jpn': 'ja', 'kor': 'ko',
@@ -16951,7 +16419,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						
 						if (missingPart) continue;
 						
-						instances.sort((a, b) => a.start - b.start);
+						instances.sort((a, b) => {
+							if (a.start !== b.start) return a.start - b.start;
+							return b.end - a.end;
+						});
 						
 						for (let i = 0; i < instances.length; i++) {
 							const startInst = instances[i];
@@ -17775,6 +17246,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			this.onProgress = options.onProgress;
 			this.onRetryCallback = options.onRetry;
 			this.onActiveStateChange = options.onActiveStateChange;
+			this.onErrorCallback = options.onError;
 			this.containerLang = options.containerLang || "auto";
 			this.useObserver = options.useObserver !== false;
 
@@ -18076,6 +17548,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				// 彻底失败，渲染错误 UI
 				Logger.error('Translation', `重试与降级耗尽，任务彻底失败: ${e.message}`);
 				this.hasError = true;
+				if (this.onErrorCallback) this.onErrorCallback(e);
 				for (const node of batchNodes) {
 					if (node.unit.dataset.translationState !== 'translating') continue;
 					this.renderer.applyResult(node.unit, { status: 'error', content: e.message }, this.onRetryCallback);
@@ -19020,47 +18493,61 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
-	 * 翻译任务状态管理器
+	 * 翻译任务状态管理器 (状态机)
+	 * 负责统一收集各异步任务的生命周期，仲裁并输出唯一的状态灯颜色
 	 */
 	class TranslationTaskManager {
 		constructor(onStateChange) {
-			this.activeTasks = new Set();
-			this.hasError = false;
-			this.isRetrying = false;
+			this.activeTasks = new Set(); // 绿灯任务集合
+			this.retryTasks = new Set();  // 黄灯任务集合
+			this.errorTasks = new Set();  // 红灯任务集合
 			this.onStateChange = onStateChange;
 		}
 
-		addTask(taskId) {
+		startTask(taskId) {
 			this.activeTasks.add(taskId);
+			this.errorTasks.clear();
 			this.evaluateState();
 		}
 
-		removeTask(taskId) {
+		endTask(taskId) {
 			this.activeTasks.delete(taskId);
 			this.evaluateState();
 		}
 
-		setError(hasError) {
-			this.hasError = hasError;
+		startRetry(taskId) {
+			this.retryTasks.add(taskId);
+			this.errorTasks.clear();
 			this.evaluateState();
 		}
 
-		setRetrying(isRetrying) {
-			this.isRetrying = isRetrying;
+		endRetry(taskId) {
+			this.retryTasks.delete(taskId);
+			this.evaluateState();
+		}
+
+		addError(taskId) {
+			this.errorTasks.add(taskId);
+			this.evaluateState();
+		}
+
+		clearError(taskId) {
+			this.errorTasks.delete(taskId);
 			this.evaluateState();
 		}
 
 		clearAll() {
 			this.activeTasks.clear();
-			this.hasError = false;
-			this.isRetrying = false;
+			this.retryTasks.clear();
+			this.errorTasks.clear();
 			this.evaluateState();
 		}
 
 		evaluateState() {
-			if (this.hasError) {
+			// 优先级仲裁：Error(红) > Retrying(黄) > Translating(绿) > Idle(蓝)
+			if (this.errorTasks.size > 0) {
 				this.onStateChange('error');
-			} else if (this.isRetrying) {
+			} else if (this.retryTasks.size > 0) {
 				this.onStateChange('retrying');
 			} else if (this.activeTasks.size > 0) {
 				this.onStateChange('translating');
@@ -19098,6 +18585,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (statusLightController) statusLightController.setState(newState);
 		});
 
+		// 定义全局唯一的任务标识符
+		const ENGINE_TASK_ID = Symbol('main-engine');
+		const ENGINE_RETRY_ID = Symbol('main-engine-retry');
+
 		let globalEngine = null;
 		let containerObserver = null;
 		const customRenderers = new Map();
@@ -19105,16 +18596,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		// 3. 翻译调度器：负责 DOM 监听与翻译策略路由分发
 		const scheduler = {
 			init() {
-				// 获取根边距，如果引擎未初始化则使用默认值
 				const rootMargin = globalEngine ? globalEngine._getRootMargin() : '1200px 0px 10000px 0px';
 				
 				containerObserver = new IntersectionObserver(async (entries) => {
 					if (!stateManager.isActive) return;
 
-					for (const entry of entries) {
+					await Promise.all(entries.map(async (entry) => {
 						if (entry.isIntersecting) {
 							const container = entry.target;
-							if (container.dataset.translationState) continue;
+							if (container.dataset.translationState) return;
 
 							container.dataset.translationState = 'processing';
 							containerObserver.unobserve(container);
@@ -19123,17 +18613,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							
 							// 1. 语言检测
 							const detectionTaskId = Symbol('container-detection');
-							taskManager.addTask(detectionTaskId);
+							taskManager.startTask(detectionTaskId);
 							const { detectedLang, shouldSkip } = await LanguageDetectionManager.processContainer(container, rule, 'full_page');
 							container.dataset.detectedLang = detectedLang;
-							taskManager.removeTask(detectionTaskId);
+							taskManager.endTask(detectionTaskId);
 
 							if (!stateManager.isActive) return;
 
 							if (shouldSkip) {
 								container.dataset.translationState = 'skipped';
 								Logger.info('Translation', `容器语言检测为 ${detectedLang}，跳过翻译。`);
-								continue;
+								return;
 							}
 
 							// 2. 策略路由分发
@@ -19145,7 +18635,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 								this.processContent(container, detectedLang);
 							}
 						}
-					}
+					}));
 				}, { rootMargin });
 			},
 
@@ -19163,17 +18653,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			// 策略：处理标签
 			processTags(container, detectedLang) {
 				const taskId = Symbol('tag-task');
-				taskManager.addTask(taskId);
+				taskManager.startTask(taskId);
 				
 				runTagsTranslationEngine(container, () => !stateManager.isActive, detectedLang, true)
 					.then(() => { if (stateManager.isActive) container.dataset.translationState = 'translated'; })
 					.catch(e => { 
 						if (stateManager.isActive) { 
 							container.dataset.translationState = 'error'; 
-							taskManager.setError(true); 
+							taskManager.addError(taskId); 
 						} 
 					})
-					.finally(() => { taskManager.removeTask(taskId); });
+					.finally(() => { taskManager.endTask(taskId); });
 			},
 
 			// 策略：处理标题
@@ -19183,14 +18673,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				if (titleRecord) {
 					titleRecord.tempDiv.dataset.detectedLang = detectedLang;
 					
-					// 注册自定义渲染逻辑
 					customRenderers.set(titleRecord.tempDiv, (_node, result) => {
 						if (result.status === 'success') {
 							TitleTranslationManager.renderSuccess(titleRecord, result.content);
 						} else {
 							TitleTranslationManager.renderError(titleRecord, result.content, (retryNode) => {
 								if (globalEngine) {
-									taskManager.addTask('main-engine');
+									taskManager.startRetry(ENGINE_RETRY_ID);
 									globalEngine.addUnits([retryNode]);
 								}
 							});
@@ -19198,7 +18687,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					});
 
 					if (globalEngine) {
-						taskManager.addTask('main-engine');
 						globalEngine.addUnits([titleRecord.tempDiv]);
 					}
 					container.dataset.translationState = 'queued';
@@ -19219,14 +18707,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						unitsBatch.push(unit);
 						
 						if (unitsBatch.length >= 50) {
-							taskManager.addTask('main-engine');
 							globalEngine.addUnits(unitsBatch);
 							unitsBatch = [];
 						}
 					}
 
 					if (unitsBatch.length > 0 && globalEngine) {
-						taskManager.addTask('main-engine');
 						globalEngine.addUnits(unitsBatch);
 					}
 					container.dataset.translationState = 'queued';
@@ -19285,29 +18771,24 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			customRenderers.clear();
 
 			const initTaskId = Symbol('init-detection');
-			taskManager.addTask(initTaskId);
+			taskManager.startTask(initTaskId);
 
 			globalEngine = new UniversalEngine({
 				containerElement: document.body,
 				isCancelled: () => !stateManager.isActive,
 				onComplete: (hasErrors) => {
-					taskManager.removeTask('main-engine');
-					if (hasErrors) {
-						taskManager.setError(true);
-					}
+					taskManager.endRetry(ENGINE_RETRY_ID);
+				},
+				onError: (err) => {
+					taskManager.addError(ENGINE_TASK_ID);
 				},
 				onRetry: (unit) => {
-					taskManager.setRetrying(true);
-					setTimeout(() => {
-						if (stateManager.isActive) taskManager.setRetrying(false);
-					}, 2000);
-					
+					taskManager.startRetry(ENGINE_RETRY_ID);
 					if (unit) {
 						const translatedWrapper = unit.querySelector(':scope > .ao3-translated-content');
 						if (translatedWrapper) translatedWrapper.remove();
 						delete unit.dataset.translationState;
 						if (globalEngine) {
-							taskManager.addTask('main-engine');
 							globalEngine.addUnits([unit]);
 							globalEngine.scheduleProcessing(true);
 						}
@@ -19315,9 +18796,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				},
 				onActiveStateChange: (isActive) => {
 					if (isActive) {
-						taskManager.addTask('main-engine-active');
+						taskManager.startTask(ENGINE_TASK_ID);
 					} else {
-						taskManager.removeTask('main-engine-active');
+						taskManager.endTask(ENGINE_TASK_ID);
+						taskManager.endRetry(ENGINE_RETRY_ID);
 					}
 				},
 				customRenderers: customRenderers,
@@ -19327,7 +18809,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			scheduler.init();
 			scanAndObserveContainers();
 			
-			taskManager.removeTask(initTaskId);
+			taskManager.endTask(initTaskId);
 		};
 
 		const handleFabClick = () => {
@@ -19378,13 +18860,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 										unit.dataset.detectedLang = container.dataset.detectedLang || 'auto';
 										unitsBatch.push(unit);
 										if (unitsBatch.length >= 30) {
-											taskManager.addTask('main-engine');
 											globalEngine.addUnits(unitsBatch);
 											unitsBatch = [];
 										}
 									}
 									if (unitsBatch.length > 0) {
-										taskManager.addTask('main-engine');
 										globalEngine.addUnits(unitsBatch);
 									}
 								} catch (e) {
@@ -19432,7 +18912,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 * 术语表引擎版本号
 	 * 仅在修改了术语表底层解析逻辑（如分词算法、正则生成规则等）时，才手动递增此常量
 	 */
-	const GLOSSARY_ENGINE_VERSION = 2;
+	const GLOSSARY_ENGINE_VERSION = 3;
 
 	/**
 	 * 解析自定义的、非 JSON 格式的术语表文本
@@ -20124,7 +19604,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				normalizedTerm = unquoted.trim();
 			}
 
-			if (!isLiteral && !isRegex) {
+			if (!isLiteral && !isRegex && !isUnordered) {
 				const parts = smartSplit(normalizedTerm, termSeparatorRegex);
 				if (parts.length > 1) {
 					isLiteral = true;
@@ -20304,7 +19784,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		if (glossaryErrors.length > 0) {
 			const summaryMsg = `术语表解析完成，发现 ${glossaryErrors.length} 处错误，请前往“调试模式与日志”查看详情。`;
-			notifyAndLog(summaryMsg, 'AO3 Translator', 'error');
+			GM_notification({
+				text: summaryMsg,
+				title: 'AO3 Translator'
+			});
 		}
 
 		return validRules;
@@ -21085,6 +20568,30 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						if (profilesChanged) GM_setValue(AI_PROFILES_KEY, profiles);
 					}
 				}
+			},
+			{
+				version: 5,
+				name: 'V5 文章格式首行缩进精细化升级',
+				migrate: () => {
+					let profiles = GM_getValue(FORMATTING_PROFILES_KEY);
+					if (Array.isArray(profiles)) {
+						let changed = false;
+						profiles.forEach(p => {
+							if (p.params && p.params.indent) {
+								if (p.params.indent === 'true') {
+									p.params.indent = 'force_indent';
+									p.params.indentElements = ['work_text', 'summary', 'notes', 'comments', 'other'];
+									changed = true;
+								} else if (p.params.indent === 'false') {
+									p.params.indent = 'force_zero';
+									p.params.indentElements = ['work_text', 'summary', 'notes', 'comments', 'other'];
+									changed = true;
+								}
+							}
+						});
+						if (changed) GM_setValue(FORMATTING_PROFILES_KEY, profiles);
+					}
+				}
 			}
 		];
 
@@ -21314,7 +20821,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			#ai-param-input-area .input-wrapper textarea.settings-input { padding-right: 12px; }
 			input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 			input[type=number] { -moz-appearance: textfield; }
-			.settings-action-button-inline { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--ao3-primary); font-size: 14px; font-weight: 500; cursor: pointer; padding: 4px; display: flex; align-items: center; outline: none; -webkit-tap-highlight-color: transparent; }
+			.settings-action-button-inline { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--ao3-primary); font-size: 14px; font-weight: 500; cursor: pointer; padding: 4px 0; display: flex; align-items: center; justify-content: center; width: 42px; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+			.settings-action-button-inline:disabled { opacity: 1; cursor: default; pointer-events: none; }
 			.data-sync-actions-container { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; margin-top: -10px; margin-bottom: -10px; overflow: visible; }
 			.data-sync-action-btn { background: none; border: none; color: var(--ao3-primary); font-size: 13px; font-weight: 500; cursor: pointer; padding: 2px 4px; text-align: center; outline: none; -webkit-tap-highlight-color: transparent; }
 			.language-swap-container { display: flex; align-items: center; gap: 2px; }
@@ -21653,6 +21161,102 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
+	 * 跨标签页与 BFCache 状态同步管理器
+	 */
+	const CrossTabSyncManager = {
+		init() {
+			if (typeof GM_addValueChangeListener !== 'function') {
+				console.warn('[AO3 Translator] 跨标签页同步初始化失败：缺少 GM_addValueChangeListener 权限。');
+				return;
+			}
+
+			// 1. 监听核心键值
+			const coreKeys = [
+				CUSTOM_GLOSSARIES_KEY,
+				POST_REPLACE_RULES_KEY,
+				'transEngine',
+				'ao3_translation_mode',
+				CUSTOM_SERVICES_LIST_KEY,
+				AI_PROFILES_KEY,
+				'translation_display_mode',
+				FORMATTING_PROFILES_KEY,
+				FORMATTING_SELECTED_ID_KEY,
+				'ao3_log_level'
+			];
+
+			const blockerKeys = typeof BLOCKER_KEYS !== 'undefined' ? BLOCKER_KEYS : [];
+
+			[...coreKeys, ...blockerKeys].forEach(key => {
+				GM_addValueChangeListener(key, (name, old_value, new_value, remote) => {
+					if (remote) {
+						setTimeout(() => {
+							this.handleRemoteChange(name, new_value);
+						}, 50);
+					}
+				});
+			});
+
+			window.addEventListener('pageshow', (e) => {
+				if (e.persisted) {
+					setTimeout(() => this.handleWakeUp(), 100);
+				}
+			});
+		},
+
+		handleRemoteChange(key, newValue) {
+			Logger.info('System', `检测到跨标签页配置更改: ${key}`);
+			this.refreshMemoryAndUI(key, newValue);
+		},
+
+		handleWakeUp() {
+			Logger.info('System', '页面从 BFCache 唤醒，执行全局状态同步');
+			this.refreshMemoryAndUI('all');
+		},
+
+		refreshMemoryAndUI(key, newValue) {
+			// 1. 更新内存缓存
+			if (key === CUSTOM_GLOSSARIES_KEY || key === POST_REPLACE_RULES_KEY || key === 'all') {
+				invalidateGlossaryCache();
+			}
+			
+			if (key === 'ao3_translation_mode' || key === 'all') {
+				FeatureSet.enable_transDesc = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
+			}
+
+			if (key === 'ao3_log_level' || key === 'all') {
+				const newLevel = key === 'ao3_log_level' ? newValue : GM_getValue('ao3_log_level', DEFAULT_CONFIG.GENERAL.log_level);
+				if (newLevel !== undefined) {
+					Logger.config.level = newLevel;
+				}
+			}
+
+			// 2. 实时应用纯视觉 DOM 更改
+			if (key === 'translation_display_mode' || key === 'all') {
+				let mode;
+				if (key === 'translation_display_mode') {
+					mode = newValue !== undefined ? newValue : DEFAULT_CONFIG.GENERAL.translation_display_mode;
+				} else {
+					mode = GM_getValue('translation_display_mode', DEFAULT_CONFIG.GENERAL.translation_display_mode);
+				}
+				applyDisplayModeChange(mode);
+			}
+			
+			if (key === FORMATTING_PROFILES_KEY || key === FORMATTING_SELECTED_ID_KEY || key === 'all') {
+				applyFormatting();
+			}
+
+			if ((typeof BLOCKER_KEYS !== 'undefined' && BLOCKER_KEYS.includes(key)) || key === 'all') {
+				if (typeof refreshBlocker === 'function') {
+					refreshBlocker('full');
+				}
+			}
+
+			// 3. 触发面板状态同步事件
+			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.PANEL_STATE_SYNC));
+		}
+	};
+
+	/**
 	 * 脚本主入口
 	 */
 	function main() {
@@ -21697,6 +21301,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		updateBlockerCache();
 		checkForGlossaryUpdates();
 		initGlobalStyles();
+		applyFormatting();
+
+		// 初始化跨标签页同步
+		CrossTabSyncManager.init();
 
 		// UI 组件初始化
 		const fabElements = createFabUI();
