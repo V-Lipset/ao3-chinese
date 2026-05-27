@@ -3,7 +3,6 @@
 更新时间：2026-5-27
 
 词条
-
 // 天行者相关
 Anakin Skywalker = 阿纳金·天行者
 Luke Skywalker = 卢克·天行者
@@ -104,9 +103,7 @@ Mos Pelgo：莫斯佩尔戈
 Outer Rim Territories：外环星域
 
 通用词条
-
 //不区分大小写
-
 //专有名词
 The Force：原力
 Jedi Order：绝地武士团
@@ -158,7 +155,6 @@ Mon Calamari：蒙卡拉马里人
 Chiss：奇斯人
 
 禁翻词条
-
 // 此区域区分大小写，用于保持原文
 "R2-D2"
 "C-3PO"
