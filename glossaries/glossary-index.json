@@ -242,5 +242,16 @@
     "maintainer": "Eros",
     "visibility": true,
     "feedback": "https://github.com/Teyato10969"
+  },
+  {
+    "name": "How to Train Your Dragon",
+    "tags": [
+      "驯龙高手",
+      "驯龙记"
+    ],
+    "url": "https://raw.githubusercontent.com/Valyria336/ao3-chinese/refs/heads/patch-3/glossaries/How%20To%20Train%20Your%20Dragon",
+    "maintainer": "拉葛莎",
+    "visibility": true,
+    "feedback": "https://github.com/Valyria336"
   }
 ]
