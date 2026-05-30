@@ -10,6 +10,7 @@
 
 [![GitHub release badge][release-shield]][release-link]
 [![GitHub stars badge][stars-shield]][stars-link]
+[![GitHub forks badge][forks-shield]][forks-link]
 [![GitHub contributors badge][contributors-shield]][contributors-link]
 ![GitHub last commit badge][last-commit-shield]
 
@@ -82,6 +83,8 @@
 
 [contributors-link]: https://github.com/V-Lipset/ao3-chinese/graphs/contributors
 [contributors-shield]: https://img.shields.io/github/contributors/V-Lipset/ao3-chinese?style=flat-square&label=Contributors&labelColor=black&color=brightgreen
+[forks-link]: https://github.com/V-Lipset/ao3-chinese/forks
+[forks-shield]: https://img.shields.io/github/forks/V-Lipset/ao3-chinese?style=flat-square&label=Forks&color=blue&labelColor=black
 [last-commit-shield]: https://img.shields.io/github/last-commit/V-Lipset/ao3-chinese?style=flat-square&label=Last%20Commit&labelColor=black&color=blue
 [release-link]: https://github.com/V-Lipset/ao3-chinese/releases
 [release-shield]: https://img.shields.io/github/v/release/V-Lipset/ao3-chinese?include_prereleases&style=flat-square&label=Latest&color=brightgreen&labelColor=black
