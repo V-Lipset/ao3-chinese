@@ -253,5 +253,13 @@
     "maintainer": "拉葛莎",
     "visibility": true,
     "feedback": "https://github.com/Valyria336"
+  },
+  {
+    "name": "KPOP_partial",
+    "tags": [],
+    "url": "https://raw.githubusercontent.com/meyerm1170/ao3-chinese/refs/heads/main/glossaries/Kpop_partial.txt",
+    "maintainer": "meyer",
+    "visibility": true,
+    "feedback": "oxds44@gmail.com"
   }
 ]
