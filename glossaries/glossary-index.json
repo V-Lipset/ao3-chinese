@@ -253,5 +253,21 @@
     "maintainer": "拉葛莎",
     "visibility": true,
     "feedback": "https://github.com/Valyria336"
+  },
+  {
+    "name": "KPOP",
+    "tags": [],
+    "url": "https://raw.githubusercontent.com/meyerm1170/ao3-chinese/refs/heads/main/glossaries/KPOP.txt",
+    "maintainer": "meyer",
+    "visibility": true,
+    "feedback": "oxds44@gmail.com"
+  },
+  {
+    "name": "Omegaverse",
+    "tags": [],
+    "url": "https://raw.githubusercontent.com/meyerm1170/ao3-chinese/refs/heads/main/glossaries/Omegaverse.txt",
+    "maintainer": "meyer",
+    "visibility": true,
+    "feedback": "oxds44@gmail.com"
   }
 ]
