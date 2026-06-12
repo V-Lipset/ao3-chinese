@@ -269,5 +269,15 @@
     "maintainer": "meyer",
     "visibility": true,
     "feedback": "oxds44@gmail.com"
+  },
+  {
+    "name": "Danganronpa",
+    "tags": [
+      "弹丸论破"
+    ],
+    "url": "https://raw.githubusercontent.com/yorklancaster1485-ui/ao3-chinese/refs/heads/main/glossaries/Danganronpa.txt",
+    "maintainer": "404",
+    "visibility": true,
+    "feedback": "yorklancaster1485@gmail.com"
   }
 ]
