@@ -279,5 +279,15 @@
     "maintainer": "404",
     "visibility": true,
     "feedback": "yorklancaster1485@gmail.com"
+  },
+  {
+    "name": "Dr.STONE",
+    "tags": [
+      "石纪元"
+    ],
+    "url": "https://github.com/Lyralyell/ao3-chinese/raw/refs/heads/main/glossaries/Dr.STONE.txt",
+    "maintainer": "Lyralyell",
+    "visibility": true,
+    "feedback": "https://github.com/Lyralyell"
   }
 ]
