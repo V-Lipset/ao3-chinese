@@ -4,7 +4,7 @@
 
 词条
 
-//人名（排名不分先后，幻老师你的口癖……）
+//人名（大部分按动漫的翻译，幻老师你的口癖累到我了……）
 Ishigami Byakuya=石神百夜
 Byakuya=百夜
 Byakuya-chan=小百夜
@@ -118,3 +118,6 @@ Maya=玛雅
 Brody=布罗迪
 Dr.Brudy=布罗迪博士
 Luna=露娜
+Why Man=Why Man
+Why man=Why man
+Whyman=Whyman
