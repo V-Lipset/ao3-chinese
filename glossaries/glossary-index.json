@@ -289,5 +289,16 @@
     "maintainer": "Lyralyell",
     "visibility": true,
     "feedback": "https://github.com/Lyralyell"
+  },
+  {
+    "name": "Jujutsu Kaisen",
+    "tags": [
+      "咒术回战",
+      "呪術廻戦"
+    ],
+    "url": "https://raw.githubusercontent.com/Valyria336/ao3-chinese/refs/heads/patch-7/glossaries/咒术回战",
+    "maintainer": "拉葛莎",
+    "visibility": true,
+    "feedback": "https://github.com/Valyria336"
   }
 ]
