@@ -1,4 +1,4 @@
-版本号：1.0.1
+版本号：1.0.2
 维护者：tsunaX14
 更新时间：2026-06-28
 
@@ -48,7 +48,7 @@ Leodero：列奥德罗
 Sasrir：萨斯利尔
 Adam：亚当
 Amon：阿蒙
-Bethel Abraham；伯特利·亚伯拉罕
+Bethel Abraham：伯特利·亚伯拉罕
 Roselle Gustav：罗塞尔·古斯塔夫
 Zaratul：查拉图
 Arianna：阿里安娜
@@ -56,6 +56,33 @@ Dorian Gray Abraham：多里安·格雷·亚伯拉罕
 Anderson Hood：安德森·胡德
 Will Auceptin：威尔·昂赛汀
 Arrodes：阿罗德斯
+
+//角色简称
+Klein：克莱恩
+Gehrman：格尔曼
+Audrey：奥黛丽
+Alger：阿尔杰
+Fors：佛尔思
+Mingrui：明瑞
+Derrick：戴里克
+Leonard：伦纳德
+Pallez：帕列斯
+Emlyn：埃姆林
+Anderson：安德森
+Will：威尔
+Bethel：伯特利
+Roselle：罗塞尔
+Dorian：多里安
+Benson：班森
+Melissa：梅丽莎
+Dunn：邓恩
+Daly：戴莉
+Xio：休
+Colin：科林
+Danitz：达尼兹
+Ince：因斯
+Azik：阿兹克
+
 
 //角色代号
 The Fool：愚者
@@ -90,10 +117,78 @@ High-Dimensional Overseer：高维俯瞰者
 Ancient God of the Dead：古老死神
 Lord of Mysteries：诡秘之主
 Mysteries Lord：诡秘之主
+original God：原初上帝
+
+//海盗将军之类
+Pirate Admirals：海盗将军
+Admiral of Stars：星之上将
+Edwina Edwards：艾德雯娜·爱德华兹
+Admiral of Ice：冰山中将
+Senor：塞尼奥尔
+Admiral of Blood：血之上将
+Tracy：特蕾西
+Admiral of Disease：疾病中将
+Mysterious Queen：神秘女王
+Admiral of Hurricane：飓风中将
+
 
 
 通用词条
 
+//教会&组织
+Church of the Evernight Goddess：黑夜教会
+Church of the Lord of Storms：风暴教会
+Church of the Eternal Blazing Sun：太阳教会
+Church of Knowledge and Wisdom：知识教会
+Church of Mother Earth：大地教会
+Church of War：战神教会
+Church of Steam and Machinery：蒸汽教会
+Demoness Sect：魔女教派
+Secret Order of the Rose：玫瑰学派
+Life School of Thought：生命学派
+Mysterious Meditation Order：摩斯苦修会
+Order of the Starry Sky：要素黎明
+Intis Royal Family：因蒂斯皇室
+Abraham Family：亚伯拉罕家族
+Zoroast Family：索罗亚斯德家族
+Sauron Family：索伦家族
+Einhorn Family：艾因霍恩家族
+Aurora Order：极光会
+Tarot Club：塔罗会
+Secret Order：密修会
+
+//小队
+Nighthawks：值夜者
+Punishers：代罚者
+Machinery Hiveminds：机械之心
+
+//地点
+Northern Continent：北大陆
+Southern Continent：南大陆
+Western Continent：西大陆
+Bay City：贝克兰德
+Intis Republic：因蒂斯共和国
+Loen Kingdom：鲁恩王国
+Feynapotter Kingdom：费内波特王国
+Balam Empire：拜亚姆帝国
+Rorsted Archipelago：罗思德群岛
+Sea of Suresh：苏尼亚海
+
+//纪元
+First Epoch：第一纪
+Second Epoch：第二纪
+Third Epoch：第三纪
+Fourth Epoch：第四纪
+Fifth Epoch：第五纪
+
+//源质
+Sefirot：源质
+Castle of the Fool：源堡
+Sefirah Castle：源堡
+River of Eternal Darkness：永暗之河
+Chaos Sea：混沌海
+
+//其他
 infected：污染
 sleepless：不眠者
 the luck enhancement ritual：转运仪式
@@ -105,14 +200,11 @@ Extraordinary characteristics：非凡特性
 Uniqueness：唯一性
 the river of fate：命运道标
 The wheel of time：时空之王
-Sefirah Castle：源堡
 puppets：秘偶
 original：原初
 convergence：聚合
 human soul：人性
 Error uniqueness：错误唯一性
-chaos sea：混沌海
-original God：原初上帝
 pathways：途径
 Mysteries：诡秘
 Fool Pathway：愚者途径
@@ -120,14 +212,45 @@ mythos：圣典
 God of Deceit：欺诈之神
 Angel of Imagination：空想天使
 beyonder abilities：非凡能力
-Machinery Hiveminds：机械之心
 Evernight：黑夜
 Savant：通识者
 Beyonders：非凡者
-Nighthawks：值夜者
-Aurora Order：极光会
 Angel of Time：时之天使
 Worms of Spirit：灵之虫
-Tarot Club：塔罗会
+Time Worm：时之虫
+Star Worm：星之虫
 Beyonder Pathway：非凡途径
+Path of the Divine：神之途径
+Sequence：序列
+True God：真神
+King of Angels：天使之王
+True Gods：正神
+Organizations：隐秘组织
+Potion：魔药
+Mythical Creature Form：神话生物形态
+Lose Control：失控
+Anchor：锚
+Card of Blasphemy：亵渎石板
+Spirit World：灵界
+Astral World：星界
+Pillar：支柱
+Authority：权柄
+Ritual：晋升仪式
+Sealed Artifact：封印物
+Magical Item：神奇物品
+Feathered Serpent：羽蛇
+Spirit Body：灵体
+Physical Body：肉身
+Mind Sea：心智海洋
+Divination：占卜
+Apparition：显圣
+Ceremony of Godhood：成神仪式
+Crossing Pathway：跨途径
+High Sequence Convergence：高序列聚合
+Saint：圣者
+Demigod：半神
+
+
+
+
 
