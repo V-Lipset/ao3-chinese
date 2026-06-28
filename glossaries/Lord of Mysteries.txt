@@ -1,4 +1,4 @@
-版本号：1.0.2
+版本号：1.0.3
 维护者：tsunaX14
 更新时间：2026-06-28
 
@@ -138,11 +138,11 @@ Admiral of Hurricane：飓风中将
 //教会&组织
 Church of the Evernight Goddess：黑夜教会
 Church of the Lord of Storms：风暴教会
-Church of the Eternal Blazing Sun：太阳教会
-Church of Knowledge and Wisdom：知识教会
-Church of Mother Earth：大地教会
+Church of the Eternal Blazing Sun：永恒烈阳教会
+Church of Knowledge and Wisdom：知识与智慧教会
+Church of Mother Earth：大地母神教会
 Church of War：战神教会
-Church of Steam and Machinery：蒸汽教会
+Church of Steam and Machinery：蒸汽与机械教会
 Demoness Sect：魔女教派
 Secret Order of the Rose：玫瑰学派
 Life School of Thought：生命学派
