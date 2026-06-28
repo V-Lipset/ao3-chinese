@@ -1,17 +1,32 @@
-版本号：1.0.0
+版本号：1.0.1
 维护者：tsunaX14
 更新时间：2026-06-28
 
 词条
 
 //角色
-Klein：克莱恩
-Leonard：伦纳德
+Klein Moretti：克莱恩·莫雷蒂
+Sherlock Moriarty：夏洛克·莫里亚蒂
+Gehrman Sparrow：格尔曼·斯帕罗
+Dwayne Dantès：道恩·唐泰斯
+Merlin Hermes：梅林·赫尔墨斯
+Kalvetua：卡维图瓦
+Audrey Hall：奥黛丽·霍尔
+Alger Wilson：阿尔杰·威尔逊
+Derrick Berg：戴里克·伯格
+Pallez Zoroast：帕列斯·索罗亚斯德
+Emlyn White：埃姆林·怀特
+Sharron：莎伦
+Leonard Mitchell：伦纳德·米切尔
+Benson Moretti：班森·莫雷蒂
+Melissa Moretti：梅丽莎·莫雷蒂
+Dunn Smith：邓恩·史密斯
+Colin Iliath：科林·伊利亚特
+Danitz Dubois：达尼兹·迪布瓦
+Father Utravsky：乌特拉夫斯基神父
 Amanises：阿曼妮西斯
-Azik：阿兹克
+Azik Eggers：阿兹克·艾格斯
 Daly Simone：戴莉·西蒙妮
-Benson：班森
-Derrick：戴里克
 Fors Wall：佛尔思·沃尔
 Bernadette：贝尔纳黛
 Medici：梅迪奇
@@ -20,7 +35,6 @@ Qilangos：齐林格斯
 Lanevus：拉尔乌斯
 Kenley：科恩黎
 Sharon：雪伦
-Pallez：帕列斯
 Fyre：弗莱
 Ince Zangwill：因斯·赞格威尔
 Antigonus；安提哥努斯
@@ -32,15 +46,51 @@ Aucuses：奥赛库斯
 Herabergen：赫拉伯根
 Leodero：列奥德罗
 Sasrir：萨斯利尔
-The Mother Goddess of Depravity：堕落母神
-Fool：愚者
+Adam：亚当
+Amon：阿蒙
+Bethel Abraham；伯特利·亚伯拉罕
+Roselle Gustav：罗塞尔·古斯塔夫
+Zaratul：查拉图
+Arianna：阿里安娜
+Dorian Gray Abraham：多里安·格雷·亚伯拉罕
+Anderson Hood：安德森·胡德
+Will Auceptin：威尔·昂赛汀
+Arrodes：阿罗德斯
+
+//角色代号
+The Fool：愚者
+The World：世界
+The Justice：正义
+The Hanged Man：倒吊人
+The Magician：魔术师
+The Sun：太阳
+The Star：星星
+The Moon：月亮
+Temperance：节制
+The Hermit：隐者
+
+//七神
+Evernight Goddess：黑夜女神
+Lord of Storms：风暴之主
+Eternal Blazing Sun：永恒烈阳
+God of Knowledge and Wisdom：知识与智慧之神
+Mother Earth Goddess：大地母神
+God of War：战神
+God of Steam and Machinery：蒸汽与机械之神
+
+//邪神，旧日
 Celestial Worthy：天尊
-Hermit：隐者
-Magician：魔术师
-Justice：正义
-Star：星星
-Moon：月亮
-Holy Lord of Storms：风暴之主
+Celestial Worthy of Heaven and Earth for Blessings：福生玄黄天尊
+Primordial God Almighty：远古太阳神
+True Creator：真实造物主
+Mother Goddess of Depravity：堕落母神
+Mother Tree of Desire：欲望母树
+Monarch of Decay：腐烂君王
+High-Dimensional Overseer：高维俯瞰者
+Ancient God of the Dead：古老死神
+Lord of Mysteries：诡秘之主
+Mysteries Lord：诡秘之主
+
 
 通用词条
 
@@ -67,7 +117,6 @@ pathways：途径
 Mysteries：诡秘
 Fool Pathway：愚者途径
 mythos：圣典
-Lord of Mysteries：诡秘之主
 God of Deceit：欺诈之神
 Angel of Imagination：空想天使
 beyonder abilities：非凡能力
@@ -78,10 +127,7 @@ Beyonders：非凡者
 Nighthawks：值夜者
 Aurora Order：极光会
 Angel of Time：时之天使
-Ancient Sun：远古太阳神
-The Hanged：倒吊人
-the True Creator：真实造物主
 Worms of Spirit：灵之虫
 Tarot Club：塔罗会
-
+Beyonder Pathway：非凡途径
 
