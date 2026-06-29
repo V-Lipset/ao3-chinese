@@ -300,5 +300,15 @@
     "maintainer": "拉葛莎",
     "visibility": true,
     "feedback": "https://github.com/Valyria336"
+  },
+  {
+    "name": "Revue Starlight",
+    "tags": [
+      "少女歌剧"
+    ],
+    "url": "https://raw.githubusercontent.com/Dong05141006/ao3-chinese/refs/heads/main/glossaries/Revue%20Starlight.txt",
+    "maintainer": "Dong",
+    "visibility": true,
+    "feedback": "https://github.com/Dong05141006"
   }
 ]
