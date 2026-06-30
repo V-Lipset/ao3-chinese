@@ -310,5 +310,15 @@
     "maintainer": "Dong",
     "visibility": true,
     "feedback": "https://github.com/Dong05141006"
+  },
+  {
+    "name": "Haikyuu!!",
+    "tags": [
+      "排球少年"
+    ],
+    "url": "https://raw.githubusercontent.com/meyerm1170/ao3-chinese/refs/heads/main/glossaries/Haikyuu!!.txt",
+    "maintainer": "meyer",
+    "visibility": true,
+    "feedback": "oxds44@gmail.com"
   }
 ]
