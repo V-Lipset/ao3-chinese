@@ -320,5 +320,17 @@
     "maintainer": "meyer",
     "visibility": true,
     "feedback": "oxds44@gmail.com"
+  },
+  {
+    "name": "Even If I Fall Into a Ghost Story I Still Have to Go to Work",
+    "tags": [
+      "괴담에 떨어져도 출근을 해야 하는구나",
+      "就算掉进怪谈里也得出去上班啊",
+      "怪谈上班"
+    ],
+    "url": "https://raw.githubusercontent.com/kindfriend-0913/ao3-chinese/refs/heads/main/GSGW.txt",
+    "maintainer": "怪谈发烧友穿越到异世界会不会梦见回家的路",
+    "visibility": true,
+    "feedback": "ki7resdpzzz@gmail.com"
   }
 ]
