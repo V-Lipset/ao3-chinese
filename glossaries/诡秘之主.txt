@@ -45,7 +45,6 @@ Sanguine：血族
 //海上
 Danitz：达尼兹
 Roselle Gustav：罗塞尔·古斯塔夫
-
 //亚当相关
 Amon：阿蒙
 Adam：亚当
@@ -94,7 +93,6 @@ official Beyonders：官方非凡者
 //宿环
 Jenna：简娜
 Franca：芙兰卡
-
 // 途径和源质
 Sefirah Castle：源堡
 Seer Pathway：占卜家途径
@@ -118,7 +116,6 @@ Arrodes：阿罗德斯
 Tinder：火种
 Staff of Stars：星之杖
 Star Staff：星之杖
-
 //其他-地理
 Tingen：廷根
 Loen：鲁恩
