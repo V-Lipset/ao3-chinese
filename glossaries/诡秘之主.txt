@@ -1,50 +1,73 @@
-版本号：1.0.0
+版本号：1.0.1
 维护者：
-更新时间：2026-07-08
+更新时间：2026-7-9
 
 词条
 Lord of the Mysteries：诡秘之主
 // 塔罗会
-Klein Moretti：克莱恩·莫雷蒂
-Zhou Mingrui：周明瑞
+Tarot Club：塔罗会
+Klein Moretti = 克莱恩·莫雷蒂
+Zhou Mingrui = 周明瑞
 Fool：愚者
-Gehrman Sparrow：格尔曼·斯帕罗
-Sherlock Moriarty：夏洛克·莫里亚蒂
-Dwayne Dántes：道恩·唐泰斯
-Leonard Mitchell：伦纳德·米切尔
+Gehrman Sparrow = 格尔曼·斯帕罗
+Sherlock Moriarty = 夏洛克·莫里亚蒂
+Dwayne Dantes = 道恩·唐泰斯
+Leonard Mitchell = 伦纳德·米切尔
 The Star：星星
-Audrey Hall：奥黛丽·霍尔
+Audrey Hall = 奥黛丽·霍尔
 Justice：正义
-Alger Wilson：阿尔杰·威尔逊
-Derrick Berg：戴里克·伯格
-Fors Wall：佛尔思·沃尔
+Alger Wilson = 阿尔杰·威尔逊
+Derrick Berg = 戴里克·伯格
+Fors Wall = 佛尔思·沃尔
 Xio Derecha：休·迪尔查
 Cattleya：嘉德丽雅
-Emlyn White：埃姆林·怀特
+Emlyn White = 埃姆林·怀特
 Mr.Luna：月亮先生
+Mr.Moon：月亮先生
 //廷根
-Dunn Smith：邓恩·史密斯
-Azik Eggers：阿兹克·艾格斯
-Melissa Moretti：梅丽莎·莫雷蒂
-Benson Moretti：班森·莫雷蒂
+Dunn Smith = 邓恩·史密斯
+Azik Eggers = 阿兹克·艾格斯
+Melissa Moretti = 梅丽莎·莫雷蒂
+Benson Moretti = 班森·莫雷蒂
 Naya：娜娅
 Daly：戴莉
 Kenley：科恩黎
 Royale：洛耀
 Rozanne：罗珊
-Ince Zangwill：因斯·赞格威尔
+Ince Zangwill = 因斯·赞格威尔
 Lanevus：兰尔乌斯
 Selena：赛琳娜
 Megose：梅高欧丝
 Qilangos：齐林格斯
+Tingen：廷根
+Blackthorn：黑荆棘
+Loen：鲁恩
+Desi Pie：迪西馅饼
+Daisy Bay：迪西海湾
+Khoy University：霍伊大学
 //贝克兰德
-Jurgen Cooper：于尔根·库珀
+Bernadette：贝尔纳黛
+Hvin Rambis = 赫温·兰比斯
+Will Auceptin = 威尔·昂赛汀
+Jurgen Cooper = 于尔根·库珀
 Glaint：格莱林特
 Arianna：阿里安娜
 Sanguine：血族
+Utravsky：乌特拉夫斯基
+Arrodes：阿罗德斯
+Sharron：莎伦
+Mr. Clown：小丑天使
+Backlund：贝克兰德
+Pinster：平斯特
+Bӧklund：伯克伦德
 //海上
-Danitz：达尼兹
-Roselle Gustav：罗塞尔·古斯塔夫
+Danitz Dubois = 达尼兹·迪瓦布
+Roselle Gustav = 罗塞尔·古斯塔夫
+Kalvetua：卡维图瓦
+ Amyrius Rieveldt = 艾弥留斯·利维特
+Admiral of Blood：血之上将
+Senor：塞尼奥尔
+Bayam：拜亚姆
 //亚当相关
 Amon：阿蒙
 Adam：亚当
@@ -52,16 +75,19 @@ Medici：梅迪奇
 Zaratul：查拉图
 //第二纪
 Antigonus：安提哥努斯
+Half-Fool：半个愚者
 // 真神、组织与势力
-Tarot Club：塔罗会
+//黑夜
 Evernight Goddess：黑夜女神
 Shadow Heavens：深黯天国
 Amanises：阿曼尼西斯
 Nighthawks：值夜者
 Red Glove：红手套
-Church of the Evernight Goddess：黑夜女神教
-会
+Church of the Evernight Goddess：黑夜女神教会
 Church of Evernight：黑夜教会
+Evernight church：黑夜教堂
+//其他真神与势力
+ Celestial Worthy：天尊
 Lord of the Storms：风暴之主
 Leodero：列奥德罗
 Mandated Punisher：代罚者
@@ -73,80 +99,48 @@ Church of Knowledge：知识教会
 Eternal Blazing Sun：永恒烈阳
 Aucuses：奥赛库斯
 Earth Mother：大地母神
+ Ancient Sun God：远古太阳神
 True Creator：真实造物主
 Aurora Order：极光会
-Psychic Research Society：灵知会
-Secret Order：密修会
-Zaratul：查拉图
 Hidden Sage：隐匿贤者
 Moses Ascetic Order：摩斯苦修会
-Rose School of Thought：蔷薇学派
-Abraham：亚伯拉罕
-Half-Fool：半个愚者
-Pallez Zoroast：帕列斯·索罗斯亚德
-Primordial Demoness：原初魔女
 Lady Despair：绝望女士
+Psychic Research Society：灵知会
 Chained God：被缚之神
 Mother Tree of Desire：欲望母树
 Son of Chaos：混沌之子
+//其他势力
+Pallez Zoroast=帕列斯·索罗斯亚德
+Abraham：亚伯拉罕
+Zaratul：查拉图
+Secret Order：密修会
+Life School of Thought：生命学派
 official Beyonders：官方非凡者
 //宿环
 Jenna：简娜
 Franca：芙兰卡
-// 途径和源质
-Sefirah Castle：源堡
-Seer Pathway：占卜家途径
-Spectator Pathway：观众途径
-Sailor Pathway：水手途径
-Sleepless Pathway：不眠者途径
-Apothecary Pathway：药师途径
-Demoness Pathway：魔女途径
-Pyromaniac：纵火家
-Door Pathway：门途径
-Error Pathway：错误途径
-Worm of Time ：时之虫
-Sun Pathway：太阳途径
-Tyrant Pathway：暴君途径
-Reader Pathway：阅读者途径
-Corpse Collector Pathway：收尸人途径
-Prisoner Pathway：囚犯途径
-Planter Pathway：耕种者途径
-//封印物
+//源质特性封印物
 Arrodes：阿罗德斯
 Tinder：火种
 Staff of Stars：星之杖
 Star Staff：星之杖
+//途径
+Wraith：怨魂
 //其他-地理
-Tingen：廷根
-Loen：鲁恩
-Desi Pie：迪西馅饼
-Daisy Bay：迪西海湾
-Khoy University：霍伊大学
-Backlund：贝克兰德
-Pinster：平斯特
-Bӧklund：伯克伦德
 soli：苏勒
 Southville：南威尔
-Blackthorn：黑荆棘
 Balam：拜朗
+Bansy：班西
+ Forsaken Land of the Gods：神弃之地
 //其他-历史
 War of Four Emperors：四皇之战
 Sanguine：血族
-
-正则表达式
-\bSequence\s?0\b：序列0
-\bSequence\s?1\b：序列1
-\bSequence\s?2\b：序列2
-\bSequence\s?3\b：序列3
-\bSequence\s?4\b：序列4
-\bSequence\s?5\b：序列5
-\bSequence\s?6\b：序列6
-\bSequence\s?7\b：序列7
-\bSequence\s?8\b：序列8
-\bSequence\s?9\b：序列9
-
+//其他-通用
+Blessed：眷者
+Luck Enhancement Ritual：转运仪式
 
 通用词条
+Sequence：序列
 beyonder：非凡者
 potion：魔药
 ritual：仪式
@@ -168,9 +162,45 @@ marionette：秘偶
 ascend：晋升
 adorer：眷者
 pendulum：灵摆
-demoness：魔女
 characteristic：特性
+Acting Method：扮演法
 Spiritual Worm：灵之虫
+angel of concealment：隐秘天使
+concealed：隐秘
+The fool：愚者
+Honorific Name：尊名
+Card of Blasphemy：亵渎之牌
+//真神
+Primordial Demoness：原初魔女
+//途径
+Sefirah Castle：源堡
+pathway：途径
+Seer：占卜家
+Faceless：无面人
+Marionettist：密偶大师
+Bizarro Sorcerer：诡法师
+Miracle Invoker：奇迹师
+Spectator：观众
+Sailor：水手
+Sleepless：不眠者
+Apothecary：药师
+Demoness：魔女
+Pyromaniac：纵火家
+Worm of Time ：时之虫
+Tyrant：暴君
+Corpse Collector：收尸人
+Undying：不死者
+Planter：耕种者
+Lightseeker：逐光者
+//尊名
+The Fool that doesn't belong to this era：不属于这个时代的愚者
+the mysterious ruler above the gray fog：灰雾上的神秘主宰
+the King of Yellow and Black who wields good luck：执掌好运的黄黑之王
+Blessed of the sea and spirit world：大海与灵界的眷者
+Guardian of the Rorsted Archipelago：罗思德群岛的守护者
+Ruler of the Undersea Creatures：海底生物的支配者
+Master of Tsunamis and Storms：海啸与暴风的掌控者
+The Great Kalvetua：伟大的卡维图瓦
 
 // 禁翻词条（保持格式）
 禁翻词条
