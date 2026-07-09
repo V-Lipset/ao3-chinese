@@ -1,0 +1,176 @@
+版本号：1.0.0
+维护者：
+更新时间：2026-07-08
+
+词条
+Lord of the Mysteries：诡秘之主
+// 塔罗会
+Klein Moretti：克莱恩·莫雷蒂
+Zhou Mingrui：周明瑞
+Fool：愚者
+Gehrman Sparrow：格尔曼·斯帕罗
+Sherlock Moriarty：夏洛克·莫里亚蒂
+Dwayne Dántes：道恩·唐泰斯
+Leonard Mitchell：伦纳德·米切尔
+The Star：星星
+Audrey Hall：奥黛丽·霍尔
+Justice：正义
+Alger Wilson：阿尔杰·威尔逊
+Derrick Berg：戴里克·伯格
+Fors Wall：佛尔思·沃尔
+Xio Derecha：休·迪尔查
+Cattleya：嘉德丽雅
+Emlyn White：埃姆林·怀特
+Mr.Luna：月亮先生
+//廷根
+Dunn Smith：邓恩·史密斯
+Azik Eggers：阿兹克·艾格斯
+Melissa Moretti：梅丽莎·莫雷蒂
+Benson Moretti：班森·莫雷蒂
+Naya：娜娅
+Daly：戴莉
+Kenley：科恩黎
+Royale：洛耀
+Rozanne：罗珊
+Ince Zangwill：因斯·赞格威尔
+Lanevus：兰尔乌斯
+Selena：赛琳娜
+Megose：梅高欧丝
+Qilangos：齐林格斯
+//贝克兰德
+Jurgen Cooper：于尔根·库珀
+Glaint：格莱林特
+Arianna：阿里安娜
+Sanguine：血族
+//海上
+Danitz：达尼兹
+Roselle Gustav：罗塞尔·古斯塔夫
+//亚当相关
+Amon：阿蒙
+Adam：亚当
+Medici：梅迪奇
+Zaratul：查拉图
+//第二纪
+Antigonus：安提哥努斯
+// 真神、组织与势力
+Tarot Club：塔罗会
+Evernight Goddess：黑夜女神
+Shadow Heavens：深黯天国
+Amanises：阿曼尼西斯
+Nighthawks：值夜者
+Red Glove：红手套
+Church of the Evernight Goddess：黑夜女神教
+会
+Church of Evernight：黑夜教会
+Lord of the Storms：风暴之主
+Leodero：列奥德罗
+Mandated Punisher：代罚者
+Church of the Lord of the Storms：风暴教会
+Machinery Hivemind：机械之心
+God of Knowledge and Wisdom：知识与智慧之神
+Herabergen：赫拉伯格
+Church of Knowledge：知识教会
+Eternal Blazing Sun：永恒烈阳
+Aucuses：奥赛库斯
+Earth Mother：大地母神
+True Creator：真实造物主
+Aurora Order：极光会
+Psychic Research Society：灵知会
+Secret Order：密修会
+Zaratul：查拉图
+Hidden Sage：隐匿贤者
+Moses Ascetic Order：摩斯苦修会
+Rose School of Thought：蔷薇学派
+Abraham：亚伯拉罕
+Half-Fool：半个愚者
+Pallez Zoroast：帕列斯·索罗斯亚德
+Primordial Demoness：原初魔女
+Lady Despair：绝望女士
+Chained God：被缚之神
+Mother Tree of Desire：欲望母树
+Son of Chaos：混沌之子
+official Beyonders：官方非凡者
+//宿环
+Jenna：简娜
+Franca：芙兰卡
+// 途径和源质
+Sefirah Castle：源堡
+Seer Pathway：占卜家途径
+Spectator Pathway：观众途径
+Sailor Pathway：水手途径
+Sleepless Pathway：不眠者途径
+Apothecary Pathway：药师途径
+Demoness Pathway：魔女途径
+Pyromaniac：纵火家
+Door Pathway：门途径
+Error Pathway：错误途径
+Worm of Time ：时之虫
+Sun Pathway：太阳途径
+Tyrant Pathway：暴君途径
+Reader Pathway：阅读者途径
+Corpse Collector Pathway：收尸人途径
+Prisoner Pathway：囚犯途径
+Planter Pathway：耕种者途径
+//封印物
+Arrodes：阿罗德斯
+Tinder：火种
+Staff of Stars：星之杖
+Star Staff：星之杖
+//其他-地理
+Tingen：廷根
+Loen：鲁恩
+Desi Pie：迪西馅饼
+Daisy Bay：迪西海湾
+Khoy University：霍伊大学
+Backlund：贝克兰德
+Pinster：平斯特
+Bӧklund：伯克伦德
+soli：苏勒
+Southville：南威尔
+Blackthorn：黑荆棘
+Balam：拜朗
+//其他-历史
+War of Four Emperors：四皇之战
+Sanguine：血族
+
+正则表达式
+\bSequence\s?0\b：序列0
+\bSequence\s?1\b：序列1
+\bSequence\s?2\b：序列2
+\bSequence\s?3\b：序列3
+\bSequence\s?4\b：序列4
+\bSequence\s?5\b：序列5
+\bSequence\s?6\b：序列6
+\bSequence\s?7\b：序列7
+\bSequence\s?8\b：序列8
+\bSequence\s?9\b：序列9
+
+
+通用词条
+beyonder：非凡者
+potion：魔药
+ritual：仪式
+divination：占卜
+spirit world：灵界
+astral world：星界
+mysticism：神秘学
+outer deity：外神
+sealed artifact：封印物
+artifact：封印物
+characteristic：特性
+madness：失控
+anchor：锚
+projection：投影
+incarnation：化身
+true god：真神
+half god：半神
+marionette：秘偶
+ascend：晋升
+adorer：眷者
+pendulum：灵摆
+demoness：魔女
+characteristic：特性
+Spiritual Worm：灵之虫
+
+// 禁翻词条（保持格式）
+禁翻词条
