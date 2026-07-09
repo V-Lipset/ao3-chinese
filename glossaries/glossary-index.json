@@ -341,6 +341,16 @@
     "url": "https://raw.githubusercontent.com/Mydearmos/ao3-chinese/refs/heads/main/glossaries/HSR%3A%20Phaidei",
     "maintainer": "Mydearmos",
     "visibility": true,
-    "feedback": "https://github.com/[Mydearmos](https://github.com/Mydearmos"
+    "feedback": "https://github.com/Mydearmos"
+  },
+  {
+    "name": "Lord of Mysteries",
+    "tags": [
+      "诡秘之主"
+    ],
+    "url": "https://raw.githubusercontent.com/yimeng2017/ao3-chinese/refs/heads/main/glossaries/诡秘之主.txt",
+    "maintainer": "yimeng2017",
+    "visibility": true,
+    "feedback": "https://github.com/yimeng2017"
   }
 ]
