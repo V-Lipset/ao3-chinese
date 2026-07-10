@@ -352,5 +352,15 @@
     "maintainer": "yimeng2017",
     "visibility": true,
     "feedback": "https://github.com/yimeng2017"
+  },
+  {
+    "name": "Batman",
+    "tags": [
+      "蝙蝠侠"
+    ],
+    "url": "https://raw.githubusercontent.com/Lylia-0617/AO3-Chinese-translator/refs/heads/main/Batman.txt",
+    "maintainer": "Lylia-0617",
+    "visibility": true,
+    "feedback": "https://github.com/Lylia-0617"
   }
 ]
