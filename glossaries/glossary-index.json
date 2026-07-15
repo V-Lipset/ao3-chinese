@@ -362,5 +362,15 @@
     "maintainer": "Lylia-0617",
     "visibility": true,
     "feedback": "https://github.com/Lylia-0617"
+  },
+  {
+    "name": "House of the Dragon",
+    "tags": [
+      "龙之家族"
+    ],
+    "url": "https://raw.githubusercontent.com/Vryndor/ao3-chinese/refs/heads/main/glossaries/House%20of%20the%20Dragon.txt",
+    "maintainer": "momori",
+    "visibility": true,
+    "feedback": "https://github.com/Vryndor"
   }
 ]
