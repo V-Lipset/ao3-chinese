@@ -372,5 +372,25 @@
     "maintainer": "momori",
     "visibility": true,
     "feedback": "https://github.com/Vryndor"
+  },
+  {
+    "name": "Final Fantasy VII",
+    "tags": [
+      "最终幻想VII"
+    ],
+    "url": "https://raw.githubusercontent.com/V-Lipset/ao3-chinese/refs/heads/main/glossaries/最终幻想Ⅶ.txt",
+    "maintainer": "tsunaX14",
+    "visibility": true,
+    "feedback": "https://github.com/tsunaX14"
+  },
+  {
+    "name": "Star Wars",
+    "tags": [
+      "星球大战"
+    ],
+    "url": "https://raw.githubusercontent.com/minkey-02/ao3-chinese/refs/heads/main/glossaries/Star_Wars.txt",
+    "maintainer": "minkey",
+    "visibility": true,
+    "feedback": "https://https://github.com/minkey-02"
   }
 ]
