@@ -1,11 +1,11 @@
 维护者：minkey
-版本号：1.0.3
-更新时间：2026-5-28
+版本号：1.0.5
+更新时间：2026-7-18
 
 词条
 // 天行者相关
 Shmi Skywalker = 施密·天行者
-Anakin Skywalker = 阿纳金·天行者
+Anakin Skywalker = 安纳金·天行者
 Padmé Amidala = 帕德梅·阿米达拉
 Luke Skywalker = 卢克·天行者
 Leia Organa = 莱娅·奥加纳
@@ -96,11 +96,12 @@ Sabé：莎贝
 Zeb：泽布
 Garazeb Orrelios = 加拉泽布·奥雷利奥斯
 Chopper:切宝
+the Ghost:幽灵号
 
 //侠盗一号
 Galen Erso = 盖伦·厄索
 Stardust = 星尘
-Luthen Raelt = 卢森·雷尔
+Luthen Rael = 卢森·雷尔
 Cassian Andor = 卡西安·安多
 Kassa：卡撒
 Maarva：玛尔瓦
@@ -144,6 +145,7 @@ Mara Jade = 玛拉·杰德
 "Two-Boots"：两靴
 Ziro:齐罗
 Rotta:罗塔
+Artoo：R2
 
 // 地名
 Coruscant：科洛桑
@@ -247,6 +249,7 @@ Slave I:奴隶一号
 TIE fighter:TIE战机
 Sith Infiltrator:西斯渗透者
 Rouge One:侠盗一号
+the Phantom II:幻影II号
 
 //物品
 puck：悬赏器
