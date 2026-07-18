@@ -1,14 +1,14 @@
 维护者：minkey
-版本号：1.0.0
-更新时间：2026-5-27
+版本号：1.0.5
+更新时间：2026-7-18
 
 词条
-
 // 天行者相关
-Anakin Skywalker = 阿纳金·天行者
+Shmi Skywalker = 施密·天行者
+Anakin Skywalker = 安纳金·天行者
+Padmé Amidala = 帕德梅·阿米达拉
 Luke Skywalker = 卢克·天行者
 Leia Organa = 莱娅·奥加纳
-Padmé Amidala = 帕德梅·阿米达拉
 Han Solo = 汉·索罗
 Ben Solo = 本·索罗
 Rey：蕾伊
@@ -16,27 +16,43 @@ Rey：蕾伊
 // 绝地武士团
 "Obi-Wan"：欧比旺
 Kenobi：肯诺比
-Yoda = 尤达
+Master Yoda = 尤达大师
+Yoda：尤达
 "Qui-Gon"：奎刚
 Jinn：金
 Count Dooku：杜库伯爵
+Dooku：杜库
 Ahsoka Tano = 阿索卡·塔诺
 Mace Windu = 梅斯·温杜
 Shaak Ti = 莎克·提
 "Ki-Adi-Mundi":基-阿迪-芒迪
 Mundi:芒迪
 Plo Koon = 普洛·孔
-Even Piell = 伊文·皮耶尔
+Even Piell：埃文·皮耶尔
+Piell：皮耶尔
 Luminara Unduli = 卢米娜拉·昂杜里
 Barriss Offee = 巴里斯·奥菲
 Kanan Jarrus = 凯南·贾勒斯
 Caleb Dume = 凯莱布·杜姆
 Ezra Bridger = 埃兹拉·布里杰
+Quinlan Vos = 昆兰·沃斯
+Kit Fisto = 基特·费斯托
+Aayla Secura = 艾拉·萨库拉
+Saesee Tiin = 塞西·廷
+Shin Hati = 辛·哈蒂
+Yaddle：娅德尔
+Jocasta Nu：乔卡丝塔·努
+Jocasta：乔卡丝塔
+Huyang：胡杨
+Devon Izara = 戴文·伊扎拉
+Daaki：达奇
+Cal Kestis = 卡尔·凯斯提斯
+Cere Junda = 希尔·琼达
 
-// 西斯、帝国、第一秩序
-Palpatine：帕尔帕廷
-Darth Sidious：达斯·西迪厄斯
-Darth Tyranus：达斯·泰拉纳斯
+//分离主义、西斯、黑暗面、帝国、第一秩序
+Sheev Palpatine = 希夫·帕尔帕廷
+Darth Sidious = 达斯·西迪厄斯
+Darth Tyranus = 达斯·泰拉纳斯
 Darth Vader = 达斯·维达
 Darth Maul = 达斯·摩尔
 Asajj Ventress = 阿萨吉·文崔斯
@@ -45,11 +61,22 @@ Snoke：斯努克
 Hux：赫克斯
 Moff Gideon：吉迪恩总督
 Thrawn：索龙
+"Mitth'raw'nuruodo"：密特·索龙·努罗多
 Wilhuff Tarkin = 威尔赫夫·塔金
 Wulff Yularen = 伍尔夫·尤拉伦
 General Grievous：格里弗斯将军
 Mother Talzin：塔尔津主母
 Savage Opress = 萨瓦奇·奥普雷斯
+Nute Gunray = 纽特·冈雷
+Mas Amedda：马斯·阿梅达
+Vaneé：瓦内
+Gilad Pellaeon = 吉拉德·佩雷恩
+Maximilian Veers = 马克西米连·维尔斯
+Tagge：塔格
+Piett：皮耶特
+Natasi Daala = 娜塔西·达拉
+Marrok：马洛克
+the Grand Inquisitor：大裁判官
 
 //克隆人、义军、共和国相关
 Poe Dameron = 波·达默龙
@@ -58,10 +85,39 @@ Cara Dune = 卡拉·杜恩
 Hera Syndulla = 赫拉·辛杜拉
 Captain Rex：雷克斯上尉
 Commander Cody：科迪指挥官
+Shara Bey = 莎拉·贝
+Mon Mothma = 蒙·莫思马
+Bail Organa = 贝尔·奥加纳
+Admiral Ackbar：阿克巴上将
+Jar Jar Binks：加·加·宾克斯
+Jar Jar：加·加
+Orn Free Taa：奥恩·弗里·塔
+Sabé：莎贝
+Zeb：泽布
+Garazeb Orrelios = 加拉泽布·奥雷利奥斯
+Chopper:切宝
+the Ghost:幽灵号
+
+//侠盗一号
+Galen Erso = 盖伦·厄索
+Stardust = 星尘
+Luthen Rael = 卢森·雷尔
+Cassian Andor = 卡西安·安多
+Kassa：卡撒
+Maarva：玛尔瓦
+Dedra Meero = 黛德拉·米罗
+Syril Karn = 西里尔·卡恩
+Bix Caleen = 比克丝·卡利恩
+Orson Krennic = 奥森·克伦尼克
+Director：总监
+Saw Gerrera = 索·格雷拉
+Chirrut Îmwe = 奇鲁·英威
+Baze Malbus = 贝兹·马彪斯
 
 // 曼达洛人相关
 Din Djarin = 丁·贾林
 Boba Fett = 波巴·费特
+Jango Fett = 詹戈·费特
 Grogu：古古
 Paz Vizsla = 帕兹·维兹拉
 Sabine Wren = 莎宾·雷恩
@@ -78,6 +134,18 @@ Greef Karga = 格里夫·卡加
 Cobb Vanth = 科布·范思
 Fennec Shand = 芬内克·尚德
 Kuiil：奎尔
+Watto：瓦图
+Uncle Owen：欧文叔叔
+Aunt Beru：贝露阿姨
+Greedo：格里多
+Cad Bane = 凯德·贝恩
+Embo：恩博
+Aurra Sing = 奥拉·辛
+Mara Jade = 玛拉·杰德
+"Two-Boots"：两靴
+Ziro:齐罗
+Rotta:罗塔
+Artoo：R2
 
 // 地名
 Coruscant：科洛桑
@@ -102,15 +170,40 @@ Nevarro：内瓦罗
 Mos Eisley：莫斯艾斯利
 Mos Pelgo：莫斯佩尔戈
 Outer Rim Territories：外环星域
+Alderaan：奥德朗
+Bespin：贝斯平
+Chandrila：钱德里拉
+Concord Dawn：谐晨星
+Eriadu：埃里亚杜
+Scarif：斯卡里夫
+Corellia：科雷利亚
+Jedha：杰达
+Eadu：伊杜
+Felucia：费卢西亚
+Shili：希利
+Pantora：潘托拉
+Kenari：克那利
+Fondor：方铎
+Dantooine：丹图因
+Ferrix：费里克斯
+Lasan：拉桑
+Lothal：洛塔
+Hoth：霍斯
+Geonosis：吉奥诺西斯
+Mon Cala：蒙卡拉
+Nal Hutta：纳尔赫塔
+Csilla：奇拉
+Janix：贾尼克斯
+Cloud City：云城
 
 通用词条
-
 //不区分大小写
 //专有名词
 The Force：原力
 Jedi Order：绝地武士团
 Jedi HighCouncil：绝地最高委员会
 Jedi Temple：绝地圣殿
+Sith shrine：西斯神庙
 Sith：西斯
 Light Side：光明面
 Dark Side：黑暗面
@@ -118,6 +211,12 @@ Force Lightning：原力闪电
 Jedi Mind Trick：绝地控心术
 Order 66：66号指令
 Confederacy of Independent Systems：独立星系邦联
+Rebel Alliance:义军同盟
+"midi-chlorian":纤原体
+"force-sensitive":原力敏感者
+"force-users":原力敏感者
+force wielder:原力敏感者
+force adepts:原力敏感者
 
 //称呼
 imps：帝国兵
@@ -126,17 +225,34 @@ Bad Batch：残次品小队
 501st Legion：501军团
 212th Attack Battalion：212攻击营
 Imperial Remnant：帝国残余
+Grand Moff：高级星区总督
+Moff：星区总督
+Governor：总督
+nurse droid：保姆机器人
+astromech droid：宇航技工机器人
+padawan：学徒
+apprentice：学徒
+initiate：幼徒
+younling：幼徒
+inquisitor：裁判官
+Grand Admiral：元帅
 
 //飞船
 Cruiser：巡洋舰
 Razor Crest：剃刀冠号
 Millennium Falcon：千年隼号
+the Falcon:千年隼号
 "N-1 Starfighter"：N-1 纳布星际战机
 "X-wing"：X翼战机
 Star Destroyer：歼星舰
+Slave I:奴隶一号
+TIE fighter:TIE战机
+Sith Infiltrator:西斯渗透者
+Rouge One:侠盗一号
+the Phantom II:幻影II号
 
 //物品
-puck：悬赏盘
+puck：悬赏器
 Beskar：贝斯卡
 Lightsaber：光剑
 Darksaber：暗剑
@@ -147,14 +263,44 @@ trugut：特鲁古特
 peggat：佩加特
 Batuuan Spira：巴图斯皮拉
 Cantocoin：坎托币
+restraining bolt：抑制栓
+bacta：巴克塔
+walker：步行机
+podrace：飞梭赛车
 
-//种族氏族
+//生物、种族、氏族
+womp rat：旺普鼠
+nerf：纳夫牛
+tauntaun：汤汤兽
+"loth-cat"：洛塔猫
+veermok：维尔莫克猿
+purrgil：普尔褶鲸
+sarlacc：沙拉克
+eopie：尤皮
+rancor：兰克兽
+bantha：班萨
 Togruta：托格鲁塔人
-Mandalorian Clans：曼达洛氏族
-Death Watch：死神卫
 Mon Calamari：蒙卡拉马里人
 "Twi'lek"：提列克人
 Chiss：奇斯人
+Kel Dor：凯尔多人
+Anzellan：安泽尔人
+Alderaanian：奥德朗人
+Mandalorian Clans：曼达洛氏族
+Death Watch：死神卫
+Children of the Watch：卫之子
+Crimson Dawn：赤红黎明
+Wookie：伍基人
+Ewok：伊沃克人
+Rodian：罗迪亚人
+Jawa：贾瓦人
+Tusken Raiders：塔斯肯袭击者
+Hutt：赫特人
+Gungan：冈根人
+Geonosian：吉奥诺西斯人
+Kaminoan：卡米诺人
+Yuuzhan Vong：遇战疯人
+Quarren：夸伦人
 
 禁翻词条
 // 此区域区分大小写，用于保持原文
@@ -164,3 +310,8 @@ Chiss：奇斯人
 "IG-11"
 This is the Way
 TIE
+"Mand’alor"
+"K-2"
+"K-2SO"
+BBY
+ABY
