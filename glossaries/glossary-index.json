@@ -242,5 +242,155 @@
     "maintainer": "Eros",
     "visibility": true,
     "feedback": "https://github.com/Teyato10969"
+  },
+  {
+    "name": "How to Train Your Dragon",
+    "tags": [
+      "驯龙高手",
+      "驯龙记"
+    ],
+    "url": "https://raw.githubusercontent.com/Valyria336/ao3-chinese/refs/heads/patch-3/glossaries/How%20To%20Train%20Your%20Dragon",
+    "maintainer": "拉葛莎",
+    "visibility": true,
+    "feedback": "https://github.com/Valyria336"
+  },
+  {
+    "name": "KPOP",
+    "tags": [],
+    "url": "https://raw.githubusercontent.com/meyerm1170/ao3-chinese/refs/heads/main/glossaries/KPOP.txt",
+    "maintainer": "meyer",
+    "visibility": true,
+    "feedback": "oxds44@gmail.com"
+  },
+  {
+    "name": "Omegaverse",
+    "tags": [],
+    "url": "https://raw.githubusercontent.com/meyerm1170/ao3-chinese/refs/heads/main/glossaries/Omegaverse.txt",
+    "maintainer": "meyer",
+    "visibility": true,
+    "feedback": "oxds44@gmail.com"
+  },
+  {
+    "name": "Danganronpa",
+    "tags": [
+      "弹丸论破"
+    ],
+    "url": "https://raw.githubusercontent.com/yorklancaster1485-ui/ao3-chinese/refs/heads/main/glossaries/Danganronpa.txt",
+    "maintainer": "404",
+    "visibility": true,
+    "feedback": "yorklancaster1485@gmail.com"
+  },
+  {
+    "name": "Dr.STONE",
+    "tags": [
+      "石纪元"
+    ],
+    "url": "https://raw.githubusercontent.com/Lyralyell/ao3-chinese/refs/heads/main/glossaries/Dr.STONE.txt",
+    "maintainer": "Lyralyell",
+    "visibility": true,
+    "feedback": "https://github.com/Lyralyell"
+  },
+  {
+    "name": "Jujutsu Kaisen",
+    "tags": [
+      "咒术回战",
+      "呪術廻戦"
+    ],
+    "url": "https://raw.githubusercontent.com/Valyria336/ao3-chinese/refs/heads/patch-7/glossaries/咒术回战",
+    "maintainer": "拉葛莎",
+    "visibility": true,
+    "feedback": "https://github.com/Valyria336"
+  },
+  {
+    "name": "Revue Starlight",
+    "tags": [
+      "少女歌剧"
+    ],
+    "url": "https://raw.githubusercontent.com/Dong05141006/ao3-chinese/refs/heads/main/glossaries/Revue%20Starlight.txt",
+    "maintainer": "Dong",
+    "visibility": true,
+    "feedback": "https://github.com/Dong05141006"
+  },
+  {
+    "name": "Haikyuu!!",
+    "tags": [
+      "排球少年"
+    ],
+    "url": "https://raw.githubusercontent.com/meyerm1170/ao3-chinese/refs/heads/main/glossaries/Haikyuu!!.txt",
+    "maintainer": "meyer",
+    "visibility": true,
+    "feedback": "oxds44@gmail.com"
+  },
+  {
+    "name": "Even If I Fall Into a Ghost Story I Still Have to Go to Work",
+    "tags": [
+      "괴담에 떨어져도 출근을 해야 하는구나",
+      "就算掉进怪谈里也得出去上班啊",
+      "怪谈上班"
+    ],
+    "url": "https://raw.githubusercontent.com/kindfriend-0913/ao3-chinese/refs/heads/main/GSGW.txt",
+    "maintainer": "怪谈发烧友穿越到异世界会不会梦见回家的路",
+    "visibility": true,
+    "feedback": "ki7resdpzzz@gmail.com"
+  },
+  {
+    "name": "Phaidei",
+    "tags": [
+      "厄敌"
+    ],
+    "url": "https://raw.githubusercontent.com/Mydearmos/ao3-chinese/refs/heads/main/glossaries/HSR%3A%20Phaidei",
+    "maintainer": "Mydearmos",
+    "visibility": true,
+    "feedback": "https://github.com/Mydearmos"
+  },
+  {
+    "name": "Lord of Mysteries",
+    "tags": [
+      "诡秘之主"
+    ],
+    "url": "https://raw.githubusercontent.com/yimeng2017/ao3-chinese/refs/heads/main/glossaries/诡秘之主.txt",
+    "maintainer": "yimeng2017",
+    "visibility": true,
+    "feedback": "https://github.com/yimeng2017"
+  },
+  {
+    "name": "Batman",
+    "tags": [
+      "蝙蝠侠"
+    ],
+    "url": "https://raw.githubusercontent.com/Lylia-0617/AO3-Chinese-translator/refs/heads/main/Batman.txt",
+    "maintainer": "Lylia-0617",
+    "visibility": true,
+    "feedback": "https://github.com/Lylia-0617"
+  },
+  {
+    "name": "House of the Dragon",
+    "tags": [
+      "龙之家族"
+    ],
+    "url": "https://raw.githubusercontent.com/Vryndor/ao3-chinese/refs/heads/main/glossaries/House%20of%20the%20Dragon.txt",
+    "maintainer": "momori",
+    "visibility": true,
+    "feedback": "https://github.com/Vryndor"
+  },
+  {
+    "name": "Final Fantasy VII",
+    "tags": [
+      "最终幻想VII"
+    ],
+    "url": "https://raw.githubusercontent.com/V-Lipset/ao3-chinese/refs/heads/main/glossaries/最终幻想Ⅶ.txt",
+    "maintainer": "tsunaX14",
+    "visibility": true,
+    "feedback": "https://github.com/tsunaX14"
+  },
+  {
+    "name": "Star Wars",
+    "tags": [
+      "星球大战"
+    ],
+    "url": "https://raw.githubusercontent.com/minkey-02/ao3-chinese/refs/heads/main/glossaries/Star_Wars.txt",
+    "maintainer": "minkey",
+    "visibility": true,
+    "feedback": "https://https://github.com/minkey-02"
   }
 ]

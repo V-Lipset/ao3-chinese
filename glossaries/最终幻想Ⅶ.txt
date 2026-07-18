@@ -1,0 +1,169 @@
+版本号：1.0.0
+维护者：tsunaX14
+更新时间：2026-07-16
+
+词条
+
+//角色
+Cloud：克劳德
+Cloud Strife：克劳德·斯特莱夫
+Strife：斯特莱夫
+Tifa：蒂法
+Tifa Lockhart：蒂法·洛克哈特
+Aerith：爱丽丝
+Aerith Gainsborough：爱丽丝·盖恩斯巴勒
+Barret：巴雷特
+Barret Wallace：巴雷特·华莱士
+Red XIII：赤红十三
+Nanaki：纳纳奇
+Yuffie：尤菲
+Yuffie Kisaragi：尤菲·如月
+Cid：希德
+Cid Highwind：希德·海温德
+Vincent：文森特
+Vincent Valentine：文森特·瓦伦丁
+Zack：扎克斯
+Zack Fair：扎克斯·菲尔
+Sephiroth：萨菲罗斯
+Genesis：杰内西斯
+Genesis Rhapsodos：杰内西斯·拉普索道斯
+Angeal：安吉尔
+Angeal Hewley：安吉尔·修雷
+Yazoo：亚祖
+Kadaj：卡达裘
+Loz：罗兹
+Jessie：杰西
+Biggs：比格斯
+Wedge：威吉
+Cait Sith：凯特·西
+Marlene：玛琳
+Denzel：丹泽尔
+Emina：艾米娜
+Lfalna：伊法露娜
+Rufus：路法斯
+Rufus Shinra：路法斯·神罗
+Tseng：曾
+Reno：雷诺
+Rude：路德
+Elena：伊莉娜
+Hojo：宝条
+Professor Hojo：宝条博士
+President Shinra：神罗总裁
+Heidegger：海德格
+Scarlet：斯卡蕾特
+Palmer：帕尔默
+Reeve：里夫
+Professor Gast：加斯特博士
+Lucrecia：露克蕾西娅
+Lucrecia Crescent：露克蕾西亚·克蕾森特
+Hollander：霍兰德
+Bugenhagen：布根哈根
+Chadley：查德利
+Jenova：杰诺瓦
+Fenrir：芬里尔
+
+通用词条
+
+//组织之类
+Shinra：神罗
+Shinra Electric Power Company：神罗电力公司
+Turks：塔克斯
+Avalanche：雪崩
+SOLDIER：神罗战士
+The Planet：星球
+Lifestream：生命之流
+Gaia：盖亚
+Ancients：古代种
+Cetra：塞特拉
+Deepground：深层地底部队
+Security Officer：治安警卫
+Department Weapons Development：兵器开发部
+Urban Development Division：都市建设部
+Space Development Division：宇宙开发部
+
+
+//专有名词
+Mako：魔晄
+Mako Reactor：魔晄炉
+Jenova Cells：杰诺瓦细胞
+Sephiroth Clones：萨菲罗斯复制体
+Geostigma：星痕
+Remnants of Sephiroth：萨菲罗斯思念体
+Healing Water：治愈泉水
+The Reunion Theory：重聚理论
+Black Materia：黑魔石
+White Materia：白魔石
+Promised Land：应许之地
+Buster Sword：破坏剑
+Clone：复制人
+Mako Enhancement：魔晄改造
+Mako Eyes：魔晄眼
+Stigma Carrier：星痕感染者
+Jenova Project：杰诺瓦计划
+Jenova Separation：杰诺瓦分离体
+Spirit Energy：精神能量
+Planet's Will：星球意志
+Mako Poisoning：魔晄中毒
+Weapon Creatures：武器巨兽
+Sector 1 Mako Reactor：一号魔晄炉
+Sector 5 Mako Reactor：五号魔晄炉
+
+//魔石
+Materia：魔石
+Magic Materia：魔法魔石
+Command Materia：指令魔石
+Support Materia：支援魔石
+Independent Materia：独立魔石
+Summon Materia：召唤魔石
+Master Materia：大师魔石
+Materia Fusion：魔石融合
+
+//生物
+Chocobo：陆行鸟
+Bahamut：巴哈姆特
+Ifrit：伊弗利特
+Shiva：希瓦
+Odin：奥丁
+
+//地方
+Northern Crater：北方大空洞
+Forgotten City：遗忘之都
+Church of Aerith：爱丽丝教堂
+Midgar：米德加
+Wall Market：围墙市场
+Sector 7 Slums：第七区贫民窟
+GoldSaucer：金碟游乐园
+Highwind：海温德号
+Lucrecia's Cave：露克蕾西娅洞穴
+Edge：边缘之城
+Healen Lodge：疗养小屋
+Old Midgar：旧米德加废墟
+Highwind Deck：海温德飞空艇甲板
+Underwater Cave：海底洞窟
+Ocean Area：近海海域
+Shinra Manor：神罗公馆
+Shinra Mansion Basement：神罗公馆地下室
+Temple of the Ancients：古代种神殿
+Crater of the Planet：星球大洞
+Great Glacier：大冰川
+Midgar Underground：米德加地下区域
+Kalm：卡尔姆镇
+Chocobo Farm：陆行鸟农场
+Junon：朱农港
+Costa del Sol：太阳海岸
+Corel Town：科雷尔镇
+Corel Prison：科雷尔监狱
+Bone Village：骨头村
+Cosmo Canyon：宇宙峡谷
+Nibelheim：尼布尔海姆
+Nibel Mountains：尼布尔山脉
+Rocket Town：火箭村
+Wutai：五台
+Shinra Building：神罗大厦
+
+禁翻词条
+//神罗战士等级
+1st
+2nd
+3rd
+Reunion
