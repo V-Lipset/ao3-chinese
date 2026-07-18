@@ -382,5 +382,15 @@
     "maintainer": "tsunaX14",
     "visibility": true,
     "feedback": "https://github.com/tsunaX14"
+  },
+  {
+    "name": "Star Wars",
+    "tags": [
+      "星球大战"
+    ],
+    "url": "https://raw.githubusercontent.com/minkey-02/ao3-chinese/refs/heads/main/glossaries/Star_Wars.txt",
+    "maintainer": "minkey",
+    "visibility": true,
+    "feedback": "https://https://github.com/minkey-02"
   }
 ]
