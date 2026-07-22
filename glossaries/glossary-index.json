@@ -392,5 +392,16 @@
     "maintainer": "minkey",
     "visibility": true,
     "feedback": "https://https://github.com/minkey-02"
+  },
+  {
+    "name": "The Lord of the Rings & The Hobbit",
+    "tags": [
+      "指环王",
+      "霍比特人"
+    ],
+    "url": "https://raw.githubusercontent.com/panverus/ao3-chinese/refs/heads/main/glossaries/LOTR%20%7C%20%E4%B8%AD%E6%B4%B2%E7%9B%B8%E5%85%B3.txt",
+    "maintainer": "panverus",
+    "visibility": true,
+    "feedback": "https://github.com/panverus"
   }
 ]
