@@ -1,4 +1,4 @@
-版本号：1.0.1
+版本号：1.0.2
 维护者：Amyli-19
 更新时间：2026.7.13
 
@@ -65,7 +65,7 @@ Alex Albon=亚历山大·阿尔本
 Carlos Sainz=卡洛斯·赛恩斯
 Nico Rosberg=尼可·罗斯伯格
 Guanyu Zhou=周冠宇
-Yuki Tsunoda=角田裕毅
+Yuki Tsunoda=角田 裕毅
 Daniel Ricciardo=丹尼尔·里卡多
 Logan Sargeant=洛根·萨金特
 Nicholas Latifi=尼古拉斯·拉蒂菲
@@ -122,3 +122,5 @@ ERS
 VSC
 DNF
 DSQ
+Lestappen/lestappen
+Landoscar/landoscar
