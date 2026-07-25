@@ -1,0 +1,278 @@
+版本号：1.0.0
+维护者：suiyuan
+更新时间：2026-07-25
+
+// 编写时，请至少包含“词条”、“通用词条”、“禁翻词条”、“正则表达式”这 4 个部分中的 1 个
+// 正则表达式区域外，使用引号包裹带有标点符号的原文词条
+
+词条
+// 此区域区分大小写，用于翻译人名等专有名词
+
+//角色
+
+//星穹列车
+
+Stelle：星，
+Caelus：穹，
+March 7th：三月七，
+March：三月
+Dan Heng：丹恒，
+Himeko：姬子，
+Welt Yang：瓦尔特·杨，
+Pom-Pom：帕姆，
+Sunday：星期日，
+
+//黑塔空间站
+
+Herta：黑塔，
+The Herta：大黑塔，
+Asta：艾丝妲，
+Arlan：阿兰，
+
+//雅利洛六号
+
+Seele：希儿，
+Bronya：布洛妮娅，
+Bronya Rand=布洛妮娅·兰德，
+Gepard：杰帕德，
+Gepard Landau：杰帕德·朗道，
+Serval：希露瓦，
+Serval Landau：希露瓦·朗道，
+Lynx：玲可，
+Lynx Landau：玲可·朗道，
+Clara：克拉拉，
+Hook：虎克，
+Pela：佩拉
+Natasha：娜塔莎，
+
+//仙舟联盟
+
+Jing Yuan：景元，
+Fu Xuan：符玄，
+Yanqing：彦卿，
+Bailu：白露，
+Tingyun：停云，
+Yukong：驭空，
+Sushang：素裳，
+Xueyi：雪衣
+Hanya：寒鸦
+Guinaifen：桂乃芬
+Huohuo：藿藿
+Luocha：罗刹，
+Jingliu：镜流，
+Dan Heng·Imbibitor Lunae=丹恒·饮月
+Imbibitor Lunae：饮月君，
+Feixiao：飞霄
+Jiaqiou：椒丘
+Moze：貊泽
+Lingsha：灵砂
+Yunli：云璃
+Huaiyan：怀炎
+Yaoguang：爻光
+Baiheng：白珩
+Yingxing：应星
+
+//星核猎手
+
+Blade：刃，
+Kafka：卡芙卡，
+Silver Wolf：银狼，
+Firefly：流萤，
+SAM：萨姆，
+Sam：萨姆，
+Elio：艾利欧
+
+//公司
+
+Jade：翡翠，
+Topaz & Numby=托帕&账账，
+Numby：账账，
+Topaz：托帕，
+Yelena：叶莲娜
+Aventurine：砂金，
+Kakavasha：卡卡瓦夏，
+Sugilite：舒俱，
+Opal：欧泊，
+Pearl：真珠，
+Obsidian：龙晶，
+Amber：琥珀，
+Sapphire：苍刚，
+Agate：玛瑙，
+Diamond：钻石，
+
+//天才俱乐部
+
+Ruan Mei=阮·梅，
+Screwllum：螺丝咕姆
+
+//博识学会
+
+Dr. Ratio：真理医生，
+Ratio：拉帝奥，
+Veritas：维里塔斯
+
+//流光忆庭
+
+Black Swan：黑天鹅，
+
+//焚化工
+
+Dahlia：大丽花
+
+//巡海游侠
+
+Acheron：黄泉，
+Boothill：波提欧，
+Rappa：乱破，
+The Unshackled：不死途
+
+//匹诺康尼
+
+Robin：知更鸟，
+Gallagher：加拉赫，
+Misha：米沙，
+
+//愚者
+
+Sampo：桑博
+Sparkle：花火，
+
+//黄金裔
+
+Aglaea：阿格莱雅，
+Hyacine：风堇，
+Hyacinthia：雅辛忒丝
+Anaxa：那刻夏，
+Anaxagoras：阿那克萨戈拉斯
+Tribbie：缇宝，
+Tribios：缇里西庇俄丝
+Cipher：赛飞儿，
+Cifera：赛法利娅
+Cyrene：昔涟，
+Demiurge：德谬歌，
+Phainon：白厄，
+Kaosulana：卡厄斯兰那
+Castorice：遐蝶，
+Mydei：万敌，
+Mydeimos：迈德漠斯
+Cerydra：刻律德菈
+Hysilens：海瑟音
+Helektra：海列屈拉
+
+//npc
+
+Zandar One Kuwabara=赞达尔·壹·桑原
+Reca：来古士
+Sccot：斯科特
+Mem：迷迷，
+
+
+通用词条
+// 此区域不区分大小写，用于翻译通用概念
+
+“honkai：star rail”=崩坏：星穹铁道
+Herta Space Station：黑塔空间站，
+Master Control Zone：主控舱段，
+Base Zone：基座舱段，
+Storage Zone：收容舱段，
+Supply Zone：支援舱段，
+Jarilo-VI：雅利洛-Ⅵ，
+Belobog贝洛伯格，
+Outlying Snow Plains：城郊雪原，
+Backwater Pass：边缘通路，
+Rivet Town：铆钉镇，
+Robot Settlement：机械聚落，
+Boulder Town：磐岩镇，
+Great Mine：大矿区，
+Everwinter Hill：永冬岭，
+Corridor of Fading Echoes：残响回廊，
+Pillars of Creation：造物之柱，
+Restricted Zone：铁卫禁区，
+The Xianzhou Luofu：仙舟「罗浮」，
+Central Starskiff Haven：星槎海中枢，
+Cloudford：流云渡，
+Exalting Sanctum：长乐天，
+Alchemy Commission：丹鼎司，
+Artisanship Commission：工造司，
+Divination Commission：太卜司，
+Scalegorge Waterscape：鳞渊境，
+Fyxestroll Garden：绥园，
+Penacony：匹诺康尼，
+The Reverie：「白日梦」酒店，
+The Reverie (Reality)「白日梦」酒店-现实，
+The Reverie (Dreamscape)：「白日梦」酒店-梦境，
+Golden Hour：黄金的时刻，
+Dream's Edge：筑梦边境，
+Clock Studios Theme Park：克劳克影视乐园，
+Penacony Grand Theater：匹诺康尼大剧院，
+SoulGlad™ Scorchsand Audition Venue：苏乐达™热砂海选会场，
+Dewlight Pavilion：朝露公馆，
+The Radiant Feldspar：晖长石号，
+A Child's Dream：稚子的梦，
+Paperfold University College：折纸大学学院，
+Amphoreus：翁法罗斯，
+Okhema：圣城奥赫玛，
+Strife Ruins：悬锋城，
+Janusopolis：雅努萨波利斯，
+Vortex of Genesis：创世涡心，
+Abyss of Fate：命运重渊，
+Strife Ruins：纷争荒墟，
+Plancradia：二相乐园，
+
+//星神
+
+Aeon：星神，
+Akivili：开拓，
+Nanook：毁灭，
+Qlipoth：存护，
+Lan：巡猎，
+Nous：智识，
+Aha：欢愉，
+Fuli：记忆，
+HooH：均衡，
+IX：虚无，
+Yaoshi：丰饶，
+Xipe：同谐，
+Idrila：纯美，
+Tayzzyronth：繁育，
+Mythus：神秘，
+Oroboros：贪饕，
+Terminus：终末，
+Long：不朽，
+
+//剧情概念
+
+Path：命途，
+Emanator：令使，
+Lord of Annihilation：绝灭大君，
+Stellaron：星核，
+Trailblazer：开拓者，
+The Nameless：无名客，
+Astral Express：星穹列车，
+Stellaron Hunters：星核猎手，
+Antimatter Legion：反物质军团，
+The Xianzhou Alliance：仙舟联盟，
+Genius Society：天才俱乐部，
+Intelligentsia Guild：博识学会，
+Interastral Peace Corporation：星际和平公司，
+IPC：公司
+Annihilation Gang：泯灭帮，
+Denizens of Abundance：丰饶民，
+Galaxy Rangers：巡海游侠，
+Garden of Recollection：流光忆庭，
+The Cremators：焚化工，
+History Fictionologists：虚构史学家，
+The Arbitrators：仲裁官，
+Ten Stonehearts：石心十人，
+Stonehearts：石心，
+Cornerstone：基石，
+the Amber Lord：琥珀王
+
+禁翻词条
+// 此区域区分大小写，用于保持原文
+EDGE
+HUSH
+
+正则表达式
+// 匹配德语中 "Wachmann" 的单数和复数形式
+\bWachm(?:ann|änner)\b: 守卫
