@@ -1,6 +1,6 @@
-版本号：1.0.0
+版本号：1.0.1
 维护者：suiyuan
-更新时间：2026-07-25
+更新时间：2026-07-26
 
 // 编写时，请至少包含“词条”、“通用词条”、“禁翻词条”、“正则表达式”这 4 个部分中的 1 个
 // 正则表达式区域外，使用引号包裹带有标点符号的原文词条
@@ -14,8 +14,10 @@
 
 Stelle：星，
 Caelus：穹，
+Little Gray：小灰，
 March 7th：三月七，
-March：三月
+March：三月，
+Evernight：长夜月，
 Dan Heng：丹恒，
 Himeko：姬子，
 Welt Yang：瓦尔特·杨，
@@ -42,7 +44,7 @@ Lynx：玲可，
 Lynx Landau：玲可·朗道，
 Clara：克拉拉，
 Hook：虎克，
-Pela：佩拉
+Pela：佩拉，
 Natasha：娜塔莎，
 
 //仙舟联盟
@@ -51,36 +53,39 @@ Jing Yuan：景元，
 Fu Xuan：符玄，
 Yanqing：彦卿，
 Bailu：白露，
+Qingque：青雀
 Tingyun：停云，
 Yukong：驭空，
 Sushang：素裳，
-Xueyi：雪衣
-Hanya：寒鸦
-Guinaifen：桂乃芬
-Huohuo：藿藿
+Xueyi：雪衣，
+Hanya：寒鸦，
+Guinaifen：桂乃芬，
+Huohuo：藿藿，
 Luocha：罗刹，
 Jingliu：镜流，
-Dan Heng·Imbibitor Lunae=丹恒·饮月
+Dan Heng·Imbibitor Lunae=丹恒·饮月，
 Imbibitor Lunae：饮月君，
-Feixiao：飞霄
-Jiaqiou：椒丘
-Moze：貊泽
-Lingsha：灵砂
-Yunli：云璃
-Huaiyan：怀炎
-Yaoguang：爻光
-Baiheng：白珩
-Yingxing：应星
+Feixiao：飞霄，
+Jiaoqiu：椒丘，
+Moze：貊泽，
+Lingsha：灵砂，
+Yunli：云璃，
+Huaiyan：怀炎，
+Yaoguang：爻光，
+Baiheng：白珩，
+Yingxing：应星，
+Danfeng：丹枫，
 
 //星核猎手
 
 Blade：刃，
+Ren：刃，
 Kafka：卡芙卡，
 Silver Wolf：银狼，
 Firefly：流萤，
 SAM：萨姆，
 Sam：萨姆，
-Elio：艾利欧
+Elio：艾利欧，
 
 //公司
 
@@ -103,13 +108,15 @@ Diamond：钻石，
 //天才俱乐部
 
 Ruan Mei=阮·梅，
-Screwllum：螺丝咕姆
+Screwllum：螺丝咕姆，
+Stephen Lloyd：斯蒂芬·劳艾德，
 
 //博识学会
 
 Dr. Ratio：真理医生，
 Ratio：拉帝奥，
-Veritas：维里塔斯
+Veritas：维里塔斯，
+Veritas Ratio=维里塔斯·拉帝奥，
 
 //流光忆庭
 
@@ -117,14 +124,14 @@ Black Swan：黑天鹅，
 
 //焚化工
 
-Dahlia：大丽花
+Dahlia：大丽花，
 
 //巡海游侠
 
 Acheron：黄泉，
 Boothill：波提欧，
 Rappa：乱破，
-The Unshackled：不死途
+The Unshackled：不死途，
 
 //匹诺康尼
 
@@ -134,43 +141,102 @@ Misha：米沙，
 
 //愚者
 
-Sampo：桑博
+Sampo：桑博，
 Sparkle：花火，
+
+//纯美骑士
+
+Argenti：银枝，
 
 //黄金裔
 
 Aglaea：阿格莱雅，
+Aya：阿雅，
 Hyacine：风堇，
-Hyacinthia：雅辛忒丝
+Hyacinthia：雅辛忒丝，
+Little Ica：小伊卡，
 Anaxa：那刻夏，
-Anaxagoras：阿那克萨戈拉斯
+Anaxagoras：阿那克萨戈拉斯，
 Tribbie：缇宝，
-Tribios：缇里西庇俄丝
+Trianne：缇安，
+Triannon：缇宁，
+Tribios：缇里西庇俄丝，
 Cipher：赛飞儿，
-Cifera：赛法利娅
+Cifera：赛法利娅，
 Cyrene：昔涟，
 Demiurge：德谬歌，
 Phainon：白厄，
-Kaosulana：卡厄斯兰那
+Snowy：小白，
+Kaosulana：卡厄斯兰那，
 Castorice：遐蝶，
 Mydei：万敌，
-Mydeimos：迈德漠斯
-Cerydra：刻律德菈
-Hysilens：海瑟音
-Helektra：海列屈拉
+Mydeimos：迈德漠斯，
+Cerydra：刻律德菈，
+Hysilens：海瑟音，
+Helektra：海列屈拉，
+
+//欢愉（？）
+
+Sparxie：火花，
+Evanescia：绯英，
+Kukiye：朽叶，
+Nihilux：虚照，
 
 //npc
 
-Zandar One Kuwabara=赞达尔·壹·桑原
-Reca：来古士
-Sccot：斯科特
+Zandar One Kuwabara=赞达尔·壹·桑原，
+Lygus：来古士，
+Lycurgus：吕枯耳戈斯，
+Skott：斯科特，
+Lyndon Skott=林登·斯科特，
 Mem：迷迷，
+Calypso：卡吕普索，
+Gnaeus：格奈乌斯，
+Polyxia：波吕茜亚，
+
+Titan：泰坦，
+Passage：门径，
+Gate of Infinity：万径之门，
+Janus：雅努斯，
+Law：律法，
+Scale of Justice：公正之秤，
+Talanton：塔兰顿，
+Time：岁月，
+Veil of Evernight：永夜之帷，
+Oronyx：欧洛尼斯，
+Earth：大地，
+Pillar of Stone：磐岩之脊，
+Georios：吉奥里亚，
+Ocean：海洋，
+Chalice of Plenty：满溢之杯，
+Phagousa：法吉娜，
+Sky：天空，
+Eye of Twilight：晨昏之眼，
+Aquila：艾格勒，
+Worldbearing：负世，
+Throne of Worlds：全世之座，
+Kephale：刻法勒，
+Reason：理性，
+Bough of Rift：裂分之枝，
+Cerces：瑟希斯，
+Romance：浪漫，
+ChrysalisofGold：黄金之茧，
+Mnestia：墨涅塔，
+Strife：纷争，
+Lance of Fury：天谴之矛，
+Nikador：尼卡多利，
+Death：死亡，
+Hand of Shadow：灰黯之手，
+Thanatos：塞纳托斯,，
+Trickery：诡计，
+Coin of Whimsy：翻飞之币，
+Zagreus：扎格列斯，
 
 
 通用词条
 // 此区域不区分大小写，用于翻译通用概念
 
-“honkai：star rail”=崩坏：星穹铁道
+“honkai:star rail”=崩坏：星穹铁道，
 Herta Space Station：黑塔空间站，
 Master Control Zone：主控舱段，
 Base Zone：基座舱段，
@@ -217,7 +283,14 @@ Janusopolis：雅努萨波利斯，
 Vortex of Genesis：创世涡心，
 Abyss of Fate：命运重渊，
 Strife Ruins：纷争荒墟，
-Plancradia：二相乐园，
+Planarcadia：二相乐园， 
+Ahatopia：哈托彼亚，
+Benzaitengoku：古弁才天国，
+Consternation Starzone：失魂星域，
+Duomension City：二维市，
+Graphia Academy：绘世学院，
+Dovebrook District：鸽川区，
+"World's End" Tavern=「世界尽头」酒馆，
 
 //星神
 
@@ -228,6 +301,7 @@ Qlipoth：存护，
 Lan：巡猎，
 Nous：智识，
 Aha：欢愉，
+Elation：欢愉，
 Fuli：记忆，
 HooH：均衡，
 IX：虚无，
@@ -245,6 +319,15 @@ Long：不朽，
 Path：命途，
 Emanator：令使，
 Lord of Annihilation：绝灭大君，
+//绝灭大君
+Zephyro：焚风，
+Celenova：星啸，
+Irontomb：铁墓，
+Phantylia：幻胧，
+Asat Pramad：归寂，
+Archforger：铸王，
+Zulo：诛罗，
+Luxbane：光逝，
 Stellaron：星核，
 Trailblazer：开拓者，
 The Nameless：无名客，
@@ -267,6 +350,13 @@ Ten Stonehearts：石心十人，
 Stonehearts：石心，
 Cornerstone：基石，
 the Amber Lord：琥珀王
+Phantasmoon：幻月，
+Phantasmoon Games：幻月游戏，
+Imagenae：幻造种，
+Wishpower：愿力，
+Canvas Age：入画时代，
+the era of the World in Canvas：画中世界，
+Aha the Elation：欢愉星神，
 
 禁翻词条
 // 此区域区分大小写，用于保持原文
