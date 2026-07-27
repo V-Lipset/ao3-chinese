@@ -1,6 +1,6 @@
-版本号：1.3.3
+版本号：1.3.5
 维护者：拉葛莎
-更新时间：2026-07-25
+更新时间：2026-07-27
 
 // =============================================
 // 《冰与火之歌》《权力的游戏》《龙之家族》术语表
@@ -55,16 +55,16 @@
 
 // ----- 巨龙与巨龙外号 -----
 Balerion：贝勒里恩
-"The Black Dread"：黑死神
+The Black Dread：黑死神
 Vhagar：瓦格哈尔
 "Queen of All Dragons"：万龙之母
 Meraxes：米拉西斯
 Meleys：梅丽亚斯
 "The Red Queen"：红女王
 Vermithor：沃米索尔
-"The Bronze Fury"：青铜之怒
+The Bronze Fury：青铜之怒
 Caraxes：科拉克休
-"The Blood Wyrm"：血虫
+The Blood Wyrm：血虫
 Syrax：叙拉克斯
 Silverwing：银翼
 Dreamfyre：梦火
@@ -248,8 +248,8 @@ dosh khaleen：多希卡林
 // ========== 词条（新增补充：由长幼关系衍生的人物称谓语） ==========
 词条
 // 以下称呼作为专有名词时区分大小写
-"the Young Dragon"：少龙主
-"the Dragonknight"：龙骑士
+the Young Dragon：少龙主
+the Dragonknight：龙骑士
 "The Beggar King"：乞丐王
 "the King Who Bore the Sword"：持剑之王
 "the Conciliator"：仲裁者
@@ -265,7 +265,7 @@ dosh khaleen：多希卡林
 "valonqar"：弟弟
 "muña"：母亲
 "kepa"：父亲
-"zaldrīzes"：龙
+zaldrīzes：龙
 "zaldrīzoti"：龙（复数）
 "dovaogēdy"：无垢者
 "dovaogēdi"：无垢者（特定拼写）
@@ -285,7 +285,7 @@ dosh khaleen：多希卡林
 "drīvose"：实际上
 "kostōba"：强大的
 "sȳz"：好的
-"lykirī"：冷静/镇定
+lykirī：冷静/镇定
 "māzīs"：过来
 
 // ----- 经典名言名句 -----
@@ -301,7 +301,7 @@ dosh khaleen：多希卡林
 "Burn them all."：烧光他们。
 "Hold the door."：守住门。
 "The things I do for love."：为爱何所不为。
-"Dracarys."：龙焰。
+Dracarys.：龙焰。
 "I am the sword in the darkness."：我是黑暗中的利剑。
 "Valar morghulis."：凡人皆有一死。
 "Valar dohaeris."：凡人皆需侍奉。
@@ -347,9 +347,9 @@ Larys Strong = 拉里斯·斯壮
 Harwin Strong = 哈尔温·斯壮
 Lyonel Strong = 莱昂诺·斯壮
 Jacaerys Velaryon = 杰卡里斯·瓦列利安
-Jacaerys Velaryon：小杰
+Jace：小杰
 Lucerys Velaryon = 路斯里斯·瓦列利安
-Lucerys Velaryon：小路
+Luke：小路
 Joffrey Velaryon = 乔佛里·瓦列利安
 Viserys I Targaryen：韦赛里斯一世·坦格利安
 Aegon II Targaryen：伊耿二世·坦格利安
@@ -364,17 +364,17 @@ Aenys I Targaryen：伊尼斯一世·坦格利安
 Maegor I Targaryen：梅葛一世·坦格利安
 "Maegor the Cruel"：残酷的梅葛
 Jaehaerys I Targaryen：杰赫里斯一世·坦格利安
-"the Old King"：人瑞王
+the Old King：人瑞王
 Aegon III Targaryen：伊耿三世·坦格利安
-"Dragonbane"：龙祸
+Dragonbane：龙祸
 Daeron I Targaryen：戴伦一世·坦格利安
-"the Young Dragon"：少龙王
+the Young Dragon：少龙王
 Baelor I Targaryen：贝勒一世·坦格利安
 "Baelor the Blessed"：受神祝福的贝勒
 Aegon IV Targaryen：伊耿四世·坦格利安
-"the Unworthy"：庸王
+the Unworthy：庸王
 Daeron II Targaryen：戴伦二世·坦格利安
-"the Good"：贤王
+the Good：贤王
 Aerys I Targaryen：伊里斯一世·坦格利安
 Maekar I Targaryen：梅卡一世·坦格利安
 Aegon V Targaryen：伊耿五世·坦格利安
@@ -386,9 +386,9 @@ Aerys II Targaryen：伊里斯二世·坦格利安
 // ----- 坦格利安王朝史 · 王后/王子/公主 -----
 Visenya Targaryen：维桑尼亚·坦格利安
 Rhaenys Targaryen：雷妮丝·坦格利安
-"Alysanne the Good"：善良的亚莉珊
-"Baelor Breakspear"：破矛者贝勒
-"Aemon the Dragonknight"：龙骑士伊蒙
+Alysanne the Good：善良的亚莉珊
+Baelor Breakspear：破矛者贝勒
+Aemon the Dragonknight：龙骑士伊蒙
 Bittersteel：寒铁
 Bloodraven：血鸦
 Rhaegar Targaryen：雷加·坦格利安
@@ -402,7 +402,7 @@ Rhaenys Targaryen：雷妮丝·坦格利安
 
 // ----- 伊尼斯一世时期 -----
 Aenys I Targaryen：伊尼斯一世·坦格利安
-Alyssa Velaryon：亚莉莎·瓦列利安
+Alyssa Velaryon：阿莱莎·瓦列利安
 Rhaena Targaryen：雷妮亚·坦格利安
 Aegon Targaryen：伊耿·坦格利安
 Viserys Targaryen：韦赛里斯·坦格利安
@@ -426,7 +426,7 @@ Alyssa Targaryen：阿莱莎·坦格利安
 Maegelle Targaryen：梅葛尔·坦格利安
 Vaegon Targaryen：维耿·坦格利安
 Daella Targaryen：丹妮菈·坦格利安
-Saera Targaryen：塞拉·坦格利安
+Saera Targaryen：塞妮拉·坦格利安
 Viserra Targaryen：维桑瑞拉·坦格利安
 Gaemon Targaryen：盖蒙·坦格利安
 Valerion Targaryen：瓦列里安·坦格利安
@@ -441,13 +441,13 @@ Daeron Targaryen：戴伦·坦格利安
 Visenya Targaryen：维桑尼亚·坦格利安
 
 // ----- 伊耿三世时期 -----
-Daenaera Velaryon：丹妮菈·瓦列利安
+Daenaera Velaryon：戴安娜拉·瓦列利安
 Daeron I Targaryen：戴伦一世·坦格利安
 "the Young Dragon"：少龙王
 Baelor I Targaryen：贝勒一世·坦格利安
-"Baelor the Blessed"：受神祝福的贝勒
-Daena Targaryen：丹娜·坦格利安
-"Daena the Defiant"：不屈的丹娜
+Baelor the Blessed：受神祝福的贝勒
+Daena Targaryen：戴安娜·坦格利安
+Daena the Defiant：违命的戴安娜
 Elaena Targaryen：依兰娜·坦格利安
 
 // ----- 韦赛里斯二世时期补充 -----
@@ -462,7 +462,7 @@ Aegor Rivers：伊葛·河文
 Bittersteel：寒铁
 Brynden Rivers：布林登·河文
 Bloodraven：血鸦
-Shiera Seastar：西蕊·海星
+Shiera Seastar：西蕊·洋星
 
 // ----- 戴伦二世时期 -----
 Daeron II Targaryen：戴伦二世·坦格利安
@@ -476,7 +476,7 @@ Maekar I Targaryen：梅卡一世·坦格利安
 // ----- 梅卡一世子女 -----
 Daeron Targaryen：戴伦·坦格利安
 Aerion Targaryen：伊利昂·坦格利安
-"Aerion Brightflame"：明亮的火焰
+"Aerion Brightflame"：明焰伊利昂
 Aemon Targaryen：伊蒙学士
 
 // ----- 伊耿五世时期 -----
@@ -748,7 +748,7 @@ Zaldrīzes buzdari iksos daor：巨龙不是奴隶
 "Valar Morghulis"：凡人皆有一死
 "Valar Dohaeris"：凡人皆需侍奉
 "Zaldrīzes buzdari iksos daor"：巨龙不是奴隶
-"Muña Zaldrīzoti"：龙之母
+Muña Zaldrīzoti：龙之母
 "Torgo Nudho"：灰虫子
 "tubi daor"：不是今天
 "zaldrīzo perzys"：龙焰
@@ -781,7 +781,6 @@ septon：修士
 septa：修女
 greenseer：绿先知
 warg：狼灵
-Others：异鬼
 White Walker：异鬼
 direwolf：冰原狼
 dragonrider：龙骑士
