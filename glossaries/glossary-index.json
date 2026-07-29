@@ -376,7 +376,7 @@
   {
     "name": "Final Fantasy VII",
     "tags": [
-      "最终幻想VII"
+      "最终幻想 VII"
     ],
     "url": "https://raw.githubusercontent.com/V-Lipset/ao3-chinese/refs/heads/main/glossaries/最终幻想Ⅶ.txt",
     "maintainer": "tsunaX14",
@@ -396,12 +396,31 @@
   {
     "name": "The Lord of the Rings & The Hobbit",
     "tags": [
-      "指环王",
-      "霍比特人"
+      "指环王 & 霍比特人"
     ],
     "url": "https://raw.githubusercontent.com/panverus/ao3-chinese/refs/heads/main/glossaries/LOTR%20%7C%20%E4%B8%AD%E6%B4%B2%E7%9B%B8%E5%85%B3.txt",
     "maintainer": "panverus",
     "visibility": true,
     "feedback": "https://github.com/panverus"
+  },
+  {
+    "name": "A Song of Ice and Fire",
+    "tags": [
+      "冰与火之歌"
+    ],
+    "url": "https://raw.githubusercontent.com/Valyria336/ao3-chinese/refs/heads/A-Song-of-Ice-and-Fire/glossaries/%E5%86%B0%E4%B8%8E%E7%81%AB%E4%B9%8B%E6%AD%8C",
+    "maintainer": "拉葛莎",
+    "visibility": true,
+    "feedback": "https://github.com/Valyria336"
+  },
+  {
+    "name": "Honkai: Star Rail",
+    "tags": [
+      "崩坏：星穹铁道"
+    ],
+    "url": "https://raw.githubusercontent.com/suiyuan948/ao3-chinese/7e0ad65aa060376fa4d422047b7d287f757f0d90/glossaries/Honkai%EF%BC%9AStar%20Rail.txt",
+    "maintainer": "suiyuan",
+    "visibility": true,
+    "feedback": "https://github.com/suiyuan948"
   }
 ]
