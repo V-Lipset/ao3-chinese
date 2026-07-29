@@ -1,0 +1,197 @@
+版本号：1.3.0
+维护者：拉葛莎
+更新时间：2026-06-01
+
+// =============================================
+// 《驯龙高手/驯龙记》完整术语表 
+// 涵盖角色、龙名、绰号、地名、武器工具、草药、龙族等级及龙种名称
+// 本版新增：电视剧集核心配角及其坐骑、扩展龙种译名
+// =============================================
+
+// ========== 词条（区分大小写，用于专有名词与固定短语） ==========
+词条
+
+// ----- 核心部落名称 -----
+Hairy Hooligan Tribe：毛霍里根部落
+Meathead：呆头部落
+Hysterics：歇斯底里部落
+Bog-Burglars：沼泽盗贼部落
+
+// ----- 龙族生态体系（社会结构）-----
+Alpha Dragon：龙王
+Titan Wing：泰坦巨龙
+Red Death：红死神
+Bewilderbeast：迷惑巨兽
+King of Dragons：万龙之王
+
+// ----- 龙骑士核心团（角色与坐骑）-----
+Hiccup Horrendous Haddock the Third：希卡普·霍兰德斯·黑线鳕三世
+Hiccup：小嗝嗝
+Toothless：没牙仔          
+Astrid Hofferson：亚丝翠·霍芬森
+Astrid：亚丝翠
+Stormfly：暴风飞           
+Fishlegs Ingerman：鱼脚司·英格曼
+Meatlug：肉球              
+Snotlout Jorgenson：鼻涕粗·约葛森
+Hookfang：钩牙             
+Tuffnut Thorston：悍夫纳特·托尔斯顿
+Ruffnut Thorston：暴芙纳特·托尔斯顿
+Barf and Belch：巴夫与贝奇          
+
+// ----- 龙之崖代理与长辈 -----
+Valka：瓦尔卡
+Cloudjumper：云中跃        
+Eret：埃雷特
+Skullcrusher：碎颅者       
+Gobber the Belch：打嗝戈伯
+Grump：戈伯龙              
+Stoick the Vast：大块头斯托伊克
+
+// ----- 电视剧集核心配角（新世代/盟友）-----
+Heather：海瑟              
+Windshear：剪风            
+Dagur the Deranged：疯狂的达格  
+Dagur: 达格
+Sleuther：斩风龙           
+Thornado：雷旋风           
+Mala：玛拉
+Queen Mala：玛拉女王
+Wingmaiden Tribe：翼女部落
+Atali：阿塔莉             
+Throk：思若克             
+Krogan：克罗根            
+Viggo Grimborn：威戈·格瑞本     
+Ryker Grimborn：赖科·格瑞本     
+Johann：约翰              
+
+// ----- 流放者与对立派系 -----
+Alvin the Treacherous：叛逆的阿尔文
+Savage：萨维奇            
+Mildew：梅尔度            
+Outcasts：流放者部落
+
+// ----- 电影反派与强力外援 -----
+Grimmel the Grisly：可怕的格林魔
+Drago Bludvist：德雷格·血腥之拳
+Drago's Bewilderbeast：德雷格的迷惑巨兽
+
+// ----- 龙种 - 奇袭纲（速度与火力最高）-----
+Night Fury：夜煞
+Light Fury：光煞
+Night Light：夜光龙
+Skrill：雷龙              
+Triple Stryke：三尾龙      
+Snow Wraith：雪幽灵       
+
+// ----- 龙种 - 火龙纲（Stoker Class，传统炎系攻击特化）-----
+Monstrous Nightmare：猛烈凶魇      // 异译：凶猛梦魇、烈焰狂魔
+Terrible Terror：恐怖龙
+Night Terror：夜妖龙
+Fireworm：萤火龙
+Flame Whipper：烈焰鞭龙
+Red Death：红死神
+Singetail：焦尾龙
+Typhoomerang：台风回旋龙
+Hobblegrunt：步鸣龙
+Hobgobbler：贪噬龙
+Threadtail：螺尾龙
+
+// ----- 龙种 - 巨石纲（Boulder Class，重甲防御，食石）-----
+Gronckle：葛伦科龙
+Hotburple：熔炉龙
+Catastrophic Quaken：震震龙
+Crimson Goregutter：红角龙
+Whispering Death：死亡耳语
+Screaming Death：死亡尖啸
+Eruptodon：喷牙龙
+Grapple Grounder：爪滚龙
+Groncicle：极寒龙
+Sentinel：哨兵龙
+Shovelhelm：铲盔龙
+Snafflefang：盗牙龙
+Thunderpede：雷足龙
+Sliquifier：液化龙
+
+// ----- 龙种 - 追踪纲（Tracker Class，超高感官侦察定位）-----
+Deadly Nadder：致命纳得
+Rumblehorn：轰鸣龙
+Windgnasher：风口龙        
+
+// ----- 龙种 - 利刺纲（Sharp Class，锋利部位、近战快攻）-----
+Razorwhip：剃鞭龙          // 异译：伐木龙（注意与Timberjack区分）
+Timberjack：伐木龙
+Stormcutter：斩风龙
+Speed Stinger：极速刺龙
+Windstriker：风锤龙
+
+// ----- 龙种 - 深海纲/水生纲（Tidal Class，水下战奇袭）-----
+Thunderdrum：雷鼓龙
+Scauldron：炎沸龙
+Submaripper：深海撕裂龙
+Seashocker：镇海妖龙
+Ripwrecker：撕裂破坏者
+
+// ----- 龙种 - 奇幻纲（Mystery Class，幻惑/拟态/特殊能力）-----
+Hideous Zippleback：双头龙
+Boneknapper：骨碎龙
+Changewing：幻翼龙
+Death Song：死亡之歌
+Flightmare：梦翼龙
+Dramillion：学舌龙
+Smothering Smokebreath：窒息烟息龙
+Armorwing：铠甲翼龙
+Buffalord：水牛龙
+Crash Course：山洞破坏王
+Sword Stealer：盗剑龙
+
+// ----- 敌对组织与猎人派别 -----
+Dragon Hunters：猎龙人
+Dragon Flyers：龙骑士团
+Dragon Riders：龙骑手
+
+// ----- 维京核心工具、设施与草药 -----
+Inferno：火剑
+Macey：钉头锤
+Dragon Eye：龙之眼
+Dragon Nip：龙薄荷
+Dragon Root：龙根
+Hiccup's Flight Suit：小嗝嗝的飞行服
+Dragon Training Academy：驯龙学院
+Blacksmith Shop：铁匠铺
+Multi-purpose Shield：多功能盾牌
+Catapult Device：弹弓装置
+Iron Dragon Trap：铁质捕龙陷阱
+Eret's Twin Swords：埃雷特双剑
+Dragon Proof Material：防龙材料
+
+// ----- 地图核心考据点（地理精华）-----
+Barbaric Archipelago：蛮族群岛
+Isle of Berk：博克岛
+Berk Village：博克村
+Dragon Island：龙岛
+Dragon's Edge：龙之崖
+Hidden World：隐秘之境
+Valka's Mountain：瓦尔卡山
+Valka's Sanctuary：瓦尔卡庇护所
+Glacier Island：冰川岛
+Itchy Armpit：痒痒胳肢窝
+Outcast Island：流浪者岛
+Changewing Island：幻翼龙岛
+Hysteria：歇斯底里岛
+Defender of the Wing Island：护翼者之岛
+Wingmaiden Island：翼女岛
+Berserker Island：狂暴部落岛
+Hopeless：绝望谷
+Meridian of Misery：苦难子午线
+The End of the World：世界尽头
+
+// ========== 禁翻词条（区分大小写，保持原文） ==========
+禁翻词条
+
+// ========== 正则表达式（处理复杂匹配） ==========
+正则表达式
+// 匹配“小嗝嗝”的单称
+\bHiccup\b：小嗝嗝
+// 匹配龙之眼的各种表达
+\bDragon\s?Eye\b：龙之眼

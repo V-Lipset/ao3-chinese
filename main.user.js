@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
-// @description  中文化 AO3 界面，可调用 AI 实现简介、注释、评论以及全文翻译。
-// @version      1.6.1-2026-02-04
+// @description  为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
+// @version      1.9.0-2026-05-25
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -25,6 +25,7 @@
 // @downloadURL  https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/main.user.js
 // @updateURL    https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/main.user.js
 // @require      https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/zh-cn.js
+// @connect      github.com
 // @connect      raw.githubusercontent.com
 // @connect      cdn.jsdelivr.net
 // @connect      translate.googleapis.com
@@ -43,6 +44,7 @@
 // @connect      open.bigmodel.cn
 // @connect      fanyi.baidu.com
 // @connect      transmart.qq.com
+// @connect      cdnjs.cloudflare.com
 // @run-at       document-start
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
@@ -53,12 +55,18 @@
 // @grant        GM_notification
 // @grant        GM_addStyle
 // @grant        GM_getResourceURL
+// @grant        GM_addValueChangeListener
 // @grant        GM_download
 // @grant        GM_info
 // ==/UserScript==
 
 (function (window, document) {
 	'use strict';
+
+	// Shadow DOM 全局变量
+	let shadowHost = null;
+	let shadowRoot = null;
+	let shadowWrapper = null;
 
 	/**************************************************************************
 	 * 全局常量与配置
@@ -69,7 +77,25 @@
 		'Jul': '7', 'Aug': '8', 'Sep': '9', 'Oct': '10', 'Nov': '11', 'Dec': '12'
 	};
 
-    /**
+	window.monthMap = monthMap;
+
+	/**
+	 * 全局自定义事件字典
+	 */
+	const CUSTOM_EVENTS = {
+		PANEL_STATE_SYNC: 'ao3-panel-state-sync',
+		CACHE_UPDATED: 'ao3-cache-updated',
+		CLEAR_PAGE_CACHE: 'ao3-clear-current-page-cache',
+		MODE_CHANGED: 'ao3-mode-changed',
+		AUTO_TRANSLATE_CHANGED: 'ao3-auto-translate-changed',
+		FAB_CLICKED: 'ao3-fab-clicked',
+		STATUS_LIGHT_TOGGLED: 'ao3-status-light-toggled',
+		LOG_ADDED: 'ao3-log-added',
+		GLOSSARY_IMPORTED: 'ao3-glossary-imported',
+		LAZY_LOAD_MARGIN_CHANGED: 'ao3-lazy-load-margin-changed'
+	};
+
+	/**
 	 * 全局默认配置常量库
 	 */
 	const DEFAULT_CONFIG = {
@@ -78,12 +104,27 @@
 			enable_transDesc: false,
 			enable_ui_trans: true,
 			show_fab: true,
-			enable_debug_mode: true,
+			log_level: 'INFO',
+			log_auto_clear: 3,
 			translation_display_mode: 'bilingual',
-			from_lang: 'auto',
+			from_lang: 'script_auto',
 			to_lang: 'zh-CN',
-			lang_detector: 'microsoft',
-			custom_url_first_save_done: false
+			lang_detector: 'franc',
+			custom_url_first_save_done: false,
+			fab_actions: {
+				unit: {
+					click: 'toggle_panel',
+					double_click: 'none',
+					long_press: 'toggle_panel',
+					right_click: 'toggle_panel'
+				},
+				full_page: {
+					click: 'toggle_translate',
+					double_click: 'none',
+					long_press: 'toggle_panel',
+					right_click: 'toggle_panel'
+				}
+			}
 		},
 		BLOCKER: {
 			enabled: true,
@@ -117,6 +158,60 @@
 		},
 		ENGINE: {
 			current: 'google_translate'
+		}
+	};
+
+	/**
+	 * 全局 SVG 图标库
+	 */
+	const SVG_ICONS = {
+		home: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5.69l5 4.5V18h-2v-6H9v6H7v-7.81l5-4.5M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg>',
+		delete: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M312-144q-29.7 0-50.85-20.15Q240-184.3 240-214v-506h-48v-40h164v-30h248v30h164v40h-48v506q0 29.7-21.15 50.85Q677.7-144 648-144H312Zm336-576H312v506q0 13 8.5 21.5t21.5 8.5h306q13 0 21.5-8.5t8.5-21.5v-506Zm-261 418h40v-330h-40v330Zm146 0h40v-330h-40v330ZM312-720v536-536Z"/></svg>',
+		search: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>',
+		download: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z"/></svg>',
+		spinner: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M325-111.5q-73-31.5-127.5-86t-86-127.5Q80-398 80-480.5t31.5-155q31.5-72.5 86-127t127.5-86Q398-880 480-880q17 0 28.5 11.5T520-840q0 17-11.5 28.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-17 11.5-28.5T840-520q17 0 28.5 11.5T880-480q0 82-31.5 155t-86 127.5q-54.5 54.5-127 86T480.5-80Q398-80 325-111.5Z"/></svg>',
+		success: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>',
+		error: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>',
+		arrowUp: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="240 -760 480 520"><path d="M440-240v-368L296-464l-56-56 240-240 240 240-56 56-144-144v368h-80Z"/></svg>',
+		arrowDown: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="240 -760 480 520"><path d="M480-240 240-480l56-56 144 144v-368h80v368l144-144 56 56-240 240Z"/></svg>',
+		toggleOn: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M280-240q-100 0-170-70T40-480q0-100 70-170t170-70h400q100 0 170 70t70 170q0 100-70 170t-170 70H280Zm0-80h400q66 0 113-47t47-113q0-66-47-113t-113-47H280q-66 0-113 47t-47 113q0 66 47 113t113 47Zm485-75q35-35 35-85t-35-85q-35-35-85-35t-85 35q-35 35-35 85t35 85q35 35 85 35t85-35Zm-285-85Z"/></svg>',
+		toggleOff: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M280-240q-100 0-170-70T40-480q0-100 70-170t170-70h400q100 0 170 70t70 170q0 100-70 170t-170 70H280Zm0-80h400q66 0 113-47t47-113q0-66-47-113t-113-47H280q-66 0-113 47t-47 113q0 66 47 113t113 47Zm85-75q35-35 35-85t-35-85q-35-35-85-35t-85 35q-35 35-35 85t35 85q35 35 85 35t85-35Zm115-85Z"/></svg>',
+		retry: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-694v-106h80v240H560v-80h136q-34-45-84.5-72.5T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q88 0 151.5-54T713-440h82q-19 127-115 203.5T480-160Z"/></svg>',
+		visibilityOn: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>',
+		visibilityOff: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>'
+	};
+
+	/**
+	 * 占位符全局配置与管理模块
+	 */
+	const PlaceholderConfig = {
+		prefix: 'vtr_',  // 占位符前缀
+		length: 5,       // 占位符数字长度
+
+		get exampleString() {
+			return this.prefix + '123456789'.substring(0, this.length);
+		},
+		generate: function () {
+			const chars = '0123456789';
+			let result = '';
+			for (let i = 0; i < this.length; i++) {
+				result += chars.charAt(Math.floor(Math.random() * chars.length));
+			}
+			return this.prefix + result;
+		},
+		get endBoundaryRegex() {
+			return new RegExp(`${this.prefix}\\d{${this.length}}$`);
+		},
+		get startBoundaryRegex() {
+			return new RegExp(`^${this.prefix}\\d{${this.length}}`);
+		},
+		get fuzzyRegex() {
+			const prefixBase = this.prefix.replace(/_$/, '');
+			return new RegExp(`${prefixBase}[\\s_\\-－＿—]*(\\d{${this.length}})`, 'gi');
+		},
+		get instructionText() {
+			const numWord = this.length === 5 ? 'five' : (this.length === 6 ? 'six' : this.length);
+			return `- **Placeholder Preservation:** If an item contains special placeholders in the format \`${this.prefix}\` followed by ${numWord} digits (e.g., \`${this.exampleString}\`), you MUST preserve these placeholders exactly as they are. DO NOT translate, modify, or delete them.`;
 		}
 	};
 
@@ -252,103 +347,320 @@
 		'zu': 'Zulu (isiZulu)',
 	};
 
+	// 占位符示例
+	const ph = PlaceholderConfig.exampleString;
+
 	/**
-	 * 针对不同目标语言的输出示例数据
+	 * 针对不同目标语言的输出示例数据 (结构化对象)
 	 */
 	const PROMPT_EXAMPLE_OUTPUTS = {
-		'zh-CN': `1. 这是<em>第一个</em>句子。\n2. ---\n3. 她的名字是 ph_123456。\n4. 这是第四个句子。`,
-		'zh-TW': `1. 這是<em>第一個</em>句子。\n2. ---\n3. 她的名字是 ph_123456。\n4. 這是第四個句子。`,
-		'ar': `1. هذه هي الجملة <em>الأولى</em>.\n2. ---\n3. اسمها هو ph_123456.\n4. هذه هي الجملة الرابعة.`,
-		'bg': `1. Това е <em>първото</em> изречение.\n2. ---\n3. Нейното име е ph_123456.\n4. Това е четвъртото изречение.`,
-		'bn': `1. এটি <em>প্রথম</em> বাক্য।\n2. ---\n3. তার নাম ph_123456।\n4. এটি চতুর্থ বাক্য।`,
-		'ca': `1. Aquesta és la <em>primera</em> frase.\n2. ---\n3. El seu nom és ph_123456.\n4. Aquesta és la quarta frase.`,
-		'cs': `1. Toto je <em>první</em> věta.\n2. ---\n3. Jmenuje se ph_123456.\n4. Toto je čtvrtá věta.`,
-		'da': `1. Dette er den <em>første</em> sætning.\n2. ---\n3. Hendes navn er ph_123456.\n4. Dette er den fjerde sætning.`,
-		'de': `1. Das ist der <em>erste</em> Satz.\n2. ---\n3. Ihr Name ist ph_123456.\n4. Das ist der vierte Satz.`,
-		'el': `1. Αυτή είναι η <em>πρώτη</em> πρόταση.\n2. ---\n3. Το όνομά της είναι ph_123456.\n4. Αυτή είναι η τέταρτη πρόταση.`,
-		'es': `1. Esta es la <em>primera</em> frase.\n2. ---\n3. Su nombre es ph_123456.\n4. Esta es la cuarta frase.`,
-		'et': `1. See on <em>esimene</em> lause.\n2. ---\n3. Tema nimi on ph_123456.\n4. See on neljas lause.`,
-		'fa': `1. این <em>اولین</em> جمله است.\n2. ---\n3. نام او ph_123456 است.\n4. این چهارمین جمله است.`,
-		'fi': `1. Tämä on <em>ensimmäinen</em> lause.\n2. ---\n3. Hänen nimensä on ph_123456.\n4. Tämä on neljäs lause.`,
-		'fr': `1. C'est la <em>première</em> phrase.\n2. ---\n3. Son nom est ph_123456.\n4. C'est la quatrième phrase.`,
-		'gu': `1. આ <em>પહેલું</em> વાક્ય છે।\n2. ---\n3. તેનું નામ ph_123456 છે।\n4. આ ચોથું વાક્ય છે।`,
-		'he': `1. זהו המשפט ה<em>ראשון</em>.\n2. ---\n3. שמה הוא ph_123456.\n4. זהו המשפט הרביעי.`,
-		'hi': `1. यह <em>पहला</em> वाक्य है।\n2. ---\n3. उसका नाम ph_123456 है।\n4. यह चौथा वाक्य है।`,
-		'hr': `1. Ovo je <em>prva</em> rečenica.\n2. ---\n3. Njeno ime je ph_123456.\n4. Ovo je četvrta rečenica.`,
-		'hu': `1. Ez az <em>első</em> mondat.\n2. ---\n3. A neve ph_123456.\n4. Ez a negyedik mondat.`,
-		'id': `1. Ini adalah kalimat <em>pertama</em>.\n2. ---\n3. Namanya adalah ph_123456.\n4. Ini adalah kalimat keempat.`,
-		'is': `1. Þetta er <em>fyrsta</em> setningin.\n2. ---\n3. Hún heitir ph_123456.\n4. Þetta er fjórða setningin.`,
-		'it': `1. Questa è la <em>prima</em> frase.\n2. ---\n3. Il suo nome è ph_123456.\n4. Questa è la quarta frase.`,
-		'ja': `1. これは<em>最初の</em>文です。\n2. ---\n3. 彼女の名前は ph_123456 です。\n4. これは4番目の文です。`,
-		'kn': `1. ಇದು <em>ಮೊದಲ</em> ವಾಕ್ಯ।\n2. ---\n3. ಅವಳ ಹೆಸರು ph_123456।\n4. ಇದು ನಾಲ್ಕನೇ ವಾಕ್ಯ।`,
-		'ko': `1. 이것은 <em>첫 번째</em> 문장입니다。\n2. ---\n3. 그녀의 이름은 ph_123456 입니다。\n4. 이것은 네 번째 문장입니다。`,
-		'lt': `1. Tai yra <em>pirmas</em> sakinys.\n2. ---\n3. Jos vardas yra ph_123456.\n4. Tai yra ketvirtas sakinys.`,
-		'lv': `1. Šis ir <em>pirmais</em> teikums.\n2. ---\n3. Viņas vārds ir ph_123456.\n4. Šis ir ceturtais teikums.`,
-		'ml': `1. ഇതാണ് <em>ഒന്നാമത്തെ</em> വാക്യം।\n2. ---\n3. അവളുടെ പേര് ph_123456 എന്നാണ്।\n4. ഇതാണ് നാലാമത്തെ വാക്യം।`,
-		'mr': `1. हे <em>पहिले</em> वाक्य आहे।\n2. ---\n3. तिचे नाव ph_123456 आहे।\n4. हे चौथे वाक्य आहे।`,
-		'ms': `1. Ini adalah ayat <em>pertama</em>.\n2. ---\n3. Namanya ialah ph_123456.\n4. Ini adalah ayat keempat.`,
-		'mt': `1. Din hija l-<em>ewwel</em> sentenza.\n2. ---\n3. Jisimha hu ph_123456.\n4. Din hija r-raba' sentenza.`,
-		'nl': `1. Dit is de <em>eerste</em> zin.\n2. ---\n3. Haar naam is ph_123456.\n4. Dit is de vierde zin.`,
-		'no': `1. Dette er den <em>første</em> setningen.\n2. ---\n3. Hennes navn er ph_123456.\n4. Dette er den fjerde setningen.`,
-		'pa': `1. ਇਹ <em>ਪਹਿਲਾ</em> ਵਾਕ ਹੈ।\n2. ---\n3. ਉਸਦਾ ਨਾਮ ph_123456 ਹੈ।\n4. ਇਹ ਚੌਥਾ ਵਾਕ ਹੈ।`,
-		'pl': `1. To jest <em>pierwsze</em> zdanie.\n2. ---\n3. Nazywa się ph_123456.\n4. To jest czwarte zdanie.`,
-		'pt': `1. Esta é a <em>primeira</em> frase.\n2. ---\n3. O nome dela é ph_123456.\n4. Esta é a quarta frase.`,
-		'ro': `1. Aceasta este <em>prima</em> propoziție.\n2. ---\n3. Numele ei este ph_123456.\n4. Aceasta este a patra propoziție.`,
-		'ru': `1. Это <em>первое</em> предложение.\n2. ---\n3. Её зовут ph_123456.\n4. Это четвёртое предложение.`,
-		'sk': `1. Toto je <em>prvá</em> veta.\n2. ---\n3. Volá sa ph_123456.\n4. Toto je štvrtá veta.`,
-		'sl': `1. To je <em>prvi</em> stavek.\n2. ---\n3. Ime ji je ph_123456.\n4. To je četrti stavek.`,
-		'sv': `1. Detta är den <em>första</em> meningen.\n2. ---\n3. Hennes namn är ph_123456.\n4. Detta är den fjärde meningen.`,
-		'sw': `1. Hii ni sentensi ya <em>kwanza</em>.\n2. ---\n3. Jina lake ni ph_123456.\n4. Hii ni sentensi ya nne.`,
-		'ta': `1. இது <em>முதல்</em> வாக்கியம்.\n2. ---\n3. அவள் பெயர் ph_123456.\n4. இது நான்காவது வாக்கியம்.`,
-		'te': `1. ఇది <em>మొదటి</em> వాక్యం.\n2. ---\n3. ఆమె పేరు ph_123456.\n4. ఇది నాల్గవ వాక్యం.`,
-		'th': `1. นี่คือประโยค<em>แรก</em>\n2. ---\n3. ชื่อของเธอคือ ph_123456\n4. นี่คือประโยคที่สี่`,
-		'tr': `1. Bu <em>birinci</em> cümledir.\n2. ---\n3. Onun adı ph_123456.\n4. Bu dördüncü cümledir.`,
-		'uk': `1. Це <em>перше</em> речення.\n2. ---\n3. Її звати ph_123456.\n4. Це четверте речення.`,
-		'ur': `1. یہ <em>پہلا</em> جملہ ہے۔\n2. ---\n3. اس کا نام ph_123456 ہے۔\n4. یہ چوتھا جملہ ہے۔`,
-		'vi': `1. Đây là câu <em>đầu tiên</em>.\n2. ---\n3. Tên cô ấy là ph_123456.\n4. Đây là câu thứ tư.`,
-		'zu': `1. Lona umusho <em>wokuqala</em>.\n2. ---\n3. Igama lakhe ngu-ph_123456.\n4. Lona umusho wesine.`,
-		'default': `1. This is the <em>first</em> sentence.\n2. ---\n3. Her name is ph_123456.\n4. This is the fourth sentence.`
+		'zh-CN': [
+			{ id: 0, trans: "这是<em>第一个</em>句子。" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `她的名字是 ${ph}。` }
+		],
+		'zh-TW': [
+			{ id: 0, trans: "這是<em>第一個</em>句子。" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `她的名字是 ${ph}。` }
+		],
+		'ar': [
+			{ id: 0, trans: "هذه هي الجملة <em>الأولى</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `اسمها هو ${ph}.` }
+		],
+		'bg': [
+			{ id: 0, trans: "Това е <em>първото</em> изречение." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Нейното име е ${ph}.` }
+		],
+		'bn': [
+			{ id: 0, trans: "এটি <em>প্রথম</em> বাক্য।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `তার নাম ${ph}।` }
+		],
+		'ca': [
+			{ id: 0, trans: "Aquesta és la <em>primera</em> frase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `El seu nom és ${ph}.` }
+		],
+		'cs': [
+			{ id: 0, trans: "Toto je <em>první</em> věta." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Jmenuje se ${ph}.` }
+		],
+		'da': [
+			{ id: 0, trans: "Dette er den <em>første</em> sætning." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hendes navn er ${ph}.` }
+		],
+		'de': [
+			{ id: 0, trans: "Das ist der <em>erste</em> Satz." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Ihr Name ist ${ph}.` }
+		],
+		'el': [
+			{ id: 0, trans: "Αυτή είναι η <em>πρώτη</em> πρόταση." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Το όνομά της είναι ${ph}.` }
+		],
+		'es': [
+			{ id: 0, trans: "Esta es la <em>primera</em> frase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Su nombre es ${ph}.` }
+		],
+		'et': [
+			{ id: 0, trans: "See on <em>esimene</em> lause." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Tema nimi on ${ph}.` }
+		],
+		'fa': [
+			{ id: 0, trans: "این <em>اولین</em> جمله است." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `نام او ${ph} است.` }
+		],
+		'fi': [
+			{ id: 0, trans: "Tämä on <em>ensimmäinen</em> lause." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hänen nimensä on ${ph}.` }
+		],
+		'fr': [
+			{ id: 0, trans: "C'est la <em>première</em> phrase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Son nom est ${ph}.` }
+		],
+		'gu': [
+			{ id: 0, trans: "આ <em>પહેલું</em> વાક્ય છે।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `તેનું નામ ${ph} છે।` }
+		],
+		'he': [
+			{ id: 0, trans: "זהו המשפט ה<em>ראשון</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `שמה הוא ${ph}.` }
+		],
+		'hi': [
+			{ id: 0, trans: "यह <em>पहला</em> वाक्य है।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `उसका नाम ${ph} है।` }
+		],
+		'hr': [
+			{ id: 0, trans: "Ovo je <em>prva</em> rečenica." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Njeno ime je ${ph}.` }
+		],
+		'hu': [
+			{ id: 0, trans: "Ez az <em>első</em> mondat." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `A neve ${ph}.` }
+		],
+		'id': [
+			{ id: 0, trans: "Ini adalah kalimat <em>pertama</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Namanya adalah ${ph}.` }
+		],
+		'is': [
+			{ id: 0, trans: "Þetta er <em>fyrsta</em> setningin." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hún heitir ${ph}.` }
+		],
+		'it': [
+			{ id: 0, trans: "Questa è la <em>prima</em> frase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Il suo nome è ${ph}.` }
+		],
+		'ja': [
+			{ id: 0, trans: "これは<em>最初の</em>文です。" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `彼女の名前は ${ph} です。` }
+		],
+		'kn': [
+			{ id: 0, trans: "ಇದು <em>ಮೊದಲ</em> ವಾಕ್ಯ।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `ಅವಳ ಹೆಸರು ${ph}।` }
+		],
+		'ko': [
+			{ id: 0, trans: "이것은 <em>첫 번째</em> 문장입니다。" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `그녀의 이름은 ${ph} 입니다。` }
+		],
+		'lt': [
+			{ id: 0, trans: "Tai yra <em>pirmas</em> sakinys." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Jos vardas yra ${ph}.` }
+		],
+		'lv': [
+			{ id: 0, trans: "Šis ir <em>pirmais</em> teikums." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Viņas vārds ir ${ph}.` }
+		],
+		'ml': [
+			{ id: 0, trans: "ഇതാണ് <em>ഒന്നാമത്തെ</em> വാക്യം।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `അവളുടെ പേര് ${ph} എന്നാണ്।` }
+		],
+		'mr': [
+			{ id: 0, trans: "हे <em>पहिले</em> वाक्य आहे।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `तिचे नाव ${ph} आहे।` }
+		],
+		'ms': [
+			{ id: 0, trans: "Ini adalah ayat <em>pertama</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Namanya ialah ${ph}.` }
+		],
+		'mt': [
+			{ id: 0, trans: "Din hija l-<em>ewwel</em> sentenza." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Jisimha hu ${ph}.` }
+		],
+		'nl': [
+			{ id: 0, trans: "Dit is de <em>eerste</em> zin." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Haar naam is ${ph}.` }
+		],
+		'no': [
+			{ id: 0, trans: "Dette er den <em>første</em> setningen." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hennes navn er ${ph}.` }
+		],
+		'pa': [
+			{ id: 0, trans: "ਇਹ <em>ਪਹਿਲਾ</em> ਵਾਕ ਹੈ।" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `ਉਸਦਾ ਨਾਮ ${ph} ਹੈ।` }
+		],
+		'pl': [
+			{ id: 0, trans: "To jest <em>pierwsze</em> zdanie." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Nazywa się ${ph}.` }
+		],
+		'pt': [
+			{ id: 0, trans: "Esta é a <em>primeira</em> frase." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `O nome dela é ${ph}.` }
+		],
+		'ro': [
+			{ id: 0, trans: "Aceasta este <em>prima</em> propoziție." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Numele ei este ${ph}.` }
+		],
+		'ru': [
+			{ id: 0, trans: "Это <em>первое</em> предложение." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Её зовут ${ph}.` }
+		],
+		'sk': [
+			{ id: 0, trans: "Toto je <em>prvá</em> veta." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Volá sa ${ph}.` }
+		],
+		'sl': [
+			{ id: 0, trans: "To je <em>prvi</em> stavek." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Ime ji je ${ph}.` }
+		],
+		'sv': [
+			{ id: 0, trans: "Detta är den <em>första</em> meningen." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Hennes namn är ${ph}.` }
+		],
+		'sw': [
+			{ id: 0, trans: "Hii ni sentensi ya <em>kwanza</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Jina lake ni ${ph}.` }
+		],
+		'ta': [
+			{ id: 0, trans: "இது <em>முதல்</em> வாக்கியம்." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `அவள் பெயர் ${ph}.` }
+		],
+		'te': [
+			{ id: 0, trans: "ఇది <em>మొదటి</em> వాక్యం." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `ఆమె పేరు ${ph}.` }
+		],
+		'th': [
+			{ id: 0, trans: "นี่คือประโยค<em>แรก</em>" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `ชื่อของเธอคือ ${ph}` }
+		],
+		'tr': [
+			{ id: 0, trans: "Bu <em>birinci</em> cümledir." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Onun adı ${ph}.` }
+		],
+		'uk': [
+			{ id: 0, trans: "Це <em>перше</em> речення." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Її звати ${ph}.` }
+		],
+		'ur': [
+			{ id: 0, trans: "یہ <em>پہلا</em> جملہ ہے۔" },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `اس کا نام ${ph} ہے۔` }
+		],
+		'vi': [
+			{ id: 0, trans: "Đây là câu <em>đầu tiên</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Tên cô ấy là ${ph}.` }
+		],
+		'zu': [
+			{ id: 0, trans: "Lona umusho <em>wokuqala</em>." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Igama lakhe ngu-${ph}.` }
+		],
+		'default': [
+			{ id: 0, trans: "This is the <em>first</em> sentence." },
+			{ id: 1, trans: "---" },
+			{ id: 2, trans: `Her name is ${ph}.` }
+		]
 	};
 
 	/**
-	 * 根据目标语言动态生成完整的提示示例
+	 * 根据目标语言动态生成 JSON 格式的提示示例
 	 */
 	function generatePromptExample(toLang) {
-		const exampleOutputText = PROMPT_EXAMPLE_OUTPUTS[toLang] || PROMPT_EXAMPLE_OUTPUTS['zh-CN'];
-		return `### Example Output:\n${exampleOutputText}`;
+		const exampleArray = PROMPT_EXAMPLE_OUTPUTS[toLang] || PROMPT_EXAMPLE_OUTPUTS['zh-CN'];
+		const jsonString = JSON.stringify({ translations: exampleArray }, null, 2);
+		return `### Example Output:\n${jsonString}`;
 	}
 
 	/**
-	 * 获取 AI 翻译系统提示词模板
+	 * 获取底层强制的系统指令
+	 */
+	function getSystemDirectives() {
+		return `### CRITICAL OUTPUT INSTRUCTIONS:
+- The input consists of a JSON array of objects, each containing an "id" and "text".
+- Your entire response MUST consist of *only* a valid JSON object containing a "translations" array.
+- Each object in the "translations" array MUST contain the exact same "id" and the polished translation in "trans".
+- Do NOT include any markdown formatting (like \`\`\`json), stage numbers, headers, notes, or explanations in your final output.
+- **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original.
+${PlaceholderConfig.instructionText}
+
+### Example Input:
+[
+  {"id": 0, "text": "This is the <em>first</em> sentence."},
+  {"id": 1, "text": "---"},
+  {"id": 2, "text": "Her name is ${PlaceholderConfig.exampleString}."}
+]
+
+{exampleOutput}`;
+	}
+
+	/**
+	 * 获取 AI 翻译系统提示词模板（暴露给用户的默认值）
 	 */
 	function getSharedSystemPrompt() {
 		return `You are a professional translator fluent in {toLangName}, with particular expertise in translating web novels and online fanfiction from {fromLangName}.
 
-		Your task is to translate a numbered list of text segments provided by the user. These segments can be anything from full paragraphs to single phrases or words. For each numbered item, you will follow an internal three-stage strategy to produce the final, polished translation.
+Your task is to translate multiple text segments provided by the user. For each segment, you will follow an internal three-stage strategy to produce the final, polished translation.
 
-		### Internal Translation Strategy (for each item):
-		1.  **Stage 1 (Internal Thought Process):** Produce a literal, word-for-word translation of the original content.
-		2.  **Stage 2 (Internal Thought Process):** Based on the literal translation, identify any phrasing that is unnatural or does not flow well in the target language.
-		3.  **Stage 3 (Final Output):** Produce a polished, idiomatic translation that fully preserves the original meaning, tone, cultural nuances, and any specialized fandom terminology. The final translation must be natural-sounding, readable, and conform to standard usage in {toLangName}.
+### Internal Translation Strategy (for each item):
+1.  **Stage 1 (Internal Thought Process):** Produce a literal, word-for-word translation of the original content.
+2.  **Stage 2 (Internal Thought Process):** Based on the literal translation, identify any phrasing that is unnatural or does not flow well in the target language.
+3.  **Stage 3 (Final Output):** Produce a polished, idiomatic translation that fully preserves the original meaning, tone, cultural nuances, and any specialized fandom terminology. The final translation must be natural-sounding, readable, and conform to standard usage in {toLangName}.
 
-		### CRITICAL OUTPUT INSTRUCTIONS:
-		- Your entire response MUST consist of *only* the polished translation from Stage 3, formatted as a numbered list that exactly matches the input's numbering.
-		- Do NOT include any stage numbers, headers (e.g., "Polished Translation"), notes, or explanations in your final output.
-		- **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original, including their positions around the translated text.
-		- **Placeholder Preservation:** If an item contains special placeholders in the format \`ph_\` followed by six digits (e.g., \`ph_123456\`), you MUST preserve these placeholders exactly as they are.
-		- **DO NOT** change \`ph_\` to \`P_\`, \`Ph_\`, or any other variation.
-		- **DO NOT** add spaces inside the placeholder (e.g., \`ph_ 123456\` is WRONG).
-		- **DO NOT** translate, modify, or delete them.
-		- **Untranslatable Content:** If an item is a separator, a meaningless symbol, or otherwise untranslatable, you MUST return the original item exactly as it is, preserving its number.
-
-		### Example Input:
-		1. This is the <em>first</em> sentence.
-		2. ---
-		3. Her name is ph_123456.
-		4. This is the fourth sentence.
-
-		{exampleOutput}
-		`;
+{systemDirectives}`;
 	}
 
 	// 创建一个标准的、兼容OpenAI API的服务配置对象
@@ -373,7 +685,7 @@
 	// 语言检测截取字符长度限制
 	const LANG_DETECT_MAX_LENGTH = 400;
 
-    /**
+	/**
 	 * 底层实现配置
 	 */
 	const CONFIG = {
@@ -382,11 +694,11 @@
 			childList: true,
 			subtree: true,
 			characterData: true,
-			attributeFilter: ['value', 'placeholder', 'aria-label', 'data-confirm', 'title']
+			attributeFilter:['value', 'placeholder', 'aria-label', 'data-confirm', 'title', 'style', 'class']
 		},
 		transEngine: GM_getValue('transEngine', DEFAULT_CONFIG.ENGINE.current),
 		SERVICE_CONFIG: {
-            // 默认翻译参数配置
+			// 默认翻译参数配置
 			default: {
 				CHUNK_SIZE: 1600,
 				PARAGRAPH_LIMIT: 8,
@@ -394,13 +706,13 @@
 				REQUEST_RATE: 0.5,
 				REQUEST_CAPACITY: 1,
 				VALIDATION: {
-					absolute_loss: 10,
-					proportional_loss: 0.8,
-					proportional_trigger_count: 10,
-					catastrophic_loss: 5
+					absolute_loss: 6,
+					proportional_loss: 0.5,
+					proportional_trigger_count: 6,
+					catastrophic_loss: 3
 				}
 			},
-            // 谷歌翻译
+			// 谷歌翻译
 			google_translate: {
 				CHUNK_SIZE: 4000,
 				PARAGRAPH_LIMIT: 20,
@@ -408,13 +720,13 @@
 				REQUEST_RATE: 5,
 				REQUEST_CAPACITY: 20,
 				VALIDATION: {
-					absolute_loss: 10,
-					proportional_loss: 0.8,
-					proportional_trigger_count: 10,
-					catastrophic_loss: 5
+					absolute_loss: 6,
+					proportional_loss: 0.5,
+					proportional_trigger_count: 6,
+					catastrophic_loss: 3
 				}
 			},
-            // 微软翻译
+			// 微软翻译
 			bing_translator: {
 				CHUNK_SIZE: 3000,
 				PARAGRAPH_LIMIT: 15,
@@ -422,10 +734,10 @@
 				REQUEST_RATE: 5,
 				REQUEST_CAPACITY: 20,
 				VALIDATION: {
-					absolute_loss: 10,
-					proportional_loss: 0.8,
-					proportional_trigger_count: 10,
-					catastrophic_loss: 5
+					absolute_loss: 6,
+					proportional_loss: 0.5,
+					proportional_trigger_count: 6,
+					catastrophic_loss: 3
 				}
 			}
 		},
@@ -504,14 +816,15 @@
 	// 基础参数默认值
 	const BASE_AI_PARAMS = {
 		system_prompt: getSharedSystemPrompt(),
-		user_prompt: `Translate the following numbered list to {toLangName} (output translation only):\n\n{numberedText}`,
+		user_prompt: `Translate the following JSON array to {toLangName} (output JSON only):\n\n{numberedText}`,
 		temperature: 0,
 		chunk_size: CONFIG.SERVICE_CONFIG.default.CHUNK_SIZE,
 		para_limit: CONFIG.SERVICE_CONFIG.default.PARAGRAPH_LIMIT,
 		request_rate: CONFIG.SERVICE_CONFIG.default.REQUEST_RATE,
 		request_capacity: CONFIG.SERVICE_CONFIG.default.REQUEST_CAPACITY,
 		lazy_load_margin: CONFIG.SERVICE_CONFIG.default.LAZY_LOAD_ROOT_MARGIN,
-		validation_thresholds: `${CONFIG.SERVICE_CONFIG.default.VALIDATION.absolute_loss}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.proportional_loss}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.proportional_trigger_count}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.catastrophic_loss}`
+		validation_thresholds: `${CONFIG.SERVICE_CONFIG.default.VALIDATION.absolute_loss}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.proportional_loss}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.proportional_trigger_count}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.catastrophic_loss}`,
+		reasoning_effort: 'default'
 	};
 
 	const ProfileManager = {
@@ -529,25 +842,22 @@
 					params: { ...BASE_AI_PARAMS }
 				};
 
-				// 迁移旧数据
-				const oldKeys = {
-					'custom_ai_system_prompt': 'system_prompt',
-					'custom_ai_user_prompt': 'user_prompt',
-					'custom_ai_temperature': 'temperature',
-					'custom_ai_chunk_size': 'chunk_size',
-					'custom_ai_para_limit': 'para_limit',
-					'custom_ai_request_rate': 'request_rate',
-					'custom_ai_request_capacity': 'request_capacity',
-					'custom_ai_lazy_load_margin': 'lazy_load_margin',
-					'custom_ai_validation_thresholds': 'validation_thresholds'
-				};
-
-				for (const [oldKey, paramKey] of Object.entries(oldKeys)) {
-					const oldVal = GM_getValue(oldKey);
-					if (oldVal !== undefined && oldVal !== null) {
-						defaultProfile.params[paramKey] = oldVal;
+				// 初始化传统引擎专属配置
+				const traditionalProfile = {
+					id: 'profile_traditional_init',
+					name: '谷歌、微软',
+					isProtected: true,
+					isTraditional: true,
+					services: ['google_translate', 'bing_translator'],
+					params: {
+						...BASE_AI_PARAMS,
+						chunk_size: 3000,
+						para_limit: 15,
+						request_rate: 5,
+						request_capacity: 20,
+						lazy_load_margin: '1200px 0px 10000px 0px'
 					}
-				}
+				};
 
 				// 初始化 DeepSeek 配置
 				const deepseekProfile = {
@@ -562,9 +872,9 @@
 					}
 				};
 
-				profiles = [defaultProfile, deepseekProfile];
+				profiles = [defaultProfile, traditionalProfile, deepseekProfile];
 				GM_setValue(AI_PROFILES_KEY, profiles);
-				Logger.info('配置', '翻译参数配置已初始化并迁移旧数据');
+				Logger.info('Config', '翻译参数配置已初始化');
 			}
 		},
 
@@ -629,10 +939,6 @@
 		},
 
 		getParamsByEngine(engineId) {
-			if (engineId === 'google_translate' || engineId === 'bing_translator') {
-				return null;
-			}
-
 			const profiles = this.getAllProfiles();
 			const matchedProfile = profiles.find(p => p.services && p.services.includes(engineId));
 
@@ -656,7 +962,8 @@
 	const FORMATTING_SELECTED_ID_KEY = 'ao3_formatting_selected_id';
 
 	const DEFAULT_FORMAT_PARAMS = {
-		indent: 'false',
+		indent: 'original',
+		indentElements: ['work_text'],
 		fontSize: '100',
 		letterSpacing: '0',
 		lineHeight: '1.5',
@@ -691,6 +998,30 @@
 			const selectedId = GM_getValue(FORMATTING_SELECTED_ID_KEY);
 			const profiles = this.getAllProfiles();
 			return profiles.find(p => p.id === selectedId) || profiles[0];
+		},
+
+		getIndentSelectors() {
+			const profile = this.getCurrentProfile();
+			if (!profile || !profile.params || profile.params.indent === 'original') return [];
+			
+			const elements = profile.params.indentElements || ['work_text'];
+			const selectors = [];
+			const map = {
+				work_text: '#chapters .userstuff',
+				summary: '.summary .userstuff',
+				notes: '.notes .userstuff',
+				comments: '.comment .userstuff'
+			};
+			
+			elements.forEach(el => {
+				if (map[el]) selectors.push(map[el]);
+			});
+			
+			if (elements.includes('other')) {
+				selectors.push('.userstuff:not(#chapters .userstuff):not(.summary .userstuff):not(.notes .userstuff):not(.comment .userstuff)');
+			}
+			
+			return selectors;
 		},
 
 		saveProfile(updatedProfile) {
@@ -755,6 +1086,635 @@
 
 		setCurrentId(id) {
 			GM_setValue(FORMATTING_SELECTED_ID_KEY, id);
+		}
+	};
+
+	/**
+	 * 纯 JS SHA-256 实现
+	 * 用于在 window.crypto.subtle 不可用时的安全降级
+	 */
+	function pureSHA256(s) {
+		const utf8Encode = (str) => unescape(encodeURIComponent(str));
+		let ascii = utf8Encode(s);
+		const mathPow = Math.pow;
+		const maxWord = mathPow(2, 32);
+		let result = '';
+		const words = [];
+		const asciiBitLength = ascii.length * 8;
+		let hash = pureSHA256.h = pureSHA256.h || [];
+		let k = pureSHA256.k = pureSHA256.k || [];
+		let primeCounter = k.length;
+		const isComposite = {};
+		for (let candidate = 2; primeCounter < 64; candidate++) {
+			if (!isComposite[candidate]) {
+				for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+				hash[primeCounter] = (mathPow(candidate, .5) * maxWord) | 0;
+				k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+			}
+		}
+		ascii += '\x80';
+		while (ascii.length % 64 - 56) ascii += '\x00';
+		for (let i = 0; i < ascii.length; i++) {
+			const j = ascii.charCodeAt(i);
+			words[i >> 2] |= j << ((3 - i) % 4) * 8;
+		}
+		words[words.length] = ((asciiBitLength / maxWord) | 0);
+		words[words.length] = (asciiBitLength) | 0;
+		for (let j = 0; j < words.length;) {
+			const w = words.slice(j, j += 16);
+			const oldHash = hash;
+			hash = hash.slice(0, 8);
+			for (let i = 0; i < 64; i++) {
+				const w15 = w[i - 15], w2 = w[i - 2];
+				const a = hash[0], e = hash[4];
+				const temp1 = hash[7]
+					+ ((e >>> 6 | e << 26) ^ (e >>> 11 | e << 21) ^ (e >>> 25 | e << 7))
+					+ ((e & hash[5]) ^ ((~e) & hash[6]))
+					+ k[i]
+					+ (w[i] = (i < 16) ? w[i] : (
+						w[i - 16]
+						+ ((w15 >>> 7 | w15 << 25) ^ (w15 >>> 18 | w15 << 14) ^ (w15 >>> 3))
+						+ w[i - 7]
+						+ ((w2 >>> 17 | w2 << 15) ^ (w2 >>> 19 | w2 << 13) ^ (w2 >>> 10))
+					) | 0);
+				const temp2 = ((a >>> 2 | a << 30) ^ (a >>> 13 | a << 19) ^ (a >>> 22 | a << 10))
+					+ ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+				hash = [(temp1 + temp2) | 0].concat(hash);
+				hash[4] = (hash[4] + temp1) | 0;
+			}
+			for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+		}
+		for (let i = 0; i < 8; i++) {
+			for (let j = 3; j + 1; j--) {
+				const b = (hash[i] >> (j * 8)) & 255;
+				result += ((b < 16) ? 0 : '') + b.toString(16);
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * SHA-256 哈希计算 (用于生成唯一的 Cache Key)
+	 */
+	async function sha256(message) {
+		if (window.crypto && window.crypto.subtle) {
+			try {
+				const msgBuffer = new TextEncoder().encode(message);
+				const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+				const hashArray = Array.from(new Uint8Array(hashBuffer));
+				return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+			} catch (e) {
+				return pureSHA256(message);
+			}
+		} else {
+			return pureSHA256(message);
+		}
+	}
+
+	/**
+	 * 从 DOM 或 URL 中提取当前翻译单元的作用域 ID (Scope ID)
+	 */
+	function getScopeId(element) {
+		if (!element) return "global";
+
+		const blurb = element.closest('.blurb');
+		if (blurb) {
+			const classMatch = blurb.className.match(/(work|series)-(\d+)/);
+			if (classMatch) return `${classMatch[1]}_${classMatch[2]}`;
+			
+			const idMatch = blurb.id.match(/^(bookmark|tag_set)_(\d+)/);
+			if (idMatch) return `${idMatch[1]}_${idMatch[2]}`;
+			
+			const collectionLink = blurb.querySelector('h4.heading a[href^="/collections/"]');
+			if (collectionLink) {
+				const collMatch = collectionLink.getAttribute('href').match(/\/collections\/([^\/]+)/);
+				if (collMatch) return `collection_${collMatch[1]}`;
+			}
+		}
+
+		if (element.closest('#workskin, .admin_posts-show, .works-show, .chapters-show')) {
+			const pathname = window.location.pathname;
+			const workMatch = pathname.match(/^\/works\/(\d+)/);
+			if (workMatch) return `work_${workMatch[1]}`;
+			const seriesMatch = pathname.match(/^\/series\/(\d+)/);
+			if (seriesMatch) return `series_${seriesMatch[1]}`;
+			const adminMatch = pathname.match(/^\/admin_posts\/(\d+)/);
+			if (adminMatch) return `admin_post_${adminMatch[1]}`;
+		}
+
+		return "global";
+	}
+
+	const SHORT_TEXT_CONTEXT_THRESHOLD = 50;
+	const SHORT_TEXT_CONTEXT_LIMIT = 30;
+
+	/**
+	 * 获取短文本缓存用的轻量上下文
+	 */
+	function getLightweightCacheContext(element) {
+		const getOriginalText = (node) => {
+			if (!node) return "";
+			if (node.nodeType === Node.TEXT_NODE) {
+				return node.textContent || "";
+			}
+			if (node.nodeType !== Node.ELEMENT_NODE) {
+				return "";
+			}
+
+			const originalWrapper = node.matches('.ao3-original-content, .ao3-original-title, .ao3-tag-original')
+				? node
+				: node.querySelector(':scope > .ao3-original-content, :scope > .ao3-original-title, :scope > .ao3-tag-original');
+			if (originalWrapper) {
+				return originalWrapper.textContent || "";
+			}
+
+			const clone = node.cloneNode(true);
+			clone.querySelectorAll([
+				'.translate-me-ao3-wrapper',
+				'.ao3-translated-content',
+				'.ao3-translated-title',
+				'.ao3-tag-translation',
+				'.translated-tags-container',
+				'.translated-by-ao3-translator-error'
+			].join(', ')).forEach(el => el.remove());
+			return clone.textContent || "";
+		};
+
+		const collect = (isNext) => {
+			let contextText = "";
+			let sibling = isNext ? element?.nextSibling : element?.previousSibling;
+			let attempts = 0;
+
+			const isPluginNode = (node) => {
+				if (!node || node.nodeType !== Node.ELEMENT_NODE) return false;
+				const cl = node.classList;
+				if (!cl) return false;
+				return cl.contains('translate-me-ao3-wrapper') ||
+					cl.contains('ao3-translated-content') ||
+					cl.contains('ao3-original-content') ||
+					cl.contains('ao3-tag-translation') ||
+					cl.contains('ao3-tag-original') ||
+					cl.contains('translated-tags-container') ||
+					cl.contains('translated-by-ao3-translator-error');
+			};
+
+			while (sibling && attempts < 3) {
+				if (isPluginNode(sibling)) {
+					sibling = isNext ? sibling.nextSibling : sibling.previousSibling;
+					continue;
+				}
+
+				const text = getOriginalText(sibling).replace(/\s+/g, ' ').trim();
+				if (text) {
+					contextText = isNext ? `${contextText} ${text}` : `${text} ${contextText}`;
+					attempts++;
+				}
+
+				sibling = isNext ? sibling.nextSibling : sibling.previousSibling;
+				if (contextText.length >= SHORT_TEXT_CONTEXT_LIMIT) break;
+			}
+
+			contextText = contextText.trim();
+			return isNext ? contextText.substring(0, SHORT_TEXT_CONTEXT_LIMIT) : contextText.slice(-SHORT_TEXT_CONTEXT_LIMIT);
+		};
+
+		return {
+			prev: collect(false),
+			next: collect(true)
+		};
+	}
+
+	/**
+	 * 构建缓存 Key：长文本使用稳定 Key，短文本额外纳入轻量上下文
+	 */
+	async function buildStableCacheKey(text, fromLang, toLang, scopeId = "global", context = null) {
+		const engine = getValidEngineName();
+		const provider = getProviderById(engine);
+		const model = provider ? provider.selectedModel : 'default';
+		const apiHost = provider ? provider.apiHost : 'default';
+		const params = ProfileManager.getParamsByEngine(engine) || {};
+		const sysPrompt = params.system_prompt || '';
+		const usrPrompt = params.user_prompt || '';
+		const temperature = params.temperature !== undefined ? params.temperature : 'default';
+		const reasoningEffort = params.reasoning_effort || 'default';
+		const glossaryVer = GM_getValue(GLOSSARY_STATE_VERSION_KEY, 0);
+		const rawRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+		const sortedRules = [...rawRules].sort((a, b) => (a.id || '').localeCompare(b.id || ''));
+		const postReplaceRules = JSON.stringify(sortedRules);
+
+		const rawString = JSON.stringify([
+			'stable_v1',
+			scopeId,
+			context?.prev || '',
+			context?.next || '',
+			text,
+			engine,
+			model,
+			apiHost,
+			fromLang,
+			toLang,
+			sysPrompt,
+			usrPrompt,
+			temperature,
+			reasoningEffort,
+			glossaryVer,
+			postReplaceRules
+		]);
+		return await sha256(rawString);
+	}
+
+	/**
+	 * 翻译缓存数据库 (原生 IndexedDB 封装)
+	 */
+	const TranslationCacheDB = {
+		dbName: 'AO3TranslatorCacheDB',
+		storeName: 'translations',
+		// IndexedDB 原生结构版本号
+		version: 1,
+		db: null,
+
+		async init() {
+			return new Promise((resolve) => {
+				const request = indexedDB.open(this.dbName, this.version);
+				
+				request.onupgradeneeded = (event) => {
+					const db = event.target.result;
+					if (!db.objectStoreNames.contains(this.storeName)) {
+						const store = db.createObjectStore(this.storeName, { keyPath: 'hashKey' });
+						store.createIndex('timestamp', 'timestamp', { unique: false });
+						store.createIndex('textHash', 'textHash', { unique: false });
+					}
+				};
+				
+				request.onsuccess = (event) => {
+					this.db = event.target.result;
+					// 业务数据版本号：用于在 Key 算法改变时强制清空旧的无效缓存
+					const CURRENT_SCHEMA_VERSION = 1;
+					const savedSchema = GM_getValue('ao3_cache_schema_version', 0);
+					if (savedSchema < CURRENT_SCHEMA_VERSION) {
+						this.clear().then(() => {
+							GM_setValue('ao3_cache_schema_version', CURRENT_SCHEMA_VERSION);
+							Logger.info('System', '缓存数据结构已升级，旧缓存已清空');
+							resolve();
+						});
+					} else {
+						resolve();
+					}
+				};
+				
+				request.onerror = (event) => {
+					if (event.target.error.name === 'VersionError') {
+						event.preventDefault();
+						Logger.warn('System', '检测到 IndexedDB 版本冲突，正在执行降级重建...');
+						const deleteReq = indexedDB.deleteDatabase(this.dbName);
+						deleteReq.onsuccess = () => {
+							const req2 = indexedDB.open(this.dbName, this.version);
+							req2.onupgradeneeded = request.onupgradeneeded;
+							req2.onsuccess = request.onsuccess;
+							req2.onerror = () => resolve();
+						};
+						deleteReq.onerror = () => resolve();
+						deleteReq.onblocked = () => resolve();
+					} else {
+						resolve();
+					}
+				};
+				request.onblocked = () => resolve();
+			});
+		},
+
+		async get(keys) {
+			if (!this.db || keys.length === 0) return keys.map(() => null);
+			return new Promise((resolve) => {
+				try {
+					const transaction = this.db.transaction([this.storeName], 'readonly');
+					const store = transaction.objectStore(this.storeName);
+					const results = new Array(keys.length);
+					let completed = 0;
+
+					// 事务级兜底，防止底层异常导致 Promise 永久挂起
+					transaction.onerror = () => resolve(keys.map(() => null));
+					transaction.onabort = () => resolve(keys.map(() => null));
+
+					keys.forEach((key, index) => {
+						const req = store.get(key);
+						req.onsuccess = (e) => {
+							results[index] = e.target.result || null;
+							completed++;
+							if (completed === keys.length) resolve(results);
+						};
+						req.onerror = () => {
+							results[index] = null;
+							completed++;
+							if (completed === keys.length) resolve(results);
+						};
+					});
+				} catch (e) {
+					Logger.error('System', 'IndexedDB get 事务创建失败', e);
+					resolve(keys.map(() => null));
+				}
+			});
+		},
+
+		async put(entries) {
+			if (!this.db || entries.length === 0) return;
+			return new Promise((resolve) => {
+				try {
+					const transaction = this.db.transaction([this.storeName], 'readwrite');
+					const store = transaction.objectStore(this.storeName);
+					
+					transaction.oncomplete = () => {
+						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+						resolve();
+					};
+					transaction.onerror = () => resolve();
+					transaction.onabort = () => resolve();
+
+					entries.forEach(entry => store.put(entry));
+				} catch (e) {
+					Logger.error('System', 'IndexedDB put 事务创建失败', e);
+					resolve();
+				}
+			});
+		},
+
+		async updateTimestamps(keys) {
+			if (!this.db || keys.length === 0) return;
+			const now = Date.now();
+			try {
+				const transaction = this.db.transaction([this.storeName], 'readwrite');
+				const store = transaction.objectStore(this.storeName);
+				keys.forEach(key => {
+					const req = store.get(key);
+					req.onsuccess = (e) => {
+						const data = e.target.result;
+						if (data) {
+							data.timestamp = now;
+							store.put(data);
+						}
+					};
+				});
+			} catch (e) {
+				Logger.error('System', 'IndexedDB updateTimestamps 事务创建失败', e);
+			}
+		},
+
+		async delete(keys) {
+			if (!this.db || keys.length === 0) return;
+			return new Promise((resolve) => {
+				try {
+					const transaction = this.db.transaction([this.storeName], 'readwrite');
+					const store = transaction.objectStore(this.storeName);
+					
+					transaction.oncomplete = () => resolve();
+					transaction.onerror = () => resolve();
+					transaction.onabort = () => resolve();
+
+					keys.forEach(key => store.delete(key));
+				} catch (e) {
+					Logger.error('System', 'IndexedDB delete 事务创建失败', e);
+					resolve();
+				}
+			});
+		},
+
+		async deleteByTextHashes(textHashes) {
+			if (!this.db || textHashes.length === 0) return 0;
+			return new Promise((resolve) => {
+				try {
+					const transaction = this.db.transaction([this.storeName], 'readwrite');
+					const store = transaction.objectStore(this.storeName);
+					
+					if (!store.indexNames.contains('textHash')) {
+						return resolve(0);
+					}
+
+					const index = store.index('textHash');
+					let deletedCount = 0;
+
+					transaction.oncomplete = () => {
+						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+						resolve(deletedCount);
+					};
+					transaction.onerror = () => resolve(deletedCount);
+					transaction.onabort = () => resolve(deletedCount);
+
+					textHashes.forEach(hash => {
+						const req = index.getAllKeys(IDBKeyRange.only(hash));
+						req.onsuccess = (e) => {
+							const primaryKeys = e.target.result;
+							primaryKeys.forEach(pk => {
+								store.delete(pk);
+								deletedCount++;
+							});
+						};
+					});
+				} catch (e) {
+					Logger.error('System', 'IndexedDB deleteByTextHashes 事务创建失败', e);
+					resolve(0);
+				}
+			});
+		},
+
+		async clear() {
+			if (!this.db) return;
+			return new Promise((resolve) => {
+				try {
+					const transaction = this.db.transaction([this.storeName], 'readwrite');
+					const store = transaction.objectStore(this.storeName);
+					
+					transaction.oncomplete = () => {
+						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+						resolve();
+					};
+					transaction.onerror = () => resolve();
+					transaction.onabort = () => resolve();
+
+					store.clear();
+				} catch (e) {
+					Logger.error('System', 'IndexedDB clear 事务创建失败', e);
+					resolve();
+				}
+			});
+		},
+
+		async count() {
+			if (!this.db) return 0;
+			return new Promise((resolve) => {
+				try {
+					const transaction = this.db.transaction([this.storeName], 'readonly');
+					const store = transaction.objectStore(this.storeName);
+					const req = store.count();
+					req.onsuccess = () => resolve(req.result);
+					req.onerror = () => resolve(0);
+				} catch (e) {
+					resolve(0);
+				}
+			});
+		},
+
+		async cleanup(maxItems, expireTime) {
+			if (!this.db) return 0;
+			return new Promise((resolve) => {
+				try {
+					const transaction = this.db.transaction([this.storeName], 'readwrite');
+					const store = transaction.objectStore(this.storeName);
+					if (!store.indexNames.contains('timestamp')) return resolve(0);
+
+					let deletedCount = 0;
+
+					// 事务级兜底，由 oncomplete 统一 resolve
+					transaction.oncomplete = () => resolve(deletedCount);
+					transaction.onerror = () => resolve(deletedCount);
+					transaction.onabort = () => resolve(deletedCount);
+
+					const index = store.index('timestamp');
+					const range = IDBKeyRange.upperBound(expireTime);
+					
+					// 1. 删除过期数据
+					const req = index.openCursor(range);
+					req.onsuccess = (e) => {
+						const cursor = e.target.result;
+						if (cursor) {
+							cursor.delete();
+							deletedCount++;
+							cursor.continue();
+						} else {
+							// 2. 检查容量并执行 LRU 清理
+							const countReq = store.count();
+							countReq.onsuccess = () => {
+								const total = countReq.result;
+								if (total > maxItems) {
+									const toDelete = total - maxItems;
+									let deletedLRU = 0;
+									const lruReq = index.openCursor();
+									lruReq.onsuccess = (ev) => {
+										const lruCursor = ev.target.result;
+										if (lruCursor && deletedLRU < toDelete) {
+											lruCursor.delete();
+											deletedLRU++;
+											deletedCount++;
+											lruCursor.continue();
+										}
+									};
+								}
+							};
+						}
+					};
+				} catch (e) {
+					Logger.error('System', 'IndexedDB cleanup 事务创建失败', e);
+					resolve(0);
+				}
+			});
+		},
+
+		async autoCleanup() {
+			const isEnabled = GM_getValue('ao3_cache_auto_cleanup_enabled', true);
+			if (!isEnabled) return;
+
+			const runCleanup = async () => {
+				const now = Date.now();
+				const lastCheck = GM_getValue('ao3_cache_last_check_time', 0);
+				if (now - lastCheck < 24 * 60 * 60 * 1000) return;
+
+				let maxItems = parseInt(GM_getValue('ao3_cache_max_items', 100000), 10);
+				let maxDays = parseInt(GM_getValue('ao3_cache_max_days', 30), 10);
+				if (isNaN(maxItems) || maxItems <= 0) maxItems = 100000;
+				if (isNaN(maxDays) || maxDays <= 0) maxDays = 30;
+
+				const expireTime = now - (maxDays * 24 * 60 * 60 * 1000);
+				const deletedCount = await this.cleanup(maxItems, expireTime);
+				
+				if (deletedCount > 0) {
+					Logger.info('System', `自动清理了 ${deletedCount} 条过期/超量的翻译缓存`);
+					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+					GM_setValue('ao3_cache_last_cleanup_time', Date.now());
+				}
+				GM_setValue('ao3_cache_last_check_time', Date.now());
+			};
+
+			const executeWithLock = async () => {
+				// 优先使用 Web Locks API 实现跨标签页原子锁
+				if (navigator.locks && navigator.locks.request) {
+					navigator.locks.request('ao3_cache_cleanup_lock', { mode: 'exclusive', ifAvailable: true }, async (lock) => {
+						if (lock) {
+							await runCleanup();
+						}
+					});
+				} else {
+					// 降级方案：使用 GM_getValue 伪锁
+					const lockKey = 'ao3_cache_cleanup_fallback_lock';
+					const now = Date.now();
+					const lock = GM_getValue(lockKey, 0);
+					if (now - lock < 60000) return;
+					GM_setValue(lockKey, now);
+					await runCleanup();
+				}
+			};
+
+			if (window.requestIdleCallback) {
+				window.requestIdleCallback(() => executeWithLock());
+			} else {
+				setTimeout(executeWithLock, 5000);
+			}
+		}
+	};
+
+	/**
+	 * 语言检测与决策管理器
+	 */
+	const LanguageDetectionManager = {
+		/**
+		 * 提取容器前 400 字符用于检测
+		 */
+		extractText(container, rule) {
+			if (!container) return '';
+			if (rule && rule.isTags) {
+				const tags = Array.from(container.querySelectorAll('a.tag')).map(a => a.textContent.trim());
+				return tags.join(' ').substring(0, 400);
+			}
+			if (rule && rule.isTitle) {
+				const clone = container.cloneNode(true);
+				clone.querySelectorAll('a').forEach(a => {
+					if (a.textContent.match(/^(?:Chapter|第)\s*\d+\s*(?:章)?$/i)) a.remove();
+				});
+				return clone.textContent.trim().substring(0, 400);
+			}
+			return container.textContent.trim().substring(0, 400);
+		},
+
+		/**
+		 * 核心决策逻辑
+		 * @param {HTMLElement} container - 目标容器
+		 * @param {Object} rule - 翻译规则
+		 * @param {String} mode - 'full_page' 或 'unit'
+		 * @returns {Promise<{detectedLang: string, shouldSkip: boolean}>}
+		 */
+		async processContainer(container, rule, mode) {
+			const userSelectedFromLang = GM_getValue('from_lang', DEFAULT_CONFIG.GENERAL.from_lang);
+			const targetLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
+
+			let detectedLang = 'auto';
+			let shouldSkip = false;
+
+			if (userSelectedFromLang === 'script_auto') {
+				const textToDetect = this.extractText(container, rule);
+				if (textToDetect) {
+					detectedLang = await LanguageDetector.detect(textToDetect);
+					if (!detectedLang || detectedLang === 'und' || detectedLang === 'unknown') {
+						detectedLang = 'auto';
+					}
+				}
+			} else if (userSelectedFromLang !== 'auto') {
+				detectedLang = userSelectedFromLang;
+			}
+
+			// 只有整页模式才允许跳过翻译
+			if (mode === 'full_page' && detectedLang !== 'auto' && detectedLang === targetLang) {
+				shouldSkip = true;
+			}
+
+			return { detectedLang, shouldSkip };
 		}
 	};
 
@@ -828,41 +1788,91 @@
 		downloadBlob();
 	}
 
-    /**
+	/**
 	 * 日志管理系统
 	 */
 	const Logger = {
 		config: {
-			enabled: GM_getValue('enable_debug_mode', DEFAULT_CONFIG.GENERAL.enable_debug_mode),
-			history: [],
-			maxHistory: 2000
+			level: GM_getValue('ao3_log_level', 'INFO'),
+			autoClearDays: GM_getValue('ao3_log_auto_clear', 3),
+			maxHistory: 2000,
+			maxPersist: 500
+		},
+		levels: { 'ALL': 0, 'INFO': 1, 'WARN': 2, 'ERROR': 3, 'OFF': 99 },
+		history:[],
+		saveTimer: null,
+
+		init() {
+			this.history = GM_getValue('ao3_log_history',[]);
+			this.cleanOldLogs();
+		},
+
+		cleanOldLogs() {
+			const now = Date.now();
+			const cutoff = now - (this.config.autoClearDays * 24 * 60 * 60 * 1000);
+			const initialLength = this.history.length;
+            
+            // 1. 先按时间过期清理
+			this.history = this.history.filter(entry => entry.timestampMs >= cutoff);
+            
+            // 2. 如果剩余日志依然超过持久化上限，执行优先级清理
+            if (this.history.length > this.config.maxPersist) {
+                this.history = this._prune(this.history, this.config.maxPersist);
+            }
+
+			if (this.history.length !== initialLength) {
+				GM_setValue('ao3_log_history', this.history);
+			}
+		},
+
+		setLevel(level) {
+			this.config.level = level;
+			GM_setValue('ao3_log_level', level);
+		},
+
+		setAutoClear(days) {
+			this.config.autoClearDays = days;
+			GM_setValue('ao3_log_auto_clear', days);
+			this.cleanOldLogs();
+		},
+
+		// 生成唯一的 Trace ID 用于串联请求链路
+		generateTraceId() {
+			return Math.random().toString(36).substring(2, 10).toUpperCase();
 		},
 
 		_sanitize(data) {
 			if (!data) return data;
-			if (typeof data !== 'object') return data;
+			if (typeof data !== 'object') {
+				if (typeof data === 'string' && data.length > 150) return data.substring(0, 150) + '... [TRUNCATED]';
+				return data;
+			}
 
 			try {
 				const cleanData = JSON.parse(JSON.stringify(data));
-				const sensitiveKeys = ['apikey', 'key', 'token', 'auth', 'authorization', 'x-api-key', 'user_prompt', 'system_prompt'];
+				// 隐私凭证脱敏
+				const sensitiveKeys =['apikey', 'api_key', 'token', 'auth', 'authorization', 'x-api-key', 'password', 'email'];
+				// 翻译文本脱敏
+				const textKeys =['text', 'content', 'originalhtml', 'translatedtext', 'paragraphs', 'messages', 'prompt', 'source', 'target', 'system_prompt', 'user_prompt'];
 
-				const mask = (obj) => {
+				const mask = (obj, depth = 0) => {
+					if (depth > 5) return;
 					for (const key in obj) {
 						if (Object.prototype.hasOwnProperty.call(obj, key)) {
 							const lowerKey = key.toLowerCase();
 							if (typeof obj[key] === 'object' && obj[key] !== null) {
-								mask(obj[key]);
+								mask(obj[key], depth + 1);
 							} else if (sensitiveKeys.some(k => lowerKey.includes(k))) {
-								obj[key] = '****** (已隐藏)';
+								obj[key] = '[MASKED]';
+							} else if (textKeys.includes(lowerKey)) {
+								obj[key] = '[TEXT_CONTENT_MASKED]';
 							} else if (key === 'url') {
 								const urlStr = String(obj[key]);
 								if (!urlStr.includes('microsoft') && !urlStr.includes('googleapis') && !urlStr.includes('qq.com') && !urlStr.includes('baidu.com')) {
-									obj[key] = 'Custom URL (已隐藏)';
+									obj[key] = 'Custom URL [MASKED]';
 								}
-							} else if (key === 'originalHTML' || key === 'content') {
-								if (String(obj[key]).length > 100) {
-									obj[key] = String(obj[key]).substring(0, 100) + '... (内容过长已截断)';
-								}
+							} else if (typeof obj[key] === 'string' && obj[key].length > 150) {
+								obj[key] = obj[key].substring(0, 150) + '[TRUNCATED]';
 							}
 						}
 					}
@@ -870,72 +1880,1262 @@
 				mask(cleanData);
 				return cleanData;
 			} catch (e) {
-				return '[数据清洗失败]';
+				return '[Data Sanitization Failed]';
 			}
 		},
 
-		_record(level, module, message, data) {
-			const timestamp = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
-			const logEntry = { timestamp, level, module, message, data };
+		/**
+		 * 核心清理算法：优先清理最早的低级别日志 (WARN 以下)
+		 * @param {Array} list - 待处理的日志数组
+		 * @param {number} targetSize - 目标保留条数
+		 */
+		_prune(list, targetSize) {
+			if (list.length <= targetSize) return list;
+			
+			let toRemoveCount = list.length - targetSize;
+			const warnWeight = this.levels['WARN']; // 权重为 2
 
-			if (this.config.history.length >= this.config.maxHistory) {
-				this.config.history.shift();
+			// 1. 找出所有权重低于 WARN 的日志索引 (INFO=1, ALL=0)
+			const lowPriorityIndices = [];
+			for (let i = 0; i < list.length; i++) {
+				if ((this.levels[list[i].level] || 0) < warnWeight) {
+					lowPriorityIndices.push(i);
+				}
 			}
-			this.config.history.push(logEntry);
 
-			if (this.config.enabled) {
-				const prefix = `[${timestamp}] %c[${module}]`;
+			// 2. 决定要删除的索引集合
+			const indicesToDelete = new Set();
+			
+			// 优先从低级别日志中按时间顺序（最早的）取
+			const removeFromLow = Math.min(toRemoveCount, lowPriorityIndices.length);
+			for (let i = 0; i < removeFromLow; i++) {
+				indicesToDelete.add(lowPriorityIndices[i]);
+			}
+			
+			toRemoveCount -= removeFromLow;
+
+			// 3. 如果低级别日志删光了还没达到目标，则按时间顺序删除剩余的最早日志（无论级别）
+			if (toRemoveCount > 0) {
+				for (let i = 0; i < list.length && toRemoveCount > 0; i++) {
+					if (!indicesToDelete.has(i)) {
+						indicesToDelete.add(i);
+						toRemoveCount--;
+					}
+				}
+			}
+
+			// 4. 返回过滤后的数组
+			return list.filter((_, index) => !indicesToDelete.has(index));
+		},
+
+		_record(level, module, message, data, traceId = null, reasoning = null) {
+			const currentWeight = this.levels[this.config.level] ?? 2;
+			const msgWeight = this.levels[level] ?? 1;
+
+			if (msgWeight < currentWeight) return;
+
+			const now = Date.now();
+			const baseTime = new Date(now).toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
+			const ms = String(now % 1000).padStart(3, '0');
+			const timestamp = `${baseTime}.${ms}`;
+
+			const logEntry = { 
+				timestampMs: now, 
+				timestamp, 
+				level, 
+				module, 
+				traceId, 
+				message, 
+				data: this._sanitize(data),
+				reasoning: reasoning
+			};
+
+			this.history.push(logEntry);
+			if (this.history.length > this.config.maxHistory) {
+				this.history = this._prune(this.history, this.config.maxHistory);
+			}
+
+			this._scheduleSave();
+
+			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.LOG_ADDED, { detail: logEntry }));
+
+			if (currentWeight !== 99) {
+				const traceStr = traceId ? `[${traceId}] ` : '';
+				const prefix = `[${timestamp}] %c[${module}] ${traceStr}`;
 				let style = 'font-weight: bold;';
 				if (level === 'INFO') style += 'color: #2196F3;';
 				else if (level === 'WARN') style += 'color: #FF9800;';
 				else if (level === 'ERROR') style += 'color: #F44336;';
 
-				if (data) {
-					console.log(prefix, style, message, data);
-				} else {
-					console.log(prefix, style, message);
-				}
+				if (data) console.log(prefix, style, message, logEntry.data);
+				else console.log(prefix, style, message);
+
+				if (reasoning) console.log('%c[Reasoning]\n' + reasoning, 'color: #9c27b0;');
 			}
 		},
 
-		info(module, message, data = null) {
-			this._record('INFO', module, message, this._sanitize(data));
+		_scheduleSave() {
+			if (this.saveTimer) clearTimeout(this.saveTimer);
+			this.saveTimer = setTimeout(() => {
+				const persistData = this._prune(this.history, this.config.maxPersist).map(entry => {
+					const copy = { ...entry };
+					delete copy.reasoning;
+					return copy;
+				});
+				GM_setValue('ao3_log_history', persistData);
+			}, 2000);
 		},
 
-		warn(module, message, data = null) {
-			this._record('WARN', module, message, this._sanitize(data));
-		},
-
-		error(module, message, error = null) {
+		info(module, message, data = null, traceId = null, reasoning = null) { this._record('INFO', module, message, data, traceId, reasoning); },
+		warn(module, message, data = null, traceId = null, reasoning = null) { this._record('WARN', module, message, data, traceId, reasoning); },
+		error(module, message, error = null, traceId = null, reasoning = null) {
 			let errorData = error;
 			if (error instanceof Error) {
-				errorData = { message: error.message, stack: error.stack, ...error };
+				errorData = { message: error.message, stack: error.stack, type: error.type };
 			}
-			this._record('ERROR', module, message, this._sanitize(errorData));
+			this._record('ERROR', module, message, errorData, traceId, reasoning);
 		},
 
-		toggle() {
-			this.config.enabled = !this.config.enabled;
-			GM_setValue('enable_debug_mode', this.config.enabled);
-			return this.config.enabled;
+		clear() {
+			this.history =[];
+			GM_setValue('ao3_log_history', this.history);
 		},
 
 		export() {
-			const logText = this.config.history.map(entry => {
-				const dataStr = entry.data ? `\nData: ${JSON.stringify(entry.data, null, 2)}` : '';
-				return `[${entry.timestamp}] [${entry.level}] [${entry.module}] ${entry.message}${dataStr}`;
-			}).join('\n——\n');
-
+			const exportData = this.history.map(entry => {
+				const copy = { ...entry };
+				if (copy.reasoning) copy.reasoning = '[REASONING_CONTENT_MASKED]';
+				return copy;
+			});
+			const jsonString = JSON.stringify(exportData, null, 2);
 			const dateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' })
 				.replace(/:/g, '-')
 				.replace(' ', '_');
-			saveFile(logText, `AO3-Translator-Log-${dateStr}.log`, 'text/plain;charset=utf-8');
+			saveFile(jsonString, `AO3-Translator-Log-${dateStr}.log`, 'application/json;charset=utf-8');
 		}
 	};
+
+	/**
+	 * 统一网络请求拦截器
+	 */
+	function safeRequest(options, traceId = null) {
+		const reqTraceId = traceId || Logger.generateTraceId();
+		const startTime = Date.now();
+
+		// 辅助函数：将原生 Headers 字符串解析为对象
+		const parseHeaders = (rawHeaders) => {
+			if (!rawHeaders) return {};
+			const headers = {};
+			rawHeaders.trim().split(/[\r\n]+/).forEach(line => {
+				const index = line.indexOf(':');
+				if (index > 0) {
+					const key = line.substring(0, index).trim().toLowerCase();
+					const value = line.substring(index + 1).trim();
+					headers[key] = value;
+				}
+			});
+			return headers;
+		};
+
+		// 记录请求发起
+		Logger.info('Network', `[REQ] ${options.method || 'GET'} ${options.url}`, {
+			requestHeaders: options.headers,
+			requestBody: options.data ? '[PAYLOAD_MASKED]' : null
+		}, reqTraceId);
+
+		const originalOnLoad = options.onload;
+		const originalOnError = options.onerror;
+		const originalOnTimeout = options.ontimeout;
+
+		options.onload = (res) => {
+			const duration = Date.now() - startTime;
+			// 记录请求响应 (Headers 结构化)
+			Logger.info('Network', `[RES] ${res.status} ${res.statusText} (${duration}ms)`, {
+				responseHeaders: parseHeaders(res.responseHeaders),
+				responseBody: res.responseText ? '[PAYLOAD_MASKED]' : null
+			}, reqTraceId);
+
+			if (originalOnLoad) originalOnLoad(res);
+		};
+
+		options.onerror = (err) => {
+			const duration = Date.now() - startTime;
+			Logger.error('Network', `[ERR] Network Error (${duration}ms)`, err, reqTraceId);
+			if (originalOnError) originalOnError(err);
+		};
+
+		options.ontimeout = () => {
+			const duration = Date.now() - startTime;
+			Logger.error('Network', `[TIMEOUT] Request Timeout (${duration}ms)`, null, reqTraceId);
+			if (originalOnTimeout) originalOnTimeout();
+		};
+
+		return GM_xmlhttpRequest(options);
+	}
+
+	/**************************************************************************
+	 * 作品导出与生成引擎
+	 **************************************************************************/
+
+	/**
+	 * 模板管理器
+	 */
+	class ExportTemplateStore {
+		static DEFAULT_TEMPLATES = {
+			html:[{
+				id: 'default_html', name: '默认', isProtected: true,
+				css: `
+/* 1. 全局基础设置 */
+* { font-style: normal !important; } 
+body { font-family: "Georgia", "Times New Roman", "Microsoft YaHei", serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6em; color: #333; background: #f9f9f9; text-align: justify; word-wrap: break-word; } 
+h1, h2, h3, h4, h5, h6, b, strong { font-weight: bold !important; } 
+.text-center, .text-center * { text-align: center !important; } 
+/* 2. 页面容器与分页 */
+.content-wrapper { background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); } 
+.page-break { margin-top: 4em; padding-top: 2em; border-top: 1px solid #eee; } 
+/* 3. 扉页 (Title Page) */
+.title-page { padding: 4em 2em; text-align: center; } 
+.title-page h1 { font-size: 2.0em !important; line-height: 1.3; } 
+.title-page h2 { font-size: 1.3em !important; margin-top: 2em; } 
+/* 4. 作品信息页 (Imprint Page) */
+.imprint-page { font-size: 0.9em; line-height: 1.6em; background: #f4f4f4; padding: 2em; border-radius: 4px; } 
+.imprint-page h2 { font-size: 1.8em !important; margin-bottom: 1.5em !important; } 
+.imprint-page p { margin: 0.5em 0; padding: 0; } 
+.meta-label { font-weight: bold; font-size: 1.05em; } 
+/* 5. 目录页 (Table of Contents) */
+.toc-page { padding: 2em 0; } 
+.toc-list { list-style: none; padding: 0; margin: 0; } 
+.toc-item { margin-bottom: 1.0em; line-height: 1.8em; } 
+.toc-item a { text-decoration: none; color: #333; display: block; transition: color 0.2s; font-size: 1.25em; font-weight: 500; } 
+.toc-item a:hover { color: #000; text-decoration: none; } 
+/* 6. 章节与正文 (Chapters & Text) */
+.foreword-page h2, .chapter-page h2, .toc-page h2 { font-size: 1.8em !important; margin-bottom: 2em !important; } 
+.foreword-section h3 { font-size: 1.3em !important; margin-bottom: 0.5em !important; } 
+.chapter-meta { font-size: 0.95em; margin-bottom: 2.5em; padding: 1em; border-left: 3px solid #ccc; background: #f9f9f9; } 
+.meta-heading { font-size: 1.2em; font-weight: bold; margin-bottom: 0.4em; } 
+.chapter-end-notes { margin-top: 3em; } 
+.chapter-text p { text-indent: 2em; margin: 0 0 1.2em 0; line-height: 1.6em; } 
+.chapter-text > p:first-of-type { text-indent: 0; } 
+.drop-cap { font-size: 3em; float: left; margin-top: -0.1em; margin-right: 0.1em; line-height: 1; color: #555; } 
+/* 7. 双语对照显示控制 */
+.ao3-original-content { display: block; color: inherit; font-weight: inherit; } 
+.ao3-translated-content { display: block; margin-top: 1.2em; color: inherit; font-weight: inherit; }
+.chapter-text > p:first-of-type .ao3-translated-content { text-indent: 2em; }
+.title-page h1 .ao3-translated-content, .chapter-page h2 .ao3-translated-content { margin-top: 1.2em; font-size: 0.75em; color: #555; display: block; font-weight: normal !important; } 
+/* 8. 结尾与关于页 */
+.the-end { margin-top: 4em; margin-bottom: 2em; } 
+.about-page { padding-top: 2em; } 
+/* 9. 移动端适配 */
+@media (max-width: 768px) { body { padding: 10px; text-align: left; } .content-wrapper { padding: 20px 15px; } .title-page { padding: 2em 1em; } .chapter-text p { text-align: left; } .drop-cap { font-size: 2.5em; margin-top: 0; } .page-break { margin-top: 2em; padding-top: 1em; } .imprint-page { padding: 1.5em; } }`
+			}],
+			epub:[{
+				id: 'default_epub', name: '默认', isProtected: true,
+				css: `
+/* 1. 全局基础设置 */
+* { font-style: normal !important; } 
+body { font-family: "Georgia", "Times New Roman", "Microsoft YaHei", serif; line-height: 1.6em; text-align: justify; color: #333; word-wrap: break-word; } 
+h1, h2, h3, h4, h5, h6, b, strong { font-weight: bold !important; } 
+.text-center, .text-center * { text-align: center !important; } 
+/* 2. 页面容器与分页 */
+.page-break { page-break-before: always; } 
+/* 3. 扉页 (Title Page) */
+.title-page { margin-top: 10%; text-align: center; } 
+.title-page h1 { font-size: 2.0em !important; padding-bottom: 0.2em; margin-bottom: 0.2em; line-height: 1.3; } 
+.title-page h2 { font-size: 1.3em !important; margin-top: 2em; } 
+/* 4. 作品信息页 (Imprint Page) */
+.imprint-page { font-size: 0.9em; line-height: 1.6em; margin-top: 2em; background: #f4f4f4; padding: 2em; border-radius: 4px; } 
+.imprint-page h2 { font-size: 1.8em !important; margin-bottom: 1.5em !important; } 
+.imprint-page p { margin: 0.5em 0; padding: 0; } 
+.meta-label { font-weight: bold; font-size: 1.05em; } 
+/* 5. 目录页 (Table of Contents) */
+.toc-page { padding: 2em 0; } 
+.toc-list { list-style: none; padding: 0; margin: 0; } 
+.toc-item { margin-bottom: 1.0em; line-height: 1.8em; } 
+.toc-item a { text-decoration: none; color: #333; display: block; transition: color 0.2s; font-size: 1.25em; font-weight: 500; } 
+.toc-item a:hover { color: #000; text-decoration: none; } 
+/* 6. 章节与正文 (Chapters & Text) */
+.foreword-page h2, .chapter-page h2, .toc-page h2 { font-size: 1.8em !important; margin-bottom: 2em !important; } 
+.foreword-section h3 { font-size: 1.3em !important; margin-bottom: 0.5em !important; } 
+.chapter-meta { font-size: 0.95em; margin-bottom: 2.5em; padding: 1em; border-left: 3px solid #ccc; background: #f9f9f9; } 
+.meta-heading { font-size: 1.2em; font-weight: bold; margin-bottom: 0.4em; } 
+.chapter-end-notes { margin-top: 3em; } 
+.chapter-text p { text-indent: 2em; margin: 0 0 1.2em 0; line-height: 1.6em; } 
+.chapter-text > p:first-of-type { text-indent: 0; } 
+.drop-cap { font-size: 3em; float: left; margin-top: -0.1em; margin-right: 0.1em; line-height: 1; color: #555; } 
+/* 7. 双语对照显示控制 */
+.ao3-original-content { display: block; color: inherit; font-weight: inherit; } 
+.ao3-translated-content { display: block; margin-top: 1.2em; color: inherit; font-weight: inherit; }
+.chapter-text > p:first-of-type .ao3-translated-content { text-indent: 2em; }
+.title-page h1 .ao3-translated-content, .chapter-page h2 .ao3-translated-content { margin-top: 1.2em; font-size: 0.75em; color: #555; display: block; font-weight: normal !important; } 
+/* 8. 结尾与关于页 */
+.the-end { margin-top: 4em; margin-bottom: 2em; } 
+.about-page { margin-top: 2em; } 
+/* 9. 移动端适配 */
+@media (max-width: 768px) { body { text-align: left; } .chapter-text p { text-align: left; } .drop-cap { font-size: 2.5em; margin-top: 0; } .imprint-page { padding: 1.5em; } }`
+			}],
+			pdf:[{
+				id: 'default_pdf', name: '默认', isProtected: true,
+				css: `
+/* 1. 全局基础设置 */
+* { font-style: normal !important; } 
+body { font-family: "Georgia", "Times New Roman", "Microsoft YaHei", serif; line-height: 1.6em; color: #333; text-align: justify; word-wrap: break-word; } 
+h1, h2, h3, h4, h5, h6, b, strong { font-weight: bold !important; } 
+.text-center, .text-center * { text-align: center !important; } 
+/* 2. 页面容器与分页控制 */
+.page-break { page-break-before: always; }
+li, .chapter-meta, .imprint-page, .about-page, .the-end { page-break-inside: avoid; }
+h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; } 
+/* 3. 扉页 (Title Page) */
+.title-page { padding-top: 4em; text-align: center; } 
+.title-page h1 { font-size: 2.0em !important; padding-bottom: 15px; margin-bottom: 15px; line-height: 1.3; } 
+.title-page h2 { font-size: 1.3em !important; margin-top: 2em; } 
+/* 4. 作品信息页 (Imprint Page) */
+.imprint-page { font-size: 0.9em; line-height: 1.6em; background: #f4f4f4; padding: 2em; border-radius: 4px; } 
+.imprint-page h2 { font-size: 1.8em !important; margin-bottom: 1.5em !important; } 
+.imprint-page p { margin: 0.5em 0; padding: 0; } 
+.meta-label { font-weight: bold; font-size: 1.05em; } 
+/* 5. 目录页 (Table of Contents) */
+.toc-page { padding: 2em 0; } 
+.toc-list { list-style: none; padding: 0; margin: 0; } 
+.toc-item { margin-bottom: 1.0em; line-height: 1.8em; } 
+.toc-item a { text-decoration: none; color: #333; display: block; transition: color 0.2s; font-size: 1.25em; font-weight: 500; } 
+.toc-item a:hover { color: #000; text-decoration: none; } 
+/* 6. 章节与正文 (Chapters & Text) */
+.foreword-page h2, .chapter-page h2, .toc-page h2 { font-size: 1.8em !important; margin-bottom: 2em !important; } 
+.foreword-section h3 { font-size: 1.3em !important; margin-bottom: 0.5em !important; } 
+.chapter-meta { font-size: 0.95em; margin-bottom: 2.5em; padding: 1em; border-left: 3px solid #ccc; background: #f9f9f9; } 
+.meta-heading { font-size: 1.2em; font-weight: bold; margin-bottom: 0.4em; } 
+.chapter-end-notes { margin-top: 3em; } 
+.chapter-text p { text-indent: 2em; margin: 0 0 1.2em 0; line-height: 1.6em; } 
+.chapter-text > p:first-of-type { text-indent: 0; } 
+.drop-cap { font-size: 3em; float: left; margin-top: -0.1em; margin-right: 0.1em; line-height: 1; color: #555; } 
+/* 7. 双语对照显示控制 */
+.ao3-original-content { display: block; color: inherit; font-weight: inherit; } 
+.ao3-translated-content { display: block; margin-top: 1.2em; color: inherit; font-weight: inherit; }
+.chapter-text > p:first-of-type .ao3-translated-content { text-indent: 2em; }
+.title-page h1 .ao3-translated-content, .chapter-page h2 .ao3-translated-content { margin-top: 1.2em; font-size: 0.75em; color: #555; display: block; font-weight: normal !important; } 
+/* 8. 结尾与关于页 */
+.the-end { margin-top: 4em; margin-bottom: 2em; } 
+.about-page { padding-top: 2em; }`
+			}]
+		};
+
+		static init() {
+			let templates = GM_getValue('ao3_export_templates');
+			if (!templates || !templates.epub) {
+				templates = JSON.parse(JSON.stringify(this.DEFAULT_TEMPLATES));
+			} else {
+				['html', 'epub', 'pdf'].forEach(format => {
+					if (!templates[format]) templates[format] = [];
+					const defaultTpl = this.DEFAULT_TEMPLATES[format][0];
+					const existingIndex = templates[format].findIndex(t => t.id === defaultTpl.id);
+					if (existingIndex !== -1) {
+						templates[format][existingIndex] = JSON.parse(JSON.stringify(defaultTpl));
+					} else {
+						templates[format].unshift(JSON.parse(JSON.stringify(defaultTpl)));
+					}
+				});
+			}
+			GM_setValue('ao3_export_templates', templates);
+
+			if (!GM_getValue('ao3_export_selected_templates')) {
+				GM_setValue('ao3_export_selected_templates', { epub: 'default_epub', pdf: 'default_pdf', html: 'default_html' });
+			}
+		}
+
+		static getTemplates(format) {
+			return GM_getValue('ao3_export_templates', this.DEFAULT_TEMPLATES)[format] ||[];
+		}
+
+		static getTemplate(format, id) {
+			const templates = this.getTemplates(format);
+			return templates.find(t => t.id === id) || templates[0];
+		}
+
+		static saveTemplate(format, template) {
+			const allTemplates = GM_getValue('ao3_export_templates', this.DEFAULT_TEMPLATES);
+			const formatTemplates = allTemplates[format] ||[];
+			const index = formatTemplates.findIndex(t => t.id === template.id);
+			if (index !== -1) formatTemplates[index] = template;
+			else formatTemplates.push(template);
+			allTemplates[format] = formatTemplates;
+			GM_setValue('ao3_export_templates', allTemplates);
+		}
+
+		static deleteTemplate(format, id) {
+			const allTemplates = GM_getValue('ao3_export_templates', this.DEFAULT_TEMPLATES);
+			let formatTemplates = allTemplates[format] ||[];
+			formatTemplates = formatTemplates.filter(t => t.id !== id);
+			if (formatTemplates.length === 0) {
+				formatTemplates.push(JSON.parse(JSON.stringify(this.DEFAULT_TEMPLATES[format][0])));
+			}
+			allTemplates[format] = formatTemplates;
+			GM_setValue('ao3_export_templates', allTemplates);
+		}
+	}
+
+	/**
+	 * DOM 解析与清洗器
+	 */
+	class AO3DOMParser {
+		static safeExtractText(selector, context = document) {
+			const elements = context.querySelectorAll(selector);
+			if (elements.length === 0) return 'N/A';
+			return Array.from(elements).map(el => {
+				if (el.tagName === 'A' && el.href?.includes('/tags/')) {
+					try {
+						let tagPart = el.href.split('/tags/')[1].split('/')[0];
+						tagPart = decodeURIComponent(tagPart);
+						return tagPart.replace(/\*a\*/g, '&').replace(/\*s\*/g, '/').replace(/\*d\*/g, '.').replace(/\*h\*/g, '#').replace(/\*q\*/g, '?');
+					} catch (e) {}
+				}
+				const orig = el.querySelector('.ao3-tag-original, .ao3-original-content');
+				return orig ? orig.textContent.trim() : el.textContent.trim();
+			}).join(', ');
+		}
+
+		static cleanDOM(node) {
+			const clone = node.cloneNode(true);
+			const displayMode = GM_getValue('translation_display_mode', 'bilingual');
+			
+			if (displayMode === 'translation_only') {
+				clone.querySelectorAll('.ao3-original-content, .ao3-original-title, .ao3-tag-original').forEach(el => el.remove());
+				clone.querySelectorAll('.ao3-translated-content, .ao3-translated-title, .ao3-tag-translation').forEach(el => {
+					el.replaceWith(...el.childNodes);
+				});
+			} else {
+				clone.querySelectorAll('.ao3-text-block').forEach(block => {
+					if (block.querySelector('.ao3-translated-content')) {
+						let next = block.nextSibling;
+						let brCount = 0;
+						let brsToRemove =[];
+						while (next && next.nodeType === Node.ELEMENT_NODE && next.tagName === 'BR') {
+							brCount++;
+							brsToRemove.push(next);
+							next = next.nextSibling;
+						}
+						if (brCount > 0) {
+							brsToRemove.forEach(br => br.remove());
+							const transContent = block.querySelector('.ao3-translated-content');
+							if (transContent) {
+								transContent.style.marginBottom = brCount === 1 ? '1.5em' : '0';
+							}
+						}
+					}
+				});
+			}
+			
+			const selectorsToRemove =[
+				'.translate-me-ao3-wrapper', '.retry-translation-button', 
+				'.translated-by-ao3-translator-error', '.ao3-title-translatable-temp',
+				'a.bookmark_form_placement_open', 'form.button_to', 
+				'.work.navigation.actions', '.landmark.heading'
+			];
+			clone.querySelectorAll(selectorsToRemove.join(', ')).forEach(el => el.remove());
+			
+			const stripDataAttributes = (el) => {
+				Array.from(el.attributes).forEach(attr => {
+					if (/^data-(translation|detected|dom|br|indent)-/.test(attr.name)) {
+						el.removeAttribute(attr.name);
+					}
+				});
+			};
+			stripDataAttributes(clone);
+			clone.querySelectorAll('*').forEach(stripDataAttributes);
+
+			return clone;
+		}
+
+		static getCleanTitle(titleNode) {
+			if (!titleNode) return '';
+			const displayMode = GM_getValue('translation_display_mode', 'bilingual');
+			const originalSpan = titleNode.querySelector('.ao3-original-title');
+			const translatedSpan = titleNode.querySelector('.ao3-translated-title');
+
+			if (translatedSpan && originalSpan) {
+				if (displayMode === 'translation_only') {
+					return translatedSpan.textContent.trim();
+				} else {
+					return `<span class="ao3-original-content">${originalSpan.textContent.trim()}</span><span class="ao3-translated-content">${translatedSpan.textContent.trim()}</span>`;
+				}
+			}
+			const clone = titleNode.cloneNode(true);
+			clone.querySelectorAll('.ao3-title-translatable-temp').forEach(el => el.remove());
+			return clone.textContent.trim();
+		}
+
+		static extractMetadata() {
+			const titleNode = document.querySelector('.preface.group h2.title.heading');
+			let title = this.getCleanTitle(titleNode) || 'Unknown Title';
+			
+			const authorNodes = document.querySelectorAll('.preface.group h3.byline.heading a[rel="author"]');
+			const author = Array.from(authorNodes).map(a => {
+				const orig = a.querySelector('.ao3-tag-original, .ao3-original-content');
+				return orig ? orig.textContent.trim() : a.textContent.trim();
+			}).join(', ') || 'Unknown Author';
+			
+			const getSeries = () => {
+				const seriesSpan = document.querySelector('dd.series span.position');
+				if (!seriesSpan) return 'N/A';
+				const aTag = seriesSpan.querySelector('a');
+				if (!aTag) return seriesSpan.textContent.trim();
+
+				const origSpan = aTag.querySelector('.ao3-tag-original, .ao3-original-content');
+				const seriesName = origSpan ? origSpan.textContent.trim() : aTag.textContent.trim();
+
+				const clone = seriesSpan.cloneNode(true);
+				const linkInClone = clone.querySelector('a');
+				if (linkInClone) clone.removeChild(linkInClone); 
+				
+				const numMatch = clone.textContent.match(/\d+/);
+				return numMatch ? `Part ${numMatch[0]} of ${seriesName}` : seriesName;
+			};
+
+			const getRawStat = (className) => {
+				const dd = document.querySelector(`dd.${className}`);
+				if (!dd) return 'N/A';
+				const orig = dd.querySelector('.ao3-tag-original, .ao3-original-content');
+				return orig ? orig.textContent.trim() : dd.textContent.trim();
+			};
+
+			const rawMetadata = {
+				url: window.location.href.split('?')[0].split('#')[0],
+				rating: this.safeExtractText('dd.rating.tags a.tag'),
+				warnings: this.safeExtractText('dd.warning.tags a.tag'),
+				category: this.safeExtractText('dd.category.tags a.tag'),
+				fandoms: this.safeExtractText('dd.fandom.tags a.tag'),
+				relationships: this.safeExtractText('dd.relationship.tags a.tag'),
+				characters: this.safeExtractText('dd.character.tags a.tag'),
+				additionalTags: this.safeExtractText('dd.freeform.tags a.tag'),
+				series: getSeries(),
+				collections: this.safeExtractText('dd.collections a'),
+				language: getRawStat('language'),
+				published: getRawStat('published'),
+				updated: getRawStat('status') !== 'N/A' ? getRawStat('status') : getRawStat('published'),
+				words: getRawStat('words'),
+				chapters: getRawStat('chapters')
+			};
+
+			const summaryNode = document.querySelector('.preface.group .summary blockquote.userstuff');
+			const summary = summaryNode ? this.cleanDOM(summaryNode).innerHTML : '';
+
+			const notesNode = document.querySelector('.preface.group .notes blockquote.userstuff');
+			const notes = notesNode ? this.cleanDOM(notesNode).innerHTML : '';
+			
+			return { title, author, rawMetadata, summary, notes, language: 'zh-CN' };
+		}
+
+		static extractChapters() {
+			const chapters =[];
+			const chapterNodes = document.querySelectorAll('#chapters > .chapter');
+			
+			if (chapterNodes.length > 0) {
+				chapterNodes.forEach((node, index) => {
+					let title = `Chapter ${index + 1}`;
+					const titleNode = node.querySelector('.chapter.preface.group h3.title');
+					if (titleNode) title = this.getCleanTitle(titleNode) || title;
+					
+					const summaryNode = node.querySelector('.chapter.preface.group .summary blockquote.userstuff');
+					const summary = summaryNode ? this.cleanDOM(summaryNode).innerHTML : '';
+
+					const prefaces = node.querySelectorAll('.chapter.preface.group');
+					const startNotesNode = prefaces.length > 0 ? prefaces[0].querySelector('.notes.module:not(.end) blockquote.userstuff') : null;
+					const startNotes = startNotesNode ? this.cleanDOM(startNotesNode).innerHTML : '';
+
+					const contentNode = node.querySelector('.userstuff.module[role="article"]');
+					const content = contentNode ? this.cleanDOM(contentNode).innerHTML : '';
+
+					const endNotesNode = node.querySelector('.end.notes.module blockquote.userstuff');
+					const endNotes = endNotesNode ? this.cleanDOM(endNotesNode).innerHTML : '';
+
+					chapters.push({ title, summary, startNotes, content, endNotes });
+				});
+			} else {
+				const contentNode = document.querySelector('#chapters > .userstuff');
+				const content = contentNode ? this.cleanDOM(contentNode).innerHTML : '';
+				chapters.push({ title: '', summary: '', startNotes: '', content, endNotes: '' });
+			}
+			return chapters;
+		}
+	}
+
+	/**
+	 * 文档生成器
+	 */
+	class DocumentBuilder {
+		static fixXHTML(html) {
+			if (!html) return '';
+			let fixed = html.replace(/<br\s*\/?>/gi, '<br/>')
+							.replace(/<hr\s*\/?>/gi, '<hr/>')
+							.replace(/<img([^>]+)>/gi, (match, p1) => p1.trim().endsWith('/') ? match : `<img ${p1} />`);
+			fixed = fixed.replace(/&(?!(?:[a-zA-Z]+|#[0-9]+|#x[0-9a-fA-F]+);)/g, '&amp;');
+			return fixed;
+		}
+
+		static escapeXML(str) {
+			if (!str) return '';
+			return str.replace(/&/g, '&amp;')
+					  .replace(/</g, '&lt;')
+					  .replace(/>/g, '&gt;')
+					  .replace(/"/g, '&quot;')
+					  .replace(/'/g, '&apos;');
+		}
+
+		static applyManualDropCap(htmlString) {
+			const tempDiv = document.createElement('div');
+			tempDiv.innerHTML = htmlString;
+			const firstP = tempDiv.querySelector('p');
+			if (!firstP) return htmlString;
+
+			const walker = document.createTreeWalker(firstP, NodeFilter.SHOW_TEXT, null, false);
+			let firstTextNode = null;
+			let node;
+			while ((node = walker.nextNode())) {
+				if (node.nodeValue.trim().length > 0) {
+					firstTextNode = node;
+					break;
+				}
+			}
+
+			if (firstTextNode) {
+				const text = firstTextNode.nodeValue;
+				const match = text.match(/^([\s\p{P}\p{S}]*)([^\s\p{P}\p{S}])/u);
+				if (match) {
+					const prefix = match[1];
+					const firstChar = match[2];
+					const rest = text.substring(match[0].length);
+					
+					const dropCapSpan = document.createElement('span');
+					dropCapSpan.className = 'drop-cap';
+					dropCapSpan.textContent = prefix + firstChar;
+					
+					const fragment = document.createDocumentFragment();
+					fragment.appendChild(dropCapSpan);
+					fragment.appendChild(document.createTextNode(rest));
+					
+					firstTextNode.parentNode.replaceChild(fragment, firstTextNode);
+				}
+			}
+			return tempDiv.innerHTML;
+		}
+
+		static buildFullHTML(meta, chapters) {
+			const scriptVersion = typeof GM_info !== 'undefined' ? GM_info.script.version : 'Unknown';
+			const exportDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+			let html = `
+				<div class="title-page text-center">
+					<h1>${meta.title}</h1>
+					<h2>by ${meta.author}</h2>
+				</div>
+				<div class="page-break"></div>
+				<div class="imprint-page">
+					<h2 class="text-center">Imprint</h2>
+					<p><span class="meta-label">Original Copyright ©</span> <strong>${meta.author}</strong></p>
+					<p>Original Work published on Archive of Our Own.</p>
+					<p><span class="meta-label">Source:</span> ${meta.rawMetadata.url}</p>
+					<br/>
+			`;
+			
+			const addMeta = (label, value) => {
+				if (value && value !== 'N/A') html += `<p><span class="meta-label">${label}:</span> ${value}</p>\n`;
+			};
+			
+			addMeta('Rating', meta.rawMetadata.rating);
+			addMeta('Archive Warning', meta.rawMetadata.warnings);
+			addMeta('Category', meta.rawMetadata.category);
+			addMeta('Fandoms', meta.rawMetadata.fandoms);
+			addMeta('Relationships', meta.rawMetadata.relationships);
+			addMeta('Characters', meta.rawMetadata.characters);
+			addMeta('Additional Tags', meta.rawMetadata.additionalTags);
+			addMeta('Series', meta.rawMetadata.series);
+			addMeta('Collections', meta.rawMetadata.collections);
+			addMeta('Language', meta.rawMetadata.language);
+			addMeta('Published', meta.rawMetadata.published);
+			addMeta('Updated', meta.rawMetadata.updated);
+			addMeta('Words', meta.rawMetadata.words);
+			addMeta('Chapters', meta.rawMetadata.chapters);
+			
+			html += `<br/><p>Exported by AO3 Translator v${scriptVersion} on ${exportDate}.</p></div>`;
+
+			if (meta.summary || meta.notes) {
+				html += `<div class="page-break"></div><div class="foreword-page"><h2 class="text-center">Foreword</h2>`;
+				if (meta.summary) html += `<div class="foreword-section"><h3>Summary</h3><div>${this.fixXHTML(meta.summary)}</div></div>`;
+				if (meta.summary && meta.notes) html += `<br/>`;
+				if (meta.notes) html += `<div class="foreword-section"><h3>Notes</h3><div>${this.fixXHTML(meta.notes)}</div></div>`;
+				html += `</div>`;
+			}
+
+			if (chapters.length > 1) {
+				html += `<div class="page-break"></div><div class="toc-page"><h2 class="text-center">Table of Contents</h2><ul class="toc-list">`;
+				chapters.forEach((chap, index) => {
+					let tocTitle = `第 ${index + 1} 章`;
+					if (chap.title) {
+						const tempDiv = document.createElement('div');
+						tempDiv.innerHTML = chap.title;
+						const origSpan = tempDiv.querySelector('.ao3-original-content');
+						let rawOrigTitle = origSpan ? origSpan.textContent : tempDiv.textContent;
+						let cleanName = rawOrigTitle.replace(/^(Chapter\s*\d+|第\s*\d+\s*章)\s*[:：]?\s*/i, '').trim();
+						if (cleanName) tocTitle = `第 ${index + 1} 章 ${cleanName}`;
+					}
+					html += `<li class="toc-item"><a href="#chapter-${index + 1}">${tocTitle}</a></li>`;
+				});
+				html += `</ul></div>`;
+			}
+
+			chapters.forEach((chap, index) => {
+				html += `<div class="page-break"></div><div class="chapter-page" id="chapter-${index + 1}">`;
+				if (chap.title) {
+					let displayTitle = chap.title.replace(/(Chapter\s*\d+|第\s*\d+\s*章)\s*[:：]\s*/gi, '$1 ');
+					html += `<h2 class="text-center">${displayTitle}</h2>`;
+				} else if (chapters.length > 1) {
+					html += `<h2 class="text-center">第 ${index + 1} 章</h2>`;
+				}
+
+				if (chap.summary || chap.startNotes) {
+					html += `<div class="chapter-meta">`;
+					if (chap.summary) html += `<div><div class="meta-heading">Summary</div><div>${this.fixXHTML(chap.summary)}</div></div>`;
+					if (chap.summary && chap.startNotes) html += `<br/>`;
+					if (chap.startNotes) html += `<div><div class="meta-heading">Notes</div><div>${this.fixXHTML(chap.startNotes)}</div></div>`;
+					html += `</div>`;
+				}
+
+				let contentHtml = this.fixXHTML(chap.content);
+				contentHtml = this.applyManualDropCap(contentHtml);
+				html += `<div class="chapter-text">${contentHtml}</div>`;
+				
+				if (chap.endNotes) {
+					html += `<div class="chapter-meta chapter-end-notes"><div class="meta-heading">End Notes</div><div>${this.fixXHTML(chap.endNotes)}</div></div>`;
+				}
+				html += `</div>`;
+			});
+
+			html += `
+				<div class="the-end text-center"><h2>THE END</h2><hr style="width: 50%; margin: 2em auto; border: 1px solid #ccc;"/></div>
+				<div class="page-break"></div>
+				<div class="about-page text-center" id="about-page">
+					<h3>About AO3 Translator</h3>
+					<p>This document was generated using AO3 Translator, an open-source user script designed to enhance the reading experience on Archive of Our Own.</p>
+					<p>For more information, updates, or to report issues, please visit our GitHub repository:</p>
+					<p>https://github.com/V-Lipset/ao3-chinese</p>
+				</div>
+			`;
+			return html;
+		}
+	}
+
+	/**
+	 * 导出引擎
+	 */
+	class ExportEngine {
+		static generateUUID() {
+			return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+				var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+				return v.toString(16);
+			});
+		}
+
+		static async loadJSZip() {
+			if (typeof JSZip !== 'undefined') return JSZip;
+			if (window.JSZip) return window.JSZip;
+
+			const urls =[
+				'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+				'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+				'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'
+			];
+
+			for (const url of urls) {
+				try {
+					const res = await new Promise((resolve, reject) => {
+						GM_xmlhttpRequest({
+							method: 'GET', url: url, timeout: 10000,
+							onload: (r) => r.status === 200 ? resolve(r.responseText) : reject(new Error(`HTTP ${r.status}`)),
+							onerror: () => reject(new Error('Network Error')),
+							ontimeout: () => reject(new Error('Timeout'))
+						});
+					});
+					const wrapper = `var module = undefined; var exports = undefined; var define = undefined; ${res}\nreturn typeof JSZip !== 'undefined' ? JSZip : window.JSZip;`;
+					const jszip = new Function(wrapper)();
+					if (jszip) return jszip;
+				} catch (e) {
+					Logger.warn('Export', `JSZip 加载失败 (${url}): ${e.message}`);
+				}
+			}
+			throw new Error('所有 JSZip CDN 均加载失败，请检查网络连接。');
+		}
+
+		static async generateEPUB(meta, chapters, css, fileNameBase) {
+			const JSZipClass = await this.loadJSZip();
+			const zip = new JSZipClass();
+			zip.file("mimetype", "application/epub+zip");
+			
+			const metaInf = zip.folder("META-INF");
+			metaInf.file("container.xml", `<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>`);
+			
+			const oebps = zip.folder("OEBPS");
+			oebps.file("Styles/style.css", css);
+			
+			let manifest = `<item id="css" href="Styles/style.css" media-type="text/css"/>\n<item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>\n`;
+			let spine = ``;
+			let navPoints = '';
+			let playOrder = 1;
+
+			const addXHTMLFile = (id, title, bodyContent) => {
+				const fileName = `Text/${id}.xhtml`;
+				const content = `<?xml version="1.0" encoding="utf-8"?>\n<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml">\n<head>\n<title>${DocumentBuilder.escapeXML(title)}</title>\n<link href="../Styles/style.css" rel="stylesheet" type="text/css"/>\n</head>\n<body>\n${DocumentBuilder.fixXHTML(bodyContent)}\n</body>\n</html>`;
+				oebps.file(fileName, content);
+				manifest += `<item id="${id}" href="${fileName}" media-type="application/xhtml+xml"/>\n`;
+				spine += `<itemref idref="${id}"/>\n`;
+				navPoints += `<navPoint id="navPoint-${playOrder}" playOrder="${playOrder}"><navLabel><text>${DocumentBuilder.escapeXML(title)}</text></navLabel><content src="${fileName}"/></navPoint>\n`;
+				playOrder++;
+			};
+
+			addXHTMLFile('titlepage', 'Title Page', `<div class="title-page text-center"><h1>${meta.title}</h1><h2>by ${meta.author}</h2></div>`);
+			
+			const scriptVersion = typeof GM_info !== 'undefined' ? GM_info.script.version : 'Unknown';
+			const exportDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+			
+			let imprintContent = `<div class="imprint-page">\n<h2 class="text-center">Imprint</h2>\n<p><span class="meta-label">Original Copyright ©</span> <strong>${meta.author}</strong></p>\n<p>Original Work published on Archive of Our Own.</p>\n<p><span class="meta-label">Source:</span> ${meta.rawMetadata.url}</p>\n<br/>\n`;
+			const addMeta = (label, value) => { if (value && value !== 'N/A') imprintContent += `<p><span class="meta-label">${label}:</span> ${value}</p>\n`; };
+			addMeta('Rating', meta.rawMetadata.rating);
+			addMeta('Archive Warning', meta.rawMetadata.warnings);
+			addMeta('Category', meta.rawMetadata.category);
+			addMeta('Fandoms', meta.rawMetadata.fandoms);
+			addMeta('Relationships', meta.rawMetadata.relationships);
+			addMeta('Characters', meta.rawMetadata.characters);
+			addMeta('Additional Tags', meta.rawMetadata.additionalTags);
+			addMeta('Series', meta.rawMetadata.series);
+			addMeta('Collections', meta.rawMetadata.collections);
+			addMeta('Language', meta.rawMetadata.language);
+			addMeta('Published', meta.rawMetadata.published);
+			addMeta('Updated', meta.rawMetadata.updated);
+			addMeta('Words', meta.rawMetadata.words);
+			addMeta('Chapters', meta.rawMetadata.chapters);
+			imprintContent += `<br/>\n<p>Exported by AO3 Translator v${scriptVersion} on ${exportDate}.</p>\n</div>`;
+			addXHTMLFile('imprint', 'Imprint', imprintContent);
+
+			if (meta.summary || meta.notes) {
+				let forewordContent = `<div class="foreword-page"><h2 class="text-center">Foreword</h2>`;
+				if (meta.summary) forewordContent += `<div class="foreword-section"><h3>Summary</h3><div>${meta.summary}</div></div>`;
+				if (meta.summary && meta.notes) forewordContent += `<br/>`;
+				if (meta.notes) forewordContent += `<div class="foreword-section"><h3>Notes</h3><div>${meta.notes}</div></div>`;
+				forewordContent += `</div>`;
+				addXHTMLFile('foreword', 'Foreword', forewordContent);
+			}
+
+			if (chapters.length > 1) {
+				let tocContent = `<div class="toc-page"><h2 class="text-center">Table of Contents</h2><ul class="toc-list">`;
+				chapters.forEach((chap, index) => {
+					let tocTitle = `第 ${index + 1} 章`;
+					if (chap.title) {
+						const tempDiv = document.createElement('div');
+						tempDiv.innerHTML = chap.title;
+						const origSpan = tempDiv.querySelector('.ao3-original-content');
+						let rawOrigTitle = origSpan ? origSpan.textContent : tempDiv.textContent;
+						let cleanName = rawOrigTitle.replace(/^(Chapter\s*\d+|第\s*\d+\s*章)\s*[:：]?\s*/i, '').trim();
+						if (cleanName) tocTitle = `第 ${index + 1} 章 ${cleanName}`;
+					}
+					tocContent += `<li class="toc-item"><a href="chapter${index + 1}.xhtml">${tocTitle}</a></li>`;
+				});
+				tocContent += `</ul></div>`;
+				addXHTMLFile('toc', 'Table of Contents', tocContent);
+			}
+			
+			chapters.forEach((chap, index) => {
+				const chapId = `chapter${index + 1}`;
+				let tocTitle = `第 ${index + 1} 章`;
+				let displayTitle = `第 ${index + 1} 章`;
+				
+				if (chap.title) {
+					const tempDiv = document.createElement('div');
+					tempDiv.innerHTML = chap.title;
+					const origSpan = tempDiv.querySelector('.ao3-original-content');
+					let rawOrigTitle = origSpan ? origSpan.textContent : tempDiv.textContent;
+					let cleanName = rawOrigTitle.replace(/^(Chapter\s*\d+|第\s*\d+\s*章)\s*[:：]?\s*/i, '').trim();
+					if (cleanName) tocTitle = `第 ${index + 1} 章 ${cleanName}`;
+					displayTitle = chap.title.replace(/(Chapter\s*\d+|第\s*\d+\s*章)\s*[:：]\s*/gi, '$1 ');
+				}
+
+				let chapContent = `<div class="chapter-page">`;
+				if (chap.title) chapContent += `<h2 class="text-center">${displayTitle}</h2>\n`;
+				else if (chapters.length > 1) chapContent += `<h2 class="text-center">第 ${index + 1} 章</h2>\n`;
+
+				if (chap.summary || chap.startNotes) {
+					chapContent += `<div class="chapter-meta">`;
+					if (chap.summary) chapContent += `<div><div class="meta-heading">Summary</div><div>${DocumentBuilder.fixXHTML(chap.summary)}</div></div>`;
+					if (chap.summary && chap.startNotes) chapContent += `<br/>`;
+					if (chap.startNotes) chapContent += `<div><div class="meta-heading">Notes</div><div>${DocumentBuilder.fixXHTML(chap.startNotes)}</div></div>`;
+					chapContent += `</div>`;
+				}
+				
+				let contentHtml = DocumentBuilder.applyManualDropCap(chap.content);
+				contentHtml = DocumentBuilder.fixXHTML(contentHtml);
+				chapContent += `<div class="chapter-text">${contentHtml}</div>\n`;
+				
+				if (chap.endNotes) chapContent += `<div class="chapter-meta chapter-end-notes"><div class="meta-heading">End Notes</div><div>${DocumentBuilder.fixXHTML(chap.endNotes)}</div></div>\n`;
+				chapContent += `</div>`;
+				
+				addXHTMLFile(chapId, tocTitle, chapContent);
+			});
+
+			const aboutContent = `
+				<div class="about-page">
+					<h2 class="text-center" style="margin-bottom: 3em;">THE END</h2>
+					<hr style="width: 50%; margin: 2em auto;"/>
+					<h3 class="text-center">About AO3 Translator</h3>
+					<p>This document was generated using AO3 Translator, an open-source user script designed to enhance the reading experience on Archive of Our Own.</p>
+					<p>For more information, updates, or to report issues, please visit our GitHub repository:</p>
+					<p>https://github.com/V-Lipset/ao3-chinese</p>
+				</div>`;
+			addXHTMLFile('about', 'About AO3 Translator', aboutContent);
+			
+			const uuid = this.generateUUID();
+			const metaTempDiv = document.createElement('div');
+			metaTempDiv.innerHTML = meta.title;
+			const origSpan = metaTempDiv.querySelector('.ao3-original-content');
+			const transSpan = metaTempDiv.querySelector('.ao3-translated-content');
+			let plainMetaTitle = (origSpan && transSpan) ? `${origSpan.textContent.trim()} ${transSpan.textContent.trim()}` : metaTempDiv.textContent.trim();
+
+			const contentOpf = `<?xml version="1.0" encoding="utf-8"?>\n<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId" version="2.0">\n  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">\n    <dc:title>${DocumentBuilder.escapeXML(plainMetaTitle)}</dc:title>\n    <dc:creator opf:role="aut">${DocumentBuilder.escapeXML(meta.author)}</dc:creator>\n    <dc:language>${meta.language}</dc:language>\n    <dc:identifier id="BookId">urn:uuid:${uuid}</dc:identifier>\n  </metadata>\n  <manifest>\n    ${manifest}  </manifest>\n  <spine toc="ncx">\n    ${spine}  </spine>\n</package>`;
+			oebps.file("content.opf", contentOpf);
+			
+			const tocNcx = `<?xml version="1.0" encoding="UTF-8"?>\n<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n  <head>\n    <meta name="dtb:uid" content="urn:uuid:${uuid}"/>\n    <meta name="dtb:depth" content="1"/>\n    <meta name="dtb:totalPageCount" content="0"/>\n    <meta name="dtb:maxPageNumber" content="0"/>\n  </head>\n  <docTitle><text>${DocumentBuilder.escapeXML(plainMetaTitle)}</text></docTitle>\n  <navMap>\n    ${navPoints}  </navMap>\n</ncx>`;
+			oebps.file("toc.ncx", tocNcx);
+			
+			const content = await zip.generateAsync({ type: "blob" });
+			saveFile(content, `${fileNameBase}.epub`, 'application/epub+zip');
+		}
+
+		static async generatePDF(meta, chapters, css, fileNameBase) {
+			Logger.info('Export', '正在准备 PDF 打印视图，请在弹出的系统对话框中选择“另存为 PDF”...');
+
+			const htmlContent = `
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<meta charset="utf-8">
+					<title>${fileNameBase}</title>
+					<style>
+						* { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+						@page { margin: 20mm; }
+						html, body { margin: 0 !important; padding: 0 !important; background-color: #ffffff !important; }
+						.pdf-export-container { width: 100%; max-width: 100% !important; margin: 0 auto; padding: 0; box-sizing: border-box; }
+						${css}
+					</style>
+				</head>
+				<body>
+					<div class="pdf-export-container">
+						${DocumentBuilder.buildFullHTML(meta, chapters)}
+					</div>
+				</body>
+				</html>
+			`;
+
+			const iframe = document.createElement('iframe');
+			iframe.style.position = 'fixed';
+			iframe.style.right = '0';
+			iframe.style.bottom = '0';
+			iframe.style.width = '0';
+			iframe.style.height = '0';
+			iframe.style.border = '0';
+			document.body.appendChild(iframe);
+
+			const doc = iframe.contentWindow.document;
+			doc.open();
+			doc.write(htmlContent);
+			doc.close();
+
+			const originalTitle = document.title;
+			document.title = fileNameBase;
+
+			return new Promise((resolve) => {
+				iframe.onload = () => {
+					setTimeout(() => {
+						let isCleanedUp = false;
+						const cleanup = () => {
+							if (isCleanedUp) return;
+							isCleanedUp = true;
+							document.title = originalTitle;
+							setTimeout(() => {
+								if (document.body.contains(iframe)) {
+									document.body.removeChild(iframe);
+								}
+							}, 500);
+							resolve();
+						};
+
+						try {
+							iframe.contentWindow.focus();
+							iframe.contentWindow.onafterprint = cleanup;
+							const mediaQueryList = iframe.contentWindow.matchMedia('print');
+							const mqlListener = (mql) => {
+								if (!mql.matches) {
+									cleanup();
+									mediaQueryList.removeListener(mqlListener);
+								}
+							};
+							mediaQueryList.addListener(mqlListener);
+
+							if (Logger.saveTimer) {
+								clearTimeout(Logger.saveTimer);
+								Logger.saveTimer = null;
+								try {
+									GM_setValue('ao3_log_history', Logger._prune(Logger.history, Logger.config.maxPersist));
+								} catch (e) {}
+							}
+
+							iframe.contentWindow.print();
+						} catch (e) {
+							try {
+								Logger.error('Export', 'PDF 打印调用失败', e);
+								notifyAndLog('PDF 打印调用失败，请检查浏览器权限。', '错误', 'error');
+							} catch (logErr) {}
+							cleanup();
+						}
+						setTimeout(cleanup, 300000); 
+					}, 500);
+				};
+			});
+		}
+
+		static generateHTML(meta, chapters, css, fileNameBase) {
+			const html = `
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<meta charset="utf-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>${fileNameBase}</title>
+					<style>${css}</style>
+				</head>
+				<body>
+					<div class="content-wrapper">
+						${DocumentBuilder.buildFullHTML(meta, chapters)}
+					</div>
+				</body>
+				</html>
+			`;
+			saveFile(html, `${fileNameBase}.html`, 'text/html;charset=utf-8');
+		}
+
+		static async executeExport() {
+			const formats = GM_getValue('ao3_export_selected_formats', ['html']);
+			if (formats.length === 0) return;
+			
+			Logger.info('Export', '正在提取网页内容，请稍候...');
+			
+			const meta = AO3DOMParser.extractMetadata();
+			const chapters = AO3DOMParser.extractChapters();
+			
+			const titleNode = document.querySelector('.preface.group h2.title.heading');
+			let plainTitle = 'Unknown Title';
+			if (titleNode) {
+				const origTitleSpan = titleNode.querySelector('.ao3-original-title');
+				if (origTitleSpan) {
+					plainTitle = origTitleSpan.textContent.trim();
+				} else {
+					const clone = titleNode.cloneNode(true);
+					clone.querySelectorAll('.ao3-title-translatable-temp, .ao3-translated-title').forEach(el => el.remove());
+					plainTitle = clone.textContent.trim();
+				}
+			}
+			
+			const safeTitle = plainTitle.replace(/[\\/:*?"<>|]/g, '_');
+			const safeAuthor = meta.author.replace(/[\\/:*?"<>|]/g, '_');
+			const fileNameBase = `${safeTitle} - ${safeAuthor}`;
+			
+			const selectedTemplates = GM_getValue('ao3_export_selected_templates', { epub: 'default_epub', pdf: 'default_pdf', html: 'default_html' });
+			
+			for (const format of formats) {
+				const templateId = selectedTemplates[format];
+				const template = ExportTemplateStore.getTemplate(format, templateId);
+				const css = template ? template.css : '';
+				
+				try {
+					if (format === 'epub') await this.generateEPUB(meta, chapters, css, fileNameBase);
+					else if (format === 'pdf') await this.generatePDF(meta, chapters, css, fileNameBase);
+					else if (format === 'html') this.generateHTML(meta, chapters, css, fileNameBase);
+				} catch (e) {
+					Logger.error('Export', `导出 ${format.toUpperCase()} 失败`, e);
+					notifyAndLog(`导出 ${format.toUpperCase()} 失败: ${e.message}`, '错误', 'error');
+				}
+			}
+		}
+	}
+
+	/**
+	 * 导出 UI 控制器
+	 */
+	class ExportUIController {
+		static init(panel) {
+			const exportFormatSelect = panel.querySelector('#export-format-select');
+			const exportTemplateSelect = panel.querySelector('#export-template-select');
+			const exportActionSelect = panel.querySelector('#export-action-select');
+			const exportContainerName = panel.querySelector('#export-container-name');
+			const exportContainerEdit = panel.querySelector('#export-container-edit');
+			const exportTemplateNameInput = panel.querySelector('#export-template-name');
+
+			const renderExportManage = () => {
+				const format = exportFormatSelect.value;
+				const templates = ExportTemplateStore.getTemplates(format);
+				const selectedTemplates = GM_getValue('ao3_export_selected_templates', { epub: 'default_epub', pdf: 'default_pdf', html: 'default_html' });
+				let currentId = selectedTemplates[format];
+
+				if (!templates.find(t => t.id === currentId)) {
+					currentId = templates[0].id;
+					selectedTemplates[format] = currentId;
+					GM_setValue('ao3_export_selected_templates', selectedTemplates);
+				}
+
+				exportTemplateSelect.innerHTML = '';
+				templates.forEach(t => {
+					const option = document.createElement('option');
+					option.value = t.id;
+					option.textContent = t.name;
+					exportTemplateSelect.appendChild(option);
+				});
+				const createOption = document.createElement('option');
+				createOption.value = 'create_new';
+				createOption.textContent = '新建模板';
+				exportTemplateSelect.appendChild(createOption);
+
+				exportTemplateSelect.value = currentId;
+
+				const action = exportActionSelect.value;
+				exportContainerName.style.display = 'none';
+				exportContainerEdit.style.display = 'none';
+
+				if (action === 'name') {
+					exportContainerName.style.display = 'block';
+					const currentTemplate = ExportTemplateStore.getTemplate(format, currentId);
+					exportTemplateNameInput.value = currentTemplate ? currentTemplate.name : '';
+					if (exportTemplateNameInput.value) exportTemplateNameInput.classList.add('has-value');
+					else exportTemplateNameInput.classList.remove('has-value');
+				} else if (action === 'edit') {
+					exportContainerEdit.style.display = 'block';
+				}
+			};
+			return { renderExportManage };
+		}
+	}
+
+	// 初始化模板存储
+	ExportTemplateStore.init();
 
 	/**************************************************************************
 	 * UI 面板逻辑与用户设置
 	 **************************************************************************/
+
+	/**
+	 * 将包含 <br> 的段落拆分为多个 .ao3-text-block
+	 */
+	function splitBrParagraphs(rootNode = document) {
+		const selectors = '.userstuff p, .userstuff blockquote';
+		let elements =[];
+		
+		if (rootNode.matches && rootNode.matches(selectors)) elements.push(rootNode);
+		if (rootNode.querySelectorAll) elements.push(...rootNode.querySelectorAll(selectors));
+
+		elements.forEach(el => {
+			// 1. O(1) 拦截已处理节点
+			if (el.dataset.brSplit === 'true') return;
+			
+			// 2. 快速预检：仅查找直接子元素中的 br
+			if (!el.querySelector(':scope > br')) {
+				el.dataset.brSplit = 'true';
+				return;
+			}
+
+			const newUnits =[];
+			let contentBuffer =[];
+
+			const flushBuffer = () => {
+				if (contentBuffer.length === 0) return;
+				
+				let hasContent = false;
+				for (let i = 0; i < contentBuffer.length; i++) {
+					const node = contentBuffer[i];
+					if ((node.nodeType === Node.TEXT_NODE && node.nodeValue.trim().length > 0) || 
+						(node.nodeType === Node.ELEMENT_NODE)) {
+						hasContent = true;
+						break;
+					}
+				}
+
+				if (hasContent) {
+					const wrapper = document.createElement('span');
+					wrapper.className = 'ao3-text-block';
+					if (el.dataset.detectedLang) {
+						wrapper.dataset.detectedLang = el.dataset.detectedLang;
+					}
+					contentBuffer.forEach(node => wrapper.appendChild(node));
+					newUnits.push(wrapper);
+				} else {
+					const frag = document.createDocumentFragment();
+					contentBuffer.forEach(node => frag.appendChild(node));
+					newUnits.push(frag);
+				}
+				contentBuffer =[];
+			};
+
+			const childNodes = Array.from(el.childNodes);
+			for (let i = 0; i < childNodes.length; i++) {
+				const node = childNodes[i];
+				if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR') {
+					flushBuffer();
+					newUnits.push(node);
+				} else {
+					contentBuffer.push(node);
+				}
+			}
+			flushBuffer();
+
+			el.innerHTML = '';
+			newUnits.forEach(node => el.appendChild(node));
+			el.dataset.brSplit = 'true';
+		});
+	}
+
+	/**
+	 * 清理段落开头的全角空格、NBSP、换行符等手动缩进，防止与 CSS 缩进叠加
+	 */
+	function cleanManualIndents(rootNode = document) {
+		const baseSelectors = FormattingManager.getIndentSelectors();
+		if (baseSelectors.length === 0) return;
+
+		const selectors = baseSelectors.map(sel => `${sel} p, ${sel} .ao3-text-block`).join(', ');
+		let elements =[];
+		
+		if (rootNode.matches && rootNode.matches(selectors)) elements.push(rootNode);
+		if (rootNode.querySelectorAll) elements.push(...rootNode.querySelectorAll(selectors));
+		
+		elements.forEach(el => {
+			if (el.dataset.indentCleaned === 'true' && !el.querySelector('.ao3-translated-content')) return;
+			
+			// 快速预检：如果开头不是空白字符（包括 \n 和 \r），直接跳过
+			const firstChar = el.textContent.charAt(0);
+			if (firstChar && !/^[ \t\u3000\u00A0\n\r]/.test(firstChar)) {
+				el.setAttribute('data-indent-cleaned', 'true');
+				return;
+			}
+			
+			const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+			let textNode;
+			while ((textNode = walker.nextNode())) {
+				const originalText = textNode.nodeValue;
+				// 匹配开头所有的空白字符：普通空格、制表符、全角空格、NBSP、换行符
+				const cleanedText = originalText.replace(/^[ \t\u3000\u00A0\n\r]+/, '');
+				
+				if (originalText !== cleanedText) {
+					textNode.nodeValue = cleanedText;
+				}
+				
+				if (cleanedText.trim().length > 0) break;
+			}
+			el.setAttribute('data-indent-cleaned', 'true');
+		});
+	}
 
 	/**
 	 * 应用文章格式样式至页面
@@ -948,8 +3148,9 @@
 		if (!profile || !profile.params) return;
 
 		const opts = profile.params;
+		const isIndentEnabled = opts.indent === 'true';
+		const indentValue = isIndentEnabled ? '2em' : '0';
 
-		const indent = opts.indent === 'true' ? '2em' : '0';
 		const fontSize = opts.fontSize + '%';
 		const letterSpacing = opts.letterSpacing + 'px';
 		const lineHeight = opts.lineHeight;
@@ -957,37 +3158,68 @@
 
 		const cssParts = [];
 
+		// 1. 页面布局
 		if (opts.margins !== '0') {
 			cssParts.push(`#workskin { padding: 0 ${margins} !important; margin: 0 auto !important; }`);
 		}
-
 		if (opts.fontSize !== '100') {
-			const containerSelectors = '#workskin > .preface, #workskin > #chapters, #workskin > .userstuff';
-			cssParts.push(`${containerSelectors} { font-size: ${fontSize} !important; }`);
+			cssParts.push(`#workskin > .preface, #workskin > #chapters, #workskin > .userstuff { font-size: ${fontSize} !important; }`);
 		}
 
+		// 2. 文本样式
 		if (opts.lineHeight !== '1.5' || opts.letterSpacing !== '0') {
-			const textSelectors = `
-				#workskin p, #workskin li, #workskin dd, #workskin blockquote,
-				#workskin .userstuff p, #workskin .userstuff li, #workskin .userstuff dd, #workskin .userstuff blockquote
-			`;
-
+			const textSelectors = `#workskin p, #workskin li, #workskin dd, #workskin blockquote, #workskin .userstuff p`;
 			let textRules = [];
 			if (opts.lineHeight !== '1.5') textRules.push(`line-height: ${lineHeight} !important;`);
 			if (opts.letterSpacing !== '0') textRules.push(`letter-spacing: ${letterSpacing} !important;`);
+			cssParts.push(`${textSelectors} { ${textRules.join(' ')} }`);
+		}
 
-			if (textRules.length > 0) {
-				cssParts.push(`${textSelectors} { ${textRules.join(' ')} }`);
+		// 3. 缩进接管逻辑
+		const indentMode = opts.indent || 'original';
+		if (indentMode !== 'original') {
+			const indentValue = indentMode === 'force_indent' ? '2em' : '0';
+			const baseSelectors = FormattingManager.getIndentSelectors();
+			
+			if (baseSelectors.length > 0) {
+				const selP = baseSelectors.map(sel => `${sel} p, ${sel} .ao3-text-block`).join(',\n');
+				const selPHas = baseSelectors.map(sel => `${sel} p:has(.ao3-text-block), ${sel} p:has(.ao3-original-content)`).join(',\n');
+				const selBlockNot = baseSelectors.map(sel => `${sel} .ao3-text-block:not(:has(.ao3-original-content))`).join(',\n');
+				const selOrig = baseSelectors.map(sel => `${sel} .ao3-original-content`).join(',\n');
+				const selTrans = baseSelectors.map(sel => `${sel} .ao3-translated-content`).join(',\n');
+
+				cssParts.push(`
+					${selP} {
+						text-indent: ${indentValue} !important;
+						padding-left: 0 !important;
+						margin-left: 0 !important;
+					}
+					
+					${selPHas} {
+						text-indent: 0 !important;
+					}
+					
+					${selBlockNot} {
+						margin-left: ${indentValue} !important;
+					}
+					
+					${selOrig} {
+						margin-left: ${indentValue} !important;
+					}
+					
+					${selTrans} {
+						text-indent: ${indentValue} !important;
+						display: block;
+					}
+				`);
 			}
 		}
 
-		if (opts.indent === 'true') {
-			cssParts.push(`#workskin .userstuff p { text-indent: ${indent} !important; }`);
-		}
+		splitBrParagraphs();
+		cleanManualIndents();
 
 		const css = cssParts.join('\n');
-
-		let styleEl = document.getElementById('ao3-format-style');
+		let styleEl = document.getElementById('ao3-format-style')
 		if (!styleEl) {
 			styleEl = document.createElement('style');
 			styleEl.id = 'ao3-format-style';
@@ -999,16 +3231,20 @@
 	/**
 	 * 数据导出/导入的分类定义
 	 */
-	const DATA_CATEGORIES = [
+	const DATA_CATEGORIES =[
 		{ id: 'staticKeys', label: '通用设置' },
 		{ id: 'uiState', label: '界面位置' },
 		{ id: 'apiKeys', label: 'API Key' },
+		{ id: 'glossaries', label: '术语表配置' },
+		{ id: 'postReplace', label: '后处理替换' },
+		{ id: 'customServices', label: '自定义服务' },
 		{ id: 'modelSelections', label: '内置模型偏好' },
-		{ id: 'customServices', label: '自定义服务配置' },
-		{ id: 'glossaries', label: '术语及替换规则' },
 		{ id: 'aiParameters', label: '翻译参数配置' },
 		{ id: 'blockerSettings', label: '作品屏蔽设置' },
-		{ id: 'formatting', label: '文章格式方案' }
+		{ id: 'formatting', label: '文章格式方案' },
+		{ id: 'fabActions', label: '悬浮按钮操作' },
+		{ id: 'exportTemplates', label: '作品导出模板' },
+		{ id: 'cacheSettings', label: '缓存清理策略' }
 	];
 
 	// 页面配置缓存
@@ -1027,6 +3263,7 @@
 				menuCommandIds.push(GM_registerMenuCommand(text, callback));
 			};
 
+			// 1. 界面翻译开关
 			const uiTransEnabled = GM_getValue('enable_ui_trans', true);
 			register(uiTransEnabled ? '禁用界面翻译' : '启用界面翻译', () => {
 				const newState = !uiTransEnabled;
@@ -1035,14 +3272,25 @@
 				location.reload();
 			});
 
+			// 2. 悬浮按钮开关
 			const showFab = GM_getValue('show_fab', true);
 			register(showFab ? '隐藏悬浮按钮' : '显示悬浮按钮', () => {
 				const newState = !showFab;
 				GM_setValue('show_fab', newState);
-				fabLogic.toggleFabVisibility();
+				fabLogic.toggleFabVisibility(newState);
 				render();
 			});
 
+			// 3. 状态指示灯开关
+			const showLight = GM_getValue('show_status_light', true);
+			register(showLight ? '隐藏状态指示' : '显示状态指示', () => {
+				const newState = !showLight;
+				GM_setValue('show_status_light', newState);
+				document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.STATUS_LIGHT_TOGGLED, { detail: { show: newState } }));
+				render();
+			});
+
+			// 4. 设置面板开关
 			const isPanelOpen = panelLogic.panel.style.display === 'flex';
 			const panelToggleText = isPanelOpen ? '关闭设置面板' : '打开设置面板';
 			register(panelToggleText, () => {
@@ -1075,74 +3323,26 @@
 	 * 悬浮球的结构与样式
 	 */
 	function createFabUI() {
-		const existing = document.getElementById('ao3-trans-fab-container');
+		// 检查 Shadow DOM 中是否已存在
+		const existing = shadowWrapper.querySelector('#ao3-trans-fab-container');
 		if (existing) {
-			return { fabContainer: existing };
+			return { fabContainer: existing, statusLight: existing.querySelector('.fab-status-light') };
 		}
 
 		const iconUrl = GM_getResourceURL('vIcon');
 		const santaHatUrl = GM_getResourceURL('santaHat');
 
-		GM_addStyle(`
-            #ao3-trans-fab-container {
-                position: fixed;
-                top: 0;
-                left: 0;
-                z-index: 2147483646;
-                touch-action: none;
-                cursor: grab;
-                user-select: none;
-            }
-            #ao3-trans-fab-container.dragging {
-                cursor: grabbing;
-            }
-            #ao3-trans-fab {
-                width: 42px;
-                height: 42px;
-                border-radius: 50%;
-                background-color: #990000;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-                transition: all 0.3s ease;
-                position: relative;
-            }
-            #ao3-trans-fab.christmas-mode::after {
-                content: '';
-                position: absolute;
-                top: 5px;
-                left: 18px;
-                width: 14px;
-                height: 14px;
-                background-image: url(${santaHatUrl});
-                background-size: contain;
-                background-repeat: no-repeat;
-                transform: rotate(-3deg);
-                filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.4));
-                pointer-events: none;
-                z-index: 10;
-            }
-            #ao3-trans-fab-container.snapped:not(.is-active) #ao3-trans-fab {
-                opacity: 0.3;
-            }
-            #ao3-trans-fab-container:hover #ao3-trans-fab {
-                transform: scale(1.05);
-                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-            }
-            .fab-icon {
-                width: 26px;
-                height: 26px;
-                background-image: url(${iconUrl});
-                background-size: contain;
-                background-repeat: no-repeat;
-                background-position: center;
-                filter: brightness(0) invert(1);
-            }
-        `);
-
 		const fabContainer = document.createElement('div');
 		fabContainer.id = 'ao3-trans-fab-container';
+
+		const fabStyle = document.createElement('style');
+		fabStyle.textContent = `
+			#ao3-trans-fab-container {
+				--fab-icon-url: url(${iconUrl});
+				--santa-hat-url: url(${santaHatUrl});
+			}
+		`;
+		shadowRoot.appendChild(fabStyle);
 
 		const fabButton = document.createElement('div');
 		fabButton.id = 'ao3-trans-fab';
@@ -1154,11 +3354,19 @@
 		const settingsIcon = document.createElement('div');
 		settingsIcon.className = 'fab-icon';
 
-		fabButton.appendChild(settingsIcon);
-		fabContainer.appendChild(fabButton);
-		document.body.appendChild(fabContainer);
+		// 状态灯 DOM
+		const statusLight = document.createElement('div');
+		statusLight.className = 'fab-status-light status-idle';
+		statusLight.id = 'ao3-fab-status-light';
 
-		return { fabContainer };
+		fabButton.appendChild(settingsIcon);
+		fabButton.appendChild(statusLight);
+		fabContainer.appendChild(fabButton);
+		
+		// 挂载到 Shadow Wrapper
+		shadowWrapper.appendChild(fabContainer);
+
+		return { fabContainer, statusLight };
 	}
 
 	const debounce = (func, delay) => {
@@ -1172,27 +3380,46 @@
 	/**
 	 * 悬浮球交互逻辑
 	 */
-	function initializeFabInteraction(fabElements, panelLogic) {
-		const { fabContainer } = fabElements;
+	function initializeFabInteraction(fabElements, panelLogic, statusLightController) {
+		const { fabContainer, statusLight } = fabElements;
 		const FAB_POSITION_KEY = 'ao3_fab_position';
 		const DRAG_THRESHOLD = 5;
 		const SAFE_MARGIN = 16;
 		const RETRACT_MARGIN = 10;
 		const SNAP_THRESHOLD = 40;
+		const LONG_PRESS_DURATION = 500;
 
 		let isPointerDown = false;
 		let isDragging = false;
+		let preventClick = false;
 		let startCoords = { x: 0, y: 0 };
 		let startPosition = { x: 0, y: 0 };
 		let fabSize = { width: 0, height: 0 };
+		let longPressTimer = null;
+		let hasLongPressed = false;
+
+		// 用于触控设备的 2 秒自动贴边倒计时
+		let autoSnapTimer = null;
+		// 记录最后一次交互的设备类型 ('touch' 或 'mouse')
+		let lastPointerType = 'mouse';
+
+		// 用于双击检测的变量
+		let clickTimer = null;
+		let clickCount = 0;
 
 		let lastWinWidth = document.documentElement.clientWidth;
 		let maxWinHeight = window.innerHeight;
 
-		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+		// 动态检测移动端键盘弹起状态
+		const isMobileKeyboardState = () => {
+			const winW = document.documentElement.clientWidth;
+			const currentH = window.innerHeight;
+			return lastPointerType === 'touch' &&
+				   (Math.abs(winW - lastWinWidth) < 5) &&
+				   (currentH < maxWinHeight * 0.80);
+		};
 
 		const limitNumber = (num, min, max) => Math.max(min, Math.min(num, max));
-
 		const savePosition = debounce((pos) => GM_setValue(FAB_POSITION_KEY, pos), 500);
 
 		const updateFabSize = () => {
@@ -1204,23 +3431,64 @@
 			fabContainer.style.transition = useTransition ? 'all 0.3s ease' : 'none';
 			fabContainer.style.left = `${pos.x}px`;
 			fabContainer.style.top = `${pos.y}px`;
+			if (statusLightController) statusLightController.updateDirection();
 		};
 
+		// 扩展安全区检测，防止边缘抖动
+		const checkMouseLeave = (e) => {
+			if (lastPointerType !== 'mouse') return;
+			const rect = fabContainer.getBoundingClientRect();
+			// 扩展判定区域，覆盖悬浮球到屏幕边缘的间隙
+			const extendedRect = {
+				left: rect.left - SAFE_MARGIN,
+				top: rect.top - SAFE_MARGIN,
+				right: rect.right + SAFE_MARGIN,
+				bottom: rect.bottom + SAFE_MARGIN
+			};
+			// 只有鼠标真正离开这个扩展区域，才执行贴边
+			if (e.clientX < extendedRect.left || e.clientX > extendedRect.right || e.clientY < extendedRect.top || e.clientY > extendedRect.bottom) {
+				if (!panelLogic.panel || panelLogic.panel.style.display !== 'flex') {
+					snapDecision(true);
+				}
+			}
+		};
+
+		// 清除 2 秒自动贴边倒计时
+		const clearAutoSnapTimer = () => {
+			if (autoSnapTimer) {
+				clearTimeout(autoSnapTimer);
+				autoSnapTimer = null;
+			}
+			document.removeEventListener('click', handleOutsideClickForSnap, true);
+		};
+
+		// 处理触控模式下，点击外部区域立刻贴边的逻辑
+		const handleOutsideClickForSnap = (e) => {
+			// 如果点击的是悬浮球本身，或者设置面板内部，则不处理
+			if (fabContainer.contains(e.target) || (panelLogic.panel && panelLogic.panel.contains(e.target))) {
+				return;
+			}
+			// 点击了外部，立刻清除倒计时并强制贴边
+			clearAutoSnapTimer();
+			snapDecision(true);
+		};
+
+		// 核心位置判定逻辑
 		const snapDecision = (forceRetract = false) => {
 			if (isDragging) return;
 			window.removeEventListener('mousemove', checkMouseLeave);
 
+			// 最高优先级：面板打开时，绝对不允许贴边
+			if (panelLogic.panel && panelLogic.panel.style.display === 'flex') {
+				activateFab();
+				return;
+			}
+
 			const winW = document.documentElement.clientWidth;
 			const currentH = window.innerHeight;
-
 			if (currentH > maxWinHeight) maxWinHeight = currentH;
 
-			const isKeyboardState = isTouchDevice &&
-				(Math.abs(winW - lastWinWidth) < 5) &&
-				(currentH < maxWinHeight * 0.80);
-
-			const effectiveH = isKeyboardState ? maxWinHeight : currentH;
-
+			const effectiveH = isMobileKeyboardState() ? maxWinHeight : currentH;
 			const currentPos = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
 
 			const dist = {
@@ -1238,11 +3506,15 @@
 			let finalPos = { ...currentPos };
 			let shouldSnap = true;
 
+			// 角落保护：如果同时靠近两个相邻边缘，弹开一段安全距离，并保持完全显示
 			if ((isNearLeft && isNearTop) || (isNearLeft && isNearBottom) || (isNearRight && isNearTop) || (isNearRight && isNearBottom)) {
 				finalPos.x = isNearLeft ? SAFE_MARGIN : winW - fabSize.width - SAFE_MARGIN;
 				finalPos.y = isNearTop ? SAFE_MARGIN : effectiveH - fabSize.height - SAFE_MARGIN;
-				fabContainer.classList.remove('snapped', 'is-active');
-			} else if (isNearLeft || isNearRight || isNearTop || isNearBottom) {
+				fabContainer.classList.remove('snapped');
+				fabContainer.classList.add('is-active');
+			}
+			// 边缘吸附：靠近单一边缘时，执行半透明贴边
+			else if (isNearLeft || isNearRight || isNearTop || isNearBottom) {
 				const minVertical = Math.min(dist.top, dist.bottom);
 				const minHorizontal = Math.min(dist.left, dist.right);
 
@@ -1253,7 +3525,9 @@
 				}
 				fabContainer.classList.add('snapped');
 				fabContainer.classList.remove('is-active');
-			} else {
+			}
+			// 屏幕中间：保持完全显示
+			else {
 				shouldSnap = false;
 				fabContainer.classList.remove('snapped', 'is-active');
 			}
@@ -1264,17 +3538,21 @@
 			}
 		};
 
+		// 激活悬浮球 (向内侧移动一点安全距离，完全显示)
 		const activateFab = () => {
-			if (isDragging || !fabContainer.classList.contains('snapped')) return;
-
+			if (isDragging) return;
 			window.removeEventListener('mousemove', checkMouseLeave);
+
+			clearAutoSnapTimer();
 			fabContainer.classList.add('is-active');
+			fabContainer.classList.remove('snapped');
 
 			const winW = document.documentElement.clientWidth;
 			const winH = window.innerHeight;
 			const currentPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
 			let newPos = { ...currentPos };
 
+			// 向内侧移动 RETRACT_MARGIN 距离
 			if (currentPos.x < 0) newPos.x = RETRACT_MARGIN;
 			else if (currentPos.x > winW - fabSize.width) newPos.x = winW - fabSize.width - RETRACT_MARGIN;
 
@@ -1284,14 +3562,78 @@
 			setPosition(newPos, true);
 		};
 
+		// 启动 2 秒自动贴边倒计时
+		const startAutoSnapTimer = () => {
+			clearAutoSnapTimer();
+			if (panelLogic.panel && panelLogic.panel.style.display === 'flex') return;
+
+			// 监听外部点击
+			document.addEventListener('click', handleOutsideClickForSnap, true);
+
+			autoSnapTimer = setTimeout(() => {
+				if (panelLogic.panel && panelLogic.panel.style.display !== 'flex') {
+					snapDecision(true);
+				}
+				clearAutoSnapTimer();
+			}, 2000);
+		};
+
+		// 统一处理悬浮球操作逻辑
+		const handleFabAction = (action) => {
+			if (action === 'none') return;
+
+			const isSnapped = fabContainer.classList.contains('snapped');
+			if (isSnapped) activateFab();
+
+			if (action === 'toggle_panel') {
+				panelLogic.togglePanel();
+			} else if (action === 'toggle_translate') {
+				document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.FAB_CLICKED));
+			} else if (action === 'clear_cache') {
+				document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CLEAR_PAGE_CACHE));
+			} else if (action === 'export_work') {
+				const formats = GM_getValue('ao3_export_selected_formats', ['html']);
+				if (formats.length === 0) {
+					showCustomConfirm('请先在“格式选择”中勾选需要导出的格式。', '提示', { textAlign: 'center' })
+						.then(() => openExportFormatModal())
+						.catch(() => {});
+				} else {
+					ExportEngine.executeExport();
+				}
+			}
+
+			// 触控设备下，如果执行的不是打开面板，则启动 2 秒自动贴边倒计时
+			if (lastPointerType === 'touch' && action !== 'toggle_panel') {
+				startAutoSnapTimer();
+			}
+		};
+
+		// 事件监听
+
 		const onPointerDown = (e) => {
 			if (e.button !== 0 && e.pointerType !== 'touch') return;
+
+			lastPointerType = e.pointerType;
 			fabContainer.setPointerCapture(e.pointerId);
 			isPointerDown = true;
 			isDragging = false;
+			preventClick = false;
+			hasLongPressed = false;
 			startCoords = { x: e.clientX, y: e.clientY };
 			startPosition = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
 			fabContainer.style.transition = 'none';
+
+			clearAutoSnapTimer();
+
+			longPressTimer = setTimeout(() => {
+				if (!isDragging) {
+					hasLongPressed = true;
+					const currentMode = GM_getValue('ao3_translation_mode', 'unit');
+					const config = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
+					const action = config[currentMode]['long_press'];
+					handleFabAction(action);
+				}
+			}, LONG_PRESS_DURATION);
 		};
 
 		const onPointerMove = (e) => {
@@ -1301,6 +3643,11 @@
 
 			if (!isDragging && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
 				isDragging = true;
+				preventClick = true;
+				if (longPressTimer) {
+					clearTimeout(longPressTimer);
+					longPressTimer = null;
+				}
 				fabContainer.classList.add('dragging');
 				fabContainer.classList.remove('snapped', 'is-active');
 			}
@@ -1317,6 +3664,15 @@
 			fabContainer.releasePointerCapture(e.pointerId);
 			isPointerDown = false;
 
+			if (longPressTimer) {
+				clearTimeout(longPressTimer);
+				longPressTimer = null;
+			}
+
+			if (hasLongPressed) {
+				panelLogic.setIgnoreOutsideClick();
+			}
+
 			if (isDragging) {
 				isDragging = false;
 				fabContainer.classList.remove('dragging');
@@ -1330,62 +3686,90 @@
 				savePosition(finalPos);
 
 				snapDecision();
-			} else {
-				if (fabContainer.classList.contains('snapped') && !fabContainer.classList.contains('is-active')) {
-					activateFab();
-				}
-				panelLogic.togglePanel();
 			}
 		};
 
-		const checkMouseLeave = (e) => {
-			const rect = fabContainer.getBoundingClientRect();
-			const extendedRect = {
-				left: rect.left - SAFE_MARGIN, top: rect.top - SAFE_MARGIN,
-				right: rect.right + SAFE_MARGIN, bottom: rect.bottom + SAFE_MARGIN
-			};
-			if (e.clientX < extendedRect.left || e.clientX > extendedRect.right || e.clientY < extendedRect.top || e.clientY > extendedRect.bottom) {
-				if (panelLogic.panel.style.display !== 'flex') {
-					snapDecision(true);
-				}
+		// 点击逻辑分发
+		fabContainer.addEventListener('click', (e) => {
+			if (preventClick || hasLongPressed) {
+				e.preventDefault();
+				e.stopPropagation();
+				return;
 			}
-		};
+
+			const currentMode = GM_getValue('ao3_translation_mode', 'unit');
+			const config = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
+			const modeConfig = config[currentMode] || config['unit'];
+
+			// 检查是否配置了双击事件
+			const hasDoubleClick = modeConfig['double_click'] !== 'none';
+
+			clickCount++;
+
+			if (hasDoubleClick) {
+				if (clickCount === 1) {
+					// 启动延时，等待可能的第二次点击
+					clickTimer = setTimeout(() => {
+						clickCount = 0;
+						handleFabAction(modeConfig['click']);
+					}, 250);
+				} else if (clickCount === 2) {
+					// 触发双击
+					clearTimeout(clickTimer);
+					clickCount = 0;
+					handleFabAction(modeConfig['double_click']);
+				}
+			} else {
+				// 如果没有配置双击，直接无延迟触发单击
+				clickCount = 0;
+				handleFabAction(modeConfig['click']);
+			}
+		});
+
+		// 鼠标悬停逻辑
+		fabContainer.addEventListener('mouseenter', (e) => {
+			// 只有最后一次操作是鼠标时，才响应 hover
+			if (lastPointerType === 'mouse') {
+				activateFab();
+			}
+		});
+
+		fabContainer.addEventListener('mouseleave', (e) => {
+			if (lastPointerType === 'mouse' && (!panelLogic.panel || panelLogic.panel.style.display !== 'flex')) {
+				// 鼠标移出 DOM 元素时，不立刻贴边，而是开启扩展安全区检测
+				window.addEventListener('mousemove', checkMouseLeave);
+			}
+		});
+
+		fabContainer.addEventListener('pointerdown', onPointerDown);
+		fabContainer.addEventListener('pointermove', onPointerMove);
+		fabContainer.addEventListener('pointerup', onPointerUp);
+		
+		// 右键菜单逻辑
+		fabContainer.addEventListener('contextmenu', (e) => {
+			e.preventDefault();
+			if (lastPointerType === 'touch') return;
+			const currentMode = GM_getValue('ao3_translation_mode', 'unit');
+			const config = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
+			const action = config[currentMode]['right_click'];
+			handleFabAction(action);
+		});
 
 		const onResize = debounce(() => {
-			const currentWidth = document.documentElement.clientWidth;
 			const currentHeight = window.innerHeight;
 
 			if (currentHeight > maxWinHeight) {
 				maxWinHeight = currentHeight;
 			}
 
-			const isKeyboardState = isTouchDevice &&
-				(Math.abs(currentWidth - lastWinWidth) < 5) &&
-				(currentHeight < maxWinHeight * 0.80);
-
-			lastWinWidth = currentWidth;
-
-			if (isKeyboardState) {
+			if (isMobileKeyboardState()) {
 				return;
 			}
 
 			updateFabSize();
 			snapDecision(true);
+			if (statusLightController) statusLightController.updateDirection();
 		}, 200);
-
-		fabContainer.addEventListener('pointerdown', onPointerDown);
-		fabContainer.addEventListener('pointermove', onPointerMove);
-		fabContainer.addEventListener('pointerup', onPointerUp);
-		fabContainer.addEventListener('contextmenu', (e) => { e.preventDefault(); panelLogic.togglePanel(); });
-
-		if (!isTouchDevice) {
-			fabContainer.addEventListener('mouseenter', activateFab);
-			fabContainer.addEventListener('mouseleave', () => {
-				if (panelLogic.panel.style.display !== 'flex') {
-					window.addEventListener('mousemove', checkMouseLeave);
-				}
-			});
-		}
 
 		window.addEventListener('resize', onResize);
 
@@ -1407,11 +3791,14 @@
 		initializePosition();
 
 		return {
-			toggleFabVisibility: () => {
-				const showFab = GM_getValue('show_fab', true);
+			toggleFabVisibility: (forceState) => {
+				const showFab = forceState !== undefined ? forceState : GM_getValue('show_fab', true);
 				fabContainer.style.display = showFab ? 'block' : 'none';
+				if (showFab && statusLightController) {
+					statusLightController.updateDirection();
+				}
 			},
-			retractFab: () => snapDecision(true)
+			retractFab: () => snapDecision(true),
 		};
 	}
 
@@ -1420,97 +3807,25 @@
 	 */
 	function createSelectionModal(title, items, mode = 'import', storageKey = null) {
 		return new Promise((resolve, reject) => {
-			if (document.getElementById('ao3-data-selection-overlay')) {
+			if (shadowWrapper.querySelector('#ao3-data-selection-overlay')) {
 				return reject(new Error('已有模态框正在显示'));
 			}
 
-			GM_addStyle(`
-				#ao3-data-selection-overlay {
-					position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-					background-color: rgba(0, 0, 0, 0.5);
-					z-index: 2147483648; display: flex; align-items: center; justify-content: center;
-					font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-				}
-				#ao3-data-selection-modal {
-					background-color: #fff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-					width: 85%; max-width: 300px; overflow: hidden; display: flex; flex-direction: column;
-					max-height: 80vh; color: #000000DE;
-				}
-				.data-modal-header {
-					padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.12);
-					display: flex; justify-content: center; align-items: center;
-					position: relative;
-				}
-				.data-modal-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
-				.data-modal-body { padding: 8px 0; overflow-y: auto; flex: 1; }
-				.data-selection-item {
-					padding: 8px 16px; display: flex; align-items: center; gap: 12px;
-					cursor: pointer; transition: background-color 0.2s;
-					-webkit-tap-highlight-color: transparent;
-				}
-				.data-selection-item:hover { background-color: rgba(0,0,0,0.04); }
-				.data-selection-item.disabled {
-					opacity: 0.5; cursor: default; background-color: transparent;
-				}
-				.data-selection-item input { margin: 0; cursor: pointer; width: 16px; height: 16px; }
-				.data-selection-item.disabled input { cursor: default; }
-
-				.data-item-content { display: flex; flex-direction: column; }
-				.data-item-label { font-size: 14px; font-weight: 400; color: #333; margin-left: 8px; }
-
-				.data-modal-footer {
-					padding: 8px 16px; border-top: 1px solid rgba(0,0,0,0.12);
-					display: flex; flex-direction: row; justify-content: space-between; align-items: center;
-					background-color: #fff; gap: 8px;
-				}
-				.data-modal-btn {
-					flex: 1;
-					padding: 6px 0; border-radius: 4px; font-size: 13px; font-weight: 500;
-					cursor: pointer; border: none; background: transparent !important;
-					color: #333;
-					transition: opacity 0.2s;
-					white-space: nowrap;
-					display: flex;
-					justify-content: center;
-					align-items: center;
-					line-height: 1;
-					-webkit-tap-highlight-color: transparent;
-					outline: none;
-				}
-				.data-modal-btn:focus { outline: none; }
-				.data-modal-btn:hover { opacity: 0.7; }
-
-				.data-select-all-wrapper {
-					font-size: 13px; color: #1976d2; cursor: pointer; user-select: none;
-					position: absolute; right: 16px;
-					-webkit-tap-highlight-color: transparent;
-					outline: none;
-				}
-
-				@media (prefers-color-scheme: dark) {
-					#ao3-data-selection-modal { background-color: #1e1e1e; color: #e0e0e0; }
-					.data-modal-header, .data-modal-footer { border-color: rgba(255,255,255,0.12); background-color: #1e1e1e; }
-					.data-selection-item:hover { background-color: rgba(255,255,255,0.08); }
-					.data-item-label { color: #e0e0e0; }
-					.data-modal-btn { color: #e0e0e0; }
-					.data-select-all-wrapper { color: #64b5f6; }
-				}
-			`);
-
 			const overlay = document.createElement('div');
 			overlay.id = 'ao3-data-selection-overlay';
+			overlay.className = 'ao3-overlay';
 
-			const savedSelection = storageKey ? GM_getValue(storageKey, []) : [];
+			const savedSelection = storageKey ? GM_getValue(storageKey, []) :[];
 			const hasSavedSelection = savedSelection.length > 0;
 
 			let html = `
-                <div id="ao3-data-selection-modal">
-                    <div class="data-modal-header">
-                        <h3>${title}</h3>
-                        <div class="data-select-all-wrapper">全选</div>
-                    </div>
-                    <div class="data-modal-body">
-            `;
+				<div class="ao3-modal" id="ao3-data-selection-modal">
+					<div class="ao3-modal-header">
+						<h3>${title}</h3>
+						<div class="data-select-all-wrapper">全选</div>
+					</div>
+					<div class="ao3-modal-body ao3-custom-scrollbar">
+			`;
 
 			items.forEach(item => {
 				let isChecked = true;
@@ -1523,40 +3838,40 @@
 				}
 
 				html += `
-                    <label class="data-selection-item ${item.disabled ? 'disabled' : ''}">
-                        <input type="checkbox" value="${item.id}" ${isChecked ? 'checked' : ''} ${item.disabled ? 'disabled' : ''}>
-                        <div class="data-item-content">
-                            <span class="data-item-label">${item.label}</span>
-                        </div>
-                    </label>
-                `;
+					<label class="data-selection-item ${item.disabled ? 'disabled' : ''}">
+						<input type="checkbox" value="${item.id}" ${isChecked ? 'checked' : ''} ${item.disabled ? 'disabled' : ''}>
+						<div class="data-item-content">
+							<span class="data-item-label">${item.label}</span>
+						</div>
+					</label>
+				`;
 			});
 
 			html += `
-                    </div>
-                    <div class="data-modal-footer">
-            `;
+					</div>
+					<div class="ao3-modal-footer">
+			`;
 
 			if (mode === 'export') {
 				html += `
-                        <button class="data-modal-btn cancel">取消</button>
-                        <button class="data-modal-btn confirm">确认</button>
-                `;
+						<button class="ao3-modal-btn cancel">取消</button>
+						<button class="ao3-modal-btn confirm">确认</button>
+				`;
 			} else {
 				html += `
-                        <button class="data-modal-btn cancel">取消导入</button>
-                        <button class="data-modal-btn merge">数据合并</button>
-                        <button class="data-modal-btn overwrite">数据覆盖</button>
-                `;
+						<button class="ao3-modal-btn cancel">取消导入</button>
+						<button class="ao3-modal-btn merge">数据合并</button>
+						<button class="ao3-modal-btn overwrite">数据覆盖</button>
+				`;
 			}
 
 			html += `
-                    </div>
-                </div>
-            `;
+					</div>
+				</div>
+			`;
 
-			overlay.innerHTML = html;
-			document.body.appendChild(overlay);
+			overlay.insertAdjacentHTML('beforeend', html);
+			shadowWrapper.appendChild(overlay);
 
 			const modal = overlay.querySelector('#ao3-data-selection-modal');
 			const checkboxes = modal.querySelectorAll('input[type="checkbox"]:not(:disabled)');
@@ -1650,7 +3965,7 @@
 		'ao3_blocker_current_sub_view'
 	];
 
-    /**
+	/**
 	 * 聚合用户配置数据，支持按需导出
 	 */
 	async function exportAllData(selectedCategories = null) {
@@ -1669,11 +3984,12 @@
 
 		if (isSelected('staticKeys')) {
 			allData.data.staticKeys = {};
-			const keys = [
+			const keys =[
 				'enable_RegExp', 'enable_transDesc', 'show_fab', 'transEngine',
 				'translation_display_mode', 'ao3_glossary_last_action',
 				'from_lang', 'to_lang', 'lang_detector', 'enable_ui_trans',
-				'enable_debug_mode', 'custom_url_first_save_done'
+				'ao3_log_level', 'ao3_log_auto_clear', 'custom_url_first_save_done',
+				'ao3_translation_mode', 'ao3_auto_translate', 'show_status_light', 'hide_whitelist_prompt'
 			];
 			for (const key of keys) {
 				const value = GM_getValue(key);
@@ -1736,15 +4052,17 @@
 		}
 
 		if (isSelected('glossaries')) {
-			const postReplaceRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-
 			allData.data.glossaries = {
 				customGlossaries: GM_getValue(CUSTOM_GLOSSARIES_KEY),
-				importedGlossaries: GM_getValue(IMPORTED_GLOSSARY_KEY),
 				metadata: GM_getValue(GLOSSARY_METADATA_KEY),
-				onlineOrder: GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []),
-				postReplaceRules: postReplaceRules,
+				onlineOrder: GM_getValue(ONLINE_GLOSSARY_ORDER_KEY,[]),
 				lastSelected: GM_getValue(LAST_SELECTED_GLOSSARY_KEY)
+			};
+		}
+
+		if (isSelected('postReplace')) {
+			allData.data.postReplace = {
+				postReplaceRules: GM_getValue(POST_REPLACE_RULES_KEY,[])
 			};
 		}
 
@@ -1783,6 +4101,14 @@
 				localGlossaryEditMode: GM_getValue('ao3_local_glossary_edit_mode'),
 				postReplaceSelectedId: GM_getValue('ao3_post_replace_selected_id'),
 				postReplaceEditMode: GM_getValue('ao3_post_replace_edit_mode'),
+				fabManageMode: GM_getValue('ao3_fab_manage_mode'),
+				fabManageGesture: GM_getValue('ao3_fab_manage_gesture'),
+				formattingLastProp: GM_getValue('formatting_last_prop'),
+				logModalFilter: GM_getValue('ao3_log_modal_filter'),
+				exportLastFormat: GM_getValue('ao3_export_last_format'),
+				exportLastAction: GM_getValue('ao3_export_last_action'),
+				hasSwitchedToFullPageOnce: GM_getValue('has_switched_to_full_page_once'),
+				cacheManageMode: GM_getValue('ao3_cache_manage_mode'),
 				serviceCollapsedStates: collapsedStates
 			};
 		}
@@ -1804,16 +4130,76 @@
 			};
 		}
 
+		if (isSelected('fabActions')) {
+			allData.data.fabActions = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
+		}
+
+		if (isSelected('exportTemplates')) {
+			allData.data.exportTemplates = {
+				templates: GM_getValue('ao3_export_templates'),
+				selected: GM_getValue('ao3_export_selected_templates')
+			};
+		}
+
+		if (isSelected('cacheSettings')) {
+			allData.data.cacheSettings = {
+				autoCleanupEnabled: GM_getValue('ao3_cache_auto_cleanup_enabled', true),
+				maxItems: GM_getValue('ao3_cache_max_items'),
+				maxDays: GM_getValue('ao3_cache_max_days')
+			};
+		}
 		return allData;
 	}
 
-    /**
-	 * 导入用户配置数据，支持按需导入及合并/覆盖模式
+	/**
+	 * 智能合并辅助函数
 	 */
-	async function importAllData(jsonData, selectedCategories, importMode, syncPanelStateCallback) {
+	function deepEqual(obj1, obj2) {
+		if (obj1 === obj2) return true;
+		if (typeof obj1 !== 'object' || typeof obj2 !== 'object' || obj1 === null || obj2 === null) return false;
+		const keys1 = Object.keys(obj1);
+		const keys2 = Object.keys(obj2);
+		if (keys1.length !== keys2.length) return false;
+		for (const key of keys1) {
+			if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) return false;
+		}
+		return true;
+	}
+
+	function generateUniqueName(desiredName, existingNames) {
+		let newName = desiredName;
+		let counter = 1;
+		const nameSet = new Set(existingNames);
+		while (nameSet.has(newName)) {
+			const match = desiredName.match(/^(.*?)(?:\s*\((\d+)\))?$/);
+			const baseName = match[1].trim();
+			newName = `${baseName} (${counter})`;
+			counter++;
+		}
+		return newName;
+	}
+
+	function mergeApiKeys(localStr, importedStr) {
+		if (!localStr) return importedStr || '';
+		if (!importedStr) return localStr || '';
+		const localKeys = localStr.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+		const importedKeys = importedStr.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+		const mergedSet = new Set([...localKeys, ...importedKeys]);
+		return Array.from(mergedSet).join(', ');
+	}
+
+	/**
+	 * 导入用户配置数据，支持按需导入及智能合并/覆盖模式
+	 */
+	async function importAllData(jsonData, selectedCategories, importMode) {
 		if (!jsonData || typeof jsonData !== 'object' || !jsonData.data || typeof jsonData.data !== 'object') {
 			return { success: false, message: "文件格式无效或文件已损坏：缺少核心 'data' 模块。" };
 		}
+
+		// 记录导入前的模式和开关状态
+		const oldMode = GM_getValue('ao3_translation_mode', 'unit');
+		const oldTransDesc = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
+		const oldAutoTranslate = GM_getValue('ao3_auto_translate', false);
 
 		const fileMetadata = jsonData.metadata || {};
 		const fileFormatVersion = parseFloat(fileMetadata.exportFormatVersion || "1.0");
@@ -1824,7 +4210,7 @@
 				await showCustomConfirm(
 					`该备份文件的格式版本高于当前插件支持的版本。\n\n强制导入可能会导致部分设置丢失或功能异常。\n是否仍要继续导入？`,
 					'提示',
-                    { textAlign: 'center' }
+					{ textAlign: 'center' }
 				);
 			} catch (e) {
 				return { success: false, message: "用户取消导入：版本不兼容。" };
@@ -1834,86 +4220,136 @@
 		const data = jsonData.data;
 		const isSelected = (id) => selectedCategories.includes(id);
 		const isOverwrite = importMode === 'overwrite';
-		let importLog = [];
+		let importLog =[];
 
 		const serviceIdMap = new Map();
 
+		// 1. 自定义服务
 		if (isSelected('customServices')) {
 			if (isOverwrite) {
-				GM_setValue(CUSTOM_SERVICES_LIST_KEY, []);
+				GM_setValue(CUSTOM_SERVICES_LIST_KEY,[]);
 			}
 
 			if (Array.isArray(data.customServices)) {
-				const existingServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+				const existingServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY,[]);
+				const existingNames = existingServices.map(s => s.name);
 				let addedCount = 0;
+				let mergedCount = 0;
 
 				for (const importedService of data.customServices) {
 					if (!importedService || typeof importedService.id !== 'string') continue;
 
-					const newServiceId = `custom_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-					serviceIdMap.set(importedService.id, newServiceId);
-
-					let models = importedService.models || [];
+					let models = importedService.models ||[];
 					if (models.length === 0 && importedService.modelsRaw) {
 						models = importedService.modelsRaw.replace(/[，]/g, ',').split(',').map(m => m.trim()).filter(Boolean);
 					}
 
-					const newServiceConfig = {
-						id: newServiceId,
-						name: importedService.name,
-						url: importedService.url,
-						modelsRaw: importedService.modelsRaw,
-						models: models
-					};
+					const matchedService = existingServices.find(s => s.url === importedService.url);
 
-					if (importedService.selectedModel !== undefined) {
-						GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${newServiceId}`, importedService.selectedModel);
-					}
+					if (!isOverwrite && matchedService) {
+						// 合并模式且 URL 相同：合并模型和 API Key，不创建新服务
+						serviceIdMap.set(importedService.id, matchedService.id);
+						
+						const mergedModelsSet = new Set([...(matchedService.models || []), ...models]);
+						matchedService.models = Array.from(mergedModelsSet);
+						matchedService.modelsRaw = matchedService.models.join(', ');
 
-					if (isSelected('apiKeys') && data.apiKeys) {
-						const oldKeyName = `${importedService.id}_keys_string`;
-						const apiKeyVal = data.apiKeys[oldKeyName] || importedService.apiKey;
-						if (apiKeyVal !== undefined) {
-							GM_setValue(`${newServiceId}_keys_string`, apiKeyVal);
-							const keysArray = apiKeyVal.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
-							GM_setValue(`${newServiceId}_keys_array`, keysArray);
+						if (isSelected('apiKeys') && data.apiKeys) {
+							const oldKeyName = `${importedService.id}_keys_string`;
+							const importedApiKey = data.apiKeys[oldKeyName] || importedService.apiKey;
+							if (importedApiKey) {
+								const localApiKey = GM_getValue(`${matchedService.id}_keys_string`, '');
+								const mergedKey = mergeApiKeys(localApiKey, importedApiKey);
+								GM_setValue(`${matchedService.id}_keys_string`, mergedKey);
+								GM_setValue(`${matchedService.id}_keys_array`, mergedKey.split(', '));
+							}
 						}
-						const oldIndexKey = `${importedService.id}_key_index`;
-						if (data.apiKeys[oldIndexKey] !== undefined) {
-							GM_setValue(`${newServiceId}_key_index`, data.apiKeys[oldIndexKey]);
-						}
-					}
+						mergedCount++;
+					} else {
+						// 覆盖模式 或 URL 不同：创建新服务
+						const newServiceId = `custom_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+						serviceIdMap.set(importedService.id, newServiceId);
 
-					existingServices.push(newServiceConfig);
-					addedCount++;
+						let finalName = importedService.name;
+						if (!isOverwrite) {
+							finalName = generateUniqueName(importedService.name, existingNames);
+							existingNames.push(finalName);
+						}
+
+						const newServiceConfig = {
+							id: newServiceId,
+							name: finalName,
+							url: importedService.url,
+							modelsRaw: models.join(', '),
+							models: models
+						};
+
+						if (importedService.selectedModel !== undefined) {
+							GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${newServiceId}`, importedService.selectedModel);
+						}
+
+						if (isSelected('apiKeys') && data.apiKeys) {
+							const oldKeyName = `${importedService.id}_keys_string`;
+							const apiKeyVal = data.apiKeys[oldKeyName] || importedService.apiKey;
+							if (apiKeyVal !== undefined) {
+								GM_setValue(`${newServiceId}_keys_string`, apiKeyVal);
+								const keysArray = apiKeyVal.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+								GM_setValue(`${newServiceId}_keys_array`, keysArray);
+							}
+							const oldIndexKey = `${importedService.id}_key_index`;
+							if (data.apiKeys[oldIndexKey] !== undefined) {
+								GM_setValue(`${newServiceId}_key_index`, data.apiKeys[oldIndexKey]);
+							}
+						}
+
+						existingServices.push(newServiceConfig);
+						addedCount++;
+					}
 				}
 				GM_setValue(CUSTOM_SERVICES_LIST_KEY, existingServices);
-				if (addedCount > 0) importLog.push(`导入 ${addedCount} 个自定义服务`);
+				if (addedCount > 0) importLog.push(`新增 ${addedCount} 个自定义服务`);
+				if (mergedCount > 0) importLog.push(`合并 ${mergedCount} 个自定义服务`);
 			}
 		}
 
+		// 2. 基础设置
 		if (isSelected('staticKeys') && data.staticKeys) {
+			let updatedCount = 0;
 			for (const [key, value] of Object.entries(data.staticKeys)) {
 				if (value !== undefined) {
 					let finalValue = value;
 					if (key === 'transEngine' && serviceIdMap.has(value)) {
 						finalValue = serviceIdMap.get(value);
 					}
-					if (key === 'from_lang' && (value === 'auto' || value === 'script_auto')) {
-						finalValue = 'auto';
+
+					if (isOverwrite) {
+						GM_setValue(key, finalValue);
+						updatedCount++;
+					} else {
+						// 仅当本地为空或为默认值时才覆盖
+						const localValue = GM_getValue(key);
+						let defaultValue = undefined;
+						if (DEFAULT_CONFIG.GENERAL.hasOwnProperty(key)) defaultValue = DEFAULT_CONFIG.GENERAL[key];
+						else if (DEFAULT_CONFIG.ENGINE.hasOwnProperty(key)) defaultValue = DEFAULT_CONFIG.ENGINE[key];
+						
+						if (localValue === undefined || localValue === defaultValue) {
+							GM_setValue(key, finalValue);
+							updatedCount++;
+						}
 					}
-					GM_setValue(key, finalValue);
 				}
 			}
-			if (data.staticKeys.enable_debug_mode !== undefined) {
-				Logger.config.enabled = data.staticKeys.enable_debug_mode;
-			}
-			importLog.push("基础设置已更新");
+			if (data.staticKeys.ao3_log_level !== undefined) Logger.setLevel(data.staticKeys.ao3_log_level);
+			if (data.staticKeys.ao3_log_auto_clear !== undefined) Logger.setAutoClear(data.staticKeys.ao3_log_auto_clear);
+			if (updatedCount > 0) importLog.push("基础设置已更新");
 		}
 
+		// 3. 内置服务 API Keys
 		if (isSelected('apiKeys') && data.apiKeys) {
+			const builtInServices = Object.keys(engineMenuConfig).filter(id => !id.startsWith('custom_') && id !== 'add_new_custom');
+			let keysUpdated = false;
+
 			if (isOverwrite) {
-				const builtInServices = Object.keys(engineMenuConfig).filter(id => !id.startsWith('custom_') && id !== 'add_new_custom');
 				builtInServices.forEach(id => {
 					GM_deleteValue(`${id}_keys_string`);
 					GM_deleteValue(`${id}_keys_array`);
@@ -1921,40 +4357,54 @@
 				});
 			}
 
-			const builtInServices = Object.keys(engineMenuConfig).filter(id => !id.startsWith('custom_') && id !== 'add_new_custom');
-			for (const [key, value] of Object.entries(data.apiKeys)) {
-				const isBuiltInKey = builtInServices.some(id => key.startsWith(id));
+			for (const[key, value] of Object.entries(data.apiKeys)) {
+				const isBuiltInKey = builtInServices.some(id => key.startsWith(id) && key.endsWith('_keys_string'));
 				if (value !== undefined && isBuiltInKey) {
-					GM_setValue(key, value);
+					if (isOverwrite) {
+						GM_setValue(key, value);
+						GM_setValue(key.replace('_keys_string', '_keys_array'), value.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean));
+						keysUpdated = true;
+					} else {
+						const localValue = GM_getValue(key, '');
+						const mergedKey = mergeApiKeys(localValue, value);
+						if (mergedKey !== localValue) {
+							GM_setValue(key, mergedKey);
+							GM_setValue(key.replace('_keys_string', '_keys_array'), mergedKey.split(', '));
+							keysUpdated = true;
+						}
+					}
 				}
 			}
-			importLog.push("内置服务 API Key 已更新");
+			if (keysUpdated) importLog.push("内置服务 API Key 已更新");
 		}
 
+		// 4. 模型偏好
 		if (isSelected('modelSelections') && data.modelSelections) {
 			let hasCustomMappings = false;
 			for (const [key, value] of Object.entries(data.modelSelections)) {
 				if (value !== undefined) {
-					GM_setValue(key, value);
-					if (key.endsWith('_custom_model_mapping')) hasCustomMappings = true;
+					if (isOverwrite || GM_getValue(key) === undefined) {
+						GM_setValue(key, value);
+						if (key.endsWith('_custom_model_mapping')) hasCustomMappings = true;
+					}
 				}
 			}
 			if (hasCustomMappings) importLog.push("内置服务自定义模型已导入");
 		}
 
+		// 5. 术语表
 		if (isSelected('glossaries') && data.glossaries) {
 			const g = data.glossaries;
 
 			if (isOverwrite) {
-				GM_setValue(CUSTOM_GLOSSARIES_KEY, []);
+				GM_setValue(CUSTOM_GLOSSARIES_KEY,[]);
 				GM_setValue(IMPORTED_GLOSSARY_KEY, {});
 				GM_setValue(GLOSSARY_METADATA_KEY, {});
-				GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, []);
-				GM_setValue(POST_REPLACE_RULES_KEY, []);
+				GM_setValue(ONLINE_GLOSSARY_ORDER_KEY,[]);
 			}
 
 			if (g.local || g.forbidden) {
-				const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+				const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY,[]);
 				existingLocal.push({
 					id: `local_migrated_${Date.now()}`,
 					name: '默认',
@@ -1968,85 +4418,134 @@
 			}
 
 			if (g.customGlossaries && Array.isArray(g.customGlossaries)) {
-				const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+				const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY,[]);
+				const existingNames = existingLocal.map(l => l.name);
 				let localAdded = 0;
+				
 				g.customGlossaries.forEach(importedLocal => {
-					const newId = `local_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-					if (data.uiState && data.uiState.localGlossarySelectedId === importedLocal.id) {
-						data.uiState._mappedLocalId = newId;
+					const isDuplicate = !isOverwrite && existingLocal.some(local => 
+						local.sensitive === importedLocal.sensitive && 
+						local.insensitive === importedLocal.insensitive && 
+						local.forbidden === importedLocal.forbidden
+					);
+
+					if (!isDuplicate) {
+						const newId = `local_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+						if (data.uiState && data.uiState.localGlossarySelectedId === importedLocal.id) {
+							data.uiState._mappedLocalId = newId;
+						}
+						
+						let finalName = importedLocal.name;
+						if (!isOverwrite) {
+							finalName = generateUniqueName(importedLocal.name, existingNames);
+							existingNames.push(finalName);
+						}
+
+						existingLocal.push({
+							...importedLocal,
+							id: newId,
+							name: finalName
+						});
+						localAdded++;
 					}
-					existingLocal.push({
-						...importedLocal,
-						id: newId,
-						name: importedLocal.name
-					});
-					localAdded++;
 				});
 				GM_setValue(CUSTOM_GLOSSARIES_KEY, existingLocal);
-				if (localAdded > 0) importLog.push(`导入 ${localAdded} 个本地术语表`);
+				if (localAdded > 0) importLog.push(`新增 ${localAdded} 个本地术语表`);
 			}
 
 			if (g.importedGlossaries) {
 				const existingImported = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-				const mergedImported = { ...existingImported, ...g.importedGlossaries };
+				const mergedImported = isOverwrite ? g.importedGlossaries : { ...existingImported, ...g.importedGlossaries };
 				GM_setValue(IMPORTED_GLOSSARY_KEY, mergedImported);
 			}
 
-			if (g.metadata) {
+			if (g.metadata || g.onlineMetadata) {
+				const importedMeta = g.metadata || g.onlineMetadata;
 				const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
-				const mergedMeta = { ...existingMeta, ...g.metadata };
-				GM_setValue(GLOSSARY_METADATA_KEY, mergedMeta);
-			} else if (g.onlineMetadata) {
-				const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
-				const mergedMeta = { ...existingMeta, ...g.onlineMetadata };
-				GM_setValue(GLOSSARY_METADATA_KEY, mergedMeta);
+				
+				if (isOverwrite) {
+					GM_setValue(GLOSSARY_METADATA_KEY, importedMeta);
+				} else {
+					for (const [url, meta] of Object.entries(importedMeta)) {
+						if (existingMeta[url] && existingMeta[url].enabled !== undefined) {
+							meta.enabled = existingMeta[url].enabled;
+						}
+						existingMeta[url] = meta;
+					}
+					GM_setValue(GLOSSARY_METADATA_KEY, existingMeta);
+				}
 			}
 
 			if (g.onlineOrder && Array.isArray(g.onlineOrder)) {
 				if (isOverwrite) {
 					GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, g.onlineOrder);
 				} else {
-					const currentOrder = GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []);
+					const currentOrder = GM_getValue(ONLINE_GLOSSARY_ORDER_KEY,[]);
 					const currentSet = new Set(currentOrder);
 					const newItems = g.onlineOrder.filter(url => !currentSet.has(url));
 					GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, [...currentOrder, ...newItems]);
 				}
 			}
+		}
 
-			if (g.postReplaceRules && Array.isArray(g.postReplaceRules)) {
-				const existingRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-				let rulesAdded = 0;
-				g.postReplaceRules.forEach(importedRule => {
-					const newId = `replace_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-					if (data.uiState && data.uiState.postReplaceSelectedId === importedRule.id) {
-						data.uiState._mappedReplaceId = newId;
-					}
-					existingRules.push({
-						...importedRule,
-						id: newId
-					});
-					rulesAdded++;
-				});
-				GM_setValue(POST_REPLACE_RULES_KEY, existingRules);
-				if (rulesAdded > 0) importLog.push(`导入 ${rulesAdded} 个替换规则`);
+		// 6. 替换规则
+		const postReplaceSource = data.postReplace || data.glossaries;
+		if (isSelected('postReplace') && postReplaceSource) {
+			const pr = postReplaceSource;
+
+			if (isOverwrite) {
+				GM_setValue(POST_REPLACE_RULES_KEY,[]);
 			}
 
+			if (pr.postReplaceRules && Array.isArray(pr.postReplaceRules)) {
+				const existingRules = GM_getValue(POST_REPLACE_RULES_KEY,[]);
+				const existingNames = existingRules.map(r => r.name);
+				let rulesAdded = 0;
+				
+				pr.postReplaceRules.forEach(importedRule => {
+					const isDuplicate = !isOverwrite && existingRules.some(rule => rule.content === importedRule.content);
+					
+					if (!isDuplicate) {
+						const newId = `replace_imp_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+						if (data.uiState && data.uiState.postReplaceSelectedId === importedRule.id) {
+							data.uiState._mappedReplaceId = newId;
+						}
+						
+						let finalName = importedRule.name;
+						if (!isOverwrite) {
+							finalName = generateUniqueName(importedRule.name, existingNames);
+							existingNames.push(finalName);
+						}
+
+						existingRules.push({
+							...importedRule,
+							id: newId,
+							name: finalName
+						});
+						rulesAdded++;
+					}
+				});
+				GM_setValue(POST_REPLACE_RULES_KEY, existingRules);
+				if (rulesAdded > 0) importLog.push(`新增 ${rulesAdded} 个替换规则`);
+			}
+
+			// 兼容极早期版本的替换规则字符串
 			let importedPostReplaceString = '';
-			if (typeof g.postReplaceString === 'string' && g.postReplaceString.trim()) {
-				importedPostReplaceString = g.postReplaceString;
-			} else if (g.postReplace && typeof g.postReplace === 'object') {
-				const parts = [];
-				if (g.postReplace.singleRules) {
-					Object.entries(g.postReplace.singleRules).forEach(([k, v]) => parts.push(`${k}:${v}`));
+			if (typeof pr.postReplaceString === 'string' && pr.postReplaceString.trim()) {
+				importedPostReplaceString = pr.postReplaceString;
+			} else if (pr.postReplace && typeof pr.postReplace === 'object') {
+				const parts =[];
+				if (pr.postReplace.singleRules) {
+					Object.entries(pr.postReplace.singleRules).forEach(([k, v]) => parts.push(`${k}:${v}`));
 				}
-				if (Array.isArray(g.postReplace.multiPartRules)) {
-					g.postReplace.multiPartRules.forEach(r => {
+				if (Array.isArray(pr.postReplace.multiPartRules)) {
+					pr.postReplace.multiPartRules.forEach(r => {
 						if (r.source && r.target) parts.push(`${r.source}=${r.target}`);
 					});
 				}
 				importedPostReplaceString = parts.join('，');
-			} else if (typeof g.postReplace === 'string') {
-				importedPostReplaceString = g.postReplace;
+			} else if (typeof pr.postReplace === 'string') {
+				importedPostReplaceString = pr.postReplace;
 			}
 
 			if (importedPostReplaceString) {
@@ -2063,9 +4562,9 @@
 			}
 		}
 
+		// 7. AI 参数配置
 		if (isSelected('aiParameters') && data.aiParameters) {
-
-			const legacyKeys = [
+			const legacyKeys =[
 				'custom_ai_system_prompt', 'custom_ai_user_prompt', 'custom_ai_temperature',
 				'custom_ai_chunk_size', 'custom_ai_para_limit', 'custom_ai_request_rate',
 				'custom_ai_request_capacity', 'custom_ai_lazy_load_margin',
@@ -2095,25 +4594,34 @@
 
 				if (isOverwrite) {
 					GM_setValue(AI_PROFILES_KEY, importedProfiles);
+					importLog.push("AI 参数配置已覆盖");
 				} else {
-					const currentProfiles = GM_getValue(AI_PROFILES_KEY, []);
-					const existingIds = new Set(currentProfiles.map(p => p.id));
-
+					const currentProfiles = GM_getValue(AI_PROFILES_KEY,[]);
+					const existingNames = currentProfiles.map(p => p.name);
 					let addedCount = 0;
-					importedProfiles.forEach(p => {
-						if (existingIds.has(p.id)) {
-							p.id = `profile_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-							p.name = `${p.name}`;
+
+					importedProfiles.forEach(importedProfile => {
+						const isDuplicate = currentProfiles.some(p => deepEqual(p.params, importedProfile.params));
+						
+						if (!isDuplicate) {
+							let finalName = generateUniqueName(importedProfile.name, existingNames);
+							existingNames.push(finalName);
+
+							importedProfile.id = `profile_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+							importedProfile.name = finalName;
+							importedProfile.isProtected = false; 
+							
+							currentProfiles.push(importedProfile);
+							addedCount++;
 						}
-						currentProfiles.push(p);
-						addedCount++;
 					});
 					GM_setValue(AI_PROFILES_KEY, currentProfiles);
+					if (addedCount > 0) importLog.push(`新增 ${addedCount} 个 AI 参数配置`);
 				}
-				importLog.push("AI 参数配置已更新");
 			}
 		}
 
+		// 8. UI 状态
 		if (isSelected('uiState') && data.uiState) {
 			if (data.uiState.fabPosition) GM_setValue('ao3_fab_position', data.uiState.fabPosition);
 			if (data.uiState.panelPosition) GM_setValue('ao3_panel_position', data.uiState.panelPosition);
@@ -2131,6 +4639,17 @@
 
 			if (data.uiState.postReplaceEditMode) GM_setValue('ao3_post_replace_edit_mode', data.uiState.postReplaceEditMode);
 
+			if (data.uiState.fabManageMode) GM_setValue('ao3_fab_manage_mode', data.uiState.fabManageMode);
+			if (data.uiState.fabManageGesture) GM_setValue('ao3_fab_manage_gesture', data.uiState.fabManageGesture);
+
+			if (data.uiState.formattingLastProp) GM_setValue('formatting_last_prop', data.uiState.formattingLastProp);
+			if (data.uiState.logModalFilter) GM_setValue('ao3_log_modal_filter', data.uiState.logModalFilter);
+			if (data.uiState.exportLastFormat) GM_setValue('ao3_export_last_format', data.uiState.exportLastFormat);
+			if (data.uiState.exportLastAction) GM_setValue('ao3_export_last_action', data.uiState.exportLastAction);
+			if (data.uiState.hasSwitchedToFullPageOnce !== undefined) GM_setValue('has_switched_to_full_page_once', data.uiState.hasSwitchedToFullPageOnce);
+
+			if (data.uiState.cacheManageMode) GM_setValue('ao3_cache_manage_mode', data.uiState.cacheManageMode);
+
 			if (data.uiState.serviceCollapsedStates) {
 				for (const [sId, isCollapsed] of Object.entries(data.uiState.serviceCollapsedStates)) {
 					let targetId = sId;
@@ -2144,9 +4663,10 @@
 			}
 		}
 
+		// 9. 屏蔽规则
 		if (isSelected('blockerSettings') && data.blockerSettings) {
 			const bData = data.blockerSettings;
-			const listKeys = [
+			const listKeys =[
 				'ao3_blocker_tags_black', 'ao3_blocker_tags_white',
 				'ao3_blocker_content_author', 'ao3_blocker_content_title',
 				'ao3_blocker_content_summary', 'ao3_blocker_content_id',
@@ -2154,11 +4674,14 @@
 				'ao3_blocker_adv_lang'
 			];
 
+			let blockerUpdated = false;
+
 			for (const [key, value] of Object.entries(bData)) {
 				if (!BLOCKER_KEYS.includes(key)) continue;
 
 				if (isOverwrite) {
 					GM_setValue(key, value);
+					blockerUpdated = true;
 				} else {
 					if (listKeys.includes(key) && typeof value === 'string') {
 						const localVal = GM_getValue(key, '');
@@ -2185,40 +4708,160 @@
 							});
 
 							GM_setValue(key, localVal + prefix + processedNewItems.join(separator));
+							blockerUpdated = true;
 						}
 					} else {
-						GM_setValue(key, value);
+						const localVal = GM_getValue(key);
+						const defaultKey = key.replace('ao3_blocker_', '');
+						const defaultVal = DEFAULT_CONFIG.BLOCKER[defaultKey];
+						
+						if (localVal === undefined || localVal === defaultVal || localVal === '') {
+							GM_setValue(key, value);
+							blockerUpdated = true;
+						}
 					}
 				}
 			}
-			importLog.push("屏蔽规则已更新");
+			if (blockerUpdated) importLog.push("屏蔽规则已更新");
 		}
 
+		// 10. 文章格式方案
 		if (isSelected('formatting') && data.formatting) {
 			const fData = data.formatting;
-			if (fData[FORMATTING_PROFILES_KEY] !== undefined) {
-				GM_setValue(FORMATTING_PROFILES_KEY, fData[FORMATTING_PROFILES_KEY]);
+			const importedProfiles = fData[FORMATTING_PROFILES_KEY];
+			
+			if (importedProfiles && Array.isArray(importedProfiles)) {
+				if (isOverwrite) {
+					GM_setValue(FORMATTING_PROFILES_KEY, importedProfiles);
+					if (fData[FORMATTING_SELECTED_ID_KEY] !== undefined) {
+						GM_setValue(FORMATTING_SELECTED_ID_KEY, fData[FORMATTING_SELECTED_ID_KEY]);
+					}
+					importLog.push("文章格式设置已覆盖");
+				} else {
+					const currentProfiles = GM_getValue(FORMATTING_PROFILES_KEY,[]);
+					const existingNames = currentProfiles.map(p => p.name);
+					let addedCount = 0;
+
+					importedProfiles.forEach(importedProfile => {
+						// 深度比对参数，完全一致则视为重复，跳过导入
+						const isDuplicate = currentProfiles.some(p => deepEqual(p.params, importedProfile.params));
+						
+						if (!isDuplicate) {
+							let finalName = generateUniqueName(importedProfile.name, existingNames);
+							existingNames.push(finalName);
+
+							importedProfile.id = `fmt_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+							importedProfile.name = finalName;
+							
+							currentProfiles.push(importedProfile);
+							addedCount++;
+						}
+					});
+					GM_setValue(FORMATTING_PROFILES_KEY, currentProfiles);
+					if (addedCount > 0) importLog.push(`新增 ${addedCount} 个文章格式方案`);
+				}
 			}
-			if (fData[FORMATTING_SELECTED_ID_KEY] !== undefined) {
-				GM_setValue(FORMATTING_SELECTED_ID_KEY, fData[FORMATTING_SELECTED_ID_KEY]);
-			}
-			importLog.push("文章格式设置已更新");
 		}
 
-		synchronizeAllSettings(syncPanelStateCallback);
+		// 11. 悬浮按钮操作项
+		if (isSelected('fabActions') && data.fabActions) {
+			if (isOverwrite || GM_getValue('ao3_fab_actions') === undefined) {
+				GM_setValue('ao3_fab_actions', data.fabActions);
+				importLog.push("悬浮按钮操作项已导入");
+			}
+		}
 
+		// 12. 导出模板与样式
+		if (isSelected('exportTemplates') && data.exportTemplates) {
+			const eData = data.exportTemplates;
+			const importedTemplates = eData.templates;
+			
+			if (importedTemplates && typeof importedTemplates === 'object') {
+				if (isOverwrite) {
+					GM_setValue('ao3_export_templates', importedTemplates);
+					if (eData.selected) GM_setValue('ao3_export_selected_templates', eData.selected);
+					importLog.push("导出模板已覆盖");
+				} else {
+					const currentTemplates = GM_getValue('ao3_export_templates', ExportTemplateStore.DEFAULT_TEMPLATES);
+					let addedCount = 0;
+
+					['html', 'epub', 'pdf'].forEach(format => {
+						if (importedTemplates[format] && Array.isArray(importedTemplates[format])) {
+							if (!currentTemplates[format]) currentTemplates[format] = [];
+							const existingNames = currentTemplates[format].map(t => t.name);
+							
+							importedTemplates[format].forEach(importedTpl => {
+								// 跳过默认模板的导入，防止覆盖内置默认模板
+								if (importedTpl.isProtected) return;
+								
+								// 通过 CSS 内容比对去重
+								const isDuplicate = currentTemplates[format].some(t => t.css === importedTpl.css);
+								if (!isDuplicate) {
+									let finalName = generateUniqueName(importedTpl.name, existingNames);
+									existingNames.push(finalName);
+									
+									importedTpl.id = `template_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+									importedTpl.name = finalName;
+									
+									currentTemplates[format].push(importedTpl);
+									addedCount++;
+								}
+							});
+						}
+					});
+					GM_setValue('ao3_export_templates', currentTemplates);
+					if (addedCount > 0) importLog.push(`新增 ${addedCount} 个导出模板`);
+				}
+			}
+		}
+
+		// 13. 缓存清理策略
+		if (isSelected('cacheSettings') && data.cacheSettings) {
+			const cData = data.cacheSettings;
+			if (cData.autoCleanupEnabled !== undefined) GM_setValue('ao3_cache_auto_cleanup_enabled', cData.autoCleanupEnabled);
+			if (cData.maxItems !== undefined) GM_setValue('ao3_cache_max_items', cData.maxItems);
+			if (cData.maxDays !== undefined) GM_setValue('ao3_cache_max_days', cData.maxDays);
+			importLog.push("缓存清理策略已导入");
+		}
+
+		// 统一激活所有数据和状态
+		SettingsSyncManager.syncAll();
+
+		// 强制重置迁移版本号，并对导入的旧数据执行升级
+		GM_setValue('ao3_migration_version', 0);
+		runDataMigration();
+
+		const newMode = GM_getValue('ao3_translation_mode', 'unit');
+		const newTransDesc = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
+		const newAutoTranslate = GM_getValue('ao3_auto_translate', false);
+		
+		if (oldMode !== newMode || oldTransDesc !== newTransDesc || oldAutoTranslate !== newAutoTranslate) {
+			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.MODE_CHANGED, { detail: { mode: newMode } }));
+		}
+
+		// 14. 后台同步在线术语表
 		let syncSummary = "";
 		if (isSelected('glossaries')) {
-			const importedUrls = (data.glossaries?.importedGlossaries) ? Object.keys(data.glossaries.importedGlossaries) :
-				(data.glossaries?.onlineMetadata ? Object.keys(data.glossaries.onlineMetadata) : []);
+			const importedUrls = Object.keys(
+				data.glossaries?.importedGlossaries ||
+				data.glossaries?.metadata ||
+				data.glossaries?.onlineMetadata ||
+				{}
+			);
+
 			if (importedUrls.length > 0) {
-				const downloadPromises = importedUrls.map(url => importOnlineGlossary(url, { silent: true }));
-				Promise.allSettled(downloadPromises).then(results => {
-					const successful = results.filter(r => r.status === 'fulfilled' && r.value.success);
-					if (successful.length > 0) {
-						Logger.info('数据', `后台同步了 ${successful.length} 个在线术语表`);
+				setTimeout(async () => {
+					let successCount = 0;
+					for (const url of importedUrls) {
+						const res = await importOnlineGlossary(url, { silent: true });
+						if (res.success) successCount++;
+						await sleep(500); 
 					}
-				});
+					if (successCount > 0) {
+						Logger.info('Data', `后台同步了 ${successCount} 个在线术语表`);
+					}
+				}, 1000);
+				
 				syncSummary = `\n已触发 ${importedUrls.length} 个在线术语表的后台同步。`;
 			}
 		}
@@ -2229,10 +4872,10 @@
 	}
 
 	/**
-	 * 同步函数，用于在设置变更后激活所有数据和状态
+	 * 数据清洗逻辑：格式化所有 API Keys
 	 */
-	function synchronizeAllSettings(syncPanelStateCallback) {
-		const allServiceIds = [
+	function normalizeAllApiKeys() {
+		const allServiceIds =[
 			...Object.keys(engineMenuConfig),
 			...GM_getValue(CUSTOM_SERVICES_LIST_KEY, []).map(s => s.id)
 		];
@@ -2246,28 +4889,43 @@
 				GM_setValue(arrayKey, keysArray);
 			}
 		}
-
-		invalidateGlossaryCache();
-
-		if (typeof syncPanelStateCallback === 'function') {
-			syncPanelStateCallback();
-		}
-
-		const displayMode = GM_getValue('translation_display_mode', 'bilingual');
-		applyDisplayModeChange(displayMode);
-		if (typeof refreshBlocker === 'function') {
-			refreshBlocker('full');
-		}
-		if (typeof applyFormatting === 'function') {
-			applyFormatting();
-		}
+		Logger.info('System', 'API Keys 格式化校验完成');
 	}
 
-    /**
-	 * 设置面板的结构与样式
+	/**
+	 * 同步管理器：按需触发各模块的刷新与重绘
+	 */
+	const SettingsSyncManager = {
+		sync(options = {}) {
+			if (options.glossary) invalidateGlossaryCache();
+			if (options.blocker) refreshBlocker(options.blocker === true ? 'full' : options.blocker);
+			if (options.formatting) applyFormatting();
+			if (options.displayMode) applyDisplayModeChange(GM_getValue('translation_display_mode', 'bilingual'));
+			if (options.ui) document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.PANEL_STATE_SYNC));
+		},
+		syncGlossary(updateUI = true) {
+			this.sync({ glossary: true, ui: updateUI });
+		},
+		syncBlocker(mode = 'full') {
+			this.sync({ blocker: mode });
+		},
+		syncFormatting() {
+			this.sync({ formatting: true });
+		},
+		syncUI() {
+			this.sync({ ui: true });
+		},
+		syncAll() {
+			normalizeAllApiKeys();
+			this.sync({ glossary: true, blocker: 'full', formatting: true, displayMode: true, ui: true });
+		}
+	};
+
+	/**
+	 * 设置面板的结构
 	 */
 	function createSettingsPanelUI() {
-		const existing = document.getElementById('ao3-trans-settings-panel');
+		const existing = shadowWrapper.querySelector('#ao3-trans-settings-panel');
 		if (existing) {
 			return {
 				panel: existing,
@@ -2317,6 +4975,9 @@
 				glossaryManageDetailsContainer: existing.querySelector('#online-glossary-details-container'),
 				glossaryManageInfo: existing.querySelector('#online-glossary-info'),
 				glossaryManageDeleteBtn: existing.querySelector('#online-glossary-delete-btn'),
+				openOnlineLibraryBtn: existing.querySelector('#btn-open-online-library'),
+				viewImportedGlossaryContainer: existing.querySelector('#view-imported-glossary-container'),
+				viewImportedGlossaryBtn: existing.querySelector('#btn-view-imported-glossary'),
 				postReplaceSection: existing.querySelector('#editable-section-post-replace'),
 				postReplaceSelect: existing.querySelector('#setting-post-replace-select'),
 				postReplaceEditModeSelect: existing.querySelector('#setting-post-replace-edit-mode'),
@@ -2327,9 +4988,10 @@
 				postReplaceInput: existing.querySelector('#setting-input-post-replace'),
 				postReplaceSaveBtn: existing.querySelector('#setting-btn-post-replace-save'),
 				dataSyncActionsContainer: existing.querySelector('#data-sync-actions-container'),
-				debugActionsContainer: existing.querySelector('#debug-actions-container'),
-				toggleDebugBtn: existing.querySelector('#btn-toggle-debug'),
-				exportLogBtn: existing.querySelector('#btn-export-log'),
+				debugModeSection: existing.querySelector('#editable-section-debug-mode'),
+				logLevelSelect: existing.querySelector('#setting-log-level'),
+				viewLogsBtn: existing.querySelector('#btn-view-logs'),
+				logAutoClearSelect: existing.querySelector('#setting-log-auto-clear'),
 				importDataBtn: existing.querySelector('#btn-import-data'),
 				exportDataBtn: existing.querySelector('#btn-export-data'),
 				blockerSection: existing.querySelector('#editable-section-blocker'),
@@ -2346,973 +5008,435 @@
 			};
 		}
 
-		const BLOCKER_STYLE = `
-            .ao3-blocker-hidden {
-                display: none !important;
-            }
-            .ao3-blocker-work {
-                padding: 0 !important;
-                min-height: auto !important;
-            }
-            .ao3-blocker-fold {
-                display: flex !important;
-                flex-direction: row !important;
-                justify-content: space-between !important;
-                align-items: center !important;
-                padding: 0.6em 1em !important;
-
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                opacity: 1 !important;
-
-                width: 100% !important;
-                box-sizing: border-box !important;
-            }
-            .ao3-blocker-note {
-                font-size: 13px !important;
-                color: inherit !important;
-                font-style: normal !important;
-                font-weight: normal !important;
-                flex: 1 !important;
-                margin-right: 10px !important;
-                word-break: break-all !important;
-            }
-            .ao3-blocker-toggle {
-                padding: 4px !important;
-                margin: 0 !important;
-                background: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                color: inherit !important;
-                cursor: pointer !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                user-select: none !important;
-                flex-shrink: 0 !important;
-                -webkit-tap-highlight-color: transparent !important;
-                outline: none !important;
-            }
-            .ao3-blocker-toggle svg {
-                width: 20px;
-                height: 20px;
-                fill: currentColor;
-            }
-            .ao3-blocker-cut {
-                display: none !important;
-            }
-            .ao3-blocker-unhide > .ao3-blocker-fold {
-                border-bottom: 1px solid currentColor !important;
-                border-bottom-color: rgba(127, 127, 127, 0.25) !important;
-                margin-bottom: 0 !important;
-            }
-            .ao3-blocker-unhide > .ao3-blocker-cut {
-                display: block !important;
-                padding: 10px !important;
-            }
-        `;
-
-		const SERVICE_MODAL_STYLE = `
-            #ai-service-overlay {
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background-color: rgba(0, 0, 0, 0.5);
-                z-index: 2147483648; display: flex; align-items: center; justify-content: center;
-                font-family: var(--ao3-font);
-            }
-            #ai-service-modal {
-                background-color: var(--ao3-bg); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-                width: 85%; max-width: 300px; overflow: hidden; display: flex; flex-direction: column;
-                max-height: 80vh; color: var(--ao3-text);
-            }
-            .ai-modal-header {
-                padding: 12px 16px; border-bottom: 1px solid var(--ao3-border);
-                display: flex; justify-content: center; align-items: center;
-                position: relative;
-            }
-            .ai-modal-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
-            .ai-select-all-btn {
-                font-size: 13px; color: var(--ao3-primary); cursor: pointer; user-select: none;
-                position: absolute; right: 16px;
-            }
-            .ai-modal-body {
-                padding: 8px 0;
-                overflow-y: auto;
-                flex: 1;
-                max-height: 40vh;
-            }
-
-            .ai-service-item {
-                padding: 8px 16px; display: flex; align-items: center; gap: 12px;
-                cursor: pointer; transition: background-color 0.2s;
-                -webkit-tap-highlight-color: transparent;
-                justify-content: flex-start;
-            }
-            .ai-service-item:hover { background-color: var(--ao3-hover-bg); }
-            .ai-service-label { font-size: 14px; font-weight: 400; color: var(--ao3-text); }
-            .ai-service-item input { margin: 0; cursor: pointer; width: 16px; height: 16px; }
-
-            .ai-modal-footer {
-                padding: 8px 16px; border-top: 1px solid var(--ao3-border);
-                display: flex; flex-direction: row; justify-content: space-between; align-items: center;
-                background-color: var(--ao3-bg); gap: 8px;
-            }
-            .ai-modal-btn {
-                flex: 1;
-                padding: 6px 0; border-radius: 4px; font-size: 13px; font-weight: 500;
-                cursor: pointer; border: none; background: transparent !important;
-                color: var(--ao3-text);
-                transition: opacity 0.2s;
-                white-space: nowrap;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                line-height: 1;
-                outline: none;
-                -webkit-tap-highlight-color: transparent;
-            }
-            .ai-modal-btn:focus { outline: none !important; }
-            .ai-modal-btn:hover { opacity: 0.7; }
-
-            .pseudo-select {
-                cursor: pointer;
-                height: 40px;
-                line-height: normal;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                user-select: none;
-                display: flex;
-                align-items: center;
-            }
-        `;
-
-		GM_addStyle(`
-            /* 变量定义 */
-            #ao3-trans-settings-panel, .custom-dropdown-menu, .drag-ghost, #ai-service-modal {
-                --ao3-bg: #ffffff;
-                --ao3-text: #000000DE;
-                --ao3-text-secondary: #666666;
-                --ao3-text-placeholder: #757575;
-                --ao3-border: rgba(0, 0, 0, 0.12);
-                --ao3-border-hover: rgba(0, 0, 0, 0.87);
-                --ao3-primary: #1976d2;
-                --ao3-danger: #d32f2f;
-                --ao3-hover-bg: #f5f5f5;
-                --ao3-selected-bg: #e3f2fd;
-                --ao3-shadow: 0 8px 24px rgba(0,0,0,0.12);
-                --ao3-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            }
-
-            /* 基础布局 */
-            #ao3-trans-settings-panel {
-                display: none;
-                position: fixed;
-                z-index: 2147483647;
-                width: 300px;
-                border-radius: 12px;
-                font-family: var(--ao3-font);
-                overflow: hidden;
-                flex-direction: column;
-                max-height: 85vh;
-            }
-            #ao3-trans-settings-panel.dragging {
-                opacity: 0.8;
-                transition: opacity 0.2s ease-in-out;
-            }
-            #ao3-trans-settings-panel.mobile-fixed-center {
-                top: 50%; left: 50%; transform: translate(-50%, -50%); width: 85%;
-                max-height: 90vh !important;
-            }
-            .settings-panel-header {
-                padding: 0px 4px 0px 16px;
-                border-bottom: 1px solid var(--ao3-border);
-                cursor: move;
-                user-select: none;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                height: 40px;
-                flex-shrink: 0;
-            }
-            .settings-panel-header-title {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .settings-panel-header-title h2 {
-                margin: 0; font-size: 16px; font-weight: bold; font-family: inherit;
-            }
-            .settings-panel-header-title .home-icon-link {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-decoration: none;
-                border-bottom: none;
-                margin: 0 !important;
-                padding: 0 !important;
-                line-height: 1 !important;
-                height: 24px !important;
-                width: 24px !important;
-                min-width: 24px !important;
-            }
-            .settings-panel-header-title .home-icon-link svg {
-                width: 24px;
-                height: 24px;
-                fill: var(--ao3-text) !important;
-                display: block !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            .settings-panel-close-btn {
-                cursor: pointer; width: 40px; height: 40px; border-radius: 50%;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 24px; color: rgba(0, 0, 0, 0.54);
-            }
-            .settings-panel-body {
-                padding: 16px;
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-                overflow-y: auto;
-                flex: 1;
-                min-height: 0;
-            }
-
-            /* 滚动条样式 */
-            .settings-panel-body::-webkit-scrollbar,
-            .custom-dropdown-menu ul::-webkit-scrollbar,
-            .settings-group textarea.settings-control::-webkit-scrollbar,
-            .ai-modal-body::-webkit-scrollbar,
-            .data-modal-body::-webkit-scrollbar {
-                width: 4px;
-            }
-            .settings-panel-body::-webkit-scrollbar-track,
-            .custom-dropdown-menu ul::-webkit-scrollbar-track,
-            .settings-group textarea.settings-control::-webkit-scrollbar-track,
-            .ai-modal-body::-webkit-scrollbar-track,
-            .data-modal-body::-webkit-scrollbar-track {
-                background: transparent;
-            }
-            .settings-panel-body::-webkit-scrollbar-thumb,
-            .custom-dropdown-menu ul::-webkit-scrollbar-thumb,
-            .settings-group textarea.settings-control::-webkit-scrollbar-thumb,
-            .ai-modal-body::-webkit-scrollbar-thumb,
-            .data-modal-body::-webkit-scrollbar-thumb {
-                background: rgba(0, 0, 0, 0.15);
-                border-radius: 3px;
-            }
-            .editable-section {
-                display: none;
-                flex-direction: column;
-                gap: 16px;
-                width: 100%;
-            }
-            #local-edit-container-translation {
-                display: flex;
-                flex-direction: column;
-                gap: 16px;
-            }
-
-            /* 组件：开关 */
-            .settings-switch-group { display: flex; justify-content: space-between; align-items: center; padding: 0; }
-            .settings-panel-body > .settings-switch-group:first-child { padding-left: 14px; }
-            .settings-panel-body > .settings-switch-group:first-child .settings-label { font-size: 15px; }
-            .settings-switch-group .settings-label { font-size: 13px; font-weight: 400; }
-            .settings-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-            .settings-switch input { opacity: 0; width: 0; height: 0; }
-            .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
-            .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-            input:checked + .slider { background-color: #209CEE; }
-            input:checked + .slider:before { transform: translateX(20px); }
-
-            /* 组件：输入框与选择框 */
-            .settings-group { position: relative; }
-            .settings-group.ao3-trans-control-disabled {
-                pointer-events: none;
-                opacity: 1 !important;
-            }
-
-            .settings-group .settings-control {
-                -webkit-appearance: none; appearance: none;
-                width: 100%; height: 40px; padding: 0 12px;
-                border-radius: 6px; border: 1px solid #ccc;
-                font-size: 15px; font-family: inherit;
-                box-sizing: border-box; line-height: 40px;
-                min-width: 0;
-                transition: border-color 0.2s ease;
-            }
-            .settings-group textarea.settings-control {
-                height: 72px !important; min-height: 72px !important; max-height: 72px !important;
-                line-height: 1.5; padding-top: 8px; padding-bottom: 8px; resize: none;
-            }
-
-            .settings-group .settings-control:hover:not(:disabled) {
-                border-color: var(--ao3-border-hover) !important;
-            }
-            .settings-group .settings-control:focus {
-                border-color: var(--ao3-primary) !important;
-                border-width: 1px;
-                outline: none;
-            }
-
-            .settings-group .settings-label {
-                position: absolute; top: 50%; transform: translateY(-50%); left: 12px;
-                font-size: 14px; color: var(--ao3-text-secondary);
-                pointer-events: none; transition: all 0.2s ease;
-                padding: 0 4px;
-            }
-            .settings-group .settings-control:focus + .settings-label,
-            .settings-group .settings-control.has-value + .settings-label {
-                top: 0; left: 10px; font-size: 12px; color: var(--ao3-primary);
-            }
-            .settings-group .settings-control:not(:focus).has-value + .settings-label {
-                color: var(--ao3-text-secondary);
-            }
-            .settings-group.static-label .settings-label {
-                top: 0; left: 10px; font-size: 12px; transform: translateY(-50%); color: var(--ao3-text-secondary);
-            }
-            .settings-group.static-label .settings-control {
-                line-height: normal; padding-top: 4px; padding-bottom: 4px; height: 40px;
-            }
-            .settings-group.settings-group-select .settings-control.settings-select { padding-right: 40px; }
-            .settings-group.settings-group-select::after {
-                content: ''; position: absolute; right: 14px; top: 20px;
-                transform: translateY(-50%) rotate(0deg); width: .65em; height: .65em;
-                background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-13%200-5-1.9-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E');
-                background-repeat: no-repeat; background-position: center; background-size: contain;
-                pointer-events: none;
-            }
-            .settings-group.settings-group-select.dropdown-active::after { transform: translateY(-50%) rotate(180deg); }
-            .input-wrapper { position: relative; }
-            .input-wrapper .settings-input { padding-right: 52px !important; }
-            #ai-param-input-area .input-wrapper textarea.settings-input { padding-right: 12px !important; }
-
-            /* 隐藏数值输入框的调节按钮 */
-            #ao3-trans-settings-panel input[type=number]::-webkit-outer-spin-button,
-            #ao3-trans-settings-panel input[type=number]::-webkit-inner-spin-button {
-                -webkit-appearance: none !important;
-                margin: 0 !important;
-            }
-            #ao3-trans-settings-panel input[type=number] {
-                -moz-appearance: textfield !important;
-            }
-
-            /* 组件：按钮 */
-            .settings-action-button-inline {
-                position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-                background: none; border: none; color: var(--ao3-primary);
-                font-size: 14px; font-weight: 500; cursor: pointer; padding: 4px;
-                display: flex; align-items: center;
-            }
-            .data-sync-actions-container {
-                display: flex; justify-content: space-between; align-items: center;
-                padding: 8px 12px 0; margin-top: -8px;
-            }
-            .data-sync-action-btn {
-                background: none; border: none; color: var(--ao3-primary);
-                font-size: 13px; font-weight: 500; cursor: pointer;
-                padding: 2px 4px; text-align: center;
-            }
-            .language-swap-container { display: flex; align-items: center; gap: 2px; }
-            .language-swap-container .settings-group { flex: 1; min-width: 0; }
-            #swap-lang-btn {
-                background: transparent; border: none; cursor: pointer;
-                font-size: 18px; color: #555; padding: 0 4px; line-height: 1;
-                transition: color 0.2s ease; flex-shrink: 0;
-            }
-            #swap-lang-btn:disabled { color: #a9a9a9; cursor: default; }
-            .service-details-toggle-container {
-                display: flex; justify-content: center; align-items: center;
-                height: 0; width: 12.5%; margin: -8px auto; z-index: 10;
-                overflow: visible; cursor: pointer; position: relative;
-            }
-            .service-details-toggle-container::before {
-                content: ""; position: absolute; top: -15px; bottom: -15px; left: 0; right: 0;
-            }
-            .service-details-toggle-container::after {
-                content: none !important;
-            }
-            .service-details-toggle-btn {
-                width: 0; height: 0;
-                border-left: 6px solid transparent; border-right: 6px solid transparent;
-                border-bottom: 8px solid var(--ao3-primary); border-top: 0;
-                transition: transform 0.3s ease;
-            }
-            .service-details-toggle-btn.collapsed { transform: rotate(180deg); }
-
-			/* 隐藏折叠按钮的多余箭头 */
-            .service-details-toggle-btn::after,
-            .service-details-toggle-btn::before {
-                content: none !important;
-                display: none !important;
-            }
-
-            /* 功能模块：下拉菜单 */
-            .custom-dropdown-backdrop {
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: transparent; z-index: 2147483647;
-            }
-            .custom-dropdown-menu {
-                position: fixed; border-radius: 8px;
-                border: 1px solid rgba(0, 0, 0, 0.08);
-                z-index: 2147483647; overflow: hidden; opacity: 0;
-                transform: scale(0.95) translateY(-10px); transform-origin: top center;
-                transition: opacity 0.15s ease-out, transform 0.15s ease-out;
-                box-sizing: border-box;
-            }
-            .custom-dropdown-menu.visible { opacity: 1; transform: scale(1) translateY(0); }
-            .custom-dropdown-menu ul {
-                list-style: none; margin: 0; padding: 8px 0;
-                max-height: 250px; overflow-y: auto;
-            }
-            .custom-dropdown-menu li {
-                padding: 8px 16px; cursor: pointer; font-size: 15px;
-                transition: background-color 0.2s ease;
-                display: flex; justify-content: space-between; align-items: center; gap: 8px;
-            }
-            .custom-dropdown-menu li .item-text {
-                white-space: nowrap; overflow: hidden; text-overflow: clip; flex-grow: 1;
-            }
-            .custom-dropdown-menu li .item-actions { display: flex; gap: 8px; flex-shrink: 0; }
-            .custom-dropdown-menu li .item-action-btn {
-                font-size: 13px; font-weight: 500; background: none; border: none;
-                padding: 0; cursor: pointer; color: var(--ao3-primary);
-            }
-            .custom-dropdown-menu li .item-action-btn.delete[data-confirming="true"] {
-                color: var(--ao3-danger);
-            }
-            .custom-dropdown-menu li.drag-placeholder {
-                opacity: 0.3 !important; background: #e0e0e0 !important;
-                border: 1px dashed #999 !important; color: transparent !important;
-            }
-            .custom-dropdown-menu li.drag-placeholder * { visibility: hidden !important; }
-
-            /* 功能模块：拖拽排序 */
-            .drag-ghost {
-                position: fixed !important; z-index: 2147483648 !important;
-                box-shadow: 0 8px 20px rgba(0,0,0,0.3) !important;
-                opacity: 1 !important; pointer-events: none !important;
-                transition: none !important; list-style: none !important;
-                border-radius: 4px !important; cursor: grabbing !important;
-                white-space: nowrap !important; overflow: hidden !important;
-                box-sizing: border-box !important; margin: 0 !important; border: none !important;
-                display: flex !important; justify-content: space-between !important;
-                align-items: center !important; padding: 8px 16px !important;
-                font-size: 15px !important; font-family: var(--ao3-font) !important;
-            }
-            .drag-ghost .item-text { flex-grow: 1 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: clip !important; }
-            .drag-ghost .item-actions { display: flex !important; gap: 8px !important; flex-shrink: 0 !important; }
-            .drag-ghost .item-action-btn {
-                font-size: 13px !important; font-weight: 500 !important;
-                background: none !important; border: none !important; padding: 0 !important;
-                color: var(--ao3-primary) !important; -webkit-text-fill-color: var(--ao3-primary) !important;
-            }
-            .drag-ghost .item-action-btn[data-confirming="true"] {
-                color: var(--ao3-danger) !important; -webkit-text-fill-color: var(--ao3-danger) !important;
-            }
-            body.ao3-dragging-active { cursor: grabbing !important; user-select: none !important; }
-            body.ao3-dragging-active .custom-dropdown-menu { pointer-events: none !important; }
-
-            /* 功能模块：在线术语表管理 */
-            .online-glossary-details {
-                width: 100%; display: flex; justify-content: space-between; align-items: center;
-                font-size: 12px; color: var(--ao3-text-secondary); padding: 4px 12px; overflow: hidden;
-            }
-            #online-glossary-details-container { margin-top: -10px; margin-bottom: -10px; }
-            #online-glossary-info {
-                flex-grow: 1; text-align: left; white-space: nowrap;
-                overflow: hidden; text-overflow: ellipsis; padding-right: 8px; min-width: 0;
-            }
-            .online-glossary-delete-btn {
-                flex-shrink: 0; background: none; border: none; color: var(--ao3-primary);
-                font-size: 13px; font-weight: 500; cursor: pointer; padding: 2px 4px; text-align: right;
-            }
-            .online-glossary-delete-btn[data-confirming="true"] { color: var(--ao3-danger); }
-
-            /* 功能模块：屏蔽器 */
-            .ao3-blocker-hidden { display: none !important; }
-            .ao3-blocker-work { padding: 0 !important; min-height: auto !important; }
-            .ao3-blocker-fold {
-                display: flex !important; flex-direction: row !important;
-                justify-content: space-between !important; align-items: center !important;
-                padding: 0.6em 1em !important; background: transparent !important;
-                border: none !important; box-shadow: none !important; opacity: 1 !important;
-                width: 100% !important; box-sizing: border-box !important;
-            }
-            .ao3-blocker-note {
-                font-size: 13px !important; color: inherit !important;
-                font-style: normal !important; font-weight: normal !important;
-                flex: 1 !important; margin-right: 10px !important; word-break: break-all !important;
-            }
-            .ao3-blocker-toggle {
-                padding: 4px !important; margin: 0 !important; background: transparent !important;
-                border: none !important; box-shadow: none !important; color: inherit !important;
-                cursor: pointer !important; display: flex !important; align-items: center !important;
-                justify-content: center !important; user-select: none !important; flex-shrink: 0 !important;
-                outline: none !important;
-            }
-            .ao3-blocker-toggle svg { width: 20px; height: 20px; fill: currentColor; }
-            .ao3-blocker-cut { display: none !important; }
-            .ao3-blocker-unhide > .ao3-blocker-fold {
-                border-bottom: 1px solid currentColor !important;
-                border-bottom-color: rgba(127, 127, 127, 0.25) !important; margin-bottom: 0 !important;
-            }
-            .ao3-blocker-unhide > .ao3-blocker-cut { display: block !important; padding: 10px !important; }
-
-			/* 通用：移除点击高亮和聚焦状态 */
-            .settings-action-button-inline, .online-glossary-delete-btn,
-            .custom-dropdown-menu li .item-action-btn, .data-sync-action-btn,
-            #swap-lang-btn, div.translate-me-ao3-wrapper > div,
-            .service-details-toggle-container, .settings-switch, .slider,
-            .settings-panel-close-btn, .home-icon-link, .custom-dropdown-menu li,
-            .settings-control, .settings-label, .settings-switch input,
-            .ai-select-all-btn,
-            .data-select-all-wrapper,
-            .pseudo-select {
-                -webkit-tap-highlight-color: transparent !important;
-                outline: none !important;
-                box-shadow: none !important;
-            }
-            .settings-action-button-inline:focus,
-            .online-glossary-delete-btn:focus,
-            .custom-dropdown-menu li .item-action-btn:focus,
-            .data-sync-action-btn:focus,
-            #swap-lang-btn:focus,
-            .service-details-toggle-container:focus,
-            .settings-switch input:focus,
-            .settings-panel-close-btn:focus,
-            .home-icon-link:focus,
-            .ai-select-all-btn:focus,
-            .data-select-all-wrapper:focus,
-            .pseudo-select:focus,
-            .retry-translation-button:focus,
-            .translate-me-ao3-button:focus
-            {
-                outline: none !important;
-                box-shadow: none !important;
-                border: none !important;
-            }
-
-            /* 站点主题隔离 */
-            #ao3-trans-settings-panel, .custom-dropdown-menu, .drag-ghost, #ai-service-modal {
-                color: var(--ao3-text) !important;
-                background-color: var(--ao3-bg) !important;
-                border-color: var(--ao3-border) !important;
-                box-shadow: var(--ao3-shadow) !important;
-            }
-            .settings-panel-header { border-bottom-color: var(--ao3-border) !important; }
-            .settings-panel-close-btn { color: rgba(0, 0, 0, 0.54) !important; }
-            #ao3-trans-settings-panel .settings-switch-group .settings-label,
-            #ao3-trans-settings-panel .online-glossary-details {
-                color: var(--ao3-text) !important;
-            }
-
-            /* 重置按钮样式 */
-            #ao3-trans-settings-panel button,
-            #ao3-trans-settings-panel .settings-action-button-inline,
-            #ao3-trans-settings-panel .data-sync-action-btn,
-            #ao3-trans-settings-panel .online-glossary-delete-btn,
-            #ao3-trans-settings-panel #swap-lang-btn,
-            .custom-dropdown-menu button,
-            .custom-dropdown-menu .item-action-btn {
-                background: transparent !important;
-                background-image: none !important;
-                background-color: transparent !important;
-                border: none !important;
-                box-shadow: none !important;
-                text-shadow: none !important;
-            }
-
-            /* 重置输入框样式 */
-            #ao3-trans-settings-panel input.settings-control,
-            #ao3-trans-settings-panel select.settings-control,
-            #ao3-trans-settings-panel textarea.settings-control,
-            #ao3-trans-settings-panel div.settings-control {
-                background-color: var(--ao3-bg) !important;
-                color: var(--ao3-text) !important;
-                border: 1px solid #ccc;
-                background-image: none !important;
-                box-shadow: none !important;
-                text-shadow: none !important;
-                border-radius: 6px !important;
-            }
-
-            /* 禁用状态下的输入框样式强制覆盖 */
-            #ao3-trans-settings-panel .settings-control:disabled {
-                background-color: var(--ao3-bg) !important;
-                color: var(--ao3-text) !important;
-                -webkit-text-fill-color: var(--ao3-text) !important;
-                opacity: 1 !important;
-                border-color: #ccc !important;
-            }
-            #ao3-trans-settings-panel .settings-control:disabled::placeholder {
-                color: var(--ao3-text-placeholder) !important;
-                -webkit-text-fill-color: var(--ao3-text-placeholder) !important;
-                opacity: 1 !important;
-            }
-
-            #ao3-trans-settings-panel .settings-control::placeholder {
-                color: var(--ao3-text-placeholder) !important;
-                -webkit-text-fill-color: var(--ao3-text-placeholder) !important;
-            }
-            #ao3-trans-settings-panel .settings-label {
-                background-color: var(--ao3-bg) !important;
-                color: var(--ao3-text-secondary) !important;
-            }
-
-            /* 重置下拉菜单样式 */
-            .custom-dropdown-menu li {
-                background: transparent !important;
-                color: var(--ao3-text) !important;
-                border: none !important;
-                text-shadow: none !important;
-            }
-            .custom-dropdown-menu li:hover {
-                background-color: var(--ao3-hover-bg) !important;
-                color: #000000 !important;
-            }
-            .custom-dropdown-menu li.selected {
-                background-color: var(--ao3-selected-bg) !important;
-            }
-
-            /* 深色模式适配 */
-            @media (prefers-color-scheme: dark) {
-                #ao3-trans-settings-panel, .custom-dropdown-menu, .drag-ghost, #ai-service-modal {
-                    --ao3-bg: #1e1e1e;
-                    --ao3-text: #e0e0e0;
-                    --ao3-text-secondary: #a0a0a0;
-                    --ao3-text-placeholder: #666666;
-                    --ao3-border: rgba(255, 255, 255, 0.20);
-                    --ao3-border-hover: rgba(255, 255, 255, 0.5);
-                    --ao3-primary: #64b5f6;
-                    --ao3-danger: #e57373;
-                    --ao3-hover-bg: rgba(255, 255, 255, 0.08);
-                    --ao3-selected-bg: rgba(100, 181, 246, 0.16);
-                    --ao3-shadow: 0 8px 24px rgba(0,0,0,0.5);
-                }
-                .settings-panel-close-btn { color: rgba(255, 255, 255, 0.7) !important; }
-
-                /* 深色模式输入框 */
-                #ao3-trans-settings-panel input.settings-control,
-                #ao3-trans-settings-panel select.settings-control,
-                #ao3-trans-settings-panel textarea.settings-control,
-                #ao3-trans-settings-panel div.settings-control {
-                    border-color: var(--ao3-border);
-                    background-color: #252525 !important;
-                    color: #e0e0e0 !important;
-                }
-                #ao3-trans-settings-panel .settings-control:disabled {
-                    background-color: #252525 !important;
-                    border-color: var(--ao3-border) !important;
-                    opacity: 1 !important;
-                }
-
-                /* 深色模式下拉菜单 */
-                .custom-dropdown-menu {
-                    background-color: #252525 !important;
-                }
-
-                .settings-group.settings-group-select::after {
-                    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a0a0a0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-13%200-5-1.9-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E');
-                }
-                #custom-service-url-notice { background-color: #2d2d2d; color: #a0a0a0; }
-                #swap-lang-btn { color: #a0a0a0 !important; }
-                #swap-lang-btn:disabled { color: #444 !important; }
-                .settings-panel-body::-webkit-scrollbar-thumb,
-                .custom-dropdown-menu ul::-webkit-scrollbar-thumb,
-                .settings-group textarea.settings-control::-webkit-scrollbar-thumb,
-                .ai-modal-body::-webkit-scrollbar-thumb,
-                .data-modal-body::-webkit-scrollbar-thumb {
-                    background: rgba(255, 255, 255, 0.15);
-                }
-                .custom-dropdown-menu li:hover { color: #ffffff !important; }
-                .custom-dropdown-menu li.drag-placeholder {
-                    background: #444 !important; border-color: #666 !important;
-                }
-                .ai-modal-header, .ai-modal-footer { border-color: rgba(255,255,255,0.12); background-color: #1e1e1e; }
-                .ai-service-item:hover { background-color: rgba(255,255,255,0.08); }
-                .ai-modal-btn { color: #e0e0e0; }
-                .ai-select-all-btn { color: #64b5f6; }
-            }
-            ${BLOCKER_STYLE}
-            ${SERVICE_MODAL_STYLE}
-        `);
-
 		const panel = document.createElement('div');
 		panel.id = 'ao3-trans-settings-panel';
 		const scriptVersion = GM_info.script.version.split('-')[0];
 
 		panel.innerHTML = `
-                <div class="settings-panel-header">
-                    <div class="settings-panel-header-title">
-                        <a href="https://github.com/V-Lipset/ao3-chinese" target="_blank" class="home-icon-link" title="访问项目主页">
-                            <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z"/></svg>
-                        </a>
-                        <h2>AO3 Translator v${scriptVersion}</h2>
-                    </div>
-                    <span class="settings-panel-close-btn" title="关闭">&times;</span>
-                </div>
-                <div class="settings-panel-body">
-                    <div class="settings-switch-group">
-                        <span class="settings-label">启用翻译功能</span>
-                        <label class="settings-switch">
-                            <input type="checkbox" id="setting-master-switch">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+			<div class="settings-panel-header">
+				<div class="settings-panel-header-title">
+					<a href="https://github.com/V-Lipset/ao3-chinese" target="_blank" class="home-icon-link" title="访问项目主页">
+						${SVG_ICONS.home}
+					</a>
+					<h2>AO3 Translator v${scriptVersion}</h2>
+				</div>
+				<span class="settings-panel-close-btn" title="关闭">&times;</span>
+			</div>
+			<div class="settings-panel-body">
+				<div class="settings-switch-group">
+					<span class="settings-label">显示翻译按钮</span>
+					<label class="settings-switch">
+						<input type="checkbox" id="setting-master-switch">
+						<span class="slider"></span>
+					</label>
+				</div>
 
-                    <div class="language-swap-container">
-                        <div class="settings-group settings-group-select">
-                            <select id="setting-from-lang" class="settings-control settings-select custom-styled-select"></select>
-                            <label for="setting-from-lang" class="settings-label">原文语言</label>
-                        </div>
-                        <button id="swap-lang-btn" title="互换">⇄</button>
-                        <div class="settings-group settings-group-select">
-                            <select id="setting-to-lang" class="settings-control settings-select custom-styled-select"></select>
-                            <label for="setting-to-lang" class="settings-label">目标语言</label>
-                        </div>
-                    </div>
+				<div class="language-swap-container">
+					<div class="settings-group settings-group-select">
+						<select id="setting-from-lang" class="settings-control settings-select custom-styled-select"></select>
+						<label for="setting-from-lang" class="settings-label">原文语言</label>
+					</div>
+					<button id="swap-lang-btn" title="互换">⇄</button>
+					<div class="settings-group settings-group-select">
+						<select id="setting-to-lang" class="settings-control settings-select custom-styled-select"></select>
+						<label for="setting-to-lang" class="settings-label">目标语言</label>
+					</div>
+				</div>
 
-                    <div class="settings-group settings-group-select">
-                        <select id="setting-display-mode" class="settings-control settings-select custom-styled-select">
-                            <option value="bilingual">双语对照</option>
-                            <option value="translation_only">仅译文</option>
-                        </select>
-                        <label for="setting-display-mode" class="settings-label">显示模式</label>
-                    </div>
+				<div class="settings-group settings-group-select">
+					<select id="setting-display-mode" class="settings-control settings-select custom-styled-select">
+						<option value="bilingual">双语对照</option>
+						<option value="translation_only">仅译文</option>
+					</select>
+					<label for="setting-display-mode" class="settings-label">显示模式</label>
+				</div>
 
-                    <div class="settings-group settings-group-select">
-                        <select id="setting-trans-engine" class="settings-control settings-select custom-styled-select"></select>
-                        <label for="setting-trans-engine" class="settings-label">翻译服务</label>
-                    </div>
+				<div class="settings-group settings-group-select">
+					<select id="setting-trans-engine" class="settings-control settings-select custom-styled-select"></select>
+					<label for="setting-trans-engine" class="settings-label">翻译服务</label>
+				</div>
 
-                    <div id="service-details-toggle-container" class="service-details-toggle-container" style="display: none;">
-                        <div class="service-details-toggle-btn"></div>
-                    </div>
+				<div id="service-details-toggle-container" class="service-details-toggle-container" style="display: none;">
+					<div class="service-details-toggle-btn"></div>
+				</div>
 
-                    <div id="custom-service-container" style="display: none; flex-direction: column; gap: 16px;"></div>
+				<div id="custom-service-container" style="display: none; flex-direction: column; gap: 16px;"></div>
 
-                    <div class="settings-group settings-group-select" id="setting-model-group" style="display: none;">
-                        <select id="setting-trans-model" class="settings-control settings-select custom-styled-select"></select>
-                        <label for="setting-trans-model" class="settings-label">使用模型</label>
-                    </div>
+				<div class="settings-group settings-group-select" id="setting-model-group" style="display: none;">
+					<select id="setting-trans-model" class="settings-control settings-select custom-styled-select"></select>
+					<label for="setting-trans-model" class="settings-label">使用模型</label>
+				</div>
 
-                    <div class="settings-group static-label" id="api-key-group">
-                        <div class="input-wrapper">
-                            <input type="text" id="setting-input-apikey" class="settings-control settings-input" spellcheck="false">
-                            <label for="setting-input-apikey" class="settings-label">设置 API Key</label>
-                            <button id="setting-btn-apikey-save" class="settings-action-button-inline">保存</button>
-                        </div>
-                    </div>
+				<div class="settings-group static-label" id="api-key-group">
+					<div class="input-wrapper">
+						<input type="text" id="setting-input-apikey" class="settings-control settings-input" spellcheck="false">
+						<label for="setting-input-apikey" class="settings-label">设置 API Key</label>
+						<button id="setting-btn-apikey-save" class="settings-action-button-inline">保存</button>
+					</div>
+				</div>
 
-                    <div class="settings-group static-label settings-group-select">
-                        <select id="setting-glossary-actions" class="settings-control settings-select custom-styled-select">
-                            <option value="">请选择一个功能</option>
-                            <option value="local_manage">设置本地术语表</option>
-                            <option value="online_manage">管理在线术语表</option>
-                            <option value="post_replace">译文后处理替换</option>
-                            <option value="ai_settings">翻译参数自定义</option>
-                            <option value="lang_detect">原文语言检测项</option>
-                            <option value="blocker_manage">作品屏蔽配置项</option>
-                            <option value="formatting">文章格式调整项</option>
-                            <option value="data_sync">数据导入与导出</option>
-                            <option value="debug_mode">调试模式与日志</option>
-                        </select>
-                        <label for="setting-glossary-actions" class="settings-label">更多功能</label>
-                    </div>
+				<div class="settings-group static-label settings-group-select">
+					<select id="setting-glossary-actions" class="settings-control settings-select custom-styled-select">
+						<option value="">请选择一个功能</option>
+						<option value="local_manage">设置本地术语表</option>
+						<option value="online_manage">管理在线术语表</option>
+						<option value="post_replace">译文后处理替换</option>
+						<option value="ai_settings">翻译参数自定义</option>
+						<option value="lang_detect">原文语言检测项</option>
+						<option value="blocker_manage">作品屏蔽配置项</option>
+						<option value="formatting">文章格式调整项</option>
+						<option value="export_manage">作品导出与生成</option>
+						<option value="cache_manage">翻译缓存管理项</option>
+						<option value="fab_manage">悬浮按钮操作项</option>
+						<option value="data_sync">数据导入与导出</option>
+						<option value="debug_mode">调试模式与日志</option>
+					</select>
+					<label for="setting-glossary-actions" class="settings-label">更多功能</label>
+				</div>
 
-                    <div id="debug-actions-container" class="data-sync-actions-container" style="display: none;">
-                        <button id="btn-toggle-debug" class="data-sync-action-btn"></button>
-                        <button id="btn-export-log" class="data-sync-action-btn">导出运行日志</button>
-                    </div>
+				<div id="editable-section-debug-mode" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group static-label settings-group-select">
+						<select id="setting-log-level" class="settings-control settings-select custom-styled-select">
+							<option value="ALL">ALL</option>
+							<option value="INFO">INFO</option>
+							<option value="WARN">WARN</option>
+							<option value="ERROR">ERROR</option>
+							<option value="OFF">OFF</option>
+						</select>
+						<label for="setting-log-level" class="settings-label">日志级别</label>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<div id="btn-view-logs" class="settings-control settings-select pseudo-select">查看实时日志</div>
+						<span class="settings-label">查看日志</span>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<select id="setting-log-auto-clear" class="settings-control settings-select custom-styled-select">
+							<option value="1">1 天</option>
+							<option value="3">3 天</option>
+							<option value="7">7 天</option>
+						</select>
+						<label for="setting-log-auto-clear" class="settings-label">自动清理</label>
+					</div>
+				</div>
 
-                    <div id="data-sync-actions-container" class="data-sync-actions-container" style="display: none;">
-                        <button id="btn-import-data" class="data-sync-action-btn">数据导入</button>
-                        <button id="btn-export-data" class="data-sync-action-btn">数据导出</button>
-                    </div>
+				<div id="data-sync-actions-container" class="data-sync-actions-container" style="display: none;">
+					<button id="btn-import-data" class="data-sync-action-btn">数据导入</button>
+					<button id="btn-export-data" class="data-sync-action-btn">数据导出</button>
+				</div>
 
-                    <div id="editable-section-ai-settings" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
-                        <div class="settings-group static-label settings-group-select">
-                            <select id="ai-profile-select" class="settings-control settings-select custom-styled-select"></select>
-                            <label for="ai-profile-select" class="settings-label">参数配置</label>
-                        </div>
+				<div id="editable-section-ai-settings" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group static-label settings-group-select">
+						<select id="ai-profile-select" class="settings-control settings-select custom-styled-select"></select>
+						<label for="ai-profile-select" class="settings-label">参数配置</label>
+					</div>
 
-                        <div class="settings-group static-label settings-group-select">
-                            <div id="ai-service-association-trigger" class="settings-control settings-select pseudo-select">关联翻译服务</div>
-                            <span class="settings-label">翻译服务</span>
-                        </div>
+					<div class="settings-group static-label settings-group-select">
+						<div id="ai-service-association-trigger" class="settings-control settings-select pseudo-select">关联翻译服务</div>
+						<span class="settings-label">翻译服务</span>
+					</div>
 
-                        <div class="settings-group static-label settings-group-select">
-                            <select id="ai-param-select" class="settings-control settings-select custom-styled-select">
-                                <option value="system_prompt">System Prompt</option>
-                                <option value="user_prompt">User Prompt</option>
-                                <option value="temperature">Temperature</option>
-                                <option value="chunk_size">每次翻译文本量</option>
-                                <option value="para_limit">每次翻译段落数</option>
-                                <option value="request_rate">平均每秒请求数</option>
-                                <option value="request_capacity">最大突发请求数</option>
-                                <option value="lazy_load_margin">懒加载参数设置</option>
-                                <option value="validation_thresholds">占位符校验阈值</option>
-                            </select>
-                            <label for="ai-param-select" class="settings-label">参数选择</label>
-                        </div>
-                        <div id="ai-param-input-area"></div>
-                    </div>
+					<div class="settings-group static-label settings-group-select">
+						<select id="ai-param-select" class="settings-control settings-select custom-styled-select">
+							<option value="system_prompt">System Prompt</option>
+							<option value="user_prompt">User Prompt</option>
+							<option value="temperature">Temperature</option>
+							<option value="reasoning_effort">推理深度</option>
+							<option value="chunk_size">每次翻译文本量</option>
+							<option value="para_limit">每次翻译段落数</option>
+							<option value="request_rate">平均每秒请求数</option>
+							<option value="request_capacity">最大突发请求数</option>
+							<option value="lazy_load_margin">懒加载参数设置</option>
+							<option value="validation_thresholds">占位符校验阈值</option>
+						</select>
+						<label for="ai-param-select" class="settings-label">参数选择</label>
+					</div>
+					<div id="ai-param-input-area"></div>
+				</div>
 
-                    <div id="editable-section-formatting" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
-                        <div class="settings-group settings-group-select static-label">
-                            <select id="setting-fmt-profile" class="settings-control settings-select custom-styled-select"></select>
-                            <label for="setting-fmt-profile" class="settings-label">格式方案</label>
-                        </div>
-                        <div class="settings-group settings-group-select static-label">
-                            <select id="setting-fmt-property" class="settings-control settings-select custom-styled-select">
-                                <option value="letterSpacing">字间距</option>
-                                <option value="lineHeight">行间距</option>
-                                <option value="margins">页边距</option>
-                                <option value="fontSize">文字大小</option>
-                                <option value="indent">首行缩进</option>
-                                <option value="profileName">方案名称</option>
-                                <option value="deleteProfile">删除方案</option>
-                            </select>
-                            <label for="setting-fmt-property" class="settings-label">调整项目</label>
-                        </div>
-                        <div id="setting-fmt-value-container"></div>
-                    </div>
+				<div id="editable-section-formatting" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group settings-group-select static-label">
+						<select id="setting-fmt-profile" class="settings-control settings-select custom-styled-select"></select>
+						<label for="setting-fmt-profile" class="settings-label">格式方案</label>
+					</div>
+					<div class="settings-group settings-group-select static-label">
+						<select id="setting-fmt-property" class="settings-control settings-select custom-styled-select">
+							<option value="letterSpacing">字间距</option>
+							<option value="lineHeight">行间距</option>
+							<option value="margins">页边距</option>
+							<option value="fontSize">文字大小</option>
+							<option value="indent">首行缩进</option>
+							<option value="profileName">方案名称</option>
+							<option value="deleteProfile">删除方案</option>
+						</select>
+						<label for="setting-fmt-property" class="settings-label">调整项目</label>
+					</div>
+					<div id="setting-fmt-value-container"></div>
+				</div>
 
-                    <div id="editable-section-lang-detect" class="settings-group static-label editable-section">
-                        <div class="settings-group settings-group-select">
-                            <select id="setting-lang-detector" class="settings-control settings-select custom-styled-select">
-                                <option value="microsoft">Microsoft</option>
-                                <option value="google">Google</option>
-                                <option value="tencent">Tencent</option>
-                                <option value="baidu">Baidu</option>
-                            </select>
-                            <label for="setting-lang-detector" class="settings-label">语言检测引擎</label>
-                        </div>
-                    </div>
+				<div id="editable-section-export-manage" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group static-label settings-group-select">
+						<select id="export-format-select" class="settings-control settings-select custom-styled-select">
+							<option value="html">HTML</option>
+							<option value="epub">EPUB</option>
+							<option value="pdf">PDF</option>
+						</select>
+						<label for="export-format-select" class="settings-label">文件格式</label>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<select id="export-template-select" class="settings-control settings-select custom-styled-select"></select>
+						<label for="export-template-select" class="settings-label">当前模板</label>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<select id="export-action-select" class="settings-control settings-select custom-styled-select">
+							<option value="name">模板名称</option>
+							<option value="edit">样式编辑</option>
+							<option value="delete">删除模板</option>
+						</select>
+						<label for="export-action-select" class="settings-label">模板管理</label>
+					</div>
+					<div id="export-container-name" class="settings-group static-label">
+						<div class="input-wrapper">
+							<input type="text" id="export-template-name" class="settings-control settings-input" placeholder="模板名称" spellcheck="false">
+							<label for="export-template-name" class="settings-label">模板名称</label>
+							<button id="btn-export-save-name" class="settings-action-button-inline">保存</button>
+						</div>
+					</div>
+					<div id="export-container-edit" class="settings-group static-label settings-group-select" style="display: none;">
+						<div id="btn-open-style-editor" class="settings-control settings-select pseudo-select">打开样式编辑器</div>
+						<span class="settings-label">样式编辑</span>
+					</div>
+				</div>
 
-                    <div id="editable-section-local-manage" class="editable-section" style="display: none;">
-                        <div class="settings-group settings-group-select static-label"">
-                            <select id="setting-local-glossary-select" class="settings-control settings-select custom-styled-select"></select>
-                            <label for="setting-local-glossary-select" class="settings-label">当前术语表</label>
-                        </div>
-                        <div class="settings-group settings-group-select static-label"">
-                            <select id="setting-local-edit-mode" class="settings-control settings-select custom-styled-select">
-                                <option value="name">术语表名称</option>
-                                <option value="translation">翻译术语表</option>
-                                <option value="forbidden">禁翻术语表</option>
-                                <option value="delete">删除术语表</option>
-                            </select>
-                            <label for="setting-local-edit-mode" class="settings-label">本地术语表</label>
-                        </div>
-                        <div id="local-edit-container-name" class="settings-group static-label">
-                            <div class="input-wrapper">
-                                <input type="text" id="setting-local-glossary-name" class="settings-control settings-input" placeholder="术语表名称" spellcheck="false">
-                                <label for="setting-local-glossary-name" class="settings-label">术语表名称</label>
-                                <button id="setting-btn-local-glossary-save-name" class="settings-action-button-inline">保存</button>
-                            </div>
-                        </div>
-                        <div id="local-edit-container-translation" style="display: none;">
-                            <div class="settings-group static-label">
-                                <div class="input-wrapper">
-                                    <input type="text" id="setting-input-local-sensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
-                                    <label for="setting-input-local-sensitive" class="settings-label">区分大小写</label>
-                                    <button id="setting-btn-local-sensitive-save" class="settings-action-button-inline">保存</button>
-                                </div>
-                            </div>
-                            <div class="settings-group static-label">
-                                <div class="input-wrapper">
-                                    <input type="text" id="setting-input-local-insensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
-                                    <label for="setting-input-local-insensitive" class="settings-label">不区分大小写</label>
-                                    <button id="setting-btn-local-insensitive-save" class="settings-action-button-inline">保存</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div id="local-edit-container-forbidden" class="settings-group static-label" style="display: none;">
-                            <div class="input-wrapper">
-                                <input type="text" id="setting-input-local-forbidden" class="settings-control settings-input" placeholder="原文1，原文2，原文3，原文4" spellcheck="false">
-                                <label for="setting-input-local-forbidden" class="settings-label">区分大小写</label>
-                                <button id="setting-btn-local-forbidden-save" class="settings-action-button-inline">保存</button>
-                            </div>
-                        </div>
-                    </div>
+				<div id="export-actions-container" class="data-sync-actions-container" style="display: none;">
+					<button id="btn-export-format-choose" class="data-sync-action-btn">格式选择</button>
+					<button id="btn-export-execute" class="data-sync-action-btn">导出文件</button>
+				</div>
 
-                    <div id="editable-section-online-manage" class="editable-section" style="display: none;">
-                        <div class="settings-group static-label"">
-                            <div class="input-wrapper">
-                                <input type="text" id="setting-input-glossary-import-url" class="settings-control settings-input" placeholder="请输入 GitHub/jsDelivr 链接" spellcheck="false">
-                                <label for="setting-input-glossary-import-url" class="settings-label">导入在线术语表</label>
-                                <button id="setting-btn-glossary-import-save" class="settings-action-button-inline">导入</button>
-                            </div>
-                        </div>
-                        <div class="settings-group settings-group-select static-label">
-                            <select id="setting-select-glossary-manage" class="settings-control settings-select custom-styled-select"></select>
-                            <label for="setting-select-glossary-manage" class="settings-label">已导入的术语表</label>
-                        </div>
-                        <div id="online-glossary-details-container" style="display: none;">
-                            <div class="online-glossary-details">
-                                <span id="online-glossary-info"></span>
-                                <button id="online-glossary-delete-btn" class="online-glossary-delete-btn">删除</button>
-                            </div>
-                        </div>
-                    </div>
+				<div id="editable-section-cache-manage" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group static-label settings-group-select">
+						<select id="cache-manage-mode-select" class="settings-control settings-select custom-styled-select">
+							<option value="manual">手动清理</option>
+							<option value="auto">自动清理</option>
+						</select>
+						<label for="cache-manage-mode-select" class="settings-label">清理模式</label>
+					</div>
 
-                    <div id="editable-section-post-replace" class="editable-section" style="display: none;">
-                        <div class="settings-group settings-group-select static-label">
-                            <select id="setting-post-replace-select" class="settings-control settings-select custom-styled-select"></select>
-                            <label for="setting-post-replace-select" class="settings-label">当前替换规则</label>
-                        </div>
-                        <div class="settings-group settings-group-select static-label">
-                            <select id="setting-post-replace-edit-mode" class="settings-control settings-select custom-styled-select">
-                                <option value="name">规则名称</option>
-                                <option value="settings">规则设置</option>
-                                <option value="delete">删除规则</option>
-                            </select>
-                            <label for="setting-post-replace-edit-mode" class="settings-label">管理替换规则</label>
-                        </div>
-                        <div id="post-replace-container-name" class="settings-group static-label">
-                            <div class="input-wrapper">
-                                <input type="text" id="setting-post-replace-name" class="settings-control settings-input" placeholder="规则名称" spellcheck="false">
-                                <label for="setting-post-replace-name" class="settings-label">规则名称</label>
-                                <button id="setting-btn-post-replace-save-name" class="settings-action-button-inline">保存</button>
-                            </div>
-                        </div>
-                        <div id="post-replace-container-settings" class="settings-group static-label" style="display: none;">
-                            <div class="input-wrapper">
-                                <input type="text" id="setting-input-post-replace" class="settings-control settings-input" placeholder="译文1：替换1，译文2：替换2" spellcheck="false">
-                                <label for="setting-input-post-replace" class="settings-label">译文后处理替换</label>
-                                <button id="setting-btn-post-replace-save" class="settings-action-button-inline">保存</button>
-                            </div>
-                        </div>
-                    </div>
+					<div id="cache-manage-manual-container" style="display: flex; flex-direction: column; gap: 16px;">
+						<div class="settings-group static-label settings-group-select">
+							<div id="btn-clear-current-page-cache" class="settings-control settings-select pseudo-select">当前页面缓存</div>
+							<span class="settings-label">清除缓存</span>
+						</div>
+						<div class="settings-group static-label settings-group-select">
+							<div id="btn-clear-all-cache" class="settings-control settings-select pseudo-select">所有翻译缓存</div>
+							<span class="settings-label">清除缓存</span>
+						</div>
+					</div>
 
-                    <div id="editable-section-blocker" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
-                        <div class="settings-group static-label settings-group-select">
-                            <select id="blocker-dimension-select" class="settings-control settings-select custom-styled-select">
-                                <option value="tags">标签过滤</option>
-                                <option value="content">内容过滤</option>
-                                <option value="stats">统计过滤</option>
-                                <option value="advanced">高级筛选</option>
-                            </select>
-                            <label for="blocker-dimension-select" class="settings-label">屏蔽维度</label>
-                        </div>
-                        <div class="settings-group static-label settings-group-select">
-                            <select id="blocker-sub-dimension-select" class="settings-control settings-select custom-styled-select"></select>
-                            <label for="blocker-sub-dimension-select" class="settings-label">具体配置项</label>
-                        </div>
-                        <div id="blocker-input-area" style="display: flex; flex-direction: column; gap: 16px;"></div>
-                    </div>
+					<div id="cache-manage-auto-container" style="display: none; flex-direction: column; gap: 16px;">
+						<div class="settings-group static-label settings-group-select">
+							<select id="setting-cache-auto-cleanup-enabled" class="settings-control settings-select custom-styled-select">
+								<option value="true">启用</option>
+								<option value="false">禁用</option>
+							</select>
+							<label for="setting-cache-auto-cleanup-enabled" class="settings-label">自动清理状态</label>
+						</div>
+						<div class="settings-group static-label">
+							<div class="input-wrapper">
+								<input type="number" id="setting-input-cache-max-items" class="settings-control settings-input" placeholder="100000" spellcheck="false">
+								<label for="setting-input-cache-max-items" class="settings-label">最大缓存条目</label>
+								<button id="setting-btn-cache-max-items-save" class="settings-action-button-inline">保存</button>
+							</div>
+						</div>
+						<div class="settings-group static-label">
+							<div class="input-wrapper">
+								<input type="number" id="setting-input-cache-max-days" class="settings-control settings-input" placeholder="30" spellcheck="false">
+								<label for="setting-input-cache-max-days" class="settings-label">超过 n 天未访问</label>
+								<button id="setting-btn-cache-max-days-save" class="settings-action-button-inline">保存</button>
+							</div>
+						</div>
+					</div>
 
-                    <div id="blocker-actions-container" class="data-sync-actions-container" style="display: none;">
-                        <button id="btn-toggle-blocker" class="data-sync-action-btn"></button>
-                        <button id="btn-toggle-reasons" class="data-sync-action-btn"></button>
-                    </div>
-                </div>
-            </div>
-        `;
+					<div id="cache-manage-details-container">
+						<div class="online-glossary-details" style="justify-content: flex-start;">
+							<span id="cache-count-display">已缓存：计算中...</span>
+						</div>
+					</div>
+				</div>
 
-		document.body.appendChild(panel);
+				<div id="editable-section-fab-manage" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group static-label settings-group-select">
+						<select id="fab-manage-mode-select" class="settings-control settings-select custom-styled-select">
+							<option value="unit">单元翻译模式</option>
+							<option value="full_page">整页翻译模式</option>
+						</select>
+						<label for="fab-manage-mode-select" class="settings-label">翻译模式</label>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<select id="fab-manage-gesture-select" class="settings-control settings-select custom-styled-select">
+							<option value="click">单击</option>
+							<option value="double_click">双击</option>
+							<option value="long_press">长按</option>
+							<option value="right_click">右击</option>
+						</select>
+						<label for="fab-manage-gesture-select" class="settings-label">操作手势</label>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<select id="fab-manage-action-select" class="settings-control settings-select custom-styled-select">
+							<option value="toggle_panel">打开/关闭设置面板</option>
+							<option value="toggle_translate">触发翻译/清除译文</option>
+							<option value="clear_cache">清除当前页面缓存</option>
+							<option value="export_work">导出当前作品</option>
+							<option value="none">无操作</option>
+						</select>
+						<label for="fab-manage-action-select" class="settings-label">交互逻辑</label>
+					</div>
+				</div>
+
+				<div id="editable-section-lang-detect" class="settings-group static-label editable-section">
+					<div class="settings-group settings-group-select">
+						<select id="setting-lang-detector" class="settings-control settings-select custom-styled-select">
+							<option value="franc">Franc</option>
+							<option value="microsoft">Microsoft</option>
+							<option value="google">Google</option>
+							<option value="tencent">Tencent</option>
+							<option value="baidu">Baidu</option>
+						</select>
+						<label for="setting-lang-detector" class="settings-label">语言检测引擎</label>
+					</div>
+				</div>
+
+				<div id="editable-section-local-manage" class="editable-section" style="display: none;">
+					<div class="settings-group settings-group-select static-label">
+						<select id="setting-local-glossary-select" class="settings-control settings-select custom-styled-select"></select>
+						<label for="setting-local-glossary-select" class="settings-label">当前术语表</label>
+					</div>
+					<div class="settings-group settings-group-select static-label">
+						<select id="setting-local-edit-mode" class="settings-control settings-select custom-styled-select">
+							<option value="name">术语表名称</option>
+							<option value="translation">翻译术语表</option>
+							<option value="forbidden">禁翻术语表</option>
+							<option value="delete">删除术语表</option>
+						</select>
+						<label for="setting-local-edit-mode" class="settings-label">本地术语表</label>
+					</div>
+					<div id="local-edit-container-name" class="settings-group static-label">
+						<div class="input-wrapper">
+							<input type="text" id="setting-local-glossary-name" class="settings-control settings-input" placeholder="术语表名称" spellcheck="false">
+							<label for="setting-local-glossary-name" class="settings-label">术语表名称</label>
+							<button id="setting-btn-local-glossary-save-name" class="settings-action-button-inline">保存</button>
+						</div>
+					</div>
+					<div id="local-edit-container-translation" style="display: none;">
+						<div class="settings-group static-label">
+							<div class="input-wrapper">
+								<input type="text" id="setting-input-local-sensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
+								<label for="setting-input-local-sensitive" class="settings-label">区分大小写</label>
+								<button id="setting-btn-local-sensitive-save" class="settings-action-button-inline">保存</button>
+							</div>
+						</div>
+						<div class="settings-group static-label">
+							<div class="input-wrapper">
+								<input type="text" id="setting-input-local-insensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
+								<label for="setting-input-local-insensitive" class="settings-label">不区分大小写</label>
+								<button id="setting-btn-local-insensitive-save" class="settings-action-button-inline">保存</button>
+							</div>
+						</div>
+					</div>
+					<div id="local-edit-container-forbidden" class="settings-group static-label" style="display: none;">
+						<div class="input-wrapper">
+							<input type="text" id="setting-input-local-forbidden" class="settings-control settings-input" placeholder="原文1，原文2，原文3，原文4" spellcheck="false">
+							<label for="setting-input-local-forbidden" class="settings-label">区分大小写</label>
+							<button id="setting-btn-local-forbidden-save" class="settings-action-button-inline">保存</button>
+						</div>
+					</div>
+				</div>
+
+				<div id="editable-section-online-manage" class="editable-section" style="display: none;">
+					<div class="settings-group static-label">
+						<div class="input-wrapper">
+							<input type="text" id="setting-input-glossary-import-url" class="settings-control settings-input" placeholder="请输入 GitHub/jsDelivr 链接" spellcheck="false">
+							<label for="setting-input-glossary-import-url" class="settings-label">导入在线术语表</label>
+							<button id="setting-btn-glossary-import-save" class="settings-action-button-inline">导入</button>
+						</div>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<div id="btn-open-online-library" class="settings-control settings-select pseudo-select">在线术语库</div>
+						<span class="settings-label">浏览在线术语库</span>
+					</div>
+
+					<div class="settings-group settings-group-select static-label">
+						<select id="setting-select-glossary-manage" class="settings-control settings-select custom-styled-select"></select>
+						<label for="setting-select-glossary-manage" class="settings-label">已导入的术语表</label>
+					</div>
+					<div id="view-imported-glossary-container" class="settings-group static-label settings-group-select" style="display: none;">
+						<div id="btn-view-imported-glossary" class="settings-control settings-select pseudo-select">查看术语表</div>
+						<span class="settings-label">查看当前术语表</span>
+					</div>
+
+					<div id="online-glossary-details-container" style="display: none;">
+						<div class="online-glossary-details">
+							<span id="online-glossary-info"></span>
+							<button id="online-glossary-delete-btn" class="online-glossary-delete-btn">删除</button>
+						</div>
+					</div>
+				</div>
+
+				<div id="editable-section-post-replace" class="editable-section" style="display: none;">
+					<div class="settings-group settings-group-select static-label">
+						<select id="setting-post-replace-select" class="settings-control settings-select custom-styled-select"></select>
+						<label for="setting-post-replace-select" class="settings-label">当前替换规则</label>
+					</div>
+					<div class="settings-group settings-group-select static-label">
+						<select id="setting-post-replace-edit-mode" class="settings-control settings-select custom-styled-select">
+							<option value="name">规则名称</option>
+							<option value="settings">规则设置</option>
+							<option value="delete">删除规则</option>
+						</select>
+						<label for="setting-post-replace-edit-mode" class="settings-label">管理替换规则</label>
+					</div>
+					<div id="post-replace-container-name" class="settings-group static-label">
+						<div class="input-wrapper">
+							<input type="text" id="setting-post-replace-name" class="settings-control settings-input" placeholder="规则名称" spellcheck="false">
+							<label for="setting-post-replace-name" class="settings-label">规则名称</label>
+							<button id="setting-btn-post-replace-save-name" class="settings-action-button-inline">保存</button>
+						</div>
+					</div>
+					<div id="post-replace-container-settings" class="settings-group static-label" style="display: none;">
+						<div class="input-wrapper">
+							<input type="text" id="setting-input-post-replace" class="settings-control settings-input" placeholder="译文1：替换1，译文2：替换2" spellcheck="false">
+							<label for="setting-input-post-replace" class="settings-label">译文后处理替换</label>
+							<button id="setting-btn-post-replace-save" class="settings-action-button-inline">保存</button>
+						</div>
+					</div>
+				</div>
+
+				<div id="editable-section-blocker" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group static-label settings-group-select">
+						<select id="blocker-dimension-select" class="settings-control settings-select custom-styled-select">
+							<option value="tags">标签过滤</option>
+							<option value="content">内容过滤</option>
+							<option value="stats">统计过滤</option>
+							<option value="advanced">高级筛选</option>
+						</select>
+						<label for="blocker-dimension-select" class="settings-label">屏蔽维度</label>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<select id="blocker-sub-dimension-select" class="settings-control settings-select custom-styled-select"></select>
+						<label for="blocker-sub-dimension-select" class="settings-label">具体配置项</label>
+					</div>
+					<div id="blocker-input-area" style="display: flex; flex-direction: column; gap: 16px;"></div>
+				</div>
+
+				<div id="blocker-actions-container" class="data-sync-actions-container" style="display: none;">
+					<button id="btn-toggle-blocker" class="data-sync-action-btn"></button>
+					<button id="btn-toggle-reasons" class="data-sync-action-btn"></button>
+				</div>
+			</div>
+		</div>
+		`;
+
+		// 挂载到 Shadow Wrapper
+		shadowWrapper.appendChild(panel);
 
 		return {
 			panel,
@@ -3362,6 +5486,9 @@
 			glossaryManageDetailsContainer: panel.querySelector('#online-glossary-details-container'),
 			glossaryManageInfo: panel.querySelector('#online-glossary-info'),
 			glossaryManageDeleteBtn: panel.querySelector('#online-glossary-delete-btn'),
+			openOnlineLibraryBtn: panel.querySelector('#btn-open-online-library'),
+			viewImportedGlossaryContainer: panel.querySelector('#view-imported-glossary-container'),
+			viewImportedGlossaryBtn: panel.querySelector('#btn-view-imported-glossary'),
 			postReplaceSection: panel.querySelector('#editable-section-post-replace'),
 			postReplaceSelect: panel.querySelector('#setting-post-replace-select'),
 			postReplaceEditModeSelect: panel.querySelector('#setting-post-replace-edit-mode'),
@@ -3372,9 +5499,10 @@
 			postReplaceInput: panel.querySelector('#setting-input-post-replace'),
 			postReplaceSaveBtn: panel.querySelector('#setting-btn-post-replace-save'),
 			dataSyncActionsContainer: panel.querySelector('#data-sync-actions-container'),
-			debugActionsContainer: panel.querySelector('#debug-actions-container'),
-			toggleDebugBtn: panel.querySelector('#btn-toggle-debug'),
-			exportLogBtn: panel.querySelector('#btn-export-log'),
+			debugModeSection: panel.querySelector('#editable-section-debug-mode'),
+			logLevelSelect: panel.querySelector('#setting-log-level'),
+			viewLogsBtn: panel.querySelector('#btn-view-logs'),
+			logAutoClearSelect: panel.querySelector('#setting-log-auto-clear'),
 			importDataBtn: panel.querySelector('#btn-import-data'),
 			exportDataBtn: panel.querySelector('#btn-export-data'),
 			blockerSection: panel.querySelector('#editable-section-blocker'),
@@ -3388,6 +5516,25 @@
 			fmtProfileSelect: panel.querySelector('#setting-fmt-profile'),
 			fmtPropertySelect: panel.querySelector('#setting-fmt-property'),
 			fmtValueContainer: panel.querySelector('#setting-fmt-value-container'),
+			cacheAutoCleanupSelect: panel.querySelector('#setting-cache-auto-cleanup-enabled'),
+			// 悬浮球管理相关
+			fabManageSection: panel.querySelector('#editable-section-fab-manage'),
+			fabModeSelect: panel.querySelector('#fab-manage-mode-select'),
+			fabGestureSelect: panel.querySelector('#fab-manage-gesture-select'),
+			fabActionSelect: panel.querySelector('#fab-manage-action-select'),
+			// 导出管理相关
+			exportManageSection: panel.querySelector('#editable-section-export-manage'),
+			exportFormatSelect: panel.querySelector('#export-format-select'),
+			exportTemplateSelect: panel.querySelector('#export-template-select'),
+			exportActionSelect: panel.querySelector('#export-action-select'),
+			exportContainerName: panel.querySelector('#export-container-name'),
+			exportContainerEdit: panel.querySelector('#export-container-edit'),
+			exportTemplateNameInput: panel.querySelector('#export-template-name'),
+			btnExportSaveName: panel.querySelector('#btn-export-save-name'),
+			btnOpenStyleEditor: panel.querySelector('#btn-open-style-editor'),
+			exportActionsContainer: panel.querySelector('#export-actions-container'),
+			btnExportFormatChoose: panel.querySelector('#btn-export-format-choose'),
+			btnExportExecute: panel.querySelector('#btn-export-execute')
 		};
 	}
 
@@ -3395,87 +5542,56 @@
 	 * 显示一个自定义的确认模态框
 	 */
 	function showCustomConfirm(message, title = '提示', options = {}) {
-		const { textAlign = 'left', useTextIndent = false } = options;
+		const { textAlign = 'left', useTextIndent = false, singleButton = false, confirmText = '确定', showNeverAgain = false, modalClass = '' } = options;
 		return new Promise((resolve, reject) => {
-			if (document.getElementById('ao3-custom-confirm-overlay')) {
+			if (shadowWrapper.querySelector('#ao3-custom-confirm-overlay')) {
 				return reject(new Error('已有提示框正在显示中。'));
 			}
 
-			GM_addStyle(`
-				#ao3-custom-confirm-overlay {
-					position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-					background-color: rgba(0, 0, 0, 0.5);
-					z-index: 2147483647; display: flex; align-items: center; justify-content: center;
-				}
-				#ao3-custom-confirm-modal {
-					background-color: #fff; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-					width: 90%; max-width: 360px; overflow: hidden;
-					font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-					display: flex; flex-direction: column;
-				}
-				.ao3-custom-confirm-header {
-					padding: 12px 16px; border-bottom: 1px solid rgba(0,0,0,0.12);
-					text-align: center;
-				}
-				.ao3-custom-confirm-header h3 {
-					margin: 0; font-size: 16px; font-weight: 600; color: #000000DE;
-				}
-				.ao3-custom-confirm-body {
-					padding: 20px 16px; font-size: 14px; line-height: 1.6; color: #000000DE;
-					white-space: pre-wrap;
-				}
-				.ao3-custom-confirm-body p {
-					margin: 0;
-				}
-				.ao3-custom-confirm-body.with-indent p {
-					text-indent: 2em;
-				}
-				.ao3-custom-confirm-footer {
-					padding: 12px 16px; background-color: #fff;
-					display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 8px;
-				}
-				.ao3-custom-confirm-btn {
-					flex: 1;
-					padding: 6px 0; border: none; border-radius: 4px;
-					font-size: 14px; font-weight: 500; cursor: pointer;
-					background: transparent !important;
-					color: #333; text-align: center;
-					transition: opacity 0.2s;
-					-webkit-tap-highlight-color: transparent;
-					outline: none;
-				}
-				.ao3-custom-confirm-btn:focus { outline: none; }
-				.ao3-custom-confirm-btn:hover { opacity: 0.7; }
-
-				@media (prefers-color-scheme: dark) {
-					#ao3-custom-confirm-modal { background-color: #1e1e1e; color: #e0e0e0; }
-					.ao3-custom-confirm-header { border-bottom-color: rgba(255,255,255,0.12); }
-					.ao3-custom-confirm-header h3 { color: #e0e0e0; }
-					.ao3-custom-confirm-body { color: #e0e0e0; }
-					.ao3-custom-confirm-footer { background-color: #1e1e1e; }
-					.ao3-custom-confirm-btn { color: #e0e0e0; }
-				}
-			`);
-
 			const overlay = document.createElement('div');
 			overlay.id = 'ao3-custom-confirm-overlay';
+			overlay.className = 'ao3-overlay';
+
+			const style = document.createElement('style');
+			style.textContent = `
+				.ao3-custom-confirm-body { padding: 20px 16px; font-size: 14px; line-height: 1.6; color: var(--ao3-text); white-space: pre-wrap; }
+				.ao3-custom-confirm-body p { margin: 0; }
+				.ao3-custom-confirm-body.with-indent p { text-indent: 2em; }
+			`;
+			overlay.appendChild(style);
 
 			const modal = document.createElement('div');
 			modal.id = 'ao3-custom-confirm-modal';
+			modal.className = `ao3-modal ${modalClass}`.trim();
 
 			const indentClass = useTextIndent ? ' with-indent' : '';
 
+			let footerHtml = '';
+			if (singleButton) {
+				footerHtml = `<button class="ao3-modal-btn confirm">${confirmText}</button>`;
+			} else if (showNeverAgain) {
+				footerHtml = `
+					<button class="ao3-modal-btn cancel">取消</button>
+					<button class="ao3-modal-btn never-again">不再显示</button>
+					<button class="ao3-modal-btn confirm">${confirmText}</button>
+				`;
+			} else {
+				footerHtml = `
+					<button class="ao3-modal-btn cancel">取消</button>
+					<button class="ao3-modal-btn confirm">${confirmText}</button>
+				`;
+			}
+
 			modal.innerHTML = `
-                <div class="ao3-custom-confirm-header"><h3>${title}</h3></div>
-                <div class="ao3-custom-confirm-body${indentClass}" style="text-align: ${textAlign};">${message.split('\n').map(line => `<p>${line}</p>`).join('')}</div>
-                <div class="ao3-custom-confirm-footer">
-                    <button class="ao3-custom-confirm-btn cancel">取消</button>
-                    <button class="ao3-custom-confirm-btn confirm">确定</button>
-                </div>
-            `;
+				<div class="ao3-modal-header"><h3>${title}</h3></div>
+				<div class="ao3-custom-confirm-body${indentClass}" style="text-align: ${textAlign};">${message.split('\n').map(line => `<p>${line}</p>`).join('')}</div>
+				<div class="ao3-modal-footer">
+					${footerHtml}
+				</div>
+			`;
 
 			overlay.appendChild(modal);
-			document.body.appendChild(overlay);
+			shadowWrapper.appendChild(overlay);
 
 			const cleanup = () => {
 				overlay.remove();
@@ -3483,16 +5599,26 @@
 
 			const confirmBtn = modal.querySelector('.confirm');
 			const cancelBtn = modal.querySelector('.cancel');
+			const neverAgainBtn = modal.querySelector('.never-again');
 
 			confirmBtn.addEventListener('click', () => {
 				cleanup();
 				resolve(true);
 			});
 
-			cancelBtn.addEventListener('click', () => {
-				cleanup();
-				reject(new Error('User cancelled.'));
-			});
+			if (neverAgainBtn) {
+				neverAgainBtn.addEventListener('click', () => {
+					cleanup();
+					resolve('never_again');
+				});
+			}
+
+			if (cancelBtn) {
+				cancelBtn.addEventListener('click', () => {
+					cleanup();
+					reject(new Error('User cancelled.'));
+				});
+			}
 
 			overlay.addEventListener('click', (e) => {
 				if (e.target === overlay) {
@@ -3504,15 +5630,806 @@
 	}
 
 	/**
+	 * 打开实时日志可视化模态框
+	 */
+	function openLogModal() {
+		if (shadowWrapper.querySelector('#ao3-log-modal-overlay')) return;
+
+		const overlay = document.createElement('div');
+		overlay.id = 'ao3-log-modal-overlay';
+		overlay.className = 'ao3-overlay';
+
+		const style = document.createElement('style');
+		style.textContent = `
+			.log-modal-title { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; font-size: 16px; font-weight: 600; color: var(--ao3-text); white-space: nowrap; pointer-events: none; }
+			.log-filter-wrapper { position: absolute; right: 16px; width: 72px; z-index: 10; }
+			.log-filter-wrapper .settings-control { height: 22px !important; line-height: 22px !important; font-size: 11px !important; padding: 0 16px 0 6px !important; border-radius: 4px !important; border-color: var(--ao3-border) !important; background-color: transparent !important; }
+			.log-filter-wrapper .settings-control:hover, .log-filter-wrapper .settings-control:focus, .log-filter-wrapper.dropdown-active .settings-control { border-color: var(--ao3-border) !important; background-color: transparent !important; box-shadow: none !important; }
+			.log-filter-wrapper.settings-group-select::after { right: 6px; top: 11px; font-size: 9px; opacity: 0.6; }
+			.log-header-btn { font-size: 13px; cursor: pointer; user-select: none; background: none; border: none; padding: 0; position: absolute; display: flex; align-items: center; justify-content: center; -webkit-tap-highlight-color: transparent; }
+			.log-header-btn.left { left: 16px; width: 24px; height: 24px; color: var(--ao3-primary) !important; }
+			.log-header-btn svg { width: 20px; height: 20px; fill: currentColor; opacity: 0.75; transition: opacity 0.2s; }
+			.log-header-btn:hover svg { opacity: 1; }
+			.log-entry { 
+				margin-bottom: 12px; 
+				padding-bottom: 12px; 
+				position: relative; 
+			}
+			.log-entry:not(:last-child)::after { 
+				content: '';
+				position: absolute;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				height: 1px;
+				background-color: var(--ao3-border);
+				transform: scaleY(0.5);
+				transform-origin: center bottom;
+			}
+			.log-entry:last-child { margin-bottom: 0; padding-bottom: 0; }
+			.log-entry-header { font-size: 12px; margin-bottom: 4px; display: flex; gap: 3px; flex-wrap: wrap; align-items: center; }
+			.log-time { color: var(--ao3-text-secondary); }
+			.log-module { color: var(--ao3-text-secondary); }
+			.log-level-INFO { color: #2196F3; font-weight: 600; }
+			.log-level-WARN { color: #FF9800; font-weight: 600; }
+			.log-level-ERROR { color: #F44336; font-weight: 600; }
+			@media (prefers-color-scheme: dark) { .log-level-INFO { color: #64b5f6; } .log-level-WARN { color: #ffb74d; } .log-level-ERROR { color: #e57373; } }
+			.log-entry-content { word-break: break-word; }
+			.log-entry-data { font-size: 12px; color: var(--ao3-text-secondary); background: var(--ao3-hover-bg); padding: 6px; border-radius: 4px; margin-top: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+		`;
+		overlay.appendChild(style);
+
+		overlay.insertAdjacentHTML('beforeend', `
+			<div id="ao3-log-modal" class="ao3-modal" style="height: 60vh;">
+				<div class="ao3-modal-header">
+					<button class="log-header-btn left" id="log-btn-clear" title="清空">
+						${SVG_ICONS.delete}
+					</button>
+					<h3 class="log-modal-title">日志</h3>
+					<div class="settings-group settings-group-select log-filter-wrapper">
+						<select id="log-filter-level" class="settings-control settings-select custom-styled-select small-select">
+							<option value="ALL">ALL</option>
+							<option value="INFO">INFO</option>
+							<option value="WARN">WARN</option>
+							<option value="ERROR">ERROR</option>
+							<option value="OFF">OFF</option>
+						</select>
+					</div>
+				</div>
+				<div class="ao3-modal-body ao3-custom-scrollbar" id="log-container" style="padding: 12px 16px; font-size: 13px; line-height: 1.5;"></div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn" id="log-btn-cancel">关闭</button>
+					<button class="ao3-modal-btn" id="log-btn-copy">复制</button>
+					<button class="ao3-modal-btn" id="log-btn-export">导出</button>
+				</div>
+			</div>
+		`);
+
+		shadowWrapper.appendChild(overlay);
+
+		const container = overlay.querySelector('#log-container');
+		const filterSelect = overlay.querySelector('#log-filter-level');
+		const clearBtn = overlay.querySelector('#log-btn-clear');
+		const closeBtn = overlay.querySelector('#log-btn-cancel');
+		const copyBtn = overlay.querySelector('#log-btn-copy');
+		const exportBtn = overlay.querySelector('#log-btn-export');
+		
+		const WEIGHTS = { 'ALL': 0, 'INFO': 1, 'WARN': 2, 'ERROR': 3, 'OFF': 99 };
+		const savedFilter = GM_getValue('ao3_log_modal_filter', Logger.config.level);
+		filterSelect.value = savedFilter;
+
+		const escapeHTML = (str) => {
+			return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+		};
+
+		const renderEntry = (entry) => {
+			const div = document.createElement('div');
+			div.className = 'log-entry';
+			const dataStr = entry.data ? `<div class="log-entry-data">${escapeHTML(JSON.stringify(entry.data, null, 2))}</div>` : '';
+			div.innerHTML = `
+				<div class="log-entry-header">
+					<span class="log-time">[${escapeHTML(entry.timestamp)}]</span>
+					<span class="log-level-${escapeHTML(entry.level)}">[${escapeHTML(entry.level)}]</span>
+					<span class="log-module">[${escapeHTML(entry.module)}]</span>
+					${entry.traceId ? `<span class="log-trace" style="color: #4CAF50;">[${escapeHTML(entry.traceId)}]</span>` : ''}
+				</div>
+				<div class="log-entry-content">${escapeHTML(entry.message)}</div>
+				${dataStr}
+			`;
+			return div;
+		};
+
+		let currentRenderId = 0;
+		function startRendering() {
+			container.innerHTML = '';
+			const filterWeight = WEIGHTS[filterSelect.value] ?? 1;
+			const filteredHistory = Logger.history.filter(entry => (WEIGHTS[entry.level] ?? 1) >= filterWeight);
+			
+			const myRenderId = ++currentRenderId;
+			const chunkSize = 50;
+			let currentIndex = 0;
+
+			function renderChunk() {
+				if (myRenderId !== currentRenderId) return;
+				const fragment = document.createDocumentFragment();
+				const end = Math.min(currentIndex + chunkSize, filteredHistory.length);
+				for (let i = currentIndex; i < end; i++) {
+					fragment.appendChild(renderEntry(filteredHistory[i]));
+				}
+				container.appendChild(fragment);
+				currentIndex = end;
+				if (currentIndex < filteredHistory.length) {
+					requestAnimationFrame(renderChunk);
+				} else {
+					requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
+				}
+			}
+			if (filteredHistory.length > 0) requestAnimationFrame(renderChunk);
+		}
+
+		startRendering();
+
+		filterSelect.addEventListener('change', () => {
+			GM_setValue('ao3_log_modal_filter', filterSelect.value);
+			startRendering();
+		});
+
+		const onLogAdded = (e) => {
+			const entry = e.detail;
+			const filterWeight = WEIGHTS[filterSelect.value] ?? 1;
+			if ((WEIGHTS[entry.level] ?? 1) >= filterWeight) {
+				const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+				container.appendChild(renderEntry(entry));
+				if (isAtBottom) container.scrollTop = container.scrollHeight;
+			}
+		};
+		document.addEventListener(CUSTOM_EVENTS.LOG_ADDED, onLogAdded);
+
+		const cleanup = () => {
+			document.removeEventListener(CUSTOM_EVENTS.LOG_ADDED, onLogAdded);
+			overlay.remove();
+		};
+
+		clearBtn.addEventListener('click', () => {
+			showCustomConfirm('您确定要清空所有本地日志吗？\n\n注意：此操作无法撤销。', '提示', { textAlign: 'center' })
+				.then(() => {
+					Logger.clear();
+					container.innerHTML = '';
+				}).catch(() => {});
+		});
+
+		copyBtn.addEventListener('click', () => {
+			const filterWeight = WEIGHTS[filterSelect.value] ?? 1;
+			const filteredLogs = Logger.history.filter(entry => (WEIGHTS[entry.level] ?? 1) >= filterWeight);
+
+			const logText = JSON.stringify(filteredLogs, null, 2);
+
+			const originalText = copyBtn.textContent;
+
+			navigator.clipboard.writeText(logText).then(() => {
+				copyBtn.textContent = '✓';
+				setTimeout(() => { copyBtn.textContent = originalText; }, 1500);
+			}).catch((err) => {
+				copyBtn.textContent = '×';
+				setTimeout(() => { copyBtn.textContent = originalText; }, 1500);
+				console.error('复制日志失败:', err);
+			});
+		});
+
+		exportBtn.addEventListener('click', () => {
+			Logger.export();
+		});
+
+		closeBtn.addEventListener('click', cleanup);
+		
+		overlay.addEventListener('click', (e) => {
+			if (e.target === overlay) cleanup();
+		});
+	}
+
+	/**
+	 * 打开“导出格式选择”模态框
+	 */
+	function openExportFormatModal() {
+		if (shadowWrapper.querySelector('#ao3-export-format-overlay')) return;
+
+		const overlay = document.createElement('div');
+		overlay.id = 'ao3-export-format-overlay';
+		overlay.className = 'ao3-overlay';
+
+		const savedFormats = GM_getValue('ao3_export_selected_formats', ['html']);
+
+		overlay.insertAdjacentHTML('beforeend', `
+			<div id="ao3-export-format-modal" class="ao3-modal" style="height: auto;">
+				<div class="ao3-modal-header">
+					<h3>导出格式选择</h3>
+				</div>
+				<div class="ao3-modal-body ao3-custom-scrollbar" style="padding: 8px 0;">
+					<label class="export-format-item">
+						<input type="checkbox" value="html" ${savedFormats.includes('html') ? 'checked' : ''}>
+						<span>HTML</span>
+					</label>
+					<label class="export-format-item">
+						<input type="checkbox" value="epub" ${savedFormats.includes('epub') ? 'checked' : ''}>
+						<span>EPUB</span>
+					</label>
+					<label class="export-format-item">
+						<input type="checkbox" value="pdf" ${savedFormats.includes('pdf') ? 'checked' : ''}>
+						<span>PDF</span>
+					</label>
+				</div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn" id="ef-btn-cancel">关闭</button>
+					<button class="ao3-modal-btn" id="ef-btn-confirm">确认</button>
+				</div>
+			</div>
+		`);
+		shadowWrapper.appendChild(overlay);
+
+		const cleanup = () => overlay.remove();
+
+		overlay.querySelector('#ef-btn-cancel').addEventListener('click', cleanup);
+		overlay.querySelector('#ef-btn-confirm').addEventListener('click', () => {
+			const checkboxes = overlay.querySelectorAll('input[type="checkbox"]');
+			const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+			GM_setValue('ao3_export_selected_formats', selected);
+			cleanup();
+		});
+		overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
+	}
+
+	/**
+	 * 打开“样式编辑器”模态框
+	 */
+	function openExportStyleModal(format, templateId) {
+		if (shadowWrapper.querySelector('#ao3-export-style-overlay')) return;
+
+		const template = ExportTemplateStore.getTemplate(format, templateId);
+		if (!template) return;
+
+		const overlay = document.createElement('div');
+		overlay.id = 'ao3-export-style-overlay';
+		overlay.className = 'ao3-overlay';
+
+		overlay.insertAdjacentHTML('beforeend', `
+			<div id="ao3-export-style-modal" class="ao3-modal">
+				<div class="ao3-modal-header">
+					<h3>样式编辑</h3>
+				</div>
+				<div class="ao3-modal-body" style="padding: 0; display: flex; flex-direction: column;">
+					<textarea id="es-textarea" class="style-editor-textarea ao3-custom-scrollbar" spellcheck="false"></textarea>
+				</div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn" id="es-btn-cancel">关闭</button>
+					<button class="ao3-modal-btn" id="es-btn-confirm">确认</button>
+				</div>
+			</div>
+		`);
+		shadowWrapper.appendChild(overlay);
+
+		const textarea = overlay.querySelector('#es-textarea');
+		textarea.value = template.css;
+
+		const cleanup = () => overlay.remove();
+
+		overlay.querySelector('#es-btn-cancel').addEventListener('click', cleanup);
+		overlay.querySelector('#es-btn-confirm').addEventListener('click', () => {
+			template.css = textarea.value;
+			ExportTemplateStore.saveTemplate(format, template);
+			cleanup();
+		});
+		overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
+	}
+
+    /**
+	 * 打开“在线术语库”模态框
+	 */
+	function openOnlineLibraryModal() {
+		if (shadowWrapper.querySelector('#ao3-library-modal-overlay')) return;
+
+		const overlay = document.createElement('div');
+		overlay.id = 'ao3-library-modal-overlay';
+		overlay.className = 'ao3-overlay';
+
+		const style = document.createElement('style');
+		style.textContent = `
+			.lib-search-container { flex: 1; position: relative; display: flex; align-items: center; width: 100%; }
+			.lib-search-box { width: 100%; height: 28px; border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 20px; padding: 4px 30px 4px 12px; background: #ffffff !important; color: #000000DE !important; font-size: 13px; outline: none; box-sizing: border-box; box-shadow: none !important; }
+			.lib-search-box:focus { border-color: var(--ao3-border-hover); background: #ffffff !important; box-shadow: none !important; }
+			
+			@media (prefers-color-scheme: dark) { 
+				.lib-search-box { background: #252525 !important; color: #e0e0e0 !important; border-color: rgba(255, 255, 255, 0.12) !important; } 
+				.lib-search-box:focus { background: #252525 !important; border-color: var(--ao3-border-hover) !important; } 
+			}
+
+			.lib-search-container svg { position: absolute; right: 10px; width: 14px; height: 14px; fill: var(--ao3-text-secondary); pointer-events: none; }
+			
+			.lib-item { display: flex; justify-content: space-between; align-items: center; padding: 0 16px; height: 45px; position: relative; box-sizing: border-box; }
+			.lib-item:not(:last-child)::after { content: ''; position: absolute; bottom: 0; left: 16px; right: 16px; height: 1px; background-color: var(--ao3-border); transform: scaleY(0.5); transform-origin: center bottom; }
+			.lib-item-name { flex: 1; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; }
+			.lib-item-actions { display: flex; gap: 8px; flex-shrink: 0; }
+			.lib-item-actions .ao3-icon-btn svg { width: 18px !important; height: 18px !important; }
+			.lib-loading-container { display: flex; justify-content: center; align-items: center; height: 100%; width: 100%; flex: 1; height: 360px; }
+			.lib-loading-container svg { width: 32px; height: 32px; fill: rgba(150, 150, 150, 0.5); animation: ao3-spin 1s linear infinite; }
+			@keyframes ao3-spin { to { transform: rotate(360deg); } }
+			.lib-error-text { color: var(--ao3-text-secondary); font-size: 13px; text-align: center; padding: 20px; }
+		`;
+		overlay.appendChild(style);
+
+		overlay.insertAdjacentHTML('beforeend', `
+			<div id="ao3-library-modal" class="ao3-modal" style="height: auto;">
+				<div class="ao3-modal-header">
+					<div class="lib-search-container">
+						<input type="text" class="lib-search-box" id="lib-search-input" spellcheck="false">
+						${SVG_ICONS.search}
+					</div>
+				</div>
+				<div class="ao3-modal-body ao3-custom-scrollbar" id="lib-container" style="padding: 0; height: 360px;">
+				</div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn" id="lib-btn-close">关闭</button>
+					<button class="ao3-modal-btn" id="lib-btn-visit">访问</button>
+					<button class="ao3-modal-btn" id="lib-btn-refresh">刷新</button>
+				</div>
+			</div>
+		`);
+		shadowWrapper.appendChild(overlay);
+
+		const container = overlay.querySelector('#lib-container');
+		const searchInput = overlay.querySelector('#lib-search-input');
+
+		let allGlossaries =[];
+
+		const renderList = (filterText = '') => {
+			container.innerHTML = '';
+			const lowerFilter = filterText.toLowerCase();
+			
+			const filtered = allGlossaries.filter(g => 
+				(g.name && g.name.toLowerCase().includes(lowerFilter)) || 
+				(g.maintainer && g.maintainer.toLowerCase().includes(lowerFilter)) ||
+				(g.tags && Array.isArray(g.tags) && g.tags.some(tag => tag.toLowerCase().includes(lowerFilter)))
+			);
+
+			if (filtered.length === 0) {
+				container.innerHTML = `<div class="lib-error-text">未找到匹配的术语表</div>`;
+				return;
+			}
+
+			filtered.forEach(item => {
+				const div = document.createElement('div');
+				div.className = 'lib-item';
+				div.innerHTML = `
+					<div class="lib-item-name" title="${item.name}">${item.name}</div>
+					<div class="lib-item-actions">
+						<button class="ao3-icon-btn btn-import" title="导入">
+							${SVG_ICONS.download}
+						</button>
+					</div>
+				`;
+
+				const importBtn = div.querySelector('.btn-import');
+				importBtn.addEventListener('click', async () => {
+					importBtn.innerHTML = SVG_ICONS.spinner;
+					importBtn.querySelector('svg').style.animation = 'ao3-spin 1s linear infinite';
+					importBtn.disabled = true;
+					const res = await importOnlineGlossary(item.url, { silent: true });
+
+					if (res.success) {
+						importBtn.innerHTML = SVG_ICONS.success;
+					} else {
+						importBtn.innerHTML = SVG_ICONS.error;
+					}
+
+					setTimeout(() => {
+						importBtn.innerHTML = SVG_ICONS.download;
+						importBtn.disabled = false;
+					}, 1500);
+				});
+
+				container.appendChild(div);
+			});
+		};
+
+		const fetchLibraryData = (force = false) => {
+			const CACHE_DATA_KEY = 'ao3_online_library_cache_data';
+			const CACHE_TIME_KEY = 'ao3_online_library_cache_time';
+			const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+			
+			const cachedData = GM_getValue(CACHE_DATA_KEY);
+			const cachedTime = GM_getValue(CACHE_TIME_KEY, 0);
+			const now = Date.now();
+
+			if (!force && cachedData && (now - cachedTime < ONE_DAY_MS)) {
+				try {
+					allGlossaries = JSON.parse(cachedData);
+					renderList(searchInput.value.trim());
+					return;
+				} catch (e) {
+					Logger.warn('System', '在线术语库缓存解析失败，将重新获取');
+				}
+			}
+
+			container.innerHTML = `
+				<div class="lib-loading-container">
+					${SVG_ICONS.spinner}
+				</div>
+			`;
+
+			const url = 'https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/glossaries/glossary-index.json';
+			const fetchUrl = force ? `${url}?t=${now}` : url;
+
+			fetchWithFallback(fetchUrl, { timeout: 5000 })
+				.then(({ responseText }) => {
+					try {
+						let text = responseText.trim();
+						allGlossaries = JSON.parse(text);
+						GM_setValue(CACHE_DATA_KEY, text);
+						GM_setValue(CACHE_TIME_KEY, now);
+						renderList(searchInput.value.trim());
+					} catch (e) {
+						handleFetchError('解析术语库数据失败', cachedData);
+					}
+				})
+				.catch((err) => {
+					handleFetchError(err.message === 'Timeout' ? '请求超时' : '网络请求失败', cachedData);
+				});
+		};
+
+		const handleFetchError = (errorMsg, cachedData) => {
+			if (cachedData) {
+				try {
+					allGlossaries = JSON.parse(cachedData);
+					renderList(searchInput.value.trim());
+					Logger.warn('System', `${errorMsg}，已回退使用本地缓存`);
+					return;
+				} catch (e) {}
+			}
+			container.innerHTML = `<div class="lib-error-text">${errorMsg}</div>`;
+		};
+
+		fetchLibraryData();
+
+		searchInput.addEventListener('input', (e) => renderList(e.target.value.trim()));
+
+		const cleanup = () => overlay.remove();
+		overlay.querySelector('#lib-btn-close').addEventListener('click', cleanup);
+		overlay.querySelector('#lib-btn-refresh').addEventListener('click', () => fetchLibraryData(true));
+		overlay.querySelector('#lib-btn-visit').addEventListener('click', () => {
+			window.open('https://github.com/V-Lipset/ao3-chinese/wiki/在线术语库', '_blank');
+		});
+		overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
+	}
+
+    /**
+	 * 打开“查看术语表”模态框
+	 * @param {string} url 术语表的 URL
+	 */
+	function openGlossaryViewModal(url) {
+		if (shadowWrapper.querySelector('#ao3-glossary-view-overlay')) return;
+
+		const overlay = document.createElement('div');
+		overlay.id = 'ao3-glossary-view-overlay';
+		overlay.className = 'ao3-overlay';
+
+		const style = document.createElement('style');
+		style.textContent = `
+			/* 控制整个 Header 的布局 */
+			#ao3-glossary-view-modal .ao3-modal-header { justify-content: space-between; gap: 8px; flex-wrap: nowrap; }
+
+			/* 搜索框容器 */
+			.gv-search-container { flex: 1 1 auto; min-width: 60px; position: relative; display: flex; align-items: center; }
+
+			/* 1. 搜索图标 */
+			.gv-search-container svg { position: absolute; right: 10px; width: 14px; height: 14px; fill: var(--ao3-text-secondary); pointer-events: none; }
+
+			/* 2. 搜索框 */
+			.gv-search-box { width: 100%; height: 28px; padding: 4px 30px 4px 12px; border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 20px; background: #ffffff !important; color: #000000DE !important; font-size: 13px; outline: none; min-width: 0; box-sizing: border-box; box-shadow: none !important; }
+			.gv-search-box:focus { border-color: var(--ao3-border-hover); background: #ffffff !important; box-shadow: none !important; }
+			@media (prefers-color-scheme: dark) { 
+				.gv-search-box { background: #252525 !important; color: #e0e0e0 !important; border-color: rgba(255, 255, 255, 0.12) !important; } 
+				.gv-search-box:focus { background: #252525 !important; border-color: var(--ao3-border-hover) !important; } 
+			}
+
+			/* 文字信息 */
+			.gv-search-info { flex: 0 0 auto; font-size: 12px; color: var(--ao3-text-secondary); text-align: center; white-space: nowrap; }
+
+			/* 3. 按钮组 */
+			.gv-nav-btn-group { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin: 0; }
+
+			/* 4. 上下箭头 */
+			.gv-nav-btn-group .ao3-icon-btn { color: var(--ao3-text-secondary); width: 12px; height: 12px; display: flex; align-items: center; justify-content: center; }
+			.gv-nav-btn-group .ao3-icon-btn svg { width: 12px; height: 12px; }
+
+			.ao3-search-highlight { background-color: rgba(255, 255, 0, 0.4); color: inherit; border-radius: 2px; }
+			.ao3-search-highlight.active { background-color: rgba(255, 255, 0, 0.8); font-weight: bold; color: #000; }
+			.gv-loading-container { display: flex; justify-content: center; align-items: center; width: 100%; flex: 1; flex-direction: column; gap: 10px; height: 360px; }
+			.lib-loading-container svg { width: 32px; height: 32px; fill: rgba(150, 150, 150, 0.5); animation: ao3-spin 1s linear infinite; }
+			.gv-error-text { color: var(--ao3-text-secondary); font-size: 13px; text-align: center; padding: 20px; }
+		`;
+		overlay.appendChild(style);
+
+		const rightBtnText = '反馈'; 
+		
+		overlay.insertAdjacentHTML('beforeend', `
+			<div id="ao3-glossary-view-modal" class="ao3-modal" style="height: 60vh;">
+				<div class="ao3-modal-header">
+					<div class="gv-search-container">
+						<input type="text" class="gv-search-box" id="gv-search-input" spellcheck="false">
+						${SVG_ICONS.search}
+					</div>
+					<span class="gv-search-info" id="gv-search-info">第 0 项，共 0 项</span>
+					<div class="gv-nav-btn-group">
+						<button class="ao3-icon-btn" id="gv-btn-prev" disabled>
+							${SVG_ICONS.arrowUp}
+						</button>
+						<button class="ao3-icon-btn" id="gv-btn-next" disabled>
+							${SVG_ICONS.arrowDown}
+						</button>
+					</div>
+				</div>
+				<div class="ao3-modal-body ao3-custom-scrollbar" id="gv-container" style="padding: 0; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; display: flex; flex-direction: column;">
+					<div class="gv-loading-container">
+						${SVG_ICONS.spinner}
+					</div>
+				</div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn" id="gv-btn-cancel">关闭</button>
+					<button class="ao3-modal-btn" id="gv-btn-visit">访问</button>
+					<button class="ao3-modal-btn" id="gv-btn-action">${rightBtnText}</button>
+				</div>
+			</div>
+		`);
+		shadowWrapper.appendChild(overlay);
+
+		const container = overlay.querySelector('#gv-container');
+		const searchInput = overlay.querySelector('#gv-search-input');
+		const searchInfo = overlay.querySelector('#gv-search-info');
+		const btnPrev = overlay.querySelector('#gv-btn-prev');
+		const btnNext = overlay.querySelector('#gv-btn-next');
+		const btnAction = overlay.querySelector('#gv-btn-action');
+		const btnVisit = overlay.querySelector('#gv-btn-visit');
+		
+		const parsedUrls = parseGlossaryUrl(url);
+
+		if (btnVisit) {
+			if (!parsedUrls) {
+				btnVisit.style.display = 'none';
+			} else {
+				GitHubStatusManager.check(parsedUrls.owner, parsedUrls.repo);
+				btnVisit.addEventListener('click', () => {
+					window.open(parsedUrls.visitUrl, '_blank');
+				});
+			}
+		}
+		
+		let rawText = '';
+		let parsedMetadata = {};
+		let matches =[];
+		let currentMatchIndex = -1;
+
+		const escapeHTML = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+		const updatePagination = () => {
+			if (matches.length === 0) {
+				searchInfo.textContent = '第 0 项，共 0 项';
+				btnPrev.disabled = true;
+				btnNext.disabled = true;
+			} else {
+				searchInfo.textContent = `第 ${currentMatchIndex + 1} 项，共 ${matches.length} 项`;
+				btnPrev.disabled = false;
+				btnNext.disabled = false;
+			}
+		};
+
+		const highlightCurrentMatch = () => {
+			matches.forEach(m => m.classList.remove('active'));
+			if (currentMatchIndex >= 0 && currentMatchIndex < matches.length) {
+				const el = matches[currentMatchIndex];
+				el.classList.add('active');
+				el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}
+			updatePagination();
+		};
+
+		const performSearch = (term) => {
+			if (!term) {
+				container.innerHTML = escapeHTML(rawText);
+				matches =[];
+				currentMatchIndex = -1;
+				updatePagination();
+				return;
+			}
+			
+			const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			const regex = new RegExp(`(${escapedTerm})`, 'gi');
+			const parts = rawText.split(regex);
+			
+			let html = '';
+			for (let i = 0; i < parts.length; i++) {
+				if (i % 2 === 0) {
+					html += escapeHTML(parts[i]);
+				} else {
+					html += `<mark class="ao3-search-highlight">${escapeHTML(parts[i])}</mark>`;
+				}
+			}
+			
+			container.innerHTML = html;
+			matches = container.querySelectorAll('.ao3-search-highlight');
+			
+			if (matches.length > 0) {
+				currentMatchIndex = 0;
+				highlightCurrentMatch();
+			} else {
+				currentMatchIndex = -1;
+				updatePagination();
+			}
+		};
+
+		const cleanup = () => overlay.remove();
+
+		const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
+		const cachedText = rawTextCache[url];
+
+		const handleLoadedText = (text) => {
+			rawText = text;
+			container.style.padding = '12px 16px';
+			container.style.display = 'block';
+			
+			const allMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+			parsedMetadata = allMetadata[url] || {};
+			
+			if (parsedMetadata.visibility === false) {
+				showCustomConfirm('此术语表暂未开放预览。', '提示', { textAlign: 'center', singleButton: true, confirmText: '确认' }).catch(() => {});
+				cleanup();
+				return;
+			}
+			container.innerHTML = escapeHTML(rawText);
+		};
+
+		if (cachedText) {
+			handleLoadedText(cachedText);
+		} else {
+			const separator = url.includes('?') ? '&' : '?';
+			fetchWithFallback(url + separator + 't=' + Date.now(), { timeout: 5000 })
+				.then(({ responseText }) => {
+					const text = responseText;
+					const newCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
+					newCache[url] = text;
+					GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, newCache);
+					handleLoadedText(text);
+				})
+				.catch((err) => {
+					container.style.display = 'block';
+					container.innerHTML = `<div class="gv-error-text">获取内容失败 (${err.message})</div>`;
+				});
+		}
+
+		let searchTimer;
+		searchInput.addEventListener('input', (e) => {
+			clearTimeout(searchTimer);
+			const term = e.target.value.trim();
+			searchTimer = setTimeout(() => performSearch(term), 300);
+		});
+
+		btnPrev.addEventListener('click', () => {
+			if (matches.length === 0) return;
+			currentMatchIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
+			highlightCurrentMatch();
+		});
+
+		btnNext.addEventListener('click', () => {
+			if (matches.length === 0) return;
+			currentMatchIndex = (currentMatchIndex + 1) % matches.length;
+			highlightCurrentMatch();
+		});
+
+		overlay.querySelector('#gv-btn-cancel').addEventListener('click', cleanup);
+		overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
+
+		btnAction.addEventListener('click', async () => {
+			const originalBtnText = btnAction.textContent;
+
+			// 1. 获取反馈值（优先级 1 & 2）
+			let feedbackValue = parsedMetadata.feedback;
+			
+			if (!feedbackValue) {
+				const CACHE_DATA_KEY = 'ao3_online_library_cache_data';
+				const cachedData = GM_getValue(CACHE_DATA_KEY);
+				if (cachedData) {
+					try {
+						const allGlossaries = JSON.parse(cachedData);
+						const matchedGlossary = allGlossaries.find(g => g.url === url);
+						if (matchedGlossary && matchedGlossary.feedback) {
+							feedbackValue = matchedGlossary.feedback;
+						}
+					} catch (e) {
+						Logger.warn('System', '解析在线术语库缓存失败', e);
+					}
+				}
+			}
+
+			// 辅助函数：执行 GitHub Issues 机制
+			const tryGitHubIssues = async () => {
+				if (parsedUrls && parsedUrls.feedbackUrl) {
+					const syncStatus = GitHubStatusManager.getSync(parsedUrls.owner, parsedUrls.repo);
+					
+					if (syncStatus === true) {
+						window.open(parsedUrls.feedbackUrl, '_blank');
+						return true;
+					} else if (syncStatus === null) {
+						let newTab = window.open('about:blank', '_blank');
+						btnAction.textContent = '检测中...';
+						btnAction.disabled = true;
+						
+						const canUse = await GitHubStatusManager.check(parsedUrls.owner, parsedUrls.repo);
+						
+						btnAction.textContent = originalBtnText;
+						btnAction.disabled = false;
+
+						if (canUse) {
+							newTab.location.href = parsedUrls.feedbackUrl;
+							return true;
+						} else {
+							newTab.close();
+							return false;
+						}
+					}
+				}
+				return false;
+			};
+
+			// 2. 动作路由分发
+			const isGitHubLink = feedbackValue && /^https?:\/\/github\.com\//i.test(feedbackValue);
+
+			if (!feedbackValue || isGitHubLink) {
+				// 分支 A：触发 GitHub Issues 机制（优先级 3）
+				const issueSuccess = await tryGitHubIssues();
+				
+				if (!issueSuccess) {
+					if (isGitHubLink) {
+						// 选项 1（降级打开链接）
+						window.open(feedbackValue, '_blank');
+					} else {
+						// 完全没有反馈方式
+						showCustomConfirm('该术语表维护者暂未提供反馈方式。', '提示', { textAlign: 'center', singleButton: true, confirmText: '确认' }).catch(() => {});
+					}
+				}
+			} else if (/^https?:\/\//i.test(feedbackValue)) {
+				// 分支 B：普通网页链接（非 GitHub）
+				window.open(feedbackValue, '_blank');
+			} else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(feedbackValue)) {
+				// 分支 C：标准邮箱地址
+				window.location.href = `mailto:${feedbackValue}`;
+			} else {
+				// 分支 D：其它纯文本
+				showCustomConfirm(`该术语表维护者提供的反馈方式如下：\n\n${feedbackValue}\n\n您可点击 “确定” 将其复制到剪贴板。`, '提示', { textAlign: 'center' })
+					.then(() => navigator.clipboard.writeText(feedbackValue))
+					.catch(() => {});
+			}
+		});
+	}
+
+	/**
+	 * 更新输入框的 Label 浮动状态
+	 */
+	function updateInputLabel(input) {
+		if (!input) return;
+		if (input.value && (input.tagName !== 'SELECT' || input.options[input.selectedIndex]?.disabled !== true)) {
+			input.classList.add('has-value');
+		} else {
+			input.classList.remove('has-value');
+		}
+	}
+
+	/**
 	 * 创建并管理自定义翻译服务的 UI 和逻辑
 	 */
-	function createCustomServiceManager(panelElements, syncPanelStateCallback) {
+	function createCustomServiceManager(panelElements) {
 		const { customServiceContainer, modelGroup, modelSelect, apiKeyGroup } = panelElements;
 		let currentServiceId = null;
 		let currentEditSection = 'name';
 		let isPendingCreation = false;
 		let pendingServiceData = {};
-		const CUSTOM_URL_FIRST_SAVE_DONE = 'custom_url_first_save_done';
 
 		const getServices = () => GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
 		const setServices = (services) => GM_setValue(CUSTOM_SERVICES_LIST_KEY, services);
@@ -3553,7 +6470,7 @@
 
 		const saveAndSyncCustomServiceField = (field, value) => {
 			const serviceId = saveServiceField(field, value);
-			synchronizeAllSettings(syncPanelStateCallback);
+			SettingsSyncManager.syncUI();
 			triggerModelFetchIfReady(serviceId);
 		};
 
@@ -3563,10 +6480,9 @@
 			const service = services.find(s => s.id === serviceId);
 			if (!service) return;
 
-			const apiKey = (GM_getValue(`${serviceId}_keys_array`, [])[0] || '').trim();
 			const modelsExist = service.models && service.models.length > 0;
 
-			if (service.url && apiKey && !modelsExist) {
+			if (service.url && !modelsExist) {
 				fetchModelsForService(serviceId, service.url);
 			}
 		};
@@ -3575,15 +6491,18 @@
 			const serviceName = (getServices().find(s => s.id === serviceId) || {}).name || '新服务';
 			try {
 				const apiKey = (GM_getValue(`${serviceId}_keys_array`, [])[0] || '').trim();
-				if (!apiKey) return;
 
 				const modelsUrl = url.replace(/\/chat\/?(completions)?\/?$/, '') + '/models';
+				const headers = { 'Accept': 'application/json' };
+				if (apiKey) {
+					headers['Authorization'] = `Bearer ${apiKey}`;
+				}
 
 				const response = await new Promise((resolve, reject) => {
 					GM_xmlhttpRequest({
 						method: 'GET',
 						url: modelsUrl,
-						headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+						headers: headers,
 						responseType: 'json',
 						timeout: 15000,
 						onload: res => {
@@ -3610,7 +6529,7 @@
 
 				saveServiceField('models', modelIds);
 				saveServiceField('modelsRaw', modelIds.join(', '));
-				Logger.info('网络', `成功为自定义服务 ${serviceName} 获取 ${modelIds.length} 个模型`);
+				Logger.info('Network', `成功为自定义服务 ${serviceName} 获取 ${modelIds.length} 个模型`);
 
 				const actionSelect = customServiceContainer.querySelector('#custom-service-action-select');
 				if (actionSelect) {
@@ -3618,12 +6537,10 @@
 					actionSelect.dispatchEvent(new Event('change', { bubbles: true }));
 				}
 
-				if (syncPanelStateCallback) {
-					syncPanelStateCallback();
-				}
+				SettingsSyncManager.syncUI();
 
 			} catch (error) {
-				Logger.error('网络', `自动获取模型失败: ${error.message}`);
+				Logger.error('Network', `自动获取模型失败: ${error.message}`);
 				notifyAndLog(`自动获取模型失败：${error.message}`, '操作失败', 'error');
 			}
 		};
@@ -3690,13 +6607,16 @@
 					saveAndSyncCustomServiceField(fieldName, trimmedValue);
 
 					if (fieldName === 'url') {
-						const isFirstSaveEver = !GM_getValue(CUSTOM_URL_FIRST_SAVE_DONE, DEFAULT_CONFIG.GENERAL.custom_url_first_save_done);
-						if (isFirstSaveEver) {
-							GM_setValue(CUSTOM_URL_FIRST_SAVE_DONE, true);
-							const confirmationMessage = `您正在添加一个自定义翻译服务接口地址。\n为了保护您的浏览器安全，油猴脚本要求您为这个新地址手动授权。\n您需要将刚才输入的接口地址域名添加到 AO3 Translator 的 “域名白名单” 中。这是一个首次设置时必须进行的一次性操作。\n点击 “确定” ，将跳转到一份图文版操作教程；点击 “取消” ，则不会进行跳转。\n此提示仅显示一次，是否跳转到教程页面？`;
+						const hideWhitelistPrompt = GM_getValue('hide_whitelist_prompt', false);
+						if (!hideWhitelistPrompt) {
+							const confirmationMessage = `您正在添加一个自定义翻译服务接口地址。\n为了保护您的浏览器安全，油猴脚本要求您为这个新地址手动授权。\n您需要将刚才输入的接口地址域名添加到 AO3 Translator 的 “域名白名单” 中。\n点击 “确定” ，将跳转到一份图文版操作教程；点击 “取消” ，则不会进行跳转。\n是否跳转到教程页面？`;
 							try {
-								await showCustomConfirm(confirmationMessage, '安全授权', { useTextIndent: true });
-								window.open('https://v-lipset.github.io/docs/guides/whitelist', '_blank');
+								const result = await showCustomConfirm(confirmationMessage, '安全授权', { useTextIndent: true, showNeverAgain: true, modalClass: 'whitelist-auth-modal' });
+								if (result === 'never_again') {
+									GM_setValue('hide_whitelist_prompt', true);
+								} else if (result === true) {
+									window.open('https://v-lipset.github.io/docs/guides/whitelist', '_blank');
+								}
 							} catch (e) { }
 						}
 					}
@@ -3747,8 +6667,10 @@
 				section.querySelector('button').addEventListener('click', () => {
 					const rawValue = input.value;
 					const normalizedModels = rawValue.replace(/[，]/g, ',').split(',').map(m => m.trim()).filter(Boolean);
-					saveAndSyncCustomServiceField('models', normalizedModels);
-					saveAndSyncCustomServiceField('modelsRaw', rawValue);
+					const serviceId = saveServiceField('models', normalizedModels);
+					saveServiceField('modelsRaw', rawValue);
+					SettingsSyncManager.syncUI();
+					triggerModelFetchIfReady(serviceId);
 					editorDiv.dataset.mode = 'select';
 				});
 				editorDiv.appendChild(section);
@@ -3875,9 +6797,7 @@
 					GM_setValue('transEngine', 'google_translate');
 				}
 
-				if (syncPanelStateCallback) {
-					syncPanelStateCallback();
-				}
+				SettingsSyncManager.syncUI();
 			}
 		};
 	}
@@ -3942,55 +6862,73 @@
 	 * 创建关联翻译服务模态框
 	 */
 	function createServiceAssociationModal(currentProfileId, onConfirm) {
-		if (document.getElementById('ai-service-overlay')) return;
+		if (shadowWrapper.querySelector('#ai-service-overlay')) return;
+
+		const profile = ProfileManager.getProfile(currentProfileId);
+		const isTraditional = profile && profile.isTraditional;
 
 		const overlay = document.createElement('div');
 		overlay.id = 'ai-service-overlay';
+		overlay.className = 'ao3-overlay';
 
 		const modal = document.createElement('div');
 		modal.id = 'ai-service-modal';
+		modal.className = 'ao3-modal';
 
-		const builtInServices = Object.keys(engineMenuConfig).filter(id =>
-			id !== 'google_translate' && id !== 'bing_translator' && id !== 'add_new_custom'
-		);
-		const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
-		const allServices = [
-			...builtInServices.map(id => ({ id, name: engineMenuConfig[id].displayName })),
-			...customServices.map(s => ({ id: s.id, name: s.name }))
-		];
+		let allServices = [];
+		if (isTraditional) {
+			allServices = [
+				{ id: 'google_translate', name: engineMenuConfig['google_translate'].displayName },
+				{ id: 'bing_translator', name: engineMenuConfig['bing_translator'].displayName }
+			];
+		} else {
+			const builtInServices = Object.keys(engineMenuConfig).filter(id =>
+				id !== 'google_translate' && id !== 'bing_translator' && id !== 'add_new_custom'
+			);
+			const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+			allServices = [
+				...builtInServices.map(id => ({ id, name: engineMenuConfig[id].displayName })),
+				...customServices.map(s => ({ id: s.id, name: s.name }))
+			];
+		}
 
-		const profile = ProfileManager.getProfile(currentProfileId);
 		const associatedServices = new Set(profile ? profile.services : []);
 
 		let html = `
-            <div class="ai-modal-header">
-                <h3>翻译服务</h3>
-                <div class="ai-select-all-btn">全选</div>
-            </div>
-            <div class="ai-modal-body">
-        `;
+			<style>
+				.ai-service-item.locked { cursor: default !important; }
+				.ai-service-item.locked input { cursor: default !important; pointer-events: none; }
+			</style>
+			<div class="ao3-modal-header">
+				<h3>翻译服务</h3>
+				<div class="ai-select-all-btn" style="${isTraditional ? 'display:none;' : ''}">全选</div>
+			</div>
+			<div class="ao3-modal-body ao3-custom-scrollbar" id="ai-service-list">
+		`;
 
 		allServices.forEach(service => {
-			const isChecked = associatedServices.has(service.id);
+			const isChecked = isTraditional ? true : associatedServices.has(service.id);
+			const lockedClass = isTraditional ? 'locked' : '';
+			const disabledAttr = isTraditional ? 'disabled' : '';
 			html += `
-                <label class="ai-service-item">
-                    <input type="checkbox" value="${service.id}" ${isChecked ? 'checked' : ''}>
-                    <span class="ai-service-label">${service.name}</span>
-                </label>
-            `;
+				<label class="ai-service-item ${lockedClass}">
+					<input type="checkbox" value="${service.id}" ${isChecked ? 'checked' : ''} ${disabledAttr}>
+					<span class="ai-service-label">${service.name}</span>
+				</label>
+			`;
 		});
 
 		html += `
-            </div>
-            <div class="ai-modal-footer">
-                <button class="ai-modal-btn cancel">取消</button>
-                <button class="ai-modal-btn confirm">确认</button>
-            </div>
-        `;
+			</div>
+			<div class="ao3-modal-footer">
+				<button class="ao3-modal-btn cancel">取消</button>
+				<button class="ao3-modal-btn confirm">确认</button>
+			</div>
+		`;
 
 		modal.innerHTML = html;
 		overlay.appendChild(modal);
-		document.body.appendChild(overlay);
+		shadowWrapper.appendChild(overlay);
 
 		const checkboxes = modal.querySelectorAll('input[type="checkbox"]');
 		const selectAllBtn = modal.querySelector('.ai-select-all-btn');
@@ -4018,10 +6956,12 @@
 
 		modal.querySelector('.cancel').addEventListener('click', cleanup);
 		modal.querySelector('.confirm').addEventListener('click', () => {
-			const selectedIds = Array.from(checkboxes)
-				.filter(cb => cb.checked)
-				.map(cb => cb.value);
-			onConfirm(selectedIds);
+			if (!isTraditional) {
+				const selectedIds = Array.from(checkboxes)
+					.filter(cb => cb.checked)
+					.map(cb => cb.value);
+				onConfirm(selectedIds);
+			}
 			cleanup();
 		});
 
@@ -4030,1990 +6970,34 @@
 		});
 	}
 
-    /**
-	 * 初始化 AI 设置逻辑
+	/**************************************************************************
+	 * 设置面板：核心架构与 UI 工具类
+	 **************************************************************************/
+
+	/**
+	 * 面板 UI 工具类：负责独立、无状态的 UI 交互
 	 */
-	function initializeAiSettingsLogic(panelElements) {
-		const {
-			aiProfileSelect, aiServiceTrigger, aiParamSelect, aiParamInputArea
-		} = panelElements;
-
-		const LAST_PROFILE_KEY = 'ao3_ai_settings_last_profile';
-		const LAST_PARAM_KEY = 'ao3_ai_settings_last_param';
-
+	class PanelUIUtils {
 		/**
-		 * 校验 AI 参数合法性
+		 * 启用列表的拖拽排序功能
 		 */
-		const validateAiParam = (value, config) => {
-			if (!config.validation) return { valid: true, value: value };
-
-			const num = parseFloat(value);
-			const { min, max, step } = config.validation;
-			const label = config.label;
-
-			if (isNaN(num)) {
-				return { valid: false, message: `${label} 必须是有效的数字。` };
-			}
-
-			if (min !== undefined && num < min) {
-				return { valid: false, message: `${label} 不能小于 ${min}。` };
-			}
-
-			if (max !== undefined && num > max) {
-				return { valid: false, message: `${label} 不能大于 ${max}。` };
-			}
-
-			if (step !== undefined) {
-				const remainder = (num - (min || 0)) % step;
-				if (remainder > 0.00001 && Math.abs(remainder - step) > 0.00001) {
-					return { valid: false, message: `${label} 的步长必须是 ${step}。` };
-				}
-			}
-
-			return { valid: true, value: num };
-		};
-
-		const generateNewProfileName = (profiles) => {
-			let maxNum = 0;
-			const regex = /^配置 (\d+)$/;
-			profiles.forEach(p => {
-				const match = p.name.match(regex);
-				if (match) {
-					const num = parseInt(match[1], 10);
-					if (num > maxNum) maxNum = num;
-				}
-			});
-			return `配置 ${maxNum + 1}`;
-		};
-
-		const updateParamOptions = (isProtected) => {
-			const renameOption = aiParamSelect.querySelector('option[value="rename_profile"]');
-			const deleteOption = aiParamSelect.querySelector('option[value="delete_profile"]');
-
-			if (isProtected) {
-				if (renameOption) renameOption.remove();
-				if (deleteOption) deleteOption.remove();
-				if (aiParamSelect.value === 'rename_profile' || aiParamSelect.value === 'delete_profile') {
-					aiParamSelect.value = 'system_prompt';
-					GM_setValue(LAST_PARAM_KEY, 'system_prompt');
-				}
-			} else {
-				if (!renameOption) {
-					const opt = document.createElement('option');
-					opt.value = 'rename_profile';
-					opt.textContent = '设置参数配置名';
-					aiParamSelect.appendChild(opt);
-				}
-				if (!deleteOption) {
-					const opt = document.createElement('option');
-					opt.value = 'delete_profile';
-					opt.textContent = '删除此参数配置';
-					aiParamSelect.appendChild(opt);
-				}
-			}
-		};
-
-		const refreshProfileSelect = () => {
-			const profiles = ProfileManager.getAllProfiles();
-			const savedId = GM_getValue(LAST_PROFILE_KEY);
-			let targetId = savedId;
-
-			if (!profiles.find(p => p.id === savedId)) {
-				targetId = profiles[0].id;
-			}
-
-			aiProfileSelect.innerHTML = '';
-			profiles.forEach(p => {
-				const option = document.createElement('option');
-				option.value = p.id;
-				option.textContent = p.name;
-				aiProfileSelect.appendChild(option);
-			});
-
-			const createOption = document.createElement('option');
-			createOption.value = 'create_new';
-			createOption.textContent = '新建配置';
-			aiProfileSelect.appendChild(createOption);
-
-			aiProfileSelect.value = targetId;
-			GM_setValue(LAST_PROFILE_KEY, targetId);
-
-			const currentProfile = ProfileManager.getProfile(targetId);
-			if (currentProfile) {
-				updateParamOptions(currentProfile.isProtected);
-			}
-
-			return targetId;
-		};
-
-		const renderParamEditor = () => {
-			const profileId = aiProfileSelect.value;
-			const profile = ProfileManager.getProfile(profileId);
-			if (!profile) return;
-
-			const paramType = aiParamSelect.value;
-			aiParamInputArea.innerHTML = '';
-
-			if (paramType === 'rename_profile') {
-				if (profile.isProtected) return;
-				const section = document.createElement('div');
-				section.className = 'settings-group static-label';
-				section.innerHTML = `
-					<div class="input-wrapper">
-						<input type="text" id="ai-profile-rename-input" class="settings-control settings-input" value="${profile.name}" spellcheck="false">
-						<label for="ai-profile-rename-input" class="settings-label">配置名称</label>
-						<button class="settings-action-button-inline">保存</button>
-					</div>
-				`;
-				section.querySelector('button').addEventListener('click', () => {
-					const newName = section.querySelector('input').value.trim();
-					if (newName) {
-						profile.name = newName;
-						ProfileManager.saveProfile(profile);
-						const currentId = refreshProfileSelect();
-						aiProfileSelect.value = currentId;
-					}
-				});
-				aiParamInputArea.appendChild(section);
-				return;
-			}
-
-			const paramConfig = {
-				system_prompt: { type: 'textarea', label: 'System Prompt', autoSave: true },
-				user_prompt: { type: 'textarea', label: 'User Prompt', autoSave: true },
-				temperature: {
-					type: 'number',
-					label: 'Temperature',
-					attrs: { min: 0, max: 2, step: 0.1 },
-					hint: ' (0-2)',
-					validation: { min: 0, max: 2, step: 0.1 },
-					defaultKey: 'temperature'
-				},
-				chunk_size: {
-					type: 'number',
-					label: '每次翻译文本量',
-					attrs: { min: 100, step: 100 },
-					validation: { min: 100, step: 100 },
-					defaultKey: 'chunk_size'
-				},
-				para_limit: {
-					type: 'number',
-					label: '每次翻译段落数',
-					attrs: { min: 1, step: 1 },
-					validation: { min: 1, step: 1 },
-					defaultKey: 'para_limit'
-				},
-				request_rate: {
-					type: 'number',
-					label: '平均每秒请求数',
-					attrs: { min: 0.1, step: 0.1 },
-					hint: ' (req/s)',
-					validation: { min: 0.1, step: 0.1 },
-					defaultKey: 'request_rate'
-				},
-				request_capacity: {
-					type: 'number',
-					label: '最大突发请求数',
-					attrs: { min: 1, step: 1 },
-					hint: ' (burst)',
-					validation: { min: 1, step: 1 },
-					defaultKey: 'request_capacity'
-				},
-				lazy_load_margin: { type: 'text', label: '懒加载参数设置', hint: ' (px)' },
-				validation_thresholds: { type: 'text', label: '占位符校验阈值', hint: ' (Abs, Ratio, Base, Zero)'}
-			};
-
-			const config = paramConfig[paramType];
-			if (!config) return;
-
-			const section = document.createElement('div');
-			section.className = 'settings-group static-label';
-			const inputWrapper = document.createElement('div');
-			inputWrapper.className = 'input-wrapper';
-
-			const inputId = `ai-param-input-${paramType}`;
-
-			const inputElement = document.createElement(config.type === 'textarea' ? 'textarea' : 'input');
-			inputElement.className = 'settings-control settings-input';
-			inputElement.id = inputId;
-			inputElement.name = paramType;
-
-			inputElement.setAttribute('spellcheck', 'false');
-			if (config.type !== 'textarea') inputElement.type = config.type;
-			if (config.attrs) Object.entries(config.attrs).forEach(([k, v]) => inputElement.setAttribute(k, v));
-
-			inputElement.value = profile.params[paramType];
-
-			const label = document.createElement('label');
-			label.className = 'settings-label';
-			label.htmlFor = inputId;
-			label.textContent = config.label + (config.hint || '');
-
-			inputWrapper.appendChild(inputElement);
-			inputWrapper.appendChild(label);
-
-			const saveValue = () => {
-				let val = inputElement.value;
-				const validationResult = validateAiParam(val, config);
-
-				if (!validationResult.valid) {
-					const defaultValue = BASE_AI_PARAMS[config.defaultKey];
-					GM_notification({
-						title: '参数设置错误',
-						text: `${validationResult.message}\n已自动重置为默认值：${defaultValue}。`
-					});
-					val = defaultValue;
-					inputElement.value = val;
-					profile.params[paramType] = val;
-				} else {
-					val = validationResult.value;
-					profile.params[paramType] = val;
-				}
-
-				ProfileManager.saveProfile(profile);
-
-				if (inputElement.classList) {
-					if (inputElement.value) inputElement.classList.add('has-value');
-					else inputElement.classList.remove('has-value');
-				}
-			};
-
-			if (!config.autoSave) {
-				const saveBtn = document.createElement('button');
-				saveBtn.className = 'settings-action-button-inline';
-				saveBtn.textContent = '保存';
-				saveBtn.addEventListener('click', saveValue);
-				inputWrapper.appendChild(saveBtn);
-			} else {
-				inputElement.addEventListener('blur', saveValue);
-			}
-
-			section.appendChild(inputWrapper);
-			aiParamInputArea.appendChild(section);
-			if (inputElement.value) inputElement.classList.add('has-value');
-		};
-
-		aiProfileSelect.addEventListener('change', () => {
-			if (aiProfileSelect.value === 'create_new') {
-				const profiles = ProfileManager.getAllProfiles();
-				const newName = generateNewProfileName(profiles);
-				const newId = ProfileManager.createProfile(newName);
-				refreshProfileSelect();
-				aiProfileSelect.value = newId;
-				GM_setValue(LAST_PROFILE_KEY, newId);
-				aiParamSelect.value = 'system_prompt';
-				GM_setValue(LAST_PARAM_KEY, 'system_prompt');
-			} else {
-				GM_setValue(LAST_PROFILE_KEY, aiProfileSelect.value);
-			}
-
-			const profile = ProfileManager.getProfile(aiProfileSelect.value);
-			if (profile) updateParamOptions(profile.isProtected);
-
-			renderParamEditor();
-		});
-
-		aiServiceTrigger.addEventListener('click', () => {
-			const profileId = aiProfileSelect.value;
-			createServiceAssociationModal(profileId, (selectedIds) => {
-				ProfileManager.updateServiceAssociation(profileId, selectedIds);
-			});
-		});
-
-		aiParamSelect.addEventListener('change', () => {
-			const paramType = aiParamSelect.value;
-
-			if (paramType === 'delete_profile') {
-				const profileId = aiProfileSelect.value;
-				const profile = ProfileManager.getProfile(profileId);
-
-				if (profile && !profile.isProtected) {
-					showCustomConfirm(`您确定要删除 ${profile.name} 参数配置吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
-						.then(() => {
-							ProfileManager.deleteProfile(profileId);
-							refreshProfileSelect();
-							aiParamSelect.value = 'system_prompt';
-							GM_setValue(LAST_PARAM_KEY, 'system_prompt');
-							renderParamEditor();
-						})
-						.catch(() => {
-							const lastParam = GM_getValue(LAST_PARAM_KEY, 'system_prompt');
-							const safeParam = lastParam === 'delete_profile' ? 'system_prompt' : lastParam;
-							aiParamSelect.value = safeParam;
-							renderParamEditor();
-						});
-				}
-				return;
-			}
-
-			GM_setValue(LAST_PARAM_KEY, paramType);
-			renderParamEditor();
-		});
-
-		return {
-			refresh: () => {
-				refreshProfileSelect();
-				const lastParam = GM_getValue(LAST_PARAM_KEY, 'system_prompt');
-				const safeParam = lastParam === 'delete_profile' ? 'system_prompt' : lastParam;
-				aiParamSelect.value = safeParam;
-				renderParamEditor();
-			}
-		};
-	}
-
-    /**
-	 * 设置面板的内部逻辑
-	 */
-	function initializeSettingsPanelLogic(panelElements, rerenderMenuCallback, onPanelCloseCallback) {
-		const {
-			panel, closeBtn, header, masterSwitch, swapLangBtn, engineSelect, fromLangSelect, toLangSelect,
-			modelGroup, modelSelect, displayModeSelect,
-			apiKeyGroup, apiKeyInput, apiKeySaveBtn, customServiceContainer,
-			serviceDetailsToggleContainer, serviceDetailsToggleBtn,
-			glossaryActionsSelect, editableSections,
-			aiSettingsSection,
-			langDetectSection, langDetectSelect,
-			localManageSection, localGlossarySelect, localEditModeSelect,
-			localContainerName, localContainerTranslation, localContainerForbidden,
-			localGlossaryNameInput, localGlossarySaveNameBtn,
-			localSensitiveInput, localSensitiveSaveBtn,
-			localInsensitiveInput, localInsensitiveSaveBtn,
-			localForbiddenInput, localForbiddenSaveBtn,
-			onlineManageSection, glossaryImportUrlInput, glossaryImportSaveBtn,
-			glossaryManageSelect, glossaryManageDetailsContainer, glossaryManageInfo, glossaryManageDeleteBtn,
-			postReplaceSection, postReplaceSelect, postReplaceEditModeSelect,
-			postReplaceContainerName, postReplaceContainerSettings,
-			postReplaceNameInput, postReplaceSaveNameBtn,
-			postReplaceInput, postReplaceSaveBtn,
-			dataSyncActionsContainer, importDataBtn, exportDataBtn,
-			debugActionsContainer, toggleDebugBtn, exportLogBtn,
-			blockerSection, blockerDimensionSelect, blockerSubDimensionSelect, blockerInputArea, blockerActionsContainer, toggleBlockerBtn, toggleReasonsBtn,
-			formattingSection, fmtProfileSelect, fmtPropertySelect, fmtValueContainer
-		} = panelElements;
-
-		const PANEL_POSITION_KEY = 'ao3_panel_position';
-		const GLOSSARY_ACTION_KEY = 'ao3_glossary_last_action';
-		const LOCAL_GLOSSARY_SELECTED_ID_KEY = 'ao3_local_glossary_selected_id';
-		const LOCAL_GLOSSARY_EDIT_MODE_KEY = 'ao3_local_glossary_edit_mode';
-		const BLOCKER_VIEW_KEY = 'ao3_blocker_current_view';
-		const BLOCKER_SUB_VIEW_KEY = 'ao3_blocker_current_sub_view';
-
-		let isDragging = false;
-		let origin = { x: 0, y: 0 }, startPosition = { x: 0, y: 0 };
-		let activeDropdown = null;
-		let isEditingBuiltInModel = false;
-
-		const customServiceManager = createCustomServiceManager(panelElements, syncPanelState);
-		const aiSettingsLogic = initializeAiSettingsLogic(panelElements);
-
-		const saveSetting = (key, value, defaultValue) => {
-			if (value === defaultValue) {
-				GM_deleteValue(key);
-			} else {
-				GM_setValue(key, value);
-			}
-		};
-
-		const blockerConfig = {
-			tags: {
-				black: { label: '标签黑名单', keys: ['ao3_blocker_tags_black'], ph: "'*标签 1*', '标签 2'-'标签 3'" },
-				white: { label: '标签白名单', keys: ['ao3_blocker_tags_white'], ph: "'*标签 1*', '标签 2'+'标签 3'" }
-			},
-			content: {
-				author: { label: '作者黑名单', keys: ['ao3_blocker_content_author'], ph: '作者名 1, 作者名 2, 作者名 3' },
-				id: { label: '作品黑名单', keys: ['ao3_blocker_content_id'], ph: '作品 ID 1, 作品 ID 2, 作品 ID 3' },
-				title: { label: '标题黑名单', keys: ['ao3_blocker_content_title'], ph: '关键词 1, 关键词 2, 关键词 3' },
-				summary: { label: '简介黑名单', keys: ['ao3_blocker_content_summary'], ph: '关键词 1, 关键词 2, 关键词 3' }
-			},
-			stats: {
-				words: { label: '字数范围', keys: ['ao3_blocker_stats_min_words', 'ao3_blocker_stats_max_words'], ph: '1000-10000', isRange: true },
-				chapters: { label: '章节范围', keys: ['ao3_blocker_stats_min_chapters', 'ao3_blocker_stats_max_chapters'], ph: '2-50', isRange: true },
-				update: { label: '更新时间', inputLabel: 'n 月内未更新 (连载)', keys: ['ao3_blocker_stats_update'], ph: '6' },
-				crossover: { label: '同人圈数', inputLabel: '最大数量限制', keys: ['ao3_blocker_stats_crossover'], ph: '5' },
-				lang: { label: '语言筛选', inputLabel: '仅显示的语言', keys: ['ao3_blocker_adv_lang'], ph: '中文-普通话 國語, English' }
-			},
-			advanced: {
-				pairing: {
-					label: '主要关系筛选',
-					getInputLabel: () => {
-						const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_rel', DEFAULT_CONFIG.BLOCKER.adv_scope_rel)) || 1;
-						return scope === 1 ? '第 1 个关系标签' : `前 ${scope} 个关系标签`;
-					},
-					keys: ['ao3_blocker_adv_pairing'],
-					ph: "'关系 1', '关系 2', '关系 3'"
-				},
-				char: {
-					label: '主要角色筛选',
-					getInputLabel: () => {
-						const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_char', DEFAULT_CONFIG.BLOCKER.adv_scope_char)) || 5;
-						return scope === 1 ? '第 1 个角色标签' : `前 ${scope} 个角色标签`;
-					},
-					keys: ['ao3_blocker_adv_char'],
-					ph: "'角色 1', '角色 2', '角色 3'"
-				},
-				scope: {
-					label: '调整检索范围',
-					isDual: true,
-					keys: ['ao3_blocker_adv_scope_rel', 'ao3_blocker_adv_scope_char'],
-					labels: ['主要关系检索范围', '主要角色检索范围'],
-					phs: ['1', '5']
-				}
-			}
-		};
-
-		function renderBuiltInModelUI(engineId) {
-			const config = engineMenuConfig[engineId];
-			if (engineId.startsWith('custom_')) {
-				if (!modelGroup.contains(modelSelect)) {
-					modelGroup.innerHTML = '';
-					modelGroup.appendChild(modelSelect);
-					let label = modelGroup.querySelector(`label[for="${modelSelect.id}"]`);
-					if (!label) {
-						label = document.createElement('label');
-						label.htmlFor = modelSelect.id;
-						label.className = 'settings-label';
-						label.textContent = '使用模型';
-						modelGroup.appendChild(label);
-					}
-					modelGroup.className = 'settings-group settings-group-select';
-				}
-				modelGroup.style.display = 'block';
-				customServiceManager.renderDisplayModeModelSelect(engineId);
-				updateInputLabel(modelSelect);
-				return;
-			}
-			modelGroup.innerHTML = '';
-			modelGroup.style.display = 'none';
-
-			if (!config || !config.modelMapping) return;
-
-			modelGroup.style.display = 'block';
-			const customMappingKey = `${engineId}_custom_model_mapping`;
-			const currentMapping = GM_getValue(customMappingKey) || config.modelMapping;
-
-			if (isEditingBuiltInModel) {
-				modelGroup.className = 'settings-group static-label';
-
-				const wrapper = document.createElement('div');
-				wrapper.className = 'input-wrapper';
-
-				const input = document.createElement('input');
-				input.type = 'text';
-				input.className = 'settings-control settings-input';
-				input.value = stringifyModelObject(currentMapping).replace(/\n/g, ' ');
-				input.placeholder = "'ID 1': '名称 1', 'ID 2': '名称 2'";
-				input.spellcheck = false;
-
-				const label = document.createElement('label');
-				label.className = 'settings-label';
-				label.textContent = '编辑模型 ID';
-
-				const saveBtn = document.createElement('button');
-				saveBtn.className = 'settings-action-button-inline';
-				saveBtn.textContent = '保存';
-
-				saveBtn.addEventListener('click', () => {
-					const newMapping = parseModelString(input.value);
-					if (Object.keys(newMapping).length === 0) {
-						GM_deleteValue(customMappingKey);
-					} else {
-						GM_setValue(customMappingKey, newMapping);
-					}
-
-					isEditingBuiltInModel = false;
-					renderBuiltInModelUI(engineId);
-				});
-
-				wrapper.appendChild(input);
-				wrapper.appendChild(label);
-				wrapper.appendChild(saveBtn);
-				modelGroup.appendChild(wrapper);
-				updateInputLabel(input);
-
-			} else {
-				modelGroup.className = 'settings-group settings-group-select';
-
-				const select = document.createElement('select');
-				select.id = 'setting-trans-model';
-				select.className = 'settings-control settings-select custom-styled-select';
-
-				Object.keys(currentMapping).forEach(modelId => {
-					const option = document.createElement('option');
-					option.value = modelId;
-					option.textContent = currentMapping[modelId];
-					select.appendChild(option);
-				});
-
-				const editOption = document.createElement('option');
-				editOption.value = 'EDIT_MODELS_INLINE';
-				editOption.textContent = '编辑模型 ID';
-				select.appendChild(editOption);
-
-				const resetOption = document.createElement('option');
-				resetOption.value = 'RESET_MODELS_INLINE';
-				resetOption.textContent = '重置模型 ID';
-				select.appendChild(resetOption);
-				const savedModel = GM_getValue(config.modelGmKey);
-				if (savedModel && currentMapping[savedModel]) {
-					select.value = savedModel;
-				} else {
-					const firstModel = Object.keys(currentMapping)[0];
-					select.value = firstModel;
-					GM_setValue(config.modelGmKey, firstModel);
-				}
-
-				select.addEventListener('change', () => {
-					if (select.value === 'EDIT_MODELS_INLINE') {
-						isEditingBuiltInModel = true;
-						renderBuiltInModelUI(engineId);
-					} else if (select.value === 'RESET_MODELS_INLINE') {
-						GM_deleteValue(customMappingKey);
-						renderBuiltInModelUI(engineId);
-					} else {
-						GM_setValue(config.modelGmKey, select.value);
-					}
-				});
-
-				const label = document.createElement('label');
-				label.htmlFor = 'setting-trans-model';
-				label.className = 'settings-label';
-				label.textContent = '使用模型';
-
-				modelGroup.appendChild(select);
-				modelGroup.appendChild(label);
-				updateInputLabel(select);
-			}
-		}
-
-		function updateApiKeySection(engineId) {
-			const config = engineMenuConfig[engineId];
-			if (config && config.requiresApiKey) {
-				apiKeyGroup.style.display = 'block';
-				const stringKeyName = `${engineId}_keys_string`;
-				apiKeyInput.value = GM_getValue(stringKeyName, '');
-				apiKeyGroup.querySelector('.settings-label').textContent = `设置 ${config.displayName} API Key`;
-				apiKeyInput.placeholder = 'Key 1，Key 2，Key 3';
-				updateInputLabel(apiKeyInput);
-			} else {
-				apiKeyGroup.style.display = 'none';
-			}
-		}
-
-		function updateUiForEngine(engineId) {
-			customServiceContainer.style.display = 'none';
-			modelGroup.style.display = 'none';
-			apiKeyGroup.style.display = 'none';
-			serviceDetailsToggleContainer.style.display = 'none';
-
-			if (engineId.startsWith('custom_')) {
-				customServiceManager.enterEditMode(engineId);
-				serviceDetailsToggleContainer.style.display = 'flex';
-			} else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
-				serviceDetailsToggleContainer.style.display = 'flex';
-				customServiceContainer.style.display = 'flex';
-			} else {
-				const isBuiltInSimple = engineId === 'google_translate' || engineId === 'bing_translator';
-				if (!isBuiltInSimple) {
-					serviceDetailsToggleContainer.style.display = 'flex';
-					renderBuiltInModelUI(engineId);
-					updateApiKeySection(engineId);
-				}
-			}
-
-			if (serviceDetailsToggleContainer.style.display === 'flex') {
-				const isCollapsed = GM_getValue(`service_collapsed_${engineId}`, false);
-				serviceDetailsToggleBtn.classList.toggle('collapsed', isCollapsed);
-				if (isCollapsed) {
-					modelGroup.style.display = 'none';
-					apiKeyGroup.style.display = 'none';
-					if (engineId.startsWith('custom_') || engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
-						customServiceContainer.style.display = 'none';
-					}
-				}
-			}
-
-			updateAllLabels();
-		}
-
-		const populateEngineSelect = () => {
-			engineSelect.innerHTML = '';
-			const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
-			const createOption = (engineId, config) => {
-				const option = document.createElement('option');
-				option.value = engineId;
-				option.textContent = config.displayName;
-				return option;
-			};
-			engineSelect.appendChild(createOption('google_translate', engineMenuConfig['google_translate']));
-			engineSelect.appendChild(createOption('bing_translator', engineMenuConfig['bing_translator']));
-			const sortedBuiltInServices = Object.keys(engineMenuConfig)
-				.filter(id => id !== 'google_translate' && id !== 'bing_translator' && id !== ADD_NEW_CUSTOM_SERVICE_ID)
-				.sort((a, b) => engineMenuConfig[a].displayName.localeCompare(engineMenuConfig[b].displayName));
-			sortedBuiltInServices.forEach(id => {
-				engineSelect.appendChild(createOption(id, engineMenuConfig[id]));
-			});
-			customServices.forEach(service => {
-				const option = document.createElement('option');
-				option.value = service.id;
-				option.textContent = service.name || `默认 ${customServices.indexOf(service) + 1}`;
-				option.dataset.isCustom = 'true';
-				engineSelect.appendChild(option);
-			});
-			engineSelect.appendChild(createOption(ADD_NEW_CUSTOM_SERVICE_ID, engineMenuConfig[ADD_NEW_CUSTOM_SERVICE_ID]));
-		};
-
-		function syncPanelState() {
-			const isEnabled = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
-			masterSwitch.checked = isEnabled;
-			populateEngineSelect();
-			const currentEngine = getValidEngineName();
-			engineSelect.value = currentEngine;
-			updateUiForEngine(currentEngine);
-			fromLangSelect.value = GM_getValue('from_lang', DEFAULT_CONFIG.GENERAL.from_lang);
-			toLangSelect.value = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
-			updateSwapButtonState();
-			displayModeSelect.value = GM_getValue('translation_display_mode', DEFAULT_CONFIG.GENERAL.translation_display_mode);
-
-			masterSwitch.disabled = false;
-			glossaryActionsSelect.disabled = false;
-
-			const translationControls = [
-				fromLangSelect, toLangSelect, swapLangBtn,
-				displayModeSelect, engineSelect, modelSelect,
-				apiKeyInput, apiKeySaveBtn
-			];
-
-			const currentAction = glossaryActionsSelect.value;
-			const independentActions = ['formatting', 'blocker_manage', 'debug_mode', 'data_sync'];
-			const isIndependent = independentActions.includes(currentAction);
-
-			panel.querySelectorAll('.settings-control, .settings-input, .settings-action-button-inline, .online-glossary-delete-btn, .data-sync-action-btn').forEach(el => {
-				if (el === masterSwitch || el === glossaryActionsSelect) {
-					el.disabled = false;
-					return;
-				}
-
-				if (translationControls.includes(el)) {
-					el.disabled = !isEnabled;
-					return;
-				}
-
-				if (isIndependent) {
-					el.disabled = false;
-				} else {
-					el.disabled = !isEnabled;
-				}
-			});
-
-			updateAllLabels();
-		}
-
-		const isMobile = () => window.innerWidth < 768;
-		const ensureOnScreen = (pos, size) => {
-			const newPos = { ...pos };
-			const winW = document.documentElement.clientWidth;
-			const winH = window.innerHeight;
-			const margin = 10;
-			newPos.x = Math.max(margin, Math.min(newPos.x, winW - size.width - margin));
-			newPos.y = Math.max(margin, Math.min(newPos.y, winH - size.height - margin));
-			return newPos;
-		};
-		const updatePanelPosition = () => {
-			if (panel.style.display !== 'flex') return;
-			if (isMobile()) {
-				panel.classList.add('mobile-fixed-center');
-				panel.style.left = '';
-				panel.style.top = '';
-			} else {
-				panel.classList.remove('mobile-fixed-center');
-				panel.style.visibility = 'hidden';
-				const panelRect = panel.getBoundingClientRect();
-				panel.style.visibility = 'visible';
-				let savedPos = GM_getValue(PANEL_POSITION_KEY);
-				const hasBeenOpened = GM_getValue('panel_has_been_opened_once', false);
-				if (!hasBeenOpened) {
-					const winW = document.documentElement.clientWidth;
-					const winH = window.innerHeight;
-					savedPos = {
-						x: (winW - panelRect.width) / 2,
-						y: (winH - panelRect.height) / 2
-					};
-					GM_setValue(PANEL_POSITION_KEY, savedPos);
-					GM_setValue('panel_has_been_opened_once', true);
-				} else if (!savedPos || isDragging) {
-					savedPos = { x: panel.offsetLeft, y: panel.offsetTop };
-				}
-				const correctedPos = ensureOnScreen(savedPos, { width: panelRect.width, height: panelRect.height });
-				panel.style.left = `${correctedPos.x}px`;
-				panel.style.top = `${correctedPos.y}px`;
-			}
-			repositionActiveDropdown();
-		};
-		const updateInputLabel = (input) => {
-			if (!input) return;
-			if (input.value && (input.tagName !== 'SELECT' || input.options[input.selectedIndex]?.disabled !== true)) {
-				input.classList.add('has-value');
-			} else {
-				input.classList.remove('has-value');
-			}
-		};
-		const updateAllLabels = () => {
-			panel.querySelectorAll('.settings-control').forEach(updateInputLabel);
-		};
-
-		function populateLocalGlossarySelect() {
-			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-			localGlossarySelect.innerHTML = '';
-			glossaries.forEach(g => {
-				const option = document.createElement('option');
-				option.value = g.id;
-				option.textContent = g.name;
-				option.dataset.isLocalGlossary = 'true';
-				localGlossarySelect.appendChild(option);
-			});
-			const createOption = document.createElement('option');
-			createOption.value = 'create_new';
-			createOption.textContent = '新建术语表';
-			localGlossarySelect.appendChild(createOption);
-		}
-
-		function loadLocalGlossaryData(id) {
-			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-			const glossary = glossaries.find(g => g.id === id);
-			if (glossary) {
-				localGlossaryNameInput.value = glossary.name;
-				localSensitiveInput.value = glossary.sensitive || '';
-				localInsensitiveInput.value = glossary.insensitive || '';
-				localForbiddenInput.value = glossary.forbidden || '';
-				updateAllLabels();
-			}
-		}
-
-		function generateNewGlossaryName(glossaries) {
-			const prefix = "术语表 ";
-			let maxNum = 0;
-			glossaries.forEach(g => {
-				if (g.name.startsWith(prefix)) {
-					const num = parseInt(g.name.slice(prefix.length), 10);
-					if (!isNaN(num) && num > maxNum) maxNum = num;
-				}
-			});
-			return prefix + (maxNum + 1);
-		}
-
-		function handleDeleteLocalGlossary(id) {
-			let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-			glossaries = glossaries.filter(g => g.id !== id);
-			if (glossaries.length === 0) {
-				glossaries.push({
-					id: `local_${Date.now()}`,
-					name: '默认',
-					sensitive: '',
-					insensitive: '',
-					forbidden: '',
-					enabled: true
-				});
-			}
-			GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-
-			const currentSelected = localGlossarySelect.value;
-			let nextId = glossaries[0].id;
-			if (id === currentSelected) {
-				GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, nextId);
-			}
-
-			populateLocalGlossarySelect();
-			const newSelected = (id === currentSelected) ? nextId : currentSelected;
-			localGlossarySelect.value = newSelected;
-			loadLocalGlossaryData(newSelected);
-
-			localEditModeSelect.value = 'name';
-			updateLocalEditVisibility();
-			GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
-
-			synchronizeAllSettings();
-		}
-
-		function updateLocalEditVisibility() {
-			const mode = localEditModeSelect.value;
-			localContainerName.style.display = 'none';
-			localContainerTranslation.style.display = 'none';
-			localContainerForbidden.style.display = 'none';
-
-			if (mode === 'name') {
-				localContainerName.style.display = 'block';
-			} else if (mode === 'translation') {
-				localContainerTranslation.style.display = 'flex';
-			} else if (mode === 'forbidden') {
-				localContainerForbidden.style.display = 'block';
-			}
-		}
-
-		function populatePostReplaceSelect() {
-			const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-			postReplaceSelect.innerHTML = '';
-			rules.forEach(r => {
-				const option = document.createElement('option');
-				option.value = r.id;
-				option.textContent = r.name;
-				option.dataset.isPostReplaceRule = 'true';
-				postReplaceSelect.appendChild(option);
-			});
-			const createOption = document.createElement('option');
-			createOption.value = 'create_new';
-			createOption.textContent = '新建替换规则';
-			postReplaceSelect.appendChild(createOption);
-		}
-
-		function loadPostReplaceData(id) {
-			const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-			const rule = rules.find(r => r.id === id);
-			if (rule) {
-				postReplaceNameInput.value = rule.name;
-				postReplaceInput.value = rule.content || '';
-				updateAllLabels();
-			}
-		}
-
-		function generateNewPostReplaceName(rules) {
-			const prefix = "规则 ";
-			let maxNum = 0;
-			rules.forEach(r => {
-				if (r.name.startsWith(prefix)) {
-					const num = parseInt(r.name.slice(prefix.length), 10);
-					if (!isNaN(num) && num > maxNum) maxNum = num;
-				}
-			});
-			return prefix + (maxNum + 1);
-		}
-
-		function handleDeletePostReplaceRule(id) {
-			let rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-			rules = rules.filter(r => r.id !== id);
-			if (rules.length === 0) {
-				rules.push({
-					id: `replace_${Date.now()}`,
-					name: '默认',
-					content: '',
-					enabled: true
-				});
-			}
-			GM_setValue(POST_REPLACE_RULES_KEY, rules);
-
-			const currentSelected = postReplaceSelect.value;
-			let nextId = rules[0].id;
-			if (id === currentSelected) {
-				GM_setValue(POST_REPLACE_SELECTED_ID_KEY, nextId);
-			}
-
-			populatePostReplaceSelect();
-			const newSelected = (id === currentSelected) ? nextId : currentSelected;
-			postReplaceSelect.value = newSelected;
-			loadPostReplaceData(newSelected);
-
-			postReplaceEditModeSelect.value = 'name';
-			updatePostReplaceEditVisibility();
-			GM_setValue(POST_REPLACE_EDIT_MODE_KEY, 'name');
-
-			synchronizeAllSettings();
-		}
-
-		function updatePostReplaceEditVisibility() {
-			const mode = postReplaceEditModeSelect.value;
-			postReplaceContainerName.style.display = 'none';
-			postReplaceContainerSettings.style.display = 'none';
-
-			if (mode === 'name') {
-				postReplaceContainerName.style.display = 'block';
-			} else if (mode === 'settings') {
-				postReplaceContainerSettings.style.display = 'block';
-			}
-		}
-
-		const toggleEditableSection = (sectionToShow) => {
-			editableSections.forEach(s => s.style.display = 'none');
-			dataSyncActionsContainer.style.display = 'none';
-			debugActionsContainer.style.display = 'none';
-			blockerActionsContainer.style.display = 'none';
-			if (sectionToShow) {
-				sectionToShow.style.display = 'flex';
-				if (sectionToShow.id === 'editable-section-blocker') {
-					blockerActionsContainer.style.display = 'flex';
-				}
-				const input = sectionToShow.querySelector('.settings-control');
-				if (input) updateInputLabel(input);
-			}
-		};
-
-		const updateDebugButtonText = () => {
-			toggleDebugBtn.textContent = Logger.config.enabled ? '禁用调试模式' : '启用调试模式';
-		};
-
-		const updateBlockerButtonText = () => {
-			toggleBlockerBtn.textContent = GM_getValue('ao3_blocker_enabled', DEFAULT_CONFIG.BLOCKER.enabled) ? '禁用作品屏蔽' : '启用作品屏蔽';
-			toggleReasonsBtn.textContent = GM_getValue('ao3_blocker_show_reasons', DEFAULT_CONFIG.BLOCKER.show_reasons) ? '隐藏屏蔽原因' : '显示屏蔽原因';
-		};
-
-		const renderBlockerSubDimensions = () => {
-			const dimension = blockerDimensionSelect.value;
-			const subConfig = blockerConfig[dimension];
-			blockerSubDimensionSelect.innerHTML = '';
-			Object.keys(subConfig).forEach(key => {
-				const option = document.createElement('option');
-				option.value = key;
-				option.textContent = subConfig[key].label;
-				blockerSubDimensionSelect.appendChild(option);
-			});
-			const savedSub = GM_getValue(BLOCKER_SUB_VIEW_KEY, DEFAULT_CONFIG.BLOCKER.current_sub_view);
-			if (savedSub && subConfig[savedSub]) {
-				blockerSubDimensionSelect.value = savedSub;
-			} else {
-				blockerSubDimensionSelect.selectedIndex = 0;
-			}
-			renderBlockerInput();
-		};
-
-		const renderBlockerInput = () => {
-			const dimension = blockerDimensionSelect.value;
-			const subDimension = blockerSubDimensionSelect.value;
-			const config = blockerConfig[dimension][subDimension];
-			blockerInputArea.innerHTML = '';
-
-			if (config.isDual) {
-				config.keys.forEach((key, index) => {
-					const group = document.createElement('div');
-					group.className = 'settings-group static-label';
-					const labelText = config.labels[index];
-					const placeholder = config.phs[index];
-					const inputId = `input-blocker-val-${index}`;
-
-					group.innerHTML = `
-                        <div class="input-wrapper">
-                            <input type="text" id="${inputId}" class="settings-control settings-input" placeholder="${placeholder}" spellcheck="false">
-                            <label for="${inputId}" class="settings-label">${labelText}</label>
-                            <button class="settings-action-button-inline">保存</button>
-                        </div>
-                    `;
-					const input = group.querySelector('input');
-					const defaultKey = key.replace('ao3_blocker_', '');
-					const defaultValue = DEFAULT_CONFIG.BLOCKER[defaultKey] || '';
-					input.value = GM_getValue(key, defaultValue);
-					group.querySelector('button').addEventListener('click', () => {
-						const val = input.value.trim();
-						saveSetting(key, val, defaultValue);
-						updateInputLabel(input);
-						refreshBlocker('full'); 
-					});
-					blockerInputArea.appendChild(group);
-					updateInputLabel(input);
-				});
-			} else {
-				const group = document.createElement('div');
-				group.className = 'settings-group static-label';
-
-				let displayLabel = config.label;
-				if (config.getInputLabel) {
-					displayLabel = config.getInputLabel();
-				} else if (config.inputLabel) {
-					displayLabel = config.inputLabel;
-				}
-
-				group.innerHTML = `
-                    <div class="input-wrapper">
-                        <input type="text" id="input-blocker-val" class="settings-control settings-input" placeholder="${config.ph}" spellcheck="false">
-                        <label for="input-blocker-val" class="settings-label">${displayLabel}</label>
-                        <button class="settings-action-button-inline">保存</button>
-                    </div>
-                `;
-				const input = group.querySelector('input');
-
-				if (config.isRange) {
-					const defaultKeyMin = config.keys[0].replace('ao3_blocker_', '');
-					const defaultKeyMax = config.keys[1].replace('ao3_blocker_', '');
-					const min = GM_getValue(config.keys[0], DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
-					const max = GM_getValue(config.keys[1], DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
-					if (min && max) input.value = `${min}-${max}`;
-					else if (min) input.value = min;
-					else if (max) input.value = `-${max}`;
-				} else {
-					const defaultKey = config.keys[0].replace('ao3_blocker_', '');
-					const defaultValue = DEFAULT_CONFIG.BLOCKER[defaultKey] || '';
-					input.value = GM_getValue(config.keys[0], defaultValue);
-				}
-
-				group.querySelector('button').addEventListener('click', () => {
-					const val = input.value.trim();
-					if (config.isRange) {
-						const defaultKeyMin = config.keys[0].replace('ao3_blocker_', '');
-						const defaultKeyMax = config.keys[1].replace('ao3_blocker_', '');
-
-						const parts = val.split(/[-－—]/);
-						if (parts.length >= 2) {
-							saveSetting(config.keys[0], parts[0].trim(), DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
-							saveSetting(config.keys[1], parts[1].trim(), DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
-						} else {
-							saveSetting(config.keys[0], val, DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
-							saveSetting(config.keys[1], '', DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
-						}
-					} else {
-						const defaultKey = config.keys[0].replace('ao3_blocker_', '');
-						saveSetting(config.keys[0], val, DEFAULT_CONFIG.BLOCKER[defaultKey] || '');
-					}
-					updateInputLabel(input);
-					refreshBlocker();
-				});
-
-				blockerInputArea.appendChild(group);
-				updateInputLabel(input);
-			}
-		};
-
-		const saveApiKey = () => {
-			const engineId = engineSelect.value;
-			const value = apiKeyInput.value;
-			let serviceIdToUpdate;
-			if (engineId.startsWith('custom_')) {
-				serviceIdToUpdate = engineId;
-			} else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID && customServiceManager.isPending()) {
-				serviceIdToUpdate = customServiceManager.ensureServiceExists();
-			} else {
-				serviceIdToUpdate = engineId;
-			}
-			if (!serviceIdToUpdate) {
-				return;
-			}
-			const stringKeyName = `${serviceIdToUpdate}_keys_string`;
-			const arrayKeyName = `${serviceIdToUpdate}_keys_array`;
-			GM_setValue(stringKeyName, value);
-			const keysArray = value.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
-			GM_setValue(arrayKeyName, keysArray);
-			GM_deleteValue(`${serviceIdToUpdate}_key_index`);
-		};
-
-		const resetDeleteButton = () => {
-			glossaryManageDeleteBtn.textContent = '删除';
-			glossaryManageDeleteBtn.removeAttribute('data-confirming');
-		};
-
-		const populateManageGlossary = () => {
-			const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-			const urls = Object.keys(metadata);
-			const lastSelectedUrl = GM_getValue(LAST_SELECTED_GLOSSARY_KEY, null);
-			glossaryManageSelect.innerHTML = '';
-			if (urls.length === 0) {
-				glossaryManageSelect.innerHTML = '<option value="" disabled selected>暂无术语表</option>';
-				glossaryManageSelect.disabled = true;
-				glossaryManageDetailsContainer.style.display = 'none';
-			} else {
-				urls.forEach(url => {
-					const filename = url.split('/').pop();
-					const lastDotIndex = filename.lastIndexOf('.');
-					const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
-					const name = decodeURIComponent(baseName);
-					const option = document.createElement('option');
-					option.value = url;
-					option.textContent = name;
-					option.title = name;
-					glossaryManageSelect.appendChild(option);
-				});
-				glossaryManageSelect.disabled = false;
-				if (lastSelectedUrl && urls.includes(lastSelectedUrl)) {
-					glossaryManageSelect.value = lastSelectedUrl;
-				} else {
-					glossaryManageSelect.selectedIndex = 0;
-				}
-			}
-			glossaryManageSelect.dispatchEvent(new Event('change'));
-			resetDeleteButton();
-		};
-
-		const handleExport = async () => {
-			try {
-				const availableItems = DATA_CATEGORIES.map(cat => ({
-					...cat,
-					checked: true,
-					disabled: false
-				}));
-
-				const selectionResult = await createSelectionModal(
-					'数据导出',
-					availableItems,
-					'export',
-					'ao3_export_selection_memory'
-				);
-
-				const data = await exportAllData(selectionResult.ids);
-				const jsonString = JSON.stringify(data, null, 2);
-				const dateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' })
-					.replace(/:/g, '-')
-					.replace(' ', '_');
-				saveFile(jsonString, `AO3-Translator-Config-${dateStr}.json`, 'application/json');
-			} catch (e) {
-				if (e.message !== 'User cancelled') {
-					notifyAndLog(`导出失败: ${e.message}`, '操作失败', 'error');
-				}
-			}
-		};
-
-		const handleImport = () => {
-			const input = document.createElement('input');
-			input.type = 'file';
-			input.accept = '.json';
-			input.onchange = (e) => {
-				const file = e.target.files[0];
-				if (!file) return;
-
-				const reader = new FileReader();
-				reader.onload = async (event) => {
-					try {
-						const jsonData = JSON.parse(event.target.result);
-						if (!jsonData.data) throw new Error("文件缺少 data 字段");
-
-						const hasData = (catId, data) => {
-							if (!data) return false;
-							const hasContent = (val) => {
-								if (!val) return false;
-								if (typeof val === 'string') return val.trim() !== '';
-								if (Array.isArray(val)) return val.length > 0;
-								if (typeof val === 'object') return Object.keys(val).length > 0;
-								return false;
-							};
-
-							switch (catId) {
-								case 'staticKeys':
-								case 'apiKeys':
-								case 'modelSelections':
-								case 'aiParameters':
-								case 'blockerSettings':
-									return Object.keys(data).length > 0;
-								case 'uiState':
-									return !!(data.fabPosition || data.panelPosition);
-								case 'customServices':
-									return Array.isArray(data) && data.length > 0;
-								case 'glossaries':
-									return hasContent(data.customGlossaries) ||
-										hasContent(data.importedGlossaries) ||
-										hasContent(data.postReplaceString) ||
-										hasContent(data.postReplace) ||
-										hasContent(data.local) ||
-										hasContent(data.forbidden) ||
-										hasContent(data.onlineMetadata);
-								case 'formatting':
-									return Object.keys(data).length > 0;
-								default:
-									return false;
-							}
-						};
-
-						const availableItems = DATA_CATEGORIES.map(cat => {
-							const dataExists = hasData(cat.id, jsonData.data[cat.id]);
-							return {
-								...cat,
-								checked: dataExists,
-								label: cat.label,
-								disabled: !dataExists
-							};
-						});
-
-						const validItems = availableItems.filter(item => !item.disabled);
-
-						if (validItems.length === 0) {
-							notifyAndLog('该文件中没有可导入的有效数据。', '导入失败', 'error');
-							return;
-						}
-
-						const selectionResult = await createSelectionModal(
-							'数据导入',
-							availableItems,
-							'import',
-							null
-						);
-
-						if (selectionResult && selectionResult.ids.length > 0) {
-							const result = await importAllData(jsonData, selectionResult.ids, selectionResult.mode, syncPanelState);
-							Logger.info('数据', result.message);
-						}
-					} catch (err) {
-						if (err.message !== 'User cancelled') {
-							notifyAndLog(`导入失败: ${err.message}`, '导入错误', 'error');
-						}
-					}
-				};
-				reader.readAsText(file);
-			};
-			input.click();
-		};
-
-		const togglePanel = () => {
-			const isOpening = panel.style.display !== 'flex';
-			if (isOpening) {
-				editableSections.forEach(s => s.style.display = 'none');
-				dataSyncActionsContainer.style.display = 'none';
-				debugActionsContainer.style.display = 'none';
-				blockerActionsContainer.style.display = 'none';
-				syncPanelState();
-				const lastAction = GM_getValue(GLOSSARY_ACTION_KEY, '');
-				glossaryActionsSelect.value = lastAction;
-				if (lastAction) {
-					glossaryActionsSelect.dispatchEvent(new Event('change', { bubbles: true }));
-				} else {
-					glossaryActionsSelect.value = "";
-				}
-				panel.style.display = 'flex';
-				updatePanelPosition();
-			} else {
-				if (customServiceManager.isPending()) {
-					customServiceManager.cancelPending();
-				}
-				cleanupAllEmptyCustomServices();
-				panel.style.display = 'none';
-				if (onPanelCloseCallback) onPanelCloseCallback();
-			}
-			if (rerenderMenuCallback) rerenderMenuCallback();
-		};
-
-		const updateSwapButtonState = () => {
-			const val = fromLangSelect.value;
-			const isAutoDetect = val === 'auto' || val === 'script_auto';
-			swapLangBtn.disabled = isAutoDetect;
-		};
-
-		const handleLanguageChange = () => {
-			if (glossaryActionsSelect.value === 'ai_settings') {
-				aiSettingsLogic.refresh();
-			} else if (glossaryActionsSelect.value === 'formatting') {
-				renderFormattingEditor();
-			}
-		};
-
-		applyFormatting();
-
-        const renderFormattingEditor = () => {
-			const currentProfile = FormattingManager.getCurrentProfile();
-			if (!currentProfile) return;
-
-			const profiles = FormattingManager.getAllProfiles();
-			fmtProfileSelect.innerHTML = '';
-			profiles.forEach(p => {
-				const option = document.createElement('option');
-				option.value = p.id;
-				option.textContent = p.name;
-				fmtProfileSelect.appendChild(option);
-			});
-			const createOption = document.createElement('option');
-			createOption.value = 'create_new';
-			createOption.textContent = '新建方案';
-			fmtProfileSelect.appendChild(createOption);
-
-			fmtProfileSelect.value = currentProfile.id;
-
-			const prop = fmtPropertySelect.value;
-			fmtValueContainer.innerHTML = '';
-
-			if (prop === 'deleteProfile') {
-				return;
-			}
-
-			if (prop === 'profileName') {
-				const wrapper = document.createElement('div');
-				wrapper.className = 'settings-group static-label';
-				const inputId = 'fmt-profile-rename-input';
-				wrapper.innerHTML = `
-                    <div class="input-wrapper">
-                        <input type="text" id="${inputId}" name="fmt_profile_name" class="settings-control settings-input" value="${currentProfile.name}" spellcheck="false">
-                        <label for="${inputId}" class="settings-label">方案名称</label>
-                        <button class="settings-action-button-inline">保存</button>
-                    </div>
-                `;
-				const input = wrapper.querySelector('input');
-				wrapper.querySelector('button').addEventListener('click', () => {
-					const newName = input.value.trim();
-					if (newName) {
-						currentProfile.name = newName;
-						FormattingManager.saveProfile(currentProfile);
-						renderFormattingEditor();
-					}
-				});
-				fmtValueContainer.appendChild(wrapper);
-				updateInputLabel(input);
-				return;
-			}
-
-			const wrapper = document.createElement('div');
-			wrapper.className = 'settings-group settings-group-select static-label';
-			const select = document.createElement('select');
-			select.id = 'fmt-value-select';
-			select.name = 'fmt_value';
-			select.className = 'settings-control settings-select custom-styled-select';
-
-			const addOpt = (val, text, selectedVal) => {
-				const option = document.createElement('option');
-				option.value = val;
-				option.textContent = text;
-				if (String(val) === String(selectedVal)) option.selected = true;
-				select.appendChild(option);
-			};
-
-			const opts = currentProfile.params;
-			let labelText = '';
-
-			if (prop === 'indent') {
-				labelText = '首行缩进';
-				addOpt('true', '启用', opts.indent);
-				addOpt('false', '禁用', opts.indent);
-			} else if (prop === 'fontSize') {
-				labelText = '文字大小';
-				for (let i = 50; i <= 200; i += 5) {
-					addOpt(i, i + '%', opts.fontSize);
-				}
-			} else if (prop === 'letterSpacing') {
-				labelText = '字间距';
-				for (let i = 0; i <= 5; i += 0.5) {
-					addOpt(i, i + 'px', opts.letterSpacing);
-				}
-			} else if (prop === 'lineHeight') {
-				labelText = '行间距';
-				for (let i = 0.8; i <= 2.0; i = parseFloat((i + 0.1).toFixed(1))) {
-					addOpt(i, i, opts.lineHeight);
-				}
-			} else if (prop === 'margins') {
-				labelText = '页边距';
-				for (let i = 0; i <= 40; i += 5) {
-					addOpt(i, i + '%', opts.margins);
-				}
-			}
-
-			select.addEventListener('change', (e) => {
-				currentProfile.params[prop] = e.target.value;
-				FormattingManager.saveProfile(currentProfile);
-				applyFormatting(currentProfile);
-			});
-
-			const label = document.createElement('label');
-			label.htmlFor = 'fmt-value-select';
-			label.className = 'settings-label';
-			label.textContent = labelText;
-
-			wrapper.appendChild(select);
-			wrapper.appendChild(label);
-			fmtValueContainer.appendChild(wrapper);
-			updateInputLabel(select);
-		};
-
-        fmtProfileSelect.addEventListener('change', (e) => {
-			if (e.target.value === 'create_new') {
-				const newId = FormattingManager.createProfile();
-				FormattingManager.setCurrentId(newId);
-				applyFormatting();
-				fmtPropertySelect.value = 'profileName';
-				GM_setValue('formatting_last_prop', 'profileName');
-				renderFormattingEditor();
-			} else {
-				FormattingManager.setCurrentId(e.target.value);
-				applyFormatting();
-				renderFormattingEditor();
-			}
-		});
-
-        fmtPropertySelect.addEventListener('change', (e) => {
-			const prop = e.target.value;
-			if (prop === 'deleteProfile') {
-				const currentProfile = FormattingManager.getCurrentProfile();
-				showCustomConfirm(`您确定要删除 ${currentProfile.name} 格式方案吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
-					.then(() => {
-						FormattingManager.deleteProfile(currentProfile.id);
-						applyFormatting();
-						fmtPropertySelect.value = 'profileName';
-						GM_setValue('formatting_last_prop', 'profileName');
-						renderFormattingEditor();
-					})
-					.catch(() => {
-						const lastProp = GM_getValue('formatting_last_prop', 'letterSpacing');
-						fmtPropertySelect.value = lastProp;
-						renderFormattingEditor();
-					});
-			} else {
-				GM_setValue('formatting_last_prop', prop);
-				renderFormattingEditor();
-			}
-		});
-
-		panel.addEventListener('change', (e) => {
-			if (e.target.classList.contains('settings-control')) {
-				updateInputLabel(e.target);
-			}
-		});
-		panel.addEventListener('input', (e) => {
-			if (e.target.classList.contains('settings-control')) {
-				updateInputLabel(e.target);
-			}
-		});
-
-		masterSwitch.addEventListener('change', () => {
-			const isEnabled = masterSwitch.checked;
-			saveSetting('enable_transDesc', isEnabled, DEFAULT_CONFIG.GENERAL.enable_transDesc);
-			FeatureSet.enable_transDesc = isEnabled;
-			syncPanelState();
-			if (typeof fabLogic !== 'undefined' && fabLogic.toggleFabVisibility) {
-				fabLogic.toggleFabVisibility();
-			}
-			if (isEnabled) transDesc();
-			else {
-				document.querySelectorAll('.translate-me-ao3-wrapper, .translated-by-ao3-translator, .translated-by-ao3-translator-error, .translated-tags-container').forEach(el => el.remove());
-				document.querySelectorAll('[data-translation-handled="true"], [data-state="translated"]').forEach(el => {
-					delete el.dataset.translationHandled;
-					delete el.dataset.state;
-					el.style.display = '';
-				});
-			}
-		});
-
-		swapLangBtn.addEventListener('click', () => {
-			if (swapLangBtn.disabled) return;
-			const fromLang = fromLangSelect.value;
-			const toLang = toLangSelect.value;
-			fromLangSelect.value = toLang;
-			toLangSelect.value = fromLang;
-			saveSetting('from_lang', toLang, DEFAULT_CONFIG.GENERAL.from_lang);
-			saveSetting('to_lang', fromLang, DEFAULT_CONFIG.GENERAL.to_lang);
-			fromLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
-			toLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
-		});
-
-		fromLangSelect.addEventListener('change', () => {
-			const newLang = fromLangSelect.value;
-			saveSetting('from_lang', newLang, DEFAULT_CONFIG.GENERAL.from_lang);
-			updateSwapButtonState();
-			handleLanguageChange();
-		});
-
-		toLangSelect.addEventListener('change', () => {
-			const newLang = toLangSelect.value;
-			saveSetting('to_lang', newLang, DEFAULT_CONFIG.GENERAL.to_lang);
-			handleLanguageChange();
-		});
-
-		engineSelect.addEventListener('change', () => {
-			if (customServiceManager.isPending()) {
-				customServiceManager.cancelPending();
-			}
-			const newEngine = engineSelect.value;
-			if (newEngine === ADD_NEW_CUSTOM_SERVICE_ID) {
-				customServiceManager.startPendingCreation();
-				updateUiForEngine(newEngine);
-			} else {
-				saveSetting('transEngine', newEngine, DEFAULT_CONFIG.ENGINE.current);
-				updateUiForEngine(newEngine);
-				isEditingBuiltInModel = false;
-			}
-		});
-
-		modelSelect.addEventListener('change', () => {
-			const engineId = engineSelect.value;
-			if (engineId.startsWith('custom_')) {
-				if (!modelSelect.disabled) {
-					GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${engineId}`, modelSelect.value);
-				}
-			} else {
-				if (modelSelect.value === 'EDIT_MODELS_INLINE') {
-					isEditingBuiltInModel = true;
-					renderBuiltInModelUI(engineId);
-				} else if (modelSelect.value === 'RESET_MODELS_INLINE') {
-					GM_deleteValue(`${engineId}_custom_model_mapping`);
-					renderBuiltInModelUI(engineId);
-				} else {
-					const config = engineMenuConfig[engineId];
-					if (config && config.modelGmKey) {
-						GM_setValue(config.modelGmKey, modelSelect.value);
-					}
-				}
-			}
-		});
-
-		displayModeSelect.addEventListener('change', () => {
-			const newMode = displayModeSelect.value;
-			saveSetting('translation_display_mode', newMode, DEFAULT_CONFIG.GENERAL.translation_display_mode);
-			applyDisplayModeChange(newMode);
-		});
-
-		apiKeySaveBtn.addEventListener('click', saveApiKey);
-
-		serviceDetailsToggleContainer.addEventListener('click', () => {
-			if (!masterSwitch.checked) return;
-			const engineId = engineSelect.value;
-			const isCollapsed = serviceDetailsToggleBtn.classList.contains('collapsed');
-			const newState = !isCollapsed;
-			serviceDetailsToggleBtn.classList.toggle('collapsed', newState);
-			GM_setValue(`service_collapsed_${engineId}`, newState);
-			updateUiForEngine(engineId);
-		});
-
-		glossaryActionsSelect.addEventListener('change', () => {
-			const action = glossaryActionsSelect.value;
-			GM_setValue(GLOSSARY_ACTION_KEY, action);
-			toggleEditableSection(null);
-			switch (action) {
-				case 'ai_settings':
-					toggleEditableSection(aiSettingsSection);
-					aiSettingsLogic.refresh();
-					break;
-				case 'lang_detect':
-					langDetectSelect.value = GM_getValue('lang_detector', DEFAULT_CONFIG.GENERAL.lang_detector);
-					toggleEditableSection(langDetectSection);
-					break;
-				case 'local_manage':
-					let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-					if (glossaries.length === 0) {
-						const defaultGlossary = {
-							id: `local_${Date.now()}`,
-							name: '默认',
-							sensitive: '',
-							insensitive: '',
-							forbidden: '',
-							enabled: true
-						};
-						glossaries.push(defaultGlossary);
-						GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-					}
-					populateLocalGlossarySelect();
-					glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-					const savedId = GM_getValue(LOCAL_GLOSSARY_SELECTED_ID_KEY);
-
-					const savedMode = GM_getValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'translation');
-
-					let targetId;
-					if (glossaries.length > 0) {
-						const exists = glossaries.some(g => g.id === savedId);
-						targetId = exists ? savedId : glossaries[0].id;
-					}
-
-					if (targetId) {
-						localGlossarySelect.value = targetId;
-						loadLocalGlossaryData(targetId);
-					}
-
-					localEditModeSelect.value = savedMode;
-					updateLocalEditVisibility();
-					toggleEditableSection(localManageSection);
-					break;
-				case 'online_manage':
-					populateManageGlossary();
-					toggleEditableSection(onlineManageSection);
-					break;
-				case 'post_replace':
-					let rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-					let isInitializedDefault = false;
-					if (rules.length === 0) {
-						const defaultRule = {
-							id: `replace_${Date.now()}`,
-							name: '默认',
-							content: '',
-							enabled: true
-						};
-						rules.push(defaultRule);
-						GM_setValue(POST_REPLACE_RULES_KEY, rules);
-						isInitializedDefault = true;
-					}
-					populatePostReplaceSelect();
-					const currentRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-					const savedReplaceId = GM_getValue(POST_REPLACE_SELECTED_ID_KEY);
-
-					let targetReplaceId;
-					if (currentRules.length > 0) {
-						const exists = currentRules.some(r => r.id === savedReplaceId);
-						targetReplaceId = exists ? savedReplaceId : currentRules[0].id;
-					}
-
-					if (targetReplaceId) {
-						postReplaceSelect.value = targetReplaceId;
-						loadPostReplaceData(targetReplaceId);
-					}
-					let targetMode;
-					if (isInitializedDefault) {
-						targetMode = 'settings';
-						GM_setValue(POST_REPLACE_EDIT_MODE_KEY, 'settings');
-					} else {
-						targetMode = GM_getValue(POST_REPLACE_EDIT_MODE_KEY, 'settings');
-					}
-
-					postReplaceEditModeSelect.value = targetMode;
-					updatePostReplaceEditVisibility();
-					toggleEditableSection(postReplaceSection);
-					break;
-				case 'debug_mode':
-					updateDebugButtonText();
-					debugActionsContainer.style.display = 'flex';
-					break;
-				case 'data_sync':
-					dataSyncActionsContainer.style.display = 'flex';
-					break;
-				case 'blocker_manage':
-					blockerDimensionSelect.value = GM_getValue(BLOCKER_VIEW_KEY, DEFAULT_CONFIG.BLOCKER.current_view);
-					renderBlockerSubDimensions();
-					updateBlockerButtonText();
-					toggleEditableSection(blockerSection);
-					break;
-				case 'formatting':
-					toggleEditableSection(formattingSection);
-					renderFormattingEditor();
-					break;
-				default:
-					break;
-			}
-			syncPanelState();
-		});
-
-		langDetectSelect.addEventListener('change', () => {
-			saveSetting('lang_detector', langDetectSelect.value, DEFAULT_CONFIG.GENERAL.lang_detector);
-		});
-
-		localGlossarySelect.addEventListener('change', () => {
-			if (localGlossarySelect.value === 'create_new') {
-				const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-				const newId = `local_${Date.now()}`;
-				const newName = generateNewGlossaryName(glossaries);
-				const newGlossary = {
-					id: newId,
-					name: newName,
-					sensitive: '',
-					insensitive: '',
-					forbidden: '',
-					enabled: true
-				};
-				glossaries.push(newGlossary);
-				GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-				populateLocalGlossarySelect();
-				localGlossarySelect.value = newId;
-				loadLocalGlossaryData(newId);
-				synchronizeAllSettings();
-				GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, newId);
-				localEditModeSelect.value = 'name';
-				GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
-			} else {
-				loadLocalGlossaryData(localGlossarySelect.value);
-				GM_setValue(LOCAL_GLOSSARY_SELECTED_ID_KEY, localGlossarySelect.value);
-			}
-			updateLocalEditVisibility();
-		});
-
-		localEditModeSelect.addEventListener('change', () => {
-			const mode = localEditModeSelect.value;
-			if (mode === 'delete') {
-				const glossaryName = localGlossarySelect.options[localGlossarySelect.selectedIndex].text;
-				const confirmMessage = `您确定要删除 ${glossaryName} 术语表吗？\n\n注意：此操作无法撤销。</span>`;
-				showCustomConfirm(confirmMessage, '提示', { textAlign: 'center' })
-					.then(() => {
-						handleDeleteLocalGlossary(localGlossarySelect.value);
-					})
-					.catch(() => {
-						const previousMode = GM_getValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, 'name');
-						localEditModeSelect.value = previousMode;
-					});
-			} else {
-				updateLocalEditVisibility();
-				GM_setValue(LOCAL_GLOSSARY_EDIT_MODE_KEY, mode);
-			}
-		});
-
-		localGlossarySaveNameBtn.addEventListener('click', () => {
-			const id = localGlossarySelect.value;
-			const newName = localGlossaryNameInput.value.trim();
-			if (id && newName) {
-				const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-				const index = glossaries.findIndex(g => g.id === id);
-				if (index !== -1) {
-					glossaries[index].name = newName;
-					GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-					const currentSelection = localGlossarySelect.value;
-					populateLocalGlossarySelect();
-					localGlossarySelect.value = currentSelection;
-				}
-			}
-		});
-
-		const saveLocalContent = (field, inputElement) => {
-			const id = localGlossarySelect.value;
-			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-			const index = glossaries.findIndex(g => g.id === id);
-			if (index !== -1) {
-				glossaries[index][field] = inputElement.value;
-				GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-				synchronizeAllSettings();
-			}
-		};
-
-		localSensitiveSaveBtn.addEventListener('click', () => saveLocalContent('sensitive', localSensitiveInput));
-		localInsensitiveSaveBtn.addEventListener('click', () => saveLocalContent('insensitive', localInsensitiveInput));
-		localForbiddenSaveBtn.addEventListener('click', () => saveLocalContent('forbidden', localForbiddenInput));
-
-		glossaryImportSaveBtn.addEventListener('click', async () => {
-			const url = glossaryImportUrlInput.value.trim();
-			if (url) {
-				const result = await importOnlineGlossary(url);
-				if (result.success) {
-					invalidateGlossaryCache();
-					GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
-					if (glossaryActionsSelect.value === 'online_manage') {
-						populateManageGlossary();
-					}
-				}
-			}
-		});
-
-		glossaryManageSelect.addEventListener('change', () => {
-			const url = glossaryManageSelect.value;
-			if (url) {
-				GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
-				const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-				const currentMeta = metadata[url] || {};
-				glossaryManageInfo.textContent = `版本号：${currentMeta.version || '未知'} ，维护者：${currentMeta.maintainer || '未知'}`;
-				glossaryManageDetailsContainer.style.display = 'flex';
-			} else {
-				glossaryManageDetailsContainer.style.display = 'none';
-			}
-			resetDeleteButton();
-		});
-
-		glossaryManageDeleteBtn.addEventListener('click', () => {
-			if (glossaryManageDeleteBtn.dataset.confirming) {
-				const urlToRemove = glossaryManageSelect.value;
-				if (urlToRemove) {
-					const allGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-					const allMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-					delete allGlossaries[urlToRemove];
-					delete allMetadata[urlToRemove];
-					GM_setValue(IMPORTED_GLOSSARY_KEY, allGlossaries);
-					GM_setValue(GLOSSARY_METADATA_KEY, allMetadata);
-					invalidateGlossaryCache();
-					populateManageGlossary();
-					updateInputLabel(glossaryManageSelect);
-				}
-			} else {
-				glossaryManageDeleteBtn.textContent = '确认删除';
-				glossaryManageDeleteBtn.setAttribute('data-confirming', 'true');
-			}
-		});
-
-		postReplaceSelect.addEventListener('change', () => {
-			if (postReplaceSelect.value === 'create_new') {
-				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-				const newId = `replace_${Date.now()}`;
-				const newName = generateNewPostReplaceName(rules);
-				const newRule = {
-					id: newId,
-					name: newName,
-					content: '',
-					enabled: true
-				};
-				rules.push(newRule);
-				GM_setValue(POST_REPLACE_RULES_KEY, rules);
-				populatePostReplaceSelect();
-				postReplaceSelect.value = newId;
-				loadPostReplaceData(newId);
-				synchronizeAllSettings();
-				GM_setValue(POST_REPLACE_SELECTED_ID_KEY, newId);
-				postReplaceEditModeSelect.value = 'name';
-				GM_setValue(POST_REPLACE_EDIT_MODE_KEY, 'name');
-			} else {
-				loadPostReplaceData(postReplaceSelect.value);
-				GM_setValue(POST_REPLACE_SELECTED_ID_KEY, postReplaceSelect.value);
-			}
-			updatePostReplaceEditVisibility();
-		});
-
-		postReplaceEditModeSelect.addEventListener('change', () => {
-			const mode = postReplaceEditModeSelect.value;
-			if (mode === 'delete') {
-				const ruleName = postReplaceSelect.options[postReplaceSelect.selectedIndex].text;
-				const confirmMessage = `您确定要删除 ${ruleName} 替换规则吗？\n\n注意：此操作无法撤销。</span>`;
-				showCustomConfirm(confirmMessage, '提示', { textAlign: 'center' })
-					.then(() => {
-						handleDeletePostReplaceRule(postReplaceSelect.value);
-					})
-					.catch(() => {
-						const previousMode = GM_getValue(POST_REPLACE_EDIT_MODE_KEY, 'name');
-						postReplaceEditModeSelect.value = previousMode;
-					});
-			} else {
-				updatePostReplaceEditVisibility();
-				GM_setValue(POST_REPLACE_EDIT_MODE_KEY, mode);
-			}
-		});
-
-		postReplaceSaveNameBtn.addEventListener('click', () => {
-			const id = postReplaceSelect.value;
-			const newName = postReplaceNameInput.value.trim();
-			if (id && newName) {
-				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-				const index = rules.findIndex(r => r.id === id);
-				if (index !== -1) {
-					rules[index].name = newName;
-					GM_setValue(POST_REPLACE_RULES_KEY, rules);
-					const currentSelection = postReplaceSelect.value;
-					populatePostReplaceSelect();
-					postReplaceSelect.value = currentSelection;
-				}
-			}
-		});
-
-		postReplaceSaveBtn.addEventListener('click', () => {
-			const id = postReplaceSelect.value;
-			const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-			const index = rules.findIndex(r => r.id === id);
-			if (index !== -1) {
-				rules[index].content = postReplaceInput.value;
-				GM_setValue(POST_REPLACE_RULES_KEY, rules);
-				synchronizeAllSettings();
-			}
-		});
-
-		toggleDebugBtn.addEventListener('click', () => {
-			Logger.toggle();
-			updateDebugButtonText();
-		});
-
-		exportLogBtn.addEventListener('click', () => {
-			Logger.export();
-		});
-
-		importDataBtn.addEventListener('click', () => handleImport());
-		exportDataBtn.addEventListener('click', handleExport);
-
-		closeBtn.addEventListener('click', togglePanel);
-
-		header.addEventListener('mousedown', (e) => {
-			if (isMobile()) return;
-			isDragging = true;
-			panel.classList.add('dragging');
-			origin = { x: e.clientX, y: e.clientY };
-			startPosition = { x: panel.offsetLeft, y: panel.offsetTop };
-		});
-		document.addEventListener('mousemove', (e) => {
-			if (!isDragging) return;
-			const newPos = {
-				x: startPosition.x + e.clientX - origin.x,
-				y: startPosition.y + e.clientY - origin.y
-			};
-			const correctedPos = ensureOnScreen(newPos, panel.getBoundingClientRect());
-			panel.style.left = `${correctedPos.x}px`;
-			panel.style.top = `${correctedPos.y}px`;
-			repositionActiveDropdown();
-		});
-		document.addEventListener('mouseup', () => {
-			if (!isDragging) return;
-			isDragging = false;
-			panel.classList.remove('dragging');
-			const finalPos = { x: panel.offsetLeft, y: panel.offsetTop };
-			GM_setValue(PANEL_POSITION_KEY, finalPos);
-		});
-
-		const debouncedResizeHandler = debounce(() => {
-			updatePanelPosition();
-		}, 150);
-		window.addEventListener('resize', debouncedResizeHandler);
-
-		const handleClickOutside = (event) => {
-			if (panel.style.display !== 'flex') {
-				return;
-			}
-			if (document.getElementById('ao3-custom-confirm-overlay')) {
-				return;
-			}
-			if (document.getElementById('ao3-data-selection-overlay')) {
-				return;
-			}
-			if (document.getElementById('ai-service-overlay')) {
-				return;
-			}
-			if (document.querySelector('.custom-dropdown-backdrop')) {
-				return;
-			}
-			const fabContainer = document.getElementById('ao3-trans-fab-container');
-			if (!panel.contains(event.target) && !(fabContainer && fabContainer.contains(event.target))) {
-				togglePanel();
-			}
-		};
-
-		document.addEventListener('mousedown', handleClickOutside, true);
-
-		const populateLangSelects = () => {
-			const fromOptions = [
-				{ value: 'auto', text: '自主判断' },
-				{ value: 'script_auto', text: '自动检测' },
-				...ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }))
-			];
-			const toOptions = ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }));
-			const createOptions = (select, options) => {
-				select.innerHTML = '';
-				options.forEach(({ value, text }) => {
-					const option = document.createElement('option');
-					option.value = value;
-					option.textContent = text;
-					select.appendChild(option);
-				});
-			};
-			createOptions(fromLangSelect, fromOptions);
-			createOptions(toLangSelect, toOptions);
-		};
-
-		populateLangSelects();
-		populateEngineSelect();
-		syncPanelState();
-
-		const repositionActiveDropdown = () => {
-			if (!activeDropdown || !activeDropdown.menu || !activeDropdown.trigger) {
-				return;
-			}
-			const { menu, trigger } = activeDropdown;
-			const rect = trigger.getBoundingClientRect();
-			menu.style.width = `${rect.width}px`;
-			menu.style.top = `${rect.bottom + 4}px`;
-			menu.style.left = `${rect.left}px`;
-			const menuRect = menu.getBoundingClientRect();
-			if (menuRect.right > window.innerWidth - 10) {
-				menu.style.left = `${window.innerWidth - menuRect.width - 10}px`;
-			}
-			if (menuRect.bottom > window.innerHeight - 10) {
-				menu.style.top = `${rect.top - menuRect.height - 4}px`;
-				menu.style.transformOrigin = 'bottom center';
-			} else {
-				menu.style.transformOrigin = 'top center';
-			}
-		};
-
-		function enableDragSort(ulElement, onOrderChange) {
-			let dragTimer = null;
-			let isDragging = false;
-			let dragItem = null;
-			let ghostItem = null;
-			let startY = 0;
-			let ghostHeight = 0;
-			let touchId = null;
-
-			let containerRect = null;
-
-			const clearTimer = () => {
-				if (dragTimer) {
-					clearTimeout(dragTimer);
-					dragTimer = null;
-				}
-			};
+		static enableDragSort(ulElement, onOrderChange) {
+			let dragTimer = null, isDragging = false, dragItem = null, ghostItem = null;
+			let startY = 0, ghostHeight = 0, touchId = null, containerRect = null;
+
+			const clearTimer = () => { if (dragTimer) { clearTimeout(dragTimer); dragTimer = null; } };
 
 			const handleStart = (e) => {
 				if (e.target.tagName === 'BUTTON') return;
-
 				const li = e.target.closest('li');
 				if (!li || li.dataset.value === 'create_new' || li.classList.contains('disabled')) return;
 
 				const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
 				touchId = e.type.startsWith('touch') ? e.touches[0].identifier : null;
-
 				startY = clientY;
 
 				clearTimer();
-				dragTimer = setTimeout(() => {
-					startDrag(li, clientY);
-				}, 300);
+				dragTimer = setTimeout(() => startDrag(li, clientY), 300);
 
 				if (e.type.startsWith('touch')) {
 					li.addEventListener('touchmove', checkMoveTolerance, { passive: false });
@@ -6027,14 +7011,12 @@
 
 			const checkMoveTolerance = (e) => {
 				const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
-				if (Math.abs(clientY - startY) > 5) {
-					cancelDrag(e);
-				}
+				if (Math.abs(clientY - startY) > 5) cancelDrag(e);
 			};
 
 			const cancelDrag = (e) => {
 				clearTimer();
-				const li = e.target.closest('li');
+				const li = e.target?.closest('li');
 				if (li) {
 					li.removeEventListener('touchmove', checkMoveTolerance);
 					li.removeEventListener('touchend', cancelDrag);
@@ -6044,12 +7026,9 @@
 				}
 			};
 
-			const startDrag = (li, clientY) => {
-				isDragging = true;
-				dragItem = li;
-
+			const startDrag = (li) => {
+				isDragging = true; dragItem = li;
 				ulElement.classList.add('is-sorting');
-
 				containerRect = ulElement.getBoundingClientRect();
 				const itemRect = dragItem.getBoundingClientRect();
 				ghostHeight = itemRect.height;
@@ -6065,17 +7044,10 @@
 				ghostItem = dragItem.cloneNode(true);
 				ghostItem.classList.add('drag-ghost');
 				ghostItem.classList.remove('drag-placeholder');
-
-				ghostItem.style.width = `${itemRect.width}px`;
-				ghostItem.style.height = `${itemRect.height}px`;
-				ghostItem.style.top = `${itemRect.top}px`;
-				ghostItem.style.left = `${itemRect.left}px`;
-				ghostItem.style.backgroundColor = bgColor;
+				ghostItem.style.cssText = `width: ${itemRect.width}px; height: ${itemRect.height}px; top: ${itemRect.top}px; left: ${itemRect.left}px; background-color: ${bgColor};`;
 
 				document.body.appendChild(ghostItem);
-
 				dragItem.classList.add('drag-placeholder');
-
 				document.body.classList.add('ao3-dragging-active');
 
 				document.addEventListener('mousemove', handleMove, { passive: false });
@@ -6088,32 +7060,17 @@
 				if (!isDragging || !ghostItem) return;
 				e.preventDefault();
 
-				let clientY;
-				if (e.type.startsWith('touch')) {
-					const touch = Array.from(e.touches).find(t => t.identifier === touchId);
-					if (!touch) return;
-					clientY = touch.clientY;
-				} else {
-					clientY = e.clientY;
-				}
+				let clientY = e.type.startsWith('touch') 
+					? Array.from(e.touches).find(t => t.identifier === touchId)?.clientY 
+					: e.clientY;
+				if (clientY === undefined) return;
 
 				let ghostTop = clientY - (ghostHeight / 2);
-				const minTop = containerRect.top;
-				const maxTop = containerRect.bottom - ghostHeight;
-
-				if (ghostTop < minTop) ghostTop = minTop;
-				if (ghostTop > maxTop) ghostTop = maxTop;
-
+				ghostTop = Math.max(containerRect.top, Math.min(ghostTop, containerRect.bottom - ghostHeight));
 				ghostItem.style.top = `${ghostTop}px`;
 
 				const ghostCenterY = ghostTop + (ghostHeight / 2);
-
-				const siblings = Array.from(ulElement.children).filter(el =>
-					el !== dragItem &&
-					el !== ghostItem &&
-					el.dataset.value !== 'create_new' &&
-					!el.classList.contains('disabled')
-				);
+				const siblings = Array.from(ulElement.children).filter(el => el !== dragItem && el !== ghostItem && el.dataset.value !== 'create_new' && !el.classList.contains('disabled'));
 
 				const hitSibling = siblings.find(sibling => {
 					const rect = sibling.getBoundingClientRect();
@@ -6121,59 +7078,35 @@
 				});
 
 				if (hitSibling) {
-					const rect = hitSibling.getBoundingClientRect();
-					const siblingCenterY = rect.top + (rect.height / 2);
-
-					if (ghostCenterY < siblingCenterY) {
-						if (dragItem.nextElementSibling !== hitSibling) {
-							ulElement.insertBefore(dragItem, hitSibling);
-						}
-					} else {
-						if (dragItem.previousElementSibling !== hitSibling) {
-							ulElement.insertBefore(dragItem, hitSibling.nextElementSibling);
-						}
+					const siblingCenterY = hitSibling.getBoundingClientRect().top + (hitSibling.getBoundingClientRect().height / 2);
+					if (ghostCenterY < siblingCenterY && dragItem.nextElementSibling !== hitSibling) {
+						ulElement.insertBefore(dragItem, hitSibling);
+					} else if (ghostCenterY >= siblingCenterY && dragItem.previousElementSibling !== hitSibling) {
+						ulElement.insertBefore(dragItem, hitSibling.nextElementSibling);
 					}
-				} else {
-					if (siblings.length > 0) {
-						const firstRect = siblings[0].getBoundingClientRect();
-						const lastRect = siblings[siblings.length - 1].getBoundingClientRect();
-
-						if (ghostCenterY < firstRect.top) {
-							ulElement.insertBefore(dragItem, siblings[0]);
-						} else if (ghostCenterY > lastRect.bottom) {
-							ulElement.insertBefore(dragItem, siblings[siblings.length - 1].nextElementSibling);
-						}
-					}
+				} else if (siblings.length > 0) {
+					if (ghostCenterY < siblings[0].getBoundingClientRect().top) ulElement.insertBefore(dragItem, siblings[0]);
+					else if (ghostCenterY > siblings[siblings.length - 1].getBoundingClientRect().bottom) ulElement.insertBefore(dragItem, siblings[siblings.length - 1].nextElementSibling);
 				}
 			};
 
 			const handleEnd = () => {
 				if (!isDragging) return;
 				isDragging = false;
-
 				ulElement.classList.remove('is-sorting');
-
 				if (ghostItem) ghostItem.remove();
-
 				if (dragItem) {
 					dragItem.style.transition = 'none';
 					dragItem.classList.remove('drag-placeholder');
-					setTimeout(() => {
-						dragItem.style.transition = '';
-					}, 50);
+					setTimeout(() => dragItem.style.transition = '', 50);
 				}
-
 				document.body.classList.remove('ao3-dragging-active');
-
 				document.removeEventListener('mousemove', handleMove);
 				document.removeEventListener('mouseup', handleEnd);
 				document.removeEventListener('touchmove', handleMove);
 				document.removeEventListener('touchend', handleEnd);
 
-				const newOrder = Array.from(ulElement.children)
-					.map(li => li.dataset.value)
-					.filter(val => val && val !== 'create_new');
-
+				const newOrder = Array.from(ulElement.children).map(li => li.dataset.value).filter(val => val && val !== 'create_new');
 				if (onOrderChange) onOrderChange(newOrder);
 			};
 
@@ -6181,315 +7114,2419 @@
 			ulElement.addEventListener('touchstart', handleStart, { passive: false });
 		}
 
-		function createCustomDropdown(triggerElement) {
-			if (document.querySelector('.custom-dropdown-backdrop')) {
-				return;
-			}
-			if (triggerElement.disabled || triggerElement.options.length === 0 || (triggerElement.options.length === 1 && triggerElement.options[0].disabled)) {
-				return;
-			}
-			if (triggerElement.parentElement) {
-				triggerElement.parentElement.classList.add('dropdown-active');
-			}
+		/**
+		 * 创建自定义下拉菜单
+		 */
+		static createCustomDropdown(triggerElement, shadowWrapper) {
+			if (shadowWrapper.querySelector('.custom-dropdown-backdrop')) return;
+			if (triggerElement.disabled || triggerElement.options.length === 0 || (triggerElement.options.length === 1 && triggerElement.options[0].disabled)) return;
+
+			if (triggerElement.parentElement) triggerElement.parentElement.classList.add('dropdown-active');
+
 			const backdrop = document.createElement('div');
 			backdrop.className = 'custom-dropdown-backdrop';
-			document.body.appendChild(backdrop);
+			shadowWrapper.appendChild(backdrop);
+			
 			const menu = document.createElement('div');
-			menu.className = 'custom-dropdown-menu';
+			menu.className = 'custom-styled-dropdown-menu custom-dropdown-menu';
+			if (triggerElement.classList.contains('small-select')) menu.classList.add('small-menu');
+
 			const list = document.createElement('ul');
 			menu.appendChild(list);
-			const metadata = (triggerElement.id === 'setting-select-glossary-manage') ? GM_getValue(GLOSSARY_METADATA_KEY, {}) : null;
 
-			const createListItem = (option) => {
+			// 渲染列表项
+			Array.from(triggerElement.options).forEach(option => {
+				if (option.style.display === 'none' || option.hidden) return;
+
 				if (option.disabled) {
-					const separatorItem = document.createElement('li');
-					separatorItem.style.textAlign = 'center';
-					separatorItem.style.color = '#ccc';
-					separatorItem.style.cursor = 'default';
-					separatorItem.classList.add('disabled');
-					separatorItem.textContent = option.textContent;
-					return separatorItem;
+					const separator = document.createElement('li');
+					separator.style.cssText = 'text-align: center; color: #ccc; cursor: default;';
+					separator.classList.add('disabled');
+					separator.textContent = option.textContent;
+					list.appendChild(separator);
+					return;
 				}
-				const listItem = document.createElement('li');
-				listItem.dataset.value = option.value;
-				if (option.selected) {
-					listItem.classList.add('selected');
-				}
+
+				const li = document.createElement('li');
+				li.dataset.value = option.value;
+				if (option.selected) li.classList.add('selected');
+
 				const textSpan = document.createElement('span');
 				textSpan.className = 'item-text';
 				textSpan.textContent = option.textContent;
 				textSpan.title = option.textContent;
-				if (option.style.color) {
-					textSpan.style.color = option.style.color;
-				}
-				listItem.appendChild(textSpan);
+				if (option.style.color) textSpan.style.color = option.style.color;
+				li.appendChild(textSpan);
+
 				const actionsDiv = document.createElement('div');
 				actionsDiv.className = 'item-actions';
-				if (triggerElement.id === 'setting-select-glossary-manage' && metadata && metadata[option.value]) {
+
+				// 根据 option 的 dataset 渲染操作按钮
+				if (option.dataset.toggleable === 'true') {
 					const toggleBtn = document.createElement('button');
-					toggleBtn.className = 'item-action-btn toggle-glossary';
-					const isEnabled = metadata[option.value].enabled !== false;
-					toggleBtn.textContent = isEnabled ? '禁用' : '启用';
-					toggleBtn.dataset.url = option.value;
+					toggleBtn.className = 'item-action-btn toggle-btn';
+					const isEnabled = option.dataset.enabled !== 'false';
+					toggleBtn.innerHTML = isEnabled ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
+					toggleBtn.title = isEnabled ? '点击禁用' : '点击启用';
+					if (!isEnabled) toggleBtn.classList.add('is-disabled');
+					toggleBtn.dataset.value = option.value;
 					actionsDiv.appendChild(toggleBtn);
 				}
-				if (option.dataset.isCustom === 'true') {
+
+				if (option.dataset.deletable === 'true') {
 					const deleteBtn = document.createElement('button');
-					deleteBtn.className = 'item-action-btn delete';
-					deleteBtn.textContent = '删除';
+					deleteBtn.className = 'item-action-btn delete-btn';
+					deleteBtn.title = '删除';
+					deleteBtn.innerHTML = SVG_ICONS.delete;
 					deleteBtn.dataset.value = option.value;
 					actionsDiv.appendChild(deleteBtn);
-				} else if (option.dataset.isLocalGlossary === 'true') {
-					const toggleBtn = document.createElement('button');
-					toggleBtn.className = 'item-action-btn toggle-local';
-					const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-					const glossary = glossaries.find(g => g.id === option.value);
-					const isEnabled = glossary ? (glossary.enabled !== false) : true;
-					toggleBtn.textContent = isEnabled ? '禁用' : '启用';
-					toggleBtn.dataset.value = option.value;
-					actionsDiv.appendChild(toggleBtn);
-				} else if (option.dataset.isPostReplaceRule === 'true') {
-					const toggleBtn = document.createElement('button');
-					toggleBtn.className = 'item-action-btn toggle-post-replace';
-					const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-					const rule = rules.find(r => r.id === option.value);
-					const isEnabled = rule ? (rule.enabled !== false) : true;
-					toggleBtn.textContent = isEnabled ? '禁用' : '启用';
-					toggleBtn.dataset.value = option.value;
-					actionsDiv.appendChild(toggleBtn);
 				}
-				listItem.appendChild(actionsDiv);
-				return listItem;
+
+				li.appendChild(actionsDiv);
+				list.appendChild(li);
+			});
+
+			shadowWrapper.appendChild(menu);
+
+			// 绑定拖拽排序
+			if (triggerElement.dataset.sortable === 'true') {
+				this.enableDragSort(list, (newOrder) => {
+					triggerElement.dispatchEvent(new CustomEvent('ao3-dropdown-reorder', { detail: { newOrder } }));
+				});
+			}
+
+			// 定位逻辑
+			const reposition = () => {
+				const rect = triggerElement.getBoundingClientRect();
+				const vw = window.innerWidth, vh = window.innerHeight;
+				const menuW = rect.width, menuH = menu.offsetHeight; 
+				
+				menu.style.width = `${menuW}px`;
+				let left = rect.left, top = rect.bottom + 4, origin = 'top center';
+
+				if (left + menuW > vw - 10) left = vw - menuW - 10;
+				if (top + menuH > vh - 10) { top = rect.top - menuH - 4; origin = 'bottom center'; }
+
+				menu.style.cssText += `left: ${left}px; top: ${top}px; transform-origin: ${origin};`;
 			};
 
-			Array.from(triggerElement.options).forEach(option => {
-				const item = createListItem(option);
-				if (item) list.appendChild(item);
-			});
-
-			document.body.appendChild(menu);
-
-			if (triggerElement.id === 'setting-local-glossary-select') {
-				enableDragSort(list, (newOrderIds) => {
-					const currentGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
-					const glossaryMap = new Map(currentGlossaries.map(g => [g.id, g]));
-					const newGlossaries = newOrderIds.map(id => glossaryMap.get(id)).filter(Boolean);
-
-					if (newGlossaries.length === currentGlossaries.length) {
-
-						GM_setValue(CUSTOM_GLOSSARIES_KEY, newGlossaries);
-
-						const select = document.getElementById('setting-local-glossary-select');
-						if (select) {
-							const savedValue = select.value;
-
-							const createOption = select.querySelector('option[value="create_new"]');
-							select.innerHTML = '';
-							newGlossaries.forEach(g => {
-								const opt = document.createElement('option');
-								opt.value = g.id;
-								opt.textContent = g.name;
-								opt.dataset.isLocalGlossary = 'true';
-								select.appendChild(opt);
-							});
-							if (createOption) select.appendChild(createOption);
-
-							select.value = savedValue;
-						}
-						synchronizeAllSettings();
-					}
-				});
-			} else if (triggerElement.id === 'setting-select-glossary-manage') {
-				enableDragSort(list, (newOrderUrls) => {
-					GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, newOrderUrls);
-
-					const select = document.getElementById('setting-select-glossary-manage');
-					if (select) {
-						const savedValue = select.value;
-
-						select.innerHTML = '';
-						newOrderUrls.forEach(url => {
-							const filename = url.split('/').pop();
-							const lastDotIndex = filename.lastIndexOf('.');
-							const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
-							const name = decodeURIComponent(baseName);
-							const opt = document.createElement('option');
-							opt.value = url;
-							opt.textContent = name;
-							opt.title = name;
-							select.appendChild(opt);
-						});
-
-						select.value = savedValue;
-					}
-					synchronizeAllSettings();
-				});
-			} else if (triggerElement.id === 'setting-post-replace-select') {
-				enableDragSort(list, (newOrderIds) => {
-					const currentRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
-					const ruleMap = new Map(currentRules.map(r => [r.id, r]));
-					const newRules = newOrderIds.map(id => ruleMap.get(id)).filter(Boolean);
-
-					if (newRules.length === currentRules.length) {
-						GM_setValue(POST_REPLACE_RULES_KEY, newRules);
-
-						const select = document.getElementById('setting-post-replace-select');
-						if (select) {
-							const savedValue = select.value;
-							const createOption = select.querySelector('option[value="create_new"]');
-							select.innerHTML = '';
-							newRules.forEach(r => {
-								const opt = document.createElement('option');
-								opt.value = r.id;
-								opt.textContent = r.name;
-								opt.dataset.isPostReplaceRule = 'true';
-								select.appendChild(opt);
-							});
-							if (createOption) select.appendChild(createOption);
-							select.value = savedValue;
-						}
-						synchronizeAllSettings();
-					}
-				});
-			}
-
-			activeDropdown = { menu: menu, trigger: triggerElement };
-			repositionActiveDropdown();
+			reposition();
 			const selectedItem = list.querySelector('.selected');
-			if (selectedItem) {
-				selectedItem.scrollIntoView({ block: 'center', behavior: 'instant' });
-			}
-			requestAnimationFrame(() => {
-				menu.classList.add('visible');
-			});
+			if (selectedItem) selectedItem.scrollIntoView({ block: 'center', behavior: 'instant' });
+			requestAnimationFrame(() => menu.classList.add('visible'));
+
 			const closeMenu = () => {
-				if (triggerElement.parentElement) {
-					triggerElement.parentElement.classList.remove('dropdown-active');
-				}
+				if (triggerElement.parentElement) triggerElement.parentElement.classList.remove('dropdown-active');
 				menu.classList.remove('visible');
 				backdrop.remove();
 				setTimeout(() => menu.remove(), 200);
-				activeDropdown = null;
 			};
+
+			// 事件委托处理点击
 			list.addEventListener('click', (e) => {
-				const target = e.target;
-				e.stopPropagation();
-				if (target.classList.contains('toggle-glossary')) {
-					const url = target.dataset.url;
-					const currentMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-					if (currentMetadata[url]) {
-						const currentState = currentMetadata[url].enabled !== false;
-						currentMetadata[url].enabled = !currentState;
-						GM_setValue(GLOSSARY_METADATA_KEY, currentMetadata);
-						invalidateGlossaryCache();
-						target.textContent = !currentState ? '禁用' : '启用';
+				const btn = e.target.closest('.item-action-btn');
+				if (btn) {
+					e.stopPropagation();
+					const value = btn.dataset.value;
+					if (btn.classList.contains('toggle-btn')) {
+						triggerElement.dispatchEvent(new CustomEvent('ao3-dropdown-action', { detail: { action: 'toggle', value, button: btn } }));
+					} else if (btn.classList.contains('delete-btn')) {
+						if (btn.dataset.confirming) {
+							triggerElement.dispatchEvent(new CustomEvent('ao3-dropdown-action', { detail: { action: 'delete', value } }));
+							closeMenu();
+						} else {
+							list.querySelectorAll('.delete-btn[data-confirming]').forEach(b => { b.title = '删除'; delete b.dataset.confirming; });
+							btn.title = '确认删除'; btn.dataset.confirming = 'true';
+						}
 					}
-				} else if (target.classList.contains('toggle-local')) {
-					const id = target.dataset.value;
+					return;
+				}
+
+				const li = e.target.closest('li');
+				if (li && li.dataset.value !== undefined) {
+					triggerElement.value = li.dataset.value;
+					triggerElement.dispatchEvent(new Event('change', { bubbles: true }));
+					closeMenu();
+				}
+			});
+
+			backdrop.addEventListener('mousedown', closeMenu);
+		}
+	}
+
+	/**
+	 * 设置模块基类：规范化生命周期与事件绑定
+	 */
+	class BaseSettingsModule {
+		constructor(controller, sectionId) {
+			this.controller = controller;
+			this.panel = controller.panel;
+			this.container = sectionId ? this.panel.querySelector(`#${sectionId}`) : null;
+		}
+
+		// 生命周期钩子
+		onInit() {}
+		onShow() {}
+		onHide() {}
+		onSync() {}
+
+		// 辅助方法：获取 DOM
+		$(selector) { return this.panel.querySelector(selector); }
+		$$(selector) { return this.panel.querySelectorAll(selector); }
+
+		// 辅助方法：更新 Input Label 浮动状态
+		updateLabel(input) {
+			if (!input) return;
+			if (input.value && (input.tagName !== 'SELECT' || input.options[input.selectedIndex]?.disabled !== true)) {
+				input.classList.add('has-value');
+			} else {
+				input.classList.remove('has-value');
+			}
+		}
+	}
+
+	/**
+	 * 主面板控制器：负责容器拖拽、路由分发、全局事件委托与通用交互
+	 */
+	class SettingsPanelController {
+		constructor(panelElements, rerenderMenuCallback, onPanelCloseCallback) {
+			this.panelElements = panelElements;
+			this.panel = panelElements.panel;
+			this.header = panelElements.header;
+			this.closeBtn = panelElements.closeBtn;
+			this.rerenderMenuCallback = rerenderMenuCallback;
+			this.onPanelCloseCallback = onPanelCloseCallback;
+			
+			this.modules = new Map();
+			this.currentSectionId = null;
+			this.isDragging = false;
+			this.ignoreNextOutsideClickTime = 0;
+
+			// 全局路由表
+			this.routeMap = {
+				'ai_settings': 'editable-section-ai-settings',
+				'local_manage': 'editable-section-local-manage',
+				'online_manage': 'editable-section-online-manage',
+				'post_replace': 'editable-section-post-replace',
+				'lang_detect': 'editable-section-lang-detect',
+				'debug_mode': 'editable-section-debug-mode',
+				'blocker_manage': 'editable-section-blocker',
+				'formatting': 'editable-section-formatting',
+				'export_manage': 'editable-section-export-manage',
+				'cache_manage': 'editable-section-cache-manage',
+				'fab_manage': 'editable-section-fab-manage',
+				'data_sync': 'data-sync-actions-container'
+			};
+
+			this.initCoreEvents();
+		}
+
+		registerModule(id, moduleInstance) {
+			this.modules.set(id, moduleInstance);
+			moduleInstance.onInit();
+		}
+
+		getModule(id) {
+			return this.modules.get(id);
+		}
+
+		// 路由切换
+		switchSection(sectionId) {
+			this.panel.querySelectorAll('.editable-section, .data-sync-actions-container, #blocker-actions-container, #export-actions-container').forEach(el => el.style.display = 'none');
+			
+			if (this.currentSectionId && this.modules.has(this.currentSectionId)) {
+				this.modules.get(this.currentSectionId).onHide();
+			}
+
+			this.currentSectionId = sectionId;
+
+			if (sectionId && this.modules.has(sectionId)) {
+				const module = this.modules.get(sectionId);
+				if (module.container) module.container.style.display = 'flex';
+				module.onShow();
+			}
+		}
+
+		syncAllModules() {
+			this.modules.forEach(mod => mod.onSync());
+		}
+
+		setIgnoreOutsideClick() {
+			this.ignoreNextOutsideClickTime = Date.now();
+		}
+
+		togglePanel() {
+			const isOpening = this.panel.style.display !== 'flex';
+			if (isOpening) {
+				this.syncAllModules();
+				this.panel.style.display = 'flex';
+				this.updatePosition();
+			} else {
+				const servicesMod = this.getModule('global-services');
+				if (servicesMod && servicesMod.customManager.isPending()) {
+					servicesMod.customManager.cancelPending();
+				}
+				cleanupAllEmptyCustomServices();
+
+				this.panel.style.display = 'none';
+				if (this.onPanelCloseCallback) this.onPanelCloseCallback();
+			}
+			if (this.rerenderMenuCallback) this.rerenderMenuCallback();
+		}
+
+		updatePosition() {
+			if (this.panel.style.display !== 'flex') return;
+			const panelWidth = this.panel.offsetWidth || 300;
+			const panelHeight = this.panel.offsetHeight || 400;
+			let savedPos = GM_getValue('ao3_panel_position');
+			const hasBeenOpened = GM_getValue('panel_has_been_opened_once', false);
+			
+			if (!hasBeenOpened) {
+				savedPos = { x: (window.innerWidth - panelWidth) / 2, y: (window.innerHeight - panelHeight) / 2 };
+				GM_setValue('ao3_panel_position', savedPos);
+				GM_setValue('panel_has_been_opened_once', true);
+			} else if (!savedPos || this.isDragging) {
+				savedPos = { x: this.panel.offsetLeft, y: this.panel.offsetTop };
+			}
+			
+			const margin = 10;
+			savedPos.x = Math.max(margin, Math.min(savedPos.x, window.innerWidth - panelWidth - margin));
+			savedPos.y = Math.max(margin, Math.min(savedPos.y, window.innerHeight - panelHeight - margin));
+			
+			this.panel.style.left = `${savedPos.x}px`;
+			this.panel.style.top = `${savedPos.y}px`;
+		}
+
+		initCoreEvents() {
+			// 1. 拖拽逻辑
+			let origin = { x: 0, y: 0 }, startPos = { x: 0, y: 0 };
+			this.header.addEventListener('mousedown', (e) => {
+				if (window.innerWidth < 768 || e.target.closest('.settings-panel-close-btn')) return;
+				this.isDragging = true;
+				this.panel.classList.add('dragging');
+				origin = { x: e.clientX, y: e.clientY };
+				startPos = { x: this.panel.offsetLeft, y: this.panel.offsetTop };
+			});
+			document.addEventListener('mousemove', (e) => {
+				if (!this.isDragging) return;
+				this.panel.style.left = `${startPos.x + e.clientX - origin.x}px`;
+				this.panel.style.top = `${startPos.y + e.clientY - origin.y}px`;
+			});
+			document.addEventListener('mouseup', () => {
+				if (!this.isDragging) return;
+				this.isDragging = false;
+				this.panel.classList.remove('dragging');
+				const finalPos = { x: this.panel.offsetLeft, y: this.panel.offsetTop };
+				GM_setValue('ao3_panel_position', finalPos);
+				
+				this.updatePosition();
+			});
+			// 双击顶栏切换翻译模式 (整页/单元)
+			this.header.addEventListener('dblclick', (e) => {
+				if (e.target.closest('.settings-panel-close-btn')) return;
+				const generalModule = this.getModule('global-general');
+				if (generalModule) {
+					generalModule.toggleTranslationMode();
+				}
+			});
+
+			// 2. 关闭按钮与外部点击
+			this.closeBtn.addEventListener('click', () => this.togglePanel());
+			document.addEventListener('mousedown', (e) => {
+				if (this.panel.style.display !== 'flex' || Date.now() - this.ignoreNextOutsideClickTime < 500) return;
+				const path = e.composedPath();
+				const fabContainer = shadowWrapper.querySelector('#ao3-trans-fab-container');
+				if (path.includes(this.panel) || (fabContainer && path.includes(fabContainer))) return;
+				
+				if (shadowWrapper.querySelector('.ao3-overlay') || shadowWrapper.querySelector('.custom-dropdown-backdrop')) return;
+				if (path.some(el => el.classList && el.classList.contains('custom-dropdown-menu'))) return;
+				
+				this.togglePanel();
+			}, true);
+
+			// 3. 窗口大小改变
+			window.addEventListener('resize', debounce(() => this.updatePosition(), 150));
+
+			// 4. 全局下拉菜单拦截
+			document.addEventListener('mousedown', (e) => {
+				const path = e.composedPath();
+				const select = path.find(el => el.classList?.contains('custom-styled-select'));
+				if (select && (path.includes(this.panel) || path.find(el => el.id === 'ao3-log-modal'))) {
+					e.preventDefault();
+					setTimeout(() => PanelUIUtils.createCustomDropdown(select, shadowWrapper), 10);
+				}
+			}, true);
+
+			// 5. 跨标签页同步监听
+			document.addEventListener(CUSTOM_EVENTS.PANEL_STATE_SYNC, () => {
+				if (this.panel.style.display === 'flex') {
+					requestAnimationFrame(() => this.syncAllModules());
+				}
+			});
+
+			// 6. 全局 Input 动画效果委托
+			this.panel.addEventListener('input', (e) => {
+				if (e.target.classList.contains('settings-control')) {
+					const module = this.getModule(this.currentSectionId);
+					if (module) module.updateLabel(e.target);
+				}
+			});
+			this.panel.addEventListener('change', (e) => {
+				if (e.target.classList.contains('settings-control')) {
+					const module = this.getModule(this.currentSectionId);
+					if (module) module.updateLabel(e.target);
+				}
+			});
+
+			// 7. 模块路由选择器绑定
+			const glossaryActionsSelect = this.panel.querySelector('#setting-glossary-actions');
+			glossaryActionsSelect.addEventListener('change', () => {
+				const action = glossaryActionsSelect.value;
+				GM_setValue('ao3_glossary_last_action', action);
+				const sectionId = this.routeMap[action];
+				this.switchSection(sectionId || null);
+			});
+
+			// 8. 全局输入失去焦点自动保存监听器
+			this.panel.addEventListener('focusout', (e) => {
+				if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+					const wrapper = e.target.closest('.input-wrapper');
+					if (wrapper) {
+						const saveBtn = wrapper.querySelector('.settings-action-button-inline');
+						if (saveBtn && e.relatedTarget !== saveBtn) {
+							saveBtn.click(); 
+						}
+					}
+				}
+			});
+
+			// 9. 全局保存按钮反馈特效
+			this.panel.addEventListener('click', (e) => {
+				const btn = e.target.closest('.settings-action-button-inline');
+				if (btn && btn.textContent === '保存') {
+					if (btn.disabled) return;
+					if (e.isTrusted) {
+						btn.disabled = true;
+						btn.textContent = '✓';
+						setTimeout(() => {
+							btn.textContent = '保存';
+							btn.disabled = false;
+						}, 1000);
+					}
+				}
+			});
+
+			// 10. 页面失去焦点时自动失焦当前输入框
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'hidden' && this.panel.style.display === 'flex') {
+					if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+						document.activeElement.blur();
+					}
+				}
+			});
+		}
+	}
+
+	/**************************************************************************
+	 * 设置面板子模块
+	 **************************************************************************/
+
+	/**
+	 * 屏蔽设置模块
+	 */
+	class BlockerSettingsModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-blocker');
+			this.actionsContainer = this.$('#blocker-actions-container');
+			this.dimensionSelect = this.$('#blocker-dimension-select');
+			this.subDimensionSelect = this.$('#blocker-sub-dimension-select');
+			this.inputArea = this.$('#blocker-input-area');
+			this.toggleBlockerBtn = this.$('#btn-toggle-blocker');
+			this.toggleReasonsBtn = this.$('#btn-toggle-reasons');
+
+			this.BLOCKER_VIEW_KEY = 'ao3_blocker_current_view';
+			this.BLOCKER_SUB_VIEW_KEY = 'ao3_blocker_current_sub_view';
+
+			this.blockerConfig = {
+				tags: {
+					black: { label: '标签黑名单', keys: ['ao3_blocker_tags_black'], ph: "'*标签 1*', '标签 2'-'标签 3'" },
+					white: { label: '标签白名单', keys: ['ao3_blocker_tags_white'], ph: "'*标签 1*', '标签 2'+'标签 3'" }
+				},
+				content: {
+					author: { label: '作者黑名单', keys: ['ao3_blocker_content_author'], ph: '作者名 1, 作者名 2, 作者名 3' },
+					id: { label: '作品黑名单', keys: ['ao3_blocker_content_id'], ph: '作品 ID 1, 作品 ID 2, 作品 ID 3' },
+					title: { label: '标题黑名单', keys: ['ao3_blocker_content_title'], ph: '关键词 1, 关键词 2, 关键词 3' },
+					summary: { label: '简介黑名单', keys: ['ao3_blocker_content_summary'], ph: '关键词 1, 关键词 2, 关键词 3' }
+				},
+				stats: {
+					words: { label: '字数范围', keys: ['ao3_blocker_stats_min_words', 'ao3_blocker_stats_max_words'], ph: '1000-10000', isRange: true },
+					chapters: { label: '章节范围', keys: ['ao3_blocker_stats_min_chapters', 'ao3_blocker_stats_max_chapters'], ph: '2-50', isRange: true },
+					update: { label: '更新时间', inputLabel: 'n 月内未更新 (连载)', keys: ['ao3_blocker_stats_update'], ph: '6' },
+					crossover: { label: '同人圈数', inputLabel: '最大数量限制', keys: ['ao3_blocker_stats_crossover'], ph: '5' },
+					lang: { label: '语言筛选', inputLabel: '仅显示的语言', keys: ['ao3_blocker_adv_lang'], ph: '中文-普通话 國語, English' }
+				},
+				advanced: {
+					pairing: {
+						label: '主要关系筛选',
+						getInputLabel: () => {
+							const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_rel', DEFAULT_CONFIG.BLOCKER.adv_scope_rel)) || 1;
+							return scope === 1 ? '第 1 个关系标签' : `前 ${scope} 个关系标签`;
+						},
+						keys: ['ao3_blocker_adv_pairing'],
+						ph: "'关系 1', '关系 2', '关系 3'"
+					},
+					char: {
+						label: '主要角色筛选',
+						getInputLabel: () => {
+							const scope = parseInt(GM_getValue('ao3_blocker_adv_scope_char', DEFAULT_CONFIG.BLOCKER.adv_scope_char)) || 5;
+							return scope === 1 ? '第 1 个角色标签' : `前 ${scope} 个角色标签`;
+						},
+						keys: ['ao3_blocker_adv_char'],
+						ph: "'角色 1', '角色 2', '角色 3'"
+					},
+					scope: {
+						label: '调整检索深度',
+						isDual: true,
+						keys: ['ao3_blocker_adv_scope_rel', 'ao3_blocker_adv_scope_char'],
+						labels: ['主要关系检索深度', '主要角色检索深度'],
+						phs: ['1', '5']
+					}
+				}
+			};
+		}
+
+		onInit() {
+			this.initEvents();
+		}
+
+		onShow() {
+			this.actionsContainer.style.display = 'flex';
+			this.dimensionSelect.value = GM_getValue(this.BLOCKER_VIEW_KEY, DEFAULT_CONFIG.BLOCKER.current_view);
+			this.renderSubDimensions();
+			this.updateButtonText();
+		}
+
+		onHide() {
+			this.actionsContainer.style.display = 'none';
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.renderInput();
+				this.updateButtonText();
+			}
+		}
+
+		saveSetting(key, value, defaultValue) {
+			if (value === defaultValue) GM_deleteValue(key);
+			else GM_setValue(key, value);
+		}
+
+		updateButtonText() {
+			this.toggleBlockerBtn.textContent = GM_getValue('ao3_blocker_enabled', DEFAULT_CONFIG.BLOCKER.enabled) ? '禁用作品屏蔽' : '启用作品屏蔽';
+			this.toggleReasonsBtn.textContent = GM_getValue('ao3_blocker_show_reasons', DEFAULT_CONFIG.BLOCKER.show_reasons) ? '隐藏屏蔽原因' : '显示屏蔽原因';
+		}
+
+		renderSubDimensions() {
+			const dimension = this.dimensionSelect.value;
+			const subConfig = this.blockerConfig[dimension];
+			this.subDimensionSelect.innerHTML = '';
+			Object.keys(subConfig).forEach(key => {
+				const option = document.createElement('option');
+				option.value = key;
+				option.textContent = subConfig[key].label;
+				this.subDimensionSelect.appendChild(option);
+			});
+			const savedSub = GM_getValue(this.BLOCKER_SUB_VIEW_KEY, DEFAULT_CONFIG.BLOCKER.current_sub_view);
+			if (savedSub && subConfig[savedSub]) {
+				this.subDimensionSelect.value = savedSub;
+			} else {
+				this.subDimensionSelect.selectedIndex = 0;
+			}
+			this.renderInput();
+		}
+
+		renderInput() {
+			const dimension = this.dimensionSelect.value;
+			const subDimension = this.subDimensionSelect.value;
+			const config = this.blockerConfig[dimension][subDimension];
+			this.inputArea.innerHTML = '';
+
+			if (config.isDual) {
+				config.keys.forEach((key, index) => {
+					const group = document.createElement('div');
+					group.className = 'settings-group static-label';
+					const labelText = config.labels[index];
+					const placeholder = config.phs[index];
+					const inputId = `input-blocker-val-${index}`;
+
+					group.innerHTML = `
+						<div class="input-wrapper">
+							<input type="text" id="${inputId}" class="settings-control settings-input" placeholder="${placeholder}" spellcheck="false">
+							<label for="${inputId}" class="settings-label">${labelText}</label>
+							<button class="settings-action-button-inline">保存</button>
+						</div>
+					`;
+					const input = group.querySelector('input');
+					const defaultKey = key.replace('ao3_blocker_', '');
+					const defaultValue = DEFAULT_CONFIG.BLOCKER[defaultKey] || '';
+					input.value = GM_getValue(key, defaultValue);
+					
+					group.querySelector('button').addEventListener('click', () => {
+						this.saveSetting(key, input.value.trim(), defaultValue);
+						this.updateLabel(input);
+						SettingsSyncManager.syncBlocker('full');
+					});
+					this.inputArea.appendChild(group);
+					this.updateLabel(input);
+				});
+			} else {
+				const group = document.createElement('div');
+				group.className = 'settings-group static-label';
+				let displayLabel = config.getInputLabel ? config.getInputLabel() : (config.inputLabel || config.label);
+
+				group.innerHTML = `
+					<div class="input-wrapper">
+						<input type="text" id="input-blocker-val" class="settings-control settings-input" placeholder="${config.ph}" spellcheck="false">
+						<label for="input-blocker-val" class="settings-label">${displayLabel}</label>
+						<button class="settings-action-button-inline">保存</button>
+					</div>
+				`;
+				const input = group.querySelector('input');
+
+				if (config.isRange) {
+					const defaultKeyMin = config.keys[0].replace('ao3_blocker_', '');
+					const defaultKeyMax = config.keys[1].replace('ao3_blocker_', '');
+					const min = GM_getValue(config.keys[0], DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
+					const max = GM_getValue(config.keys[1], DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
+					if (min && max) input.value = `${min}-${max}`;
+					else if (min) input.value = min;
+					else if (max) input.value = `-${max}`;
+				} else {
+					const defaultKey = config.keys[0].replace('ao3_blocker_', '');
+					input.value = GM_getValue(config.keys[0], DEFAULT_CONFIG.BLOCKER[defaultKey] || '');
+				}
+
+				group.querySelector('button').addEventListener('click', () => {
+					const val = input.value.trim();
+					if (config.isRange) {
+						const defaultKeyMin = config.keys[0].replace('ao3_blocker_', '');
+						const defaultKeyMax = config.keys[1].replace('ao3_blocker_', '');
+						const parts = val.split(/[-－—]/);
+						if (parts.length >= 2) {
+							this.saveSetting(config.keys[0], parts[0].trim(), DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
+							this.saveSetting(config.keys[1], parts[1].trim(), DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
+						} else {
+							this.saveSetting(config.keys[0], val, DEFAULT_CONFIG.BLOCKER[defaultKeyMin] || '');
+							this.saveSetting(config.keys[1], '', DEFAULT_CONFIG.BLOCKER[defaultKeyMax] || '');
+						}
+					} else {
+						const defaultKey = config.keys[0].replace('ao3_blocker_', '');
+						this.saveSetting(config.keys[0], val, DEFAULT_CONFIG.BLOCKER[defaultKey] || '');
+					}
+					this.updateLabel(input);
+					SettingsSyncManager.syncBlocker('full');
+				});
+
+				this.inputArea.appendChild(group);
+				this.updateLabel(input);
+			}
+		}
+
+		initEvents() {
+			this.dimensionSelect.addEventListener('change', () => {
+				GM_setValue(this.BLOCKER_VIEW_KEY, this.dimensionSelect.value);
+				this.renderSubDimensions();
+			});
+
+			this.subDimensionSelect.addEventListener('change', () => {
+				GM_setValue(this.BLOCKER_SUB_VIEW_KEY, this.subDimensionSelect.value);
+				this.renderInput();
+			});
+
+			this.toggleBlockerBtn.addEventListener('click', () => {
+				const newState = !GM_getValue('ao3_blocker_enabled', DEFAULT_CONFIG.BLOCKER.enabled);
+				this.saveSetting('ao3_blocker_enabled', newState, DEFAULT_CONFIG.BLOCKER.enabled);
+				this.updateButtonText();
+				SettingsSyncManager.syncBlocker('full');
+			});
+
+			this.toggleReasonsBtn.addEventListener('click', () => {
+				const newState = !GM_getValue('ao3_blocker_show_reasons', DEFAULT_CONFIG.BLOCKER.show_reasons);
+				this.saveSetting('ao3_blocker_show_reasons', newState, DEFAULT_CONFIG.BLOCKER.show_reasons);
+				this.updateButtonText();
+				SettingsSyncManager.syncBlocker('full');
+			});
+		}
+	}
+
+	/**
+	 * 缓存管理模块
+	 */
+	class CacheSettingsModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-cache-manage');
+			this.modeSelect = this.$('#cache-manage-mode-select');
+			this.manualContainer = this.$('#cache-manage-manual-container');
+			this.autoContainer = this.$('#cache-manage-auto-container');
+			this.btnClearCurrent = this.$('#btn-clear-current-page-cache');
+			this.btnClearAll = this.$('#btn-clear-all-cache');
+			this.inputMaxItems = this.$('#setting-input-cache-max-items');
+			this.btnMaxItemsSave = this.$('#setting-btn-cache-max-items-save');
+			this.inputMaxDays = this.$('#setting-input-cache-max-days');
+			this.btnMaxDaysSave = this.$('#setting-btn-cache-max-days-save');
+			this.autoCleanupSelect = this.$('#setting-cache-auto-cleanup-enabled');
+			this.countDisplay = this.$('#cache-count-display');
+
+			this.CACHE_MANAGE_MODE_KEY = 'ao3_cache_manage_mode';
+		}
+
+		onInit() {
+			this.initEvents();
+			document.addEventListener(CUSTOM_EVENTS.CACHE_UPDATED, () => {
+				if (this.container.style.display === 'flex') this.updateCountDisplay();
+			});
+			document.addEventListener(CUSTOM_EVENTS.CLEAR_PAGE_CACHE, () => {
+				if (this.btnClearCurrent) this.btnClearCurrent.click();
+			});
+		}
+
+		onShow() {
+			this.modeSelect.value = GM_getValue(this.CACHE_MANAGE_MODE_KEY, 'manual');
+			this.modeSelect.dispatchEvent(new Event('change'));
+			this.updateCountDisplay();
+		}
+
+		async updateCountDisplay() {
+			this.countDisplay.textContent = '已缓存：计算中...';
+			try {
+				const count = await TranslationCacheDB.count();
+				const lastCleanup = GM_getValue('ao3_cache_last_cleanup_time', 0);
+				let lastCleanupStr = '从未';
+				if (lastCleanup > 0) {
+					const date = new Date(lastCleanup);
+					lastCleanupStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+				}
+				this.countDisplay.textContent = `已缓存：${count.toLocaleString()} 项，上次清理：${lastCleanupStr}`;
+			} catch (e) {
+				Logger.error('System', '获取缓存统计失败', e);
+				this.countDisplay.textContent = '已缓存：统计失败';
+			}
+		}
+
+		initEvents() {
+			this.modeSelect.addEventListener('change', () => {
+				GM_setValue(this.CACHE_MANAGE_MODE_KEY, this.modeSelect.value);
+				if (this.modeSelect.value === 'manual') {
+					this.manualContainer.style.display = 'flex';
+					this.autoContainer.style.display = 'none';
+				} else {
+					this.manualContainer.style.display = 'none';
+					this.autoContainer.style.display = 'flex';
+					this.autoCleanupSelect.value = GM_getValue('ao3_cache_auto_cleanup_enabled', true) ? 'true' : 'false';
+					this.inputMaxItems.value = GM_getValue('ao3_cache_max_items', 100000);
+					this.inputMaxDays.value = GM_getValue('ao3_cache_max_days', 30);
+					this.updateLabel(this.inputMaxItems);
+					this.updateLabel(this.inputMaxDays);
+				}
+			});
+
+			this.autoCleanupSelect.addEventListener('change', () => {
+				GM_setValue('ao3_cache_auto_cleanup_enabled', this.autoCleanupSelect.value === 'true');
+			});
+
+			this.btnMaxItemsSave.addEventListener('click', () => {
+				const val = parseInt(this.inputMaxItems.value, 10);
+				if (!isNaN(val) && val > 0) GM_setValue('ao3_cache_max_items', val);
+			});
+
+			this.btnMaxDaysSave.addEventListener('click', () => {
+				const val = parseInt(this.inputMaxDays.value, 10);
+				if (!isNaN(val) && val > 0) GM_setValue('ao3_cache_max_days', val);
+			});
+
+			this.btnClearCurrent.addEventListener('click', async () => {
+				const originalText = this.btnClearCurrent.textContent;
+				this.btnClearCurrent.textContent = '清理中...';
+
+				const texts = new Set();
+				document.querySelectorAll('.ao3-original-title').forEach(el => {
+					const titleNode = el.parentElement;
+					if (titleNode) {
+						const extracted = TitleTranslationManager.extractTextToTranslate(titleNode);
+						if (extracted) {
+							const tempDiv = document.createElement('span');
+							tempDiv.textContent = extracted.textToTranslate;
+							texts.add(tempDiv.innerHTML);
+						}
+					}
+				});
+				document.querySelectorAll('.ao3-original-content, .ao3-tag-original').forEach(el => texts.add(el.innerHTML));
+				
+				TRANSLATION_TARGET_RULES.universal.forEach(rule => {
+					document.querySelectorAll(rule.selector).forEach(el => {
+						if (!el.dataset.translationState) {
+							if (rule.isTitle) {
+								const extracted = TitleTranslationManager.extractTextToTranslate(el);
+								if (extracted) {
+									const tempDiv = document.createElement('span');
+									tempDiv.textContent = extracted.textToTranslate;
+									texts.add(tempDiv.innerHTML);
+								}
+							} else if (rule.isTags) {
+								extractTagsToTranslate(el).forEach(tag => texts.add(tag.innerHTML));
+							} else {
+								const normalizer = new DOMNormalizer();
+								const walker = document.createTreeWalker(el, NodeFilter.SHOW_ELEMENT, {
+									acceptNode: (node) => normalizer._isHidden(node) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+								});
+								let node;
+								while ((node = walker.nextNode())) {
+									if (node.classList.contains('ao3-text-block') || node.tagName === 'HR' || (normalizer._isBlockNode(node) && !normalizer._hasBlockChild(node))) {
+										const content = node.textContent.trim();
+										if (content && !['Summary', 'Notes', 'Work Text', 'Chapter Text'].includes(content)) {
+											texts.add(node.innerHTML);
+										}
+									}
+								}
+							}
+						}
+					});
+				});
+
+				if (texts.size === 0) {
+					this.btnClearCurrent.textContent = '无缓存可清理';
+					setTimeout(() => this.btnClearCurrent.textContent = originalText, 2000);
+					return;
+				}
+
+				const textHashes = await Promise.all(Array.from(texts).map(t => sha256(t)));
+				const deletedCount = await TranslationCacheDB.deleteByTextHashes(textHashes);
+				
+				if (deletedCount > 0) {
+					GM_setValue('ao3_cache_last_cleanup_time', Date.now());
+					this.btnClearCurrent.textContent = `成功清除 ${deletedCount} 项缓存`;
+				} else {
+					this.btnClearCurrent.textContent = '无缓存可清理';
+				}
+				
+				document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+				setTimeout(() => this.btnClearCurrent.textContent = originalText, 2000);
+			});
+
+			this.btnClearAll.addEventListener('click', () => {
+				showCustomConfirm('您确定要清除所有翻译缓存吗？\n注意：此操作无法撤销。', '提示', { textAlign: 'center' })
+					.then(async () => {
+						const originalText = this.btnClearAll.textContent;
+						this.btnClearAll.textContent = '清理中...';
+						await TranslationCacheDB.clear();
+						GM_setValue('ao3_cache_last_cleanup_time', Date.now());
+						this.btnClearAll.textContent = '清理成功';
+						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+						setTimeout(() => this.btnClearAll.textContent = originalText, 2000);
+					}).catch(() => {});
+			});
+		}
+	}
+
+	/**
+	 * 翻译参数设置模块
+	 */
+	class AiSettingsModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-ai-settings');
+			this.profileSelect = this.$('#ai-profile-select');
+			this.serviceTrigger = this.$('#ai-service-association-trigger');
+			this.paramSelect = this.$('#ai-param-select');
+			this.inputArea = this.$('#ai-param-input-area');
+			this.LAST_PROFILE_KEY = 'ao3_ai_settings_last_profile';
+			this.LAST_PARAM_KEY = 'ao3_ai_settings_last_param';
+		}
+
+		onInit() { this.initEvents(); }
+		onShow() { this.refresh(); }
+		onSync() { if (this.container.style.display === 'flex') this.refresh(); }
+
+		validateAiParam(value, config) {
+			if (!config.validation) return { valid: true, value: value };
+			const num = parseFloat(value);
+			const { min, max, step } = config.validation;
+			if (isNaN(num)) return { valid: false, message: `${config.label} 必须是有效的数字。` };
+			if (min !== undefined && num < min) return { valid: false, message: `${config.label} 不能小于 ${min}。` };
+			if (max !== undefined && num > max) return { valid: false, message: `${config.label} 不能大于 ${max}。` };
+			if (step !== undefined) {
+				const remainder = (num - (min || 0)) % step;
+				if (remainder > 0.00001 && Math.abs(remainder - step) > 0.00001) {
+					return { valid: false, message: `${config.label} 的步长必须是 ${step}。` };
+				}
+			}
+			return { valid: true, value: num };
+		}
+
+		generateNewProfileName(profiles) {
+			let maxNum = 0;
+			profiles.forEach(p => {
+				const match = p.name.match(/^配置 (\d+)$/);
+				if (match) maxNum = Math.max(maxNum, parseInt(match[1], 10));
+			});
+			return `配置 ${maxNum + 1}`;
+		}
+
+		updateParamOptions(profile) {
+			let currentVal = this.paramSelect.value;
+			Array.from(this.paramSelect.options).forEach(opt => { opt.style.display = ''; opt.disabled = false; opt.hidden = false; });
+
+			const renameOption = this.paramSelect.querySelector('option[value="rename_profile"]');
+			const deleteOption = this.paramSelect.querySelector('option[value="delete_profile"]');
+
+			if (profile.isProtected) {
+				if (deleteOption) deleteOption.remove();
+				if (!profile.isTraditional && renameOption) renameOption.remove();
+				if (profile.isTraditional && !renameOption) {
+					const opt = document.createElement('option'); opt.value = 'rename_profile'; opt.textContent = '设置参数配置名'; this.paramSelect.appendChild(opt);
+				}
+			} else {
+				if (!renameOption) { const opt = document.createElement('option'); opt.value = 'rename_profile'; opt.textContent = '设置参数配置名'; this.paramSelect.appendChild(opt); }
+				if (!deleteOption) { const opt = document.createElement('option'); opt.value = 'delete_profile'; opt.textContent = '删除此参数配置'; this.paramSelect.appendChild(opt); }
+			}
+
+			if (profile.isTraditional) {
+				['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort'].forEach(val => {
+					const opt = this.paramSelect.querySelector(`option[value="${val}"]`);
+					if (opt) { opt.style.display = 'none'; opt.hidden = true; opt.disabled = true; }
+				});
+				if (['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort', 'delete_profile'].includes(currentVal)) {
+					currentVal = 'chunk_size'; GM_setValue(this.LAST_PARAM_KEY, 'chunk_size');
+				}
+			} else {
+				if (profile.isProtected && (currentVal === 'rename_profile' || currentVal === 'delete_profile')) {
+					currentVal = 'system_prompt'; GM_setValue(this.LAST_PARAM_KEY, 'system_prompt');
+				}
+			}
+			this.paramSelect.value = currentVal;
+		}
+
+		refreshProfileSelect() {
+			const profiles = ProfileManager.getAllProfiles();
+			let targetId = GM_getValue(this.LAST_PROFILE_KEY);
+			if (!profiles.find(p => p.id === targetId)) targetId = profiles[0].id;
+
+			this.profileSelect.innerHTML = '';
+			profiles.forEach(p => {
+				const option = document.createElement('option'); option.value = p.id; option.textContent = p.name; this.profileSelect.appendChild(option);
+			});
+			const createOption = document.createElement('option'); createOption.value = 'create_new'; createOption.textContent = '新建配置'; this.profileSelect.appendChild(createOption);
+
+			this.profileSelect.value = targetId;
+			GM_setValue(this.LAST_PROFILE_KEY, targetId);
+
+			const currentProfile = ProfileManager.getProfile(targetId);
+			if (currentProfile) this.updateParamOptions(currentProfile);
+			return targetId;
+		}
+
+		renderParamEditor() {
+			const profile = ProfileManager.getProfile(this.profileSelect.value);
+			if (!profile) return;
+			const paramType = this.paramSelect.value;
+			this.inputArea.innerHTML = '';
+
+			if (paramType === 'rename_profile') {
+				if (profile.isProtected && !profile.isTraditional) return;
+				const section = document.createElement('div'); section.className = 'settings-group static-label';
+				section.innerHTML = `<div class="input-wrapper"><input type="text" id="ai-profile-rename-input" class="settings-control settings-input" value="${profile.name}" spellcheck="false"><label for="ai-profile-rename-input" class="settings-label">配置名称</label><button class="settings-action-button-inline">保存</button></div>`;
+				section.querySelector('button').addEventListener('click', () => {
+					const newName = section.querySelector('input').value.trim();
+					if (newName) { profile.name = newName; ProfileManager.saveProfile(profile); this.refreshProfileSelect(); }
+				});
+				this.inputArea.appendChild(section); this.updateLabel(section.querySelector('input'));
+				return;
+			}
+
+			const paramConfig = {
+				system_prompt: { type: 'textarea', label: 'System Prompt', autoSave: true },
+				user_prompt: { type: 'textarea', label: 'User Prompt', autoSave: true },
+				temperature: { type: 'number', label: 'Temperature', attrs: { min: 0, max: 2, step: 0.1 }, hint: ' (0-2)', validation: { min: 0, max: 2, step: 0.1 }, defaultKey: 'temperature' },
+				reasoning_effort: { type: 'select', label: '推理深度', options: [{ value: 'default', text: 'Default' }, { value: 'low', text: 'Low' }, { value: 'medium', text: 'Medium' }, { value: 'high', text: 'High' }], defaultKey: 'reasoning_effort' },
+				chunk_size: { type: 'number', label: '每次翻译文本量', attrs: { min: 100, step: 100 }, validation: { min: 100, step: 100 }, defaultKey: 'chunk_size' },
+				para_limit: { type: 'number', label: '每次翻译段落数', attrs: { min: 1, step: 1 }, validation: { min: 1, step: 1 }, defaultKey: 'para_limit' },
+				request_rate: { type: 'number', label: '平均每秒请求数', attrs: { min: 0.1, step: 0.1 }, hint: ' (req/s)', validation: { min: 0.1, step: 0.1 }, defaultKey: 'request_rate' },
+				request_capacity: { type: 'number', label: '最大突发请求数', attrs: { min: 1, step: 1 }, hint: ' (burst)', validation: { min: 1, step: 1 }, defaultKey: 'request_capacity' },
+				lazy_load_margin: { type: 'text', label: '懒加载参数设置', hint: ' (px)' },
+				validation_thresholds: { type: 'text', label: '占位符校验阈值', hint: ' (Abs, Ratio, Base, Zero)' }
+			};
+
+			const config = paramConfig[paramType];
+			if (!config) return;
+
+			const section = document.createElement('div');
+			const inputId = `ai-param-input-${paramType}`;
+			let inputElement;
+
+			const saveValue = () => {
+				let val = inputElement.value;
+				if (config.type !== 'select') {
+					const validationResult = this.validateAiParam(val, config);
+					if (!validationResult.valid) {
+						const defaultValue = BASE_AI_PARAMS[config.defaultKey];
+						GM_notification({ title: '参数设置错误', text: `${validationResult.message}\n已自动重置为默认值：${defaultValue}。` });
+						val = defaultValue; inputElement.value = val;
+					} else { val = validationResult.value; }
+				}
+				profile.params[paramType] = val;
+				ProfileManager.saveProfile(profile);
+				this.updateLabel(inputElement);
+				if (paramType === 'lazy_load_margin') document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.LAZY_LOAD_MARGIN_CHANGED));
+			};
+
+			if (config.type === 'select') {
+				section.className = 'settings-group static-label settings-group-select';
+				inputElement = document.createElement('select'); inputElement.className = 'settings-control settings-select custom-styled-select';
+				config.options.forEach(opt => { const option = document.createElement('option'); option.value = opt.value; option.textContent = opt.text; inputElement.appendChild(option); });
+				inputElement.value = profile.params[paramType] || BASE_AI_PARAMS[config.defaultKey];
+				inputElement.addEventListener('change', saveValue);
+				section.appendChild(inputElement);
+			} else {
+				section.className = 'settings-group static-label';
+				const inputWrapper = document.createElement('div'); inputWrapper.className = 'input-wrapper';
+				inputElement = document.createElement(config.type === 'textarea' ? 'textarea' : 'input');
+				inputElement.className = 'settings-control settings-input'; inputElement.setAttribute('spellcheck', 'false');
+				if (config.type !== 'textarea') inputElement.type = config.type;
+				if (config.attrs) Object.entries(config.attrs).forEach(([k, v]) => inputElement.setAttribute(k, v));
+				inputElement.value = profile.params[paramType];
+				inputWrapper.appendChild(inputElement);
+				if (config.autoSave) inputElement.addEventListener('blur', saveValue);
+				else {
+					const saveBtn = document.createElement('button'); saveBtn.className = 'settings-action-button-inline'; saveBtn.textContent = '保存';
+					saveBtn.addEventListener('click', saveValue); inputWrapper.appendChild(saveBtn);
+				}
+				section.appendChild(inputWrapper);
+			}
+
+			inputElement.id = inputId;
+			const label = document.createElement('label'); label.className = 'settings-label'; label.htmlFor = inputId; label.textContent = config.label + (config.hint || '');
+			section.appendChild(label);
+			this.inputArea.appendChild(section);
+			this.updateLabel(inputElement);
+		}
+
+		refresh() {
+			const lastParam = GM_getValue(this.LAST_PARAM_KEY, 'system_prompt');
+			this.paramSelect.value = lastParam === 'delete_profile' ? 'system_prompt' : lastParam;
+			this.refreshProfileSelect();
+			this.renderParamEditor();
+		}
+
+		initEvents() {
+			this.profileSelect.addEventListener('change', () => {
+				if (this.profileSelect.value === 'create_new') {
+					const newId = ProfileManager.createProfile(this.generateNewProfileName(ProfileManager.getAllProfiles()));
+					this.refreshProfileSelect();
+					this.profileSelect.value = newId; GM_setValue(this.LAST_PROFILE_KEY, newId);
+					this.paramSelect.value = 'system_prompt'; GM_setValue(this.LAST_PARAM_KEY, 'system_prompt');
+				} else {
+					GM_setValue(this.LAST_PROFILE_KEY, this.profileSelect.value);
+				}
+				const profile = ProfileManager.getProfile(this.profileSelect.value);
+				if (profile) this.updateParamOptions(profile);
+				this.renderParamEditor();
+			});
+
+			this.serviceTrigger.addEventListener('click', () => {
+				const profileId = this.profileSelect.value;
+				createServiceAssociationModal(profileId, (selectedIds) => { ProfileManager.updateServiceAssociation(profileId, selectedIds); });
+			});
+
+			this.paramSelect.addEventListener('change', () => {
+				const paramType = this.paramSelect.value;
+				if (paramType === 'delete_profile') {
+					const profile = ProfileManager.getProfile(this.profileSelect.value);
+					if (profile && !profile.isProtected) {
+						showCustomConfirm(`您确定要删除 ${profile.name} 参数配置吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+							.then(() => {
+								ProfileManager.deleteProfile(profile.id);
+								this.refreshProfileSelect();
+								this.paramSelect.value = 'system_prompt'; GM_setValue(this.LAST_PARAM_KEY, 'system_prompt');
+								this.renderParamEditor();
+							}).catch(() => {
+								const lastParam = GM_getValue(this.LAST_PARAM_KEY, 'system_prompt');
+								this.paramSelect.value = lastParam === 'delete_profile' ? 'system_prompt' : lastParam;
+								this.renderParamEditor();
+							});
+					}
+					return;
+				}
+				GM_setValue(this.LAST_PARAM_KEY, paramType);
+				this.renderParamEditor();
+			});
+		}
+	}
+
+	/**
+	 * 本地术语表管理模块
+	 */
+	class LocalGlossaryModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-local-manage');
+			this.select = this.$('#setting-local-glossary-select');
+			this.modeSelect = this.$('#setting-local-edit-mode');
+			this.containerName = this.$('#local-edit-container-name');
+			this.containerTranslation = this.$('#local-edit-container-translation');
+			this.containerForbidden = this.$('#local-edit-container-forbidden');
+			this.nameInput = this.$('#setting-local-glossary-name');
+			this.sensitiveInput = this.$('#setting-input-local-sensitive');
+			this.insensitiveInput = this.$('#setting-input-local-insensitive');
+			this.forbiddenInput = this.$('#setting-input-local-forbidden');
+			
+			this.SELECTED_ID_KEY = 'ao3_local_glossary_selected_id';
+			this.EDIT_MODE_KEY = 'ao3_local_glossary_edit_mode';
+		}
+
+		onInit() { this.initEvents(); }
+		
+		onShow() {
+			let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+			if (glossaries.length === 0) {
+				glossaries = [{ id: `local_${Date.now()}`, name: '默认', sensitive: '', insensitive: '', forbidden: '', enabled: true }];
+				GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+			}
+			this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY), GM_getValue(this.EDIT_MODE_KEY, 'name'));
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY, this.select.value), GM_getValue(this.EDIT_MODE_KEY, 'name'));
+			}
+		}
+
+		populateSelect() {
+			this.select.innerHTML = '';
+			GM_getValue(CUSTOM_GLOSSARIES_KEY, []).forEach(g => {
+				const option = document.createElement('option'); 
+				option.value = g.id; 
+				option.textContent = g.name; 
+				option.dataset.isLocalGlossary = 'true'; 
+				option.dataset.toggleable = 'true';
+				option.dataset.enabled = g.enabled !== false ? 'true' : 'false';
+				this.select.appendChild(option);
+			});
+			const createOption = document.createElement('option'); createOption.value = 'create_new'; createOption.textContent = '新建术语表'; this.select.appendChild(createOption);
+		}
+
+		loadData(id) {
+			const glossary = GM_getValue(CUSTOM_GLOSSARIES_KEY, []).find(g => g.id === id);
+			if (!glossary) {
+				this.nameInput.value = ''; this.sensitiveInput.value = ''; this.insensitiveInput.value = ''; this.forbiddenInput.value = '';
+			} else {
+				this.nameInput.value = glossary.name || ''; this.sensitiveInput.value = glossary.sensitive || ''; this.insensitiveInput.value = glossary.insensitive || ''; this.forbiddenInput.value = glossary.forbidden || '';
+			}
+			[this.nameInput, this.sensitiveInput, this.insensitiveInput, this.forbiddenInput].forEach(el => this.updateLabel(el));
+		}
+
+		reloadEditor(targetId, targetMode) {
+			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+			if (glossaries.length === 0) return;
+			this.populateSelect();
+			const nextId = glossaries.some(g => g.id === targetId) ? targetId : glossaries[0].id;
+			this.select.value = nextId; GM_setValue(this.SELECTED_ID_KEY, nextId);
+			const mode = targetMode || GM_getValue(this.EDIT_MODE_KEY, 'name');
+			this.modeSelect.value = mode; GM_setValue(this.EDIT_MODE_KEY, mode);
+			this.loadData(nextId);
+			this.updateVisibility();
+		}
+
+		updateVisibility() {
+			const mode = this.modeSelect.value;
+			this.containerName.style.display = mode === 'name' ? 'block' : 'none';
+			this.containerTranslation.style.display = mode === 'translation' ? 'flex' : 'none';
+			this.containerForbidden.style.display = mode === 'forbidden' ? 'block' : 'none';
+		}
+
+		saveContent(field, inputElement) {
+			const id = this.select.value; if (!id) return;
+			const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+			const index = glossaries.findIndex(g => g.id === id);
+			if (index === -1) return;
+			const newValue = field === 'name' ? inputElement.value.trim() : inputElement.value;
+			if (glossaries[index][field] === newValue) return;
+			glossaries[index][field] = newValue;
+			GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+			this.reloadEditor(id, this.modeSelect.value);
+			SettingsSyncManager.syncGlossary(false);
+		}
+
+		initEvents() {
+			this.select.addEventListener('ao3-dropdown-action', (e) => {
+				if (e.detail.action === 'toggle') {
+					const id = e.detail.value;
 					const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
 					const index = glossaries.findIndex(g => g.id === id);
 					if (index !== -1) {
 						const currentState = glossaries[index].enabled !== false;
 						glossaries[index].enabled = !currentState;
 						GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
-						synchronizeAllSettings();
-						target.textContent = !currentState ? '禁用' : '启用';
+						SettingsSyncManager.syncGlossary(false);
+						
+						const btn = e.detail.button;
+						btn.innerHTML = !currentState ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
+						btn.title = !currentState ? '点击禁用' : '点击启用';
+						btn.classList.toggle('is-disabled', currentState);
+						
+						const option = this.select.querySelector(`option[value="${id}"]`);
+						if (option) option.dataset.enabled = (!currentState).toString();
 					}
-				} else if (target.classList.contains('toggle-post-replace')) {
-					const id = target.dataset.value;
+				}
+			});
+
+			this.select.addEventListener('change', () => {
+				if (this.select.value === 'create_new') {
+					const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+					let maxNum = 0; glossaries.forEach(g => { const m = g.name.match(/^术语表 (\d+)$/); if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10)); });
+					const newId = `local_${Date.now()}`;
+					glossaries.push({ id: newId, name: `术语表 ${maxNum + 1}`, sensitive: '', insensitive: '', forbidden: '', enabled: true });
+					GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+					this.reloadEditor(newId, 'name'); SettingsSyncManager.syncGlossary(false);
+				} else {
+					this.reloadEditor(this.select.value);
+				}
+			});
+
+			this.modeSelect.addEventListener('change', () => {
+				if (this.modeSelect.value === 'delete') {
+					showCustomConfirm(`您确定要删除 ${this.select.options[this.select.selectedIndex].text} 术语表吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+						.then(() => {
+							let glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []).filter(g => g.id !== this.select.value);
+							if (glossaries.length === 0) glossaries.push({ id: `local_${Date.now()}`, name: '默认', sensitive: '', insensitive: '', forbidden: '', enabled: true });
+							GM_setValue(CUSTOM_GLOSSARIES_KEY, glossaries);
+							const nextId = glossaries[0].id;
+							GM_setValue(this.SELECTED_ID_KEY, nextId); GM_setValue(this.EDIT_MODE_KEY, 'name');
+							this.reloadEditor(nextId, 'name'); SettingsSyncManager.syncGlossary(false);
+						}).catch(() => { this.modeSelect.value = GM_getValue(this.EDIT_MODE_KEY, 'name'); });
+				} else {
+					this.updateVisibility(); GM_setValue(this.EDIT_MODE_KEY, this.modeSelect.value);
+				}
+			});
+
+			this.$('#setting-btn-local-glossary-save-name').addEventListener('click', () => this.saveContent('name', this.nameInput));
+			this.$('#setting-btn-local-sensitive-save').addEventListener('click', () => this.saveContent('sensitive', this.sensitiveInput));
+			this.$('#setting-btn-local-insensitive-save').addEventListener('click', () => this.saveContent('insensitive', this.insensitiveInput));
+			this.$('#setting-btn-local-forbidden-save').addEventListener('click', () => this.saveContent('forbidden', this.forbiddenInput));
+		}
+	}
+
+	/**
+	 * 在线术语表管理模块
+	 */
+	class OnlineGlossaryModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-online-manage');
+			this.urlInput = this.$('#setting-input-glossary-import-url');
+			this.select = this.$('#setting-select-glossary-manage');
+			this.detailsContainer = this.$('#online-glossary-details-container');
+			this.infoText = this.$('#online-glossary-info');
+			this.deleteBtn = this.$('#online-glossary-delete-btn');
+			this.viewContainer = this.$('#view-imported-glossary-container');
+		}
+
+		onInit() {
+			this.initEvents();
+			document.addEventListener(CUSTOM_EVENTS.GLOSSARY_IMPORTED, () => {
+				if (this.container.style.display === 'flex') this.populateSelect();
+			});
+		}
+
+		onShow() { this.populateSelect(); }
+		onSync() { if (this.container.style.display === 'flex') this.populateSelect(); }
+
+		populateSelect() {
+			const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+			const urls = Object.keys(metadata);
+			const lastSelectedUrl = GM_getValue(LAST_SELECTED_GLOSSARY_KEY, null);
+			this.select.innerHTML = '';
+			if (urls.length === 0) {
+				this.select.innerHTML = '<option value="" disabled selected>暂无术语表</option>';
+				this.select.disabled = true;
+				this.detailsContainer.style.display = 'none';
+			} else {
+				urls.forEach(url => {
+					const name = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
+					const option = document.createElement('option'); 
+					option.value = url; 
+					option.textContent = name; 
+					option.title = name; 
+					option.dataset.toggleable = 'true';
+					option.dataset.enabled = metadata[url].enabled !== false ? 'true' : 'false';
+					this.select.appendChild(option);
+				});
+				this.select.disabled = false;
+				this.select.value = (lastSelectedUrl && urls.includes(lastSelectedUrl)) ? lastSelectedUrl : urls[0];
+			}
+			this.select.dispatchEvent(new Event('change'));
+			this.updateLabel(this.select);
+			this.resetDeleteButton();
+		}
+
+		resetDeleteButton() {
+			this.deleteBtn.textContent = '删除';
+			this.deleteBtn.removeAttribute('data-confirming');
+		}
+
+		initEvents() {
+			this.select.addEventListener('ao3-dropdown-action', (e) => {
+				if (e.detail.action === 'toggle') {
+					const url = e.detail.value;
+					const currentMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+					if (currentMetadata[url]) {
+						const currentState = currentMetadata[url].enabled !== false;
+						currentMetadata[url].enabled = !currentState;
+						GM_setValue(GLOSSARY_METADATA_KEY, currentMetadata);
+						invalidateGlossaryCache();
+						
+						const btn = e.detail.button;
+						btn.innerHTML = !currentState ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
+						btn.title = !currentState ? '点击禁用' : '点击启用';
+						btn.classList.toggle('is-disabled', currentState);
+						
+						const option = this.select.querySelector(`option[value="${url}"]`);
+						if (option) option.dataset.enabled = (!currentState).toString();
+					}
+				}
+			});
+
+			this.$('#setting-btn-glossary-import-save').addEventListener('click', async () => {
+				const url = this.urlInput.value.trim();
+				if (url) {
+					const result = await importOnlineGlossary(url);
+					if (result.success) {
+						invalidateGlossaryCache();
+						GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
+						this.populateSelect();
+					}
+				}
+			});
+
+			this.select.addEventListener('change', () => {
+				const url = this.select.value;
+				if (url) {
+					GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
+					const currentMeta = GM_getValue(GLOSSARY_METADATA_KEY, {})[url] || {};
+					this.infoText.textContent = `版本号：${currentMeta.version || '未知'} ，维护者：${currentMeta.maintainer || '未知'}`;
+					this.detailsContainer.style.display = 'flex';
+					this.viewContainer.style.display = 'flex';
+				} else {
+					this.detailsContainer.style.display = 'none';
+					this.viewContainer.style.display = 'none';
+				}
+				this.resetDeleteButton();
+			});
+
+			this.deleteBtn.addEventListener('click', () => {
+				if (this.deleteBtn.dataset.confirming) {
+					const urlToRemove = this.select.value;
+					if (urlToRemove) {
+						const allGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
+						const allMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+						delete allGlossaries[urlToRemove]; delete allMetadata[urlToRemove];
+						GM_setValue(IMPORTED_GLOSSARY_KEY, allGlossaries); GM_setValue(GLOSSARY_METADATA_KEY, allMetadata);
+
+						const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
+						if (rawTextCache[urlToRemove]) { delete rawTextCache[urlToRemove]; GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, rawTextCache); }
+
+						const parsedUrls = parseGlossaryUrl(urlToRemove);
+						if (parsedUrls) {
+							const githubCache = GM_getValue(GitHubStatusManager.CACHE_KEY, {});
+							const repoKey = `${parsedUrls.owner}/${parsedUrls.repo}`;
+							if (githubCache[repoKey]) { delete githubCache[repoKey]; GM_setValue(GitHubStatusManager.CACHE_KEY, githubCache); }
+						}
+						invalidateGlossaryCache(); this.populateSelect(); this.updateLabel(this.select);
+					}
+				} else {
+					this.deleteBtn.textContent = '确认删除'; this.deleteBtn.setAttribute('data-confirming', 'true');
+				}
+			});
+
+			this.$('#btn-open-online-library').addEventListener('click', () => openOnlineLibraryModal());
+			this.$('#btn-view-imported-glossary').addEventListener('click', () => { if (this.select.value) openGlossaryViewModal(this.select.value); });
+		}
+	}
+
+	/**
+	 * 译文后处理替换模块
+	 */
+	class PostReplaceModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-post-replace');
+			this.select = this.$('#setting-post-replace-select');
+			this.modeSelect = this.$('#setting-post-replace-edit-mode');
+			this.containerName = this.$('#post-replace-container-name');
+			this.containerSettings = this.$('#post-replace-container-settings');
+			this.nameInput = this.$('#setting-post-replace-name');
+			this.contentInput = this.$('#setting-input-post-replace');
+			
+			this.SELECTED_ID_KEY = 'ao3_post_replace_selected_id';
+			this.EDIT_MODE_KEY = 'ao3_post_replace_edit_mode';
+		}
+
+		onInit() { this.initEvents(); }
+
+		onShow() {
+			let rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+			let isInitializedDefault = false;
+			if (rules.length === 0) {
+				rules.push({ id: `replace_${Date.now()}`, name: '默认', content: '', enabled: true });
+				GM_setValue(POST_REPLACE_RULES_KEY, rules);
+				isInitializedDefault = true;
+			}
+			this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY), isInitializedDefault ? 'settings' : GM_getValue(this.EDIT_MODE_KEY, 'settings'));
+			if (isInitializedDefault) GM_setValue(this.EDIT_MODE_KEY, 'settings');
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY, this.select.value), GM_getValue(this.EDIT_MODE_KEY, 'name'));
+			}
+		}
+
+		populateSelect() {
+			this.select.innerHTML = '';
+			GM_getValue(POST_REPLACE_RULES_KEY, []).forEach(r => {
+				const option = document.createElement('option'); 
+				option.value = r.id; 
+				option.textContent = r.name; 
+				option.dataset.isPostReplaceRule = 'true'; 
+				option.dataset.toggleable = 'true';
+				option.dataset.enabled = r.enabled !== false ? 'true' : 'false';
+				this.select.appendChild(option);
+			});
+			const createOption = document.createElement('option'); createOption.value = 'create_new'; createOption.textContent = '新建替换规则'; this.select.appendChild(createOption);
+		}
+
+		loadData(id) {
+			const rule = GM_getValue(POST_REPLACE_RULES_KEY, []).find(r => r.id === id);
+			if (!rule) {
+				this.nameInput.value = ''; this.contentInput.value = '';
+			} else {
+				this.nameInput.value = rule.name || ''; this.contentInput.value = rule.content || '';
+			}
+			[this.nameInput, this.contentInput].forEach(el => this.updateLabel(el));
+		}
+
+		reloadEditor(targetId, targetMode) {
+			const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+			if (rules.length === 0) return;
+			this.populateSelect();
+			const nextId = rules.some(r => r.id === targetId) ? targetId : rules[0].id;
+			this.select.value = nextId; GM_setValue(this.SELECTED_ID_KEY, nextId);
+			const mode = targetMode || GM_getValue(this.EDIT_MODE_KEY, 'name');
+			this.modeSelect.value = mode; GM_setValue(this.EDIT_MODE_KEY, mode);
+			this.loadData(nextId);
+			this.updateVisibility();
+		}
+
+		updateVisibility() {
+			const mode = this.modeSelect.value;
+			this.containerName.style.display = mode === 'name' ? 'block' : 'none';
+			this.containerSettings.style.display = mode === 'settings' ? 'block' : 'none';
+		}
+
+		initEvents() {
+			this.select.addEventListener('ao3-dropdown-action', (e) => {
+				if (e.detail.action === 'toggle') {
+					const id = e.detail.value;
 					const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
 					const index = rules.findIndex(r => r.id === id);
 					if (index !== -1) {
 						const currentState = rules[index].enabled !== false;
 						rules[index].enabled = !currentState;
 						GM_setValue(POST_REPLACE_RULES_KEY, rules);
-						synchronizeAllSettings();
-						target.textContent = !currentState ? '禁用' : '启用';
-					}
-				} else if (target.classList.contains('delete')) {
-					if (target.dataset.confirming) {
-						const value = target.dataset.value;
-						if (triggerElement.id === 'setting-trans-engine') {
-							if (typeof customServiceManager !== 'undefined') {
-								customServiceManager.deleteService(value);
-							}
-						}
-						closeMenu();
-					} else {
-						list.querySelectorAll('.delete[data-confirming]').forEach(btn => {
-							btn.textContent = '删除';
-							delete btn.dataset.confirming;
-						});
-						target.textContent = '确认删除';
-						target.dataset.confirming = 'true';
-					}
-				} else {
-					const li = target.closest('li');
-					if (li && typeof li.dataset.value !== 'undefined') {
-						triggerElement.value = li.dataset.value;
-						triggerElement.dispatchEvent(new Event('change', { bubbles: true }));
-						closeMenu();
+						SettingsSyncManager.syncGlossary(false);
+						
+						const btn = e.detail.button;
+						btn.innerHTML = !currentState ? SVG_ICONS.toggleOn : SVG_ICONS.toggleOff;
+						btn.title = !currentState ? '点击禁用' : '点击启用';
+						btn.classList.toggle('is-disabled', currentState);
+						
+						const option = this.select.querySelector(`option[value="${id}"]`);
+						if (option) option.dataset.enabled = (!currentState).toString();
 					}
 				}
 			});
-			backdrop.addEventListener('mousedown', closeMenu);
+
+			this.select.addEventListener('change', () => {
+				if (this.select.value === 'create_new') {
+					const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+					let maxNum = 0; rules.forEach(r => { const m = r.name.match(/^规则 (\d+)$/); if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10)); });
+					const newId = `replace_${Date.now()}`;
+					rules.push({ id: newId, name: `规则 ${maxNum + 1}`, content: '', enabled: true });
+					GM_setValue(POST_REPLACE_RULES_KEY, rules);
+					this.reloadEditor(newId, 'name'); SettingsSyncManager.syncGlossary(false);
+				} else {
+					this.reloadEditor(this.select.value);
+				}
+			});
+
+			this.modeSelect.addEventListener('change', () => {
+				if (this.modeSelect.value === 'delete') {
+					showCustomConfirm(`您确定要删除 ${this.select.options[this.select.selectedIndex].text} 替换规则吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+						.then(() => {
+							let rules = GM_getValue(POST_REPLACE_RULES_KEY, []).filter(r => r.id !== this.select.value);
+							if (rules.length === 0) rules.push({ id: `replace_${Date.now()}`, name: '默认', content: '', enabled: true });
+							GM_setValue(POST_REPLACE_RULES_KEY, rules);
+							const nextId = rules[0].id;
+							GM_setValue(this.SELECTED_ID_KEY, nextId); GM_setValue(this.EDIT_MODE_KEY, 'name');
+							this.reloadEditor(nextId, 'name'); SettingsSyncManager.syncGlossary(false);
+						}).catch(() => { this.modeSelect.value = GM_getValue(this.EDIT_MODE_KEY, 'name'); });
+				} else {
+					this.updateVisibility(); GM_setValue(this.EDIT_MODE_KEY, this.modeSelect.value);
+				}
+			});
+
+			this.$('#setting-btn-post-replace-save-name').addEventListener('click', () => {
+				const id = this.select.value; const newName = this.nameInput.value.trim();
+				if (!id || !newName) return;
+				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+				const index = rules.findIndex(r => r.id === id);
+				if (index === -1 || rules[index].name === newName) return;
+				rules[index].name = newName; GM_setValue(POST_REPLACE_RULES_KEY, rules);
+				this.reloadEditor(id, this.modeSelect.value); SettingsSyncManager.syncGlossary(false);
+			});
+
+			this.$('#setting-btn-post-replace-save').addEventListener('click', () => {
+				const id = this.select.value; if (!id) return;
+				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+				const index = rules.findIndex(r => r.id === id);
+				if (index === -1 || rules[index].content === this.contentInput.value) return;
+				rules[index].content = this.contentInput.value; GM_setValue(POST_REPLACE_RULES_KEY, rules);
+				this.reloadEditor(id, this.modeSelect.value); SettingsSyncManager.syncGlossary(false);
+			});
+		}
+	}
+
+	/**
+	 * 常规设置模块：原文语言与目标语言
+	 */
+	class GeneralSettingsModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, null);
+			this.masterSwitch = this.$('#setting-master-switch');
+			this.swapLangBtn = this.$('#swap-lang-btn');
+			this.fromLangSelect = this.$('#setting-from-lang');
+			this.toLangSelect = this.$('#setting-to-lang');
+			this.displayModeSelect = this.$('#setting-display-mode');
+
+			this.TRANSLATION_MODE_KEY = 'ao3_translation_mode';
+			this.AUTO_TRANSLATE_KEY = 'ao3_auto_translate';
 		}
 
-		panel.addEventListener('mousedown', (e) => {
-			const select = e.target.closest('.settings-select.custom-styled-select');
-			if (select) {
-				e.preventDefault();
-				createCustomDropdown(select);
-			}
-		});
+		onInit() {
+			this.populateLangSelects();
+			this.initEvents();
+		}
 
-		customServiceContainer.addEventListener('mousedown', (e) => {
-			const select = e.target.closest('.settings-select.custom-styled-select');
-			if (select) {
-				e.preventDefault();
-				createCustomDropdown(select);
-			}
-		});
+		onSync() { this.syncUI(); }
 
-		customServiceContainer.addEventListener('change', (e) => {
-			if (e.target.id === 'custom-service-action-select') {
-				const serviceId = engineSelect.value;
-				const newAction = e.target.value;
-				if (serviceId && serviceId.startsWith('custom_')) {
-					const lastActionKey = `custom_service_last_action_${serviceId}`;
-					GM_setValue(lastActionKey, newAction);
-					customServiceManager.enterEditMode(serviceId);
-				} else if (customServiceManager.isPending()) {
-					customServiceManager.updatePendingSection(newAction);
+		populateLangSelects() {
+			const fromOptions = [
+				{ value: 'script_auto', text: '自动检测' },
+				{ value: 'auto', text: '自主判断' },
+				...ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }))
+			];
+			const toOptions = ALL_LANG_OPTIONS.map(([value, text]) => ({ value, text }));
+			
+			const fill = (select, opts) => {
+				select.innerHTML = '';
+				opts.forEach(o => {
+					const opt = document.createElement('option'); opt.value = o.value; opt.textContent = o.text; select.appendChild(opt);
+				});
+			};
+			fill(this.fromLangSelect, fromOptions);
+			fill(this.toLangSelect, toOptions);
+		}
+
+		syncUI() {
+			const currentMode = GM_getValue(this.TRANSLATION_MODE_KEY, 'unit');
+			const isFullPage = currentMode === 'full_page';
+			const switchLabel = this.panel.querySelector('.settings-switch-group:first-child .settings-label');
+
+			if (isFullPage) {
+				document.body.classList.add('ao3-full-page-mode');
+				if (switchLabel) switchLabel.textContent = '自动翻译页面';
+				this.masterSwitch.checked = GM_getValue(this.AUTO_TRANSLATE_KEY, false);
+			} else {
+				document.body.classList.remove('ao3-full-page-mode');
+				if (switchLabel) switchLabel.textContent = '显示翻译按钮';
+				this.masterSwitch.checked = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
+			}
+
+			this.fromLangSelect.value = GM_getValue('from_lang', DEFAULT_CONFIG.GENERAL.from_lang);
+			this.toLangSelect.value = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
+			this.displayModeSelect.value = GM_getValue('translation_display_mode', DEFAULT_CONFIG.GENERAL.translation_display_mode);
+			this.updateSwapButtonState();
+			applyDisplayModeChange(this.displayModeSelect.value);
+			[this.fromLangSelect, this.toLangSelect, this.displayModeSelect].forEach(el => this.updateLabel(el));
+		}
+
+		updateSwapButtonState() {
+			const val = this.fromLangSelect.value;
+			this.swapLangBtn.disabled = (val === 'auto' || val === 'script_auto');
+		}
+
+		initEvents() {
+			this.masterSwitch.addEventListener('change', () => {
+				const currentMode = GM_getValue(this.TRANSLATION_MODE_KEY, 'unit');
+				const isEnabled = this.masterSwitch.checked;
+				if (currentMode === 'full_page') {
+					GM_setValue(this.AUTO_TRANSLATE_KEY, isEnabled);
+					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.AUTO_TRANSLATE_CHANGED, { detail: { enabled: isEnabled } }));
+				} else {
+					GM_setValue('enable_transDesc', isEnabled);
+					FeatureSet.enable_transDesc = isEnabled;
+					this.syncUI();
+					if (typeof fabLogic !== 'undefined' && fabLogic.toggleFabVisibility) fabLogic.toggleFabVisibility();
+					if (isEnabled) transDesc();
+					else TranslationDOMUtils.deepCleanup(document.body, true);
+				}
+			});
+
+			this.swapLangBtn.addEventListener('click', () => {
+				if (this.swapLangBtn.disabled) return;
+				const fromLang = this.fromLangSelect.value;
+				const toLang = this.toLangSelect.value;
+				this.fromLangSelect.value = toLang; this.toLangSelect.value = fromLang;
+				GM_setValue('from_lang', toLang); GM_setValue('to_lang', fromLang);
+				this.fromLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
+				this.toLangSelect.dispatchEvent(new Event('change', { bubbles: true }));
+			});
+
+			this.fromLangSelect.addEventListener('change', () => {
+				GM_setValue('from_lang', this.fromLangSelect.value);
+				this.updateSwapButtonState();
+				this.controller.syncAllModules();
+			});
+
+			this.toLangSelect.addEventListener('change', () => {
+				GM_setValue('to_lang', this.toLangSelect.value);
+				this.controller.syncAllModules();
+			});
+
+			this.displayModeSelect.addEventListener('change', () => {
+				GM_setValue('translation_display_mode', this.displayModeSelect.value);
+				applyDisplayModeChange(this.displayModeSelect.value);
+			});
+		}
+
+		toggleTranslationMode() {
+			let currentMode = GM_getValue(this.TRANSLATION_MODE_KEY, 'unit');
+			currentMode = currentMode === 'unit' ? 'full_page' : 'unit';
+			GM_setValue(this.TRANSLATION_MODE_KEY, currentMode);
+
+			if (currentMode === 'full_page') {
+				const hasSwitched = GM_getValue('has_switched_to_full_page_once', false);
+				if (!hasSwitched) {
+					GM_setValue('has_switched_to_full_page_once', true);
+					GM_setValue('from_lang', 'script_auto');
 				}
 			}
+
+			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.MODE_CHANGED, { detail: { mode: currentMode } }));
+			this.controller.syncAllModules();
+		}
+	}
+
+	/**
+	 * 翻译服务与自定义服务模块
+	 */
+	class TranslationServiceModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, null);
+			this.engineSelect = this.$('#setting-trans-engine');
+			this.detailsToggleContainer = this.$('#service-details-toggle-container');
+			this.detailsToggleBtn = this.$('.service-details-toggle-btn');
+			this.customContainer = this.$('#custom-service-container');
+			this.modelGroup = this.$('#setting-model-group');
+			this.modelSelect = this.$('#setting-trans-model');
+			this.apiKeyGroup = this.$('#api-key-group');
+			this.apiKeyInput = this.$('#setting-input-apikey');
+			this.apiKeySaveBtn = this.$('#setting-btn-apikey-save');
+			this.customManager = createCustomServiceManager(this.controller.panelElements);
+			this.isEditingBuiltInModel = false;
+		}
+
+		onInit() {
+			this.populateEngineSelect();
+			this.initEvents();
+		}
+
+		onSync() {
+			this.populateEngineSelect();
+			this.syncEngineState();
+		}
+
+		populateEngineSelect() {
+			this.engineSelect.innerHTML = '';
+			const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+			const addOpt = (val, name, isCustom = false) => {
+				const opt = document.createElement('option'); opt.value = val; opt.textContent = name;
+				if (isCustom) {
+					opt.dataset.isCustom = 'true';
+					opt.dataset.deletable = 'true';
+				}
+				this.engineSelect.appendChild(opt);
+			};
+			addOpt('google_translate', engineMenuConfig['google_translate'].displayName);
+			addOpt('bing_translator', engineMenuConfig['bing_translator'].displayName);
+			Object.keys(engineMenuConfig)
+				.filter(id => id !== 'google_translate' && id !== 'bing_translator' && id !== ADD_NEW_CUSTOM_SERVICE_ID)
+				.sort((a, b) => engineMenuConfig[a].displayName.localeCompare(engineMenuConfig[b].displayName))
+				.forEach(id => addOpt(id, engineMenuConfig[id].displayName));
+			customServices.forEach(s => addOpt(s.id, s.name || '未命名服务', true));
+			addOpt(ADD_NEW_CUSTOM_SERVICE_ID, engineMenuConfig[ADD_NEW_CUSTOM_SERVICE_ID].displayName);
+		}
+
+		syncEngineState() {
+			if (this.customManager.isPending()) this.customManager.cancelPending();
+			const engineId = getValidEngineName();
+			this.engineSelect.value = engineId;
+			this.updateUiForEngine(engineId);
+			this.isEditingBuiltInModel = false;
+		}
+
+		updateUiForEngine(engineId) {
+			this.customContainer.style.display = 'none';
+			this.modelGroup.style.display = 'none';
+			this.apiKeyGroup.style.display = 'none';
+			this.detailsToggleContainer.style.display = 'none';
+
+			if (engineId.startsWith('custom_')) {
+				this.customManager.enterEditMode(engineId);
+				this.detailsToggleContainer.style.display = 'flex';
+			} else if (engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
+				this.detailsToggleContainer.style.display = 'flex';
+				this.customContainer.style.display = 'flex';
+			} else {
+				const isSimple = engineId === 'google_translate' || engineId === 'bing_translator';
+				if (!isSimple) {
+					this.detailsToggleContainer.style.display = 'flex';
+					this.renderBuiltInModelUI(engineId);
+					this.updateApiKeySection(engineId);
+				}
+			}
+
+			if (this.detailsToggleContainer.style.display === 'flex') {
+				const isCollapsed = GM_getValue(`service_collapsed_${engineId}`, false);
+				this.detailsToggleBtn.classList.toggle('collapsed', isCollapsed);
+				if (isCollapsed) {
+					this.modelGroup.style.display = 'none';
+					this.apiKeyGroup.style.display = 'none';
+					if (engineId.startsWith('custom_') || engineId === ADD_NEW_CUSTOM_SERVICE_ID) {
+						this.customContainer.style.display = 'none';
+					}
+				}
+			}
+			[this.engineSelect, this.modelSelect, this.apiKeyInput].forEach(el => this.updateLabel(el));
+		}
+
+		updateApiKeySection(engineId) {
+			const config = engineMenuConfig[engineId];
+			if (config?.requiresApiKey) {
+				this.apiKeyGroup.style.display = 'block';
+				this.apiKeyInput.value = GM_getValue(`${engineId}_keys_string`, '');
+				this.apiKeyGroup.querySelector('.settings-label').textContent = `设置 ${config.displayName} API Key`;
+				this.apiKeyInput.placeholder = 'Key 1，Key 2，Key 3';
+			} else {
+				this.apiKeyGroup.style.display = 'none';
+			}
+		}
+
+		async fetchModelsForBuiltIn(engineId) {
+			const config = engineMenuConfig[engineId];
+			const apiConfig = CONFIG.TRANS_ENGINES[engineId];
+			if (!config || !apiConfig) return;
+			const apiKey = (GM_getValue(`${engineId}_keys_array`, [])[0] || '').trim();
+			if (!apiKey) { notifyAndLog(`请先设置 ${config.displayName} 的 API Key。`, '获取失败', 'error'); this.renderBuiltInModelUI(engineId); return; }
+
+			let baseUrl = apiConfig.url_api || apiConfig.url;
+			let modelsUrl = baseUrl.replace(/\/chat\/?(completions)?\/?$/, '') + '/models';
+			if (engineId === 'google_ai') modelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+			else if (engineId === 'anthropic') modelsUrl = 'https://api.anthropic.com/v1/models';
+
+			try {
+				const select = this.modelSelect;
+				let originalValue = select ? GM_getValue(config.modelGmKey) : null;
+				if (select) {
+					const opt = select.querySelector('option[value="FETCH_MODELS_INLINE"]');
+					if (opt) opt.textContent = '获取中...';
+					select.disabled = true;
+				}
+
+				const headers = { 'Accept': 'application/json' };
+				if (engineId === 'anthropic') { headers['x-api-key'] = apiKey; headers['anthropic-version'] = '2023-06-01'; }
+				else if (engineId !== 'google_ai') { headers['Authorization'] = `Bearer ${apiKey}`; }
+
+				const response = await new Promise((resolve, reject) => {
+					GM_xmlhttpRequest({
+						method: 'GET', url: modelsUrl, headers: headers, responseType: 'json', timeout: 15000,
+						onload: res => res.status === 200 && res.response ? resolve(res.response) : reject(new Error(`HTTP ${res.status}`))	,
+						onerror: () => reject(new Error('网络请求失败')), ontimeout: () => reject(new Error('请求超时'))
+					});
+				});
+
+				let models =[];
+				if (engineId === 'google_ai') {
+					models = (getNestedProperty(response, 'models') || []).map(m => m.name.replace('models/', ''));
+				} else {
+					const dataList = getNestedProperty(response, 'data') || response;
+					if (Array.isArray(dataList)) models = dataList.map(m => m.id).filter(Boolean);
+				}
+
+				if (models.length === 0) throw new Error('模型列表为空');
+
+				const newMapping = {}; models.forEach(m => newMapping[m] = m);
+				GM_setValue(`${engineId}_custom_model_mapping`, newMapping);
+				GM_setValue(config.modelGmKey, models.includes(originalValue) ? originalValue : models[0]);
+
+				this.renderBuiltInModelUI(engineId);
+			} catch (error) {
+				Logger.error('Network', `获取模型失败: ${error.message}`);
+				notifyAndLog(`获取模型失败：${error.message}`, '操作失败', 'error');
+				this.renderBuiltInModelUI(engineId);
+			}
+		}
+
+		renderBuiltInModelUI(engineId) {
+			const config = engineMenuConfig[engineId];
+			if (engineId.startsWith('custom_')) {
+				if (!this.modelGroup.contains(this.modelSelect)) {
+					this.modelGroup.innerHTML = ''; this.modelGroup.appendChild(this.modelSelect);
+					const label = document.createElement('label'); label.htmlFor = this.modelSelect.id; label.className = 'settings-label'; label.textContent = '使用模型';
+					this.modelGroup.appendChild(label);
+					this.modelGroup.className = 'settings-group settings-group-select';
+				}
+				this.modelGroup.style.display = 'block';
+				this.customManager.renderDisplayModeModelSelect(engineId);
+				this.updateLabel(this.modelSelect);
+				return;
+			}
+			this.modelGroup.innerHTML = ''; this.modelGroup.style.display = 'none';
+			if (!config?.modelMapping) return;
+
+			this.modelGroup.style.display = 'block';
+			const customMappingKey = `${engineId}_custom_model_mapping`;
+			const currentMapping = GM_getValue(customMappingKey) || config.modelMapping;
+
+			if (this.isEditingBuiltInModel) {
+				this.modelGroup.className = 'settings-group static-label';
+				const wrapper = document.createElement('div'); wrapper.className = 'input-wrapper';
+				const input = document.createElement('input'); input.type = 'text'; input.className = 'settings-control settings-input';
+				input.value = stringifyModelObject(currentMapping).replace(/\n/g, ' ');
+				input.placeholder = "'ID 1': '名称 1', 'ID 2': '名称 2'"; input.spellcheck = false;
+
+				const label = document.createElement('label'); label.className = 'settings-label'; label.textContent = '编辑模型 ID';
+				const saveBtn = document.createElement('button'); saveBtn.className = 'settings-action-button-inline'; saveBtn.textContent = '保存';
+
+				saveBtn.addEventListener('click', () => {
+					const newMapping = parseModelString(input.value);
+					if (Object.keys(newMapping).length === 0) GM_deleteValue(customMappingKey);
+					else GM_setValue(customMappingKey, newMapping);
+					this.isEditingBuiltInModel = false; this.renderBuiltInModelUI(engineId);
+				});
+
+				wrapper.appendChild(input); wrapper.appendChild(label); wrapper.appendChild(saveBtn);
+				this.modelGroup.appendChild(wrapper); this.updateLabel(input);
+			} else {
+				this.modelGroup.className = 'settings-group settings-group-select';
+				const select = document.createElement('select'); select.id = 'setting-trans-model'; select.className = 'settings-control settings-select custom-styled-select';
+				Object.keys(currentMapping).forEach(mId => {
+					const option = document.createElement('option'); option.value = mId; option.textContent = currentMapping[mId]; select.appendChild(option);
+				});
+				const fetchOption = document.createElement('option'); fetchOption.value = 'FETCH_MODELS_INLINE'; fetchOption.textContent = '获取模型 ID'; select.appendChild(fetchOption);
+				const editOption = document.createElement('option'); editOption.value = 'EDIT_MODELS_INLINE'; editOption.textContent = '编辑模型 ID'; select.appendChild(editOption);
+				const resetOption = document.createElement('option'); resetOption.value = 'RESET_MODELS_INLINE'; resetOption.textContent = '重置模型 ID'; select.appendChild(resetOption);
+
+				const savedModel = GM_getValue(config.modelGmKey);
+				if (savedModel && currentMapping[savedModel]) select.value = savedModel;
+				else { const first = Object.keys(currentMapping)[0]; select.value = first; GM_setValue(config.modelGmKey, first); }
+
+				select.addEventListener('change', () => {
+					if (select.value === 'FETCH_MODELS_INLINE') this.fetchModelsForBuiltIn(engineId);
+					else if (select.value === 'EDIT_MODELS_INLINE') { this.isEditingBuiltInModel = true; this.renderBuiltInModelUI(engineId); }
+					else if (select.value === 'RESET_MODELS_INLINE') { GM_deleteValue(customMappingKey); this.renderBuiltInModelUI(engineId); }
+					else GM_setValue(config.modelGmKey, select.value);
+				});
+
+				const label = document.createElement('label'); label.htmlFor = 'setting-trans-model'; label.className = 'settings-label'; label.textContent = '使用模型';
+				this.modelGroup.appendChild(select); this.modelGroup.appendChild(label);
+				this.updateLabel(select);
+			}
+		}
+
+		saveApiKey() {
+			const engineId = this.engineSelect.value;
+			const value = this.apiKeyInput.value;
+			let serviceIdToUpdate = engineId.startsWith('custom_') ? engineId 
+				: (engineId === ADD_NEW_CUSTOM_SERVICE_ID && this.customManager.isPending() ? this.customManager.ensureServiceExists() : engineId);
+			if (!serviceIdToUpdate) return;
+
+			GM_setValue(`${serviceIdToUpdate}_keys_string`, value);
+			const keysArray = value.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+			GM_setValue(`${serviceIdToUpdate}_keys_array`, keysArray);
+			GM_deleteValue(`${serviceIdToUpdate}_key_index`);
+		}
+
+		initEvents() {
+			this.engineSelect.addEventListener('ao3-dropdown-action', (e) => {
+				if (e.detail.action === 'delete') {
+					this.customManager.deleteService(e.detail.value);
+				}
+			});
+
+			this.engineSelect.addEventListener('change', () => {
+				if (this.customManager.isPending()) this.customManager.cancelPending();
+				const newEngine = this.engineSelect.value;
+				if (newEngine === ADD_NEW_CUSTOM_SERVICE_ID) {
+					this.customManager.startPendingCreation();
+					this.updateUiForEngine(newEngine);
+				} else {
+					GM_setValue('transEngine', newEngine);
+					this.updateUiForEngine(newEngine);
+					this.isEditingBuiltInModel = false;
+				}
+			});
+
+			this.apiKeySaveBtn.addEventListener('click', () => this.saveApiKey());
+
+			this.detailsToggleContainer.addEventListener('click', () => {
+				const engineId = this.engineSelect.value;
+				const isCollapsed = this.detailsToggleBtn.classList.contains('collapsed');
+				GM_setValue(`service_collapsed_${engineId}`, !isCollapsed);
+				this.updateUiForEngine(engineId);
+			});
+
+			this.customContainer.addEventListener('change', (e) => {
+				if (e.target.id === 'custom-service-action-select') {
+					const serviceId = this.engineSelect.value;
+					const newAction = e.target.value;
+					if (serviceId && serviceId.startsWith('custom_')) {
+						GM_setValue(`custom_service_last_action_${serviceId}`, newAction);
+						this.customManager.enterEditMode(serviceId);
+					} else if (this.customManager.isPending()) {
+						this.customManager.updatePendingSection(newAction);
+					}
+				}
+			});
+		}
+	}
+
+	/**
+	 * 语言检测配置模块
+	 */
+	class LangDetectModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-lang-detect');
+			this.select = this.$('#setting-lang-detector');
+		}
+
+		onInit() {
+			this.select.addEventListener('change', () => {
+				GM_setValue('lang_detector', this.select.value);
+			});
+		}
+
+		onShow() {
+			this.select.value = GM_getValue('lang_detector', DEFAULT_CONFIG.GENERAL.lang_detector);
+			this.updateLabel(this.select);
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.select.value = GM_getValue('lang_detector', DEFAULT_CONFIG.GENERAL.lang_detector);
+			}
+		}
+	}
+
+	/**
+	 * 调试模式模块
+	 */
+	class DebugModeModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-debug-mode');
+			this.levelSelect = this.$('#setting-log-level');
+			this.clearSelect = this.$('#setting-log-auto-clear');
+			this.viewBtn = this.$('#btn-view-logs');
+		}
+
+		onInit() {
+			this.levelSelect.addEventListener('change', () => Logger.setLevel(this.levelSelect.value));
+			this.clearSelect.addEventListener('change', () => Logger.setAutoClear(parseInt(this.clearSelect.value, 10)));
+			this.viewBtn.addEventListener('click', () => setTimeout(() => openLogModal(), 10));
+		}
+
+		onShow() {
+			this.levelSelect.value = Logger.config.level;
+			this.clearSelect.value = Logger.config.autoClearDays;
+			[this.levelSelect, this.clearSelect].forEach(el => this.updateLabel(el));
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.levelSelect.value = Logger.config.level;
+				this.clearSelect.value = Logger.config.autoClearDays;
+			}
+		}
+	}
+
+	/**
+	 * 备份、合并与导入导出模块
+	 */
+	class DataSyncModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'data-sync-actions-container');
+			this.importBtn = this.$('#btn-import-data');
+			this.exportBtn = this.$('#btn-export-data');
+		}
+
+		onInit() {
+			this.importBtn.addEventListener('click', () => this.handleImport());
+			this.exportBtn.addEventListener('click', () => this.handleExport());
+		}
+
+		handleExport = async () => {
+			try {
+				const availableItems = DATA_CATEGORIES.map(cat => ({ ...cat, checked: true, disabled: false }));
+				const selectionResult = await createSelectionModal('数据导出', availableItems, 'export', 'ao3_export_selection_memory');
+				const data = await exportAllData(selectionResult.ids);
+				const dateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).replace(/:/g, '-').replace(' ', '_');
+				saveFile(JSON.stringify(data, null, 2), `AO3-Translator-Config-${dateStr}.json`, 'application/json');
+			} catch (e) {
+				if (e.message !== 'User cancelled') notifyAndLog(`导出失败: ${e.message}`, '操作失败', 'error');
+			}
+		};
+
+		handleImport = () => {
+			const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+			input.onchange = (e) => {
+				const file = e.target.files[0]; if (!file) return;
+				const reader = new FileReader();
+				reader.onload = async (event) => {
+					try {
+						const jsonData = JSON.parse(event.target.result);
+						if (!jsonData.data) throw new Error("文件缺少 data 字段");
+
+						const hasData = (catId, allData) => {
+							const data = allData[catId];
+							const hasContent = (val) => {
+								if (!val) return false;
+								if (typeof val === 'string') return val.trim() !== '';
+								if (Array.isArray(val)) return val.length > 0;
+								return typeof val === 'object' && Object.keys(val).length > 0;
+							};
+							switch (catId) {
+								case 'staticKeys': case 'apiKeys': case 'modelSelections': case 'aiParameters': case 'blockerSettings':
+									return data ? Object.keys(data).length > 0 : false;
+								case 'uiState': return data ? !!(data.fabPosition || data.panelPosition) : false;
+								case 'customServices': return data ? Array.isArray(data) && data.length > 0 : false;
+								case 'glossaries': return data ? (hasContent(data.customGlossaries) || hasContent(data.importedGlossaries) || hasContent(data.local) || hasContent(data.forbidden) || hasContent(data.onlineMetadata)) : false;
+								case 'postReplace': return (data && (hasContent(data.postReplaceRules) || hasContent(data.postReplaceString) || hasContent(data.postReplace))) || (allData.glossaries && (hasContent(allData.glossaries.postReplaceRules) || hasContent(allData.glossaries.postReplaceString) || hasContent(allData.glossaries.postReplace)));
+								case 'formatting': return data ? Object.keys(data).length > 0 : false;
+								case 'fabActions': return data ? Object.keys(data).length > 0 : false;
+								case 'exportTemplates': return data ? data.templates && Object.keys(data.templates).length > 0 : false;
+								case 'cacheSettings': return data ? data.maxItems !== undefined || data.maxDays !== undefined : false;
+								default: return false;
+							}
+						};
+
+						const availableItems = DATA_CATEGORIES.map(cat => {
+							const dataExists = hasData(cat.id, jsonData.data);
+							return { ...cat, checked: dataExists, label: cat.label, disabled: !dataExists };
+						});
+
+						const validItems = availableItems.filter(item => !item.disabled);
+						if (validItems.length === 0) { notifyAndLog('该文件中没有可导入的有效数据。', '导入失败', 'error'); return; }
+
+						const selectionResult = await createSelectionModal('数据导入', availableItems, 'import', null);
+						if (selectionResult && selectionResult.ids.length > 0) {
+							const result = await importAllData(jsonData, selectionResult.ids, selectionResult.mode);
+							Logger.info('Data', result.message);
+						}
+					} catch (err) {
+						if (err.message !== 'User cancelled') notifyAndLog(`导入失败: ${err.message}`, '导入错误', 'error');
+					}
+				};
+				reader.readAsText(file);
+			};
+			input.click();
+		};
+	}
+
+	/**
+	 * 文章格式排版微调模块
+	 */
+	class FormattingModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-formatting');
+			this.profileSelect = this.$('#setting-fmt-profile');
+			this.propertySelect = this.$('#setting-fmt-property');
+			this.valueContainer = this.$('#setting-fmt-value-container');
+		}
+
+		onInit() { this.initEvents(); }
+		onShow() { this.render(); }
+		onSync() { if (this.container.style.display === 'flex') this.render(); }
+
+		render() {
+			const currentProfile = FormattingManager.getCurrentProfile();
+			if (!currentProfile) return;
+
+			const savedProp = GM_getValue('formatting_last_prop', 'letterSpacing');
+			const safeProp = (savedProp === 'deleteProfile') ? 'letterSpacing' : savedProp;
+			this.propertySelect.value = safeProp;
+
+			this.profileSelect.innerHTML = '';
+			FormattingManager.getAllProfiles().forEach(p => {
+				const option = document.createElement('option'); option.value = p.id; option.textContent = p.name; this.profileSelect.appendChild(option);
+			});
+			const createOption = document.createElement('option'); createOption.value = 'create_new'; createOption.textContent = '新建方案'; this.profileSelect.appendChild(createOption);
+			this.profileSelect.value = currentProfile.id;
+
+			const prop = this.propertySelect.value;
+			if (this.valueContainer.dataset.renderedProp === prop) {
+				if (prop === 'profileName') {
+					const input = this.valueContainer.querySelector('#fmt-profile-rename-input');
+					if (input && document.activeElement !== input) input.value = currentProfile.name;
+				} else {
+					const select = this.valueContainer.querySelector('#fmt-value-select');
+					if (select) select.value = currentProfile.params[prop];
+					if (prop === 'indent') {
+						const wrapper = this.valueContainer.querySelector('#fmt-indent-elements-wrapper');
+						if (wrapper) wrapper.style.display = currentProfile.params.indent !== 'original' ? 'block' : 'none';
+					}
+				}
+				this.updateLabel(this.profileSelect);
+				return;
+			}
+
+			this.valueContainer.innerHTML = '';
+			this.valueContainer.dataset.renderedProp = prop;
+
+			if (prop === 'deleteProfile') return;
+
+			if (prop === 'profileName') {
+				const wrapper = document.createElement('div'); wrapper.className = 'settings-group static-label';
+				wrapper.innerHTML = `<div class="input-wrapper"><input type="text" id="fmt-profile-rename-input" name="fmt_profile_name" class="settings-control settings-input" value="${currentProfile.name}" spellcheck="false"><label for="fmt-profile-rename-input" class="settings-label">方案名称</label><button class="settings-action-button-inline">保存</button></div>`;
+				const input = wrapper.querySelector('input');
+				wrapper.querySelector('button').addEventListener('click', () => {
+					const newName = input.value.trim();
+					if (newName) {
+						currentProfile.name = newName; FormattingManager.saveProfile(currentProfile);
+						const opt = this.profileSelect.querySelector(`option[value="${currentProfile.id}"]`);
+						if (opt) opt.textContent = newName;
+					}
+				});
+				this.valueContainer.appendChild(wrapper); this.updateLabel(input);
+			} else {
+				const wrapper = document.createElement('div'); wrapper.className = 'settings-group settings-group-select static-label';
+				const select = document.createElement('select'); select.id = 'fmt-value-select'; select.name = 'fmt_value'; select.className = 'settings-control settings-select custom-styled-select';
+
+				const addOpt = (val, text, selectedVal) => {
+					const opt = document.createElement('option'); opt.value = val; opt.textContent = text;
+					if (String(val) === String(selectedVal)) opt.selected = true;
+					select.appendChild(opt);
+				};
+
+				const opts = currentProfile.params;
+				let labelText = '';
+				let extraWrapper = null;
+
+				if (prop === 'indent') {
+					labelText = '首行缩进';
+					addOpt('original', '保持原排版', opts.indent); addOpt('force_indent', '强制首行缩进', opts.indent); addOpt('force_zero', '强制取消缩进', opts.indent);
+
+					extraWrapper = document.createElement('div'); extraWrapper.className = 'settings-group static-label settings-group-select';
+					extraWrapper.style.marginTop = '16px'; extraWrapper.id = 'fmt-indent-elements-wrapper';
+					extraWrapper.style.display = opts.indent !== 'original' ? 'block' : 'none';
+
+					const pseudoSelect = document.createElement('div'); pseudoSelect.className = 'settings-control settings-select pseudo-select'; pseudoSelect.textContent = '选择生效区域';
+					const elemLabel = document.createElement('span'); elemLabel.className = 'settings-label'; elemLabel.textContent = '生效区域';
+
+					extraWrapper.appendChild(pseudoSelect); extraWrapper.appendChild(elemLabel);
+					pseudoSelect.addEventListener('click', () => {
+						if (currentProfile.params.indent === 'original') return;
+						const items = [{ id: 'work_text', label: 'Work Text' }, { id: 'summary', label: 'Summary' }, { id: 'notes', label: 'Notes' }, { id: 'comments', label: 'Comments' }, { id: 'other', label: 'Other' }];
+						const currentElements = currentProfile.params.indentElements || ['work_text'];
+						items.forEach(item => item.checked = currentElements.includes(item.id));
+
+						createSelectionModal('生效区域', items, 'export', null)
+							.then(res => {
+								currentProfile.params.indentElements = res.ids; FormattingManager.saveProfile(currentProfile); applyFormatting();
+							}).catch(() => {});
+					});
+				} else if (prop === 'fontSize') {
+					labelText = '文字大小'; for (let i = 50; i <= 200; i += 5) addOpt(i, i + '%', opts.fontSize);
+				} else if (prop === 'letterSpacing') {
+					labelText = '字间距'; for (let i = 0; i <= 5; i += 0.5) addOpt(i, i + 'px', opts.letterSpacing);
+				} else if (prop === 'lineHeight') {
+					labelText = '行间距'; for (let i = 0.8; i <= 2.0; i = parseFloat((i + 0.1).toFixed(1))) addOpt(i, i, opts.lineHeight);
+				} else if (prop === 'margins') {
+					labelText = '页边距'; for (let i = 0; i <= 40; i += 5) addOpt(i, i + '%', opts.margins);
+				}
+
+				select.addEventListener('change', (e) => {
+					currentProfile.params[prop] = e.target.value; FormattingManager.saveProfile(currentProfile); applyFormatting();
+					if (prop === 'indent' && extraWrapper) extraWrapper.style.display = e.target.value !== 'original' ? 'block' : 'none';
+				});
+
+				const label = document.createElement('label'); label.htmlFor = 'fmt-value-select'; label.className = 'settings-label'; label.textContent = labelText;
+				wrapper.appendChild(select); wrapper.appendChild(label); this.valueContainer.appendChild(wrapper);
+				if (extraWrapper) this.valueContainer.appendChild(extraWrapper);
+				this.updateLabel(select);
+			}
+			this.updateLabel(this.profileSelect);
+		}
+
+		initEvents() {
+			this.profileSelect.addEventListener('change', (e) => {
+				if (e.target.value === 'create_new') {
+					const newId = FormattingManager.createProfile(); FormattingManager.setCurrentId(newId); applyFormatting();
+					GM_setValue('formatting_last_prop', 'profileName'); this.valueContainer.dataset.renderedProp = ''; this.render();
+				} else {
+					FormattingManager.setCurrentId(e.target.value); applyFormatting(); this.render();
+				}
+			});
+
+			this.propertySelect.addEventListener('change', (e) => {
+				const prop = e.target.value;
+				if (prop === 'deleteProfile') {
+					const currentProfile = FormattingManager.getCurrentProfile();
+					showCustomConfirm(`您确定要删除 ${currentProfile.name} 格式方案吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+						.then(() => {
+							FormattingManager.deleteProfile(currentProfile.id); applyFormatting();
+							this.propertySelect.value = 'profileName'; GM_setValue('formatting_last_prop', 'profileName');
+							this.valueContainer.dataset.renderedProp = ''; this.render();
+						}).catch(() => { this.propertySelect.value = GM_getValue('formatting_last_prop', 'letterSpacing'); });
+				} else {
+					GM_setValue('formatting_last_prop', prop); this.valueContainer.dataset.renderedProp = ''; this.render();
+				}
+			});
+		}
+	}
+
+	/**
+	 * 作品导出设置模块
+	 */
+	class ExportModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-export-manage');
+			this.actionsContainer = this.$('#export-actions-container');
+			this.formatSelect = this.$('#export-format-select');
+			this.templateSelect = this.$('#export-template-select');
+			this.actionSelect = this.$('#export-action-select');
+			this.containerName = this.$('#export-container-name');
+			this.containerEdit = this.$('#export-container-edit');
+			this.templateNameInput = this.$('#export-template-name');
+			this.saveNameBtn = this.$('#btn-export-save-name');
+			this.openStyleEditorBtn = this.$('#btn-open-style-editor');
+			this.formatChooseBtn = this.$('#btn-export-format-choose');
+			this.executeBtn = this.$('#btn-export-execute');
+			
+			this.exportUI = ExportUIController.init(this.panel);
+		}
+
+		onInit() { this.initEvents(); }
+
+		onShow() {
+			this.actionsContainer.style.display = 'flex';
+			this.formatSelect.value = GM_getValue('ao3_export_last_format', 'html');
+			this.actionSelect.value = GM_getValue('ao3_export_last_action', 'name');
+			this.exportUI.renderExportManage();
+			[this.formatSelect, this.templateSelect, this.actionSelect, this.templateNameInput].forEach(el => this.updateLabel(el));
+		}
+
+		onHide() { this.actionsContainer.style.display = 'none'; }
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.formatSelect.value = GM_getValue('ao3_export_last_format', 'html');
+				this.actionSelect.value = GM_getValue('ao3_export_last_action', 'name');
+				this.exportUI.renderExportManage();
+				[this.formatSelect, this.templateSelect, this.actionSelect, this.templateNameInput].forEach(el => this.updateLabel(el));
+			}
+		}
+
+		initEvents() {
+			this.formatSelect.addEventListener('change', (e) => {
+				GM_setValue('ao3_export_last_format', e.target.value);
+				this.exportUI.renderExportManage();
+			});
+
+			this.templateSelect.addEventListener('change', (e) => {
+				const format = this.formatSelect.value;
+				if (e.target.value === 'create_new') {
+					const newId = `template_${Date.now()}`;
+					const templates = ExportTemplateStore.getTemplates(format);
+					let maxNum = 0; templates.forEach(t => { const m = t.name.match(/^自定义 (\d+)$/); if (m) maxNum = Math.max(maxNum, parseInt(m[1], 10)); });
+					ExportTemplateStore.saveTemplate(format, { id: newId, name: `自定义 ${maxNum + 1}`, isProtected: false, css: ExportTemplateStore.DEFAULT_TEMPLATES[format][0].css });
+					const selectedTemplates = GM_getValue('ao3_export_selected_templates'); selectedTemplates[format] = newId; GM_setValue('ao3_export_selected_templates', selectedTemplates);
+					this.actionSelect.value = 'name'; GM_setValue('ao3_export_last_action', 'name');
+					this.exportUI.renderExportManage();
+				} else {
+					const selectedTemplates = GM_getValue('ao3_export_selected_templates'); selectedTemplates[format] = e.target.value; GM_setValue('ao3_export_selected_templates', selectedTemplates);
+					this.exportUI.renderExportManage();
+				}
+			});
+
+			this.actionSelect.addEventListener('change', (e) => {
+				const action = e.target.value;
+				if (action !== 'delete') GM_setValue('ao3_export_last_action', action);
+				if (action === 'delete') {
+					const format = this.formatSelect.value; const currentId = this.templateSelect.value;
+					const template = ExportTemplateStore.getTemplate(format, currentId);
+					showCustomConfirm(`您确定要删除 ${template.name} 模板吗？\n\n注意：此操作无法撤销。`, '提示', { textAlign: 'center' })
+						.then(() => {
+							ExportTemplateStore.deleteTemplate(format, currentId);
+							const selectedTemplates = GM_getValue('ao3_export_selected_templates'); selectedTemplates[format] = ExportTemplateStore.getTemplates(format)[0].id; GM_setValue('ao3_export_selected_templates', selectedTemplates);
+							this.actionSelect.value = 'name'; GM_setValue('ao3_export_last_action', 'name');
+							this.exportUI.renderExportManage();
+						}).catch(() => { this.actionSelect.value = 'name'; GM_setValue('ao3_export_last_action', 'name'); this.exportUI.renderExportManage(); });
+				} else {
+					this.exportUI.renderExportManage();
+				}
+			});
+
+			this.saveNameBtn.addEventListener('click', () => {
+				const template = ExportTemplateStore.getTemplate(this.formatSelect.value, this.templateSelect.value);
+				if (template) {
+					const newName = this.templateNameInput.value.trim();
+					if (newName) { template.name = newName; ExportTemplateStore.saveTemplate(this.formatSelect.value, template); this.exportUI.renderExportManage(); }
+				}
+			});
+
+			this.openStyleEditorBtn.addEventListener('click', () => openExportStyleModal(this.formatSelect.value, this.templateSelect.value));
+			this.formatChooseBtn.addEventListener('click', () => openExportFormatModal());
+			this.executeBtn.addEventListener('click', () => {
+				const formats = GM_getValue('ao3_export_selected_formats', ['html']);
+				if (formats.length === 0) { showCustomConfirm('请先在“格式选择”中勾选需要导出的格式。', '提示', { textAlign: 'center' }).then(() => openExportFormatModal()).catch(() => {}); return; }
+				ExportEngine.executeExport();
+			});
+		}
+	}
+
+	/**
+	 * 悬浮球行为自定义模块
+	 */
+	class FabManageModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-fab-manage');
+			this.modeSelect = this.$('#fab-manage-mode-select');
+			this.gestureSelect = this.$('#fab-manage-gesture-select');
+			this.actionSelect = this.$('#fab-manage-action-select');
+		}
+
+		onInit() { this.initEvents(); }
+
+		onShow() {
+			this.modeSelect.value = GM_getValue('ao3_fab_manage_mode', 'unit');
+			this.gestureSelect.value = GM_getValue('ao3_fab_manage_gesture', 'click');
+			this.render();
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.modeSelect.value = GM_getValue('ao3_fab_manage_mode', 'unit');
+				this.gestureSelect.value = GM_getValue('ao3_fab_manage_gesture', 'click');
+				this.render();
+			}
+		}
+
+		render() {
+			const config = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
+			const mode = this.modeSelect.value;
+			const gesture = this.gestureSelect.value;
+
+			this.actionSelect.innerHTML = '';
+			const addOpt = (val, text) => {
+				const opt = document.createElement('option'); opt.value = val; opt.textContent = text; this.actionSelect.appendChild(opt);
+			};
+			addOpt('toggle_panel', '打开/关闭设置面板');
+			if (mode === 'full_page') addOpt('toggle_translate', '触发翻译/清除译文');
+			addOpt('clear_cache', '清除当前页面缓存');
+			addOpt('export_work', '导出当前作品');
+			addOpt('none', '无操作');
+
+			let savedAction = config[mode][gesture] || 'none';
+			if (mode === 'unit' && savedAction === 'toggle_translate') {
+				savedAction = 'none'; config[mode][gesture] = savedAction; GM_setValue('ao3_fab_actions', config);
+			}
+			this.actionSelect.value = savedAction;
+			[this.modeSelect, this.gestureSelect, this.actionSelect].forEach(el => this.updateLabel(el));
+		}
+
+		initEvents() {
+			this.modeSelect.addEventListener('change', () => {
+				GM_setValue('ao3_fab_manage_mode', this.modeSelect.value); this.render();
+			});
+			this.gestureSelect.addEventListener('change', () => {
+				GM_setValue('ao3_fab_manage_gesture', this.gestureSelect.value); this.render();
+			});
+			this.actionSelect.addEventListener('change', () => {
+				const config = GM_getValue('ao3_fab_actions', DEFAULT_CONFIG.GENERAL.fab_actions);
+				config[this.modeSelect.value][this.gestureSelect.value] = this.actionSelect.value;
+				GM_setValue('ao3_fab_actions', config);
+			});
+		}
+	}
+
+	/**
+	 * 设置面板逻辑初始化主函数
+	 */
+	function initializeSettingsPanelLogic(panelElements, rerenderMenuCallback, onPanelCloseCallback) {
+		// 1. 实例化主控制器
+		const controller = new SettingsPanelController(panelElements, rerenderMenuCallback, onPanelCloseCallback);
+
+		// 2. 注册模块
+		controller.registerModule('editable-section-blocker', new BlockerSettingsModule(controller));
+		controller.registerModule('editable-section-cache-manage', new CacheSettingsModule(controller));
+		controller.registerModule('editable-section-ai-settings', new AiSettingsModule(controller));
+		controller.registerModule('editable-section-local-manage', new LocalGlossaryModule(controller));
+		controller.registerModule('editable-section-online-manage', new OnlineGlossaryModule(controller));
+		controller.registerModule('editable-section-post-replace', new PostReplaceModule(controller));
+		controller.registerModule('editable-section-lang-detect', new LangDetectModule(controller));
+		controller.registerModule('editable-section-debug-mode', new DebugModeModule(controller));
+		controller.registerModule('data-sync-actions-container', new DataSyncModule(controller));
+		controller.registerModule('editable-section-formatting', new FormattingModule(controller));
+		controller.registerModule('editable-section-export-manage', new ExportModule(controller));
+		controller.registerModule('editable-section-fab-manage', new FabManageModule(controller));
+		controller.registerModule('global-general', new GeneralSettingsModule(controller));
+		controller.registerModule('global-services', new TranslationServiceModule(controller));
+
+		// 3. 执行首次数据同步
+		controller.syncAllModules();
+
+		// 4. 读取上次保留的动作路由并初始化默认展现状态
+		const lastAction = GM_getValue('ao3_glossary_last_action', '');
+		const glossaryActionsSelect = panelElements.panel.querySelector('#setting-glossary-actions');
+		glossaryActionsSelect.value = lastAction;
+		
+		if (lastAction) {
+			const sectionId = controller.routeMap[lastAction];
+			controller.switchSection(sectionId || null);
+		} else {
+			glossaryActionsSelect.value = "";
+			controller.switchSection(null);
+		}
+
+		// 5. 初始化所有非重置全局组件的初始 UI 属性
+		panelElements.panel.querySelectorAll('.settings-control').forEach(el => {
+			if (el.value && (el.tagName !== 'SELECT' || el.options[el.selectedIndex]?.disabled !== true)) {
+				el.classList.add('has-value');
+			}
 		});
 
-		blockerDimensionSelect.addEventListener('change', () => {
-			GM_setValue(BLOCKER_VIEW_KEY, blockerDimensionSelect.value);
-			renderBlockerSubDimensions();
-		});
-
-		blockerSubDimensionSelect.addEventListener('change', () => {
-			GM_setValue(BLOCKER_SUB_VIEW_KEY, blockerSubDimensionSelect.value);
-			renderBlockerInput();
-		});
-
-		toggleBlockerBtn.addEventListener('click', () => {
-			const newState = !GM_getValue('ao3_blocker_enabled', DEFAULT_CONFIG.BLOCKER.enabled);
-			saveSetting('ao3_blocker_enabled', newState, DEFAULT_CONFIG.BLOCKER.enabled);
-			updateBlockerButtonText();
-			refreshBlocker('full');
-		});
-
-		toggleReasonsBtn.addEventListener('click', () => {
-			const newState = !GM_getValue('ao3_blocker_show_reasons', DEFAULT_CONFIG.BLOCKER.show_reasons);
-			saveSetting('ao3_blocker_show_reasons', newState, DEFAULT_CONFIG.BLOCKER.show_reasons);
-			updateBlockerButtonText();
-			refreshBlocker('full');
-		});
-
-		return { togglePanel, panel };
+		// 6. 返回暴露接口
+		return {
+			togglePanel: () => controller.togglePanel(),
+			panel: controller.panel,
+			setIgnoreOutsideClick: () => controller.setIgnoreOutsideClick()
+		};
 	}
 
 	/**************************************************************************
@@ -6521,7 +9558,7 @@
 			.replace(/[‘’]/g, "'");
 	}
 
-    /**
+	/**
 	 * 智能去引号工具
 	 */
 	function smartUnquote(s) {
@@ -6539,11 +9576,11 @@
 			(first === '‘' && last === '’')) {
 			return s.slice(1, -1);
 		}
-		
+
 		return s;
 	}
 
-    /**
+	/**
 	 * 通用引用感知分词引擎
 	 */
 	function tokenizeQuoteAware(str, separators = [',', '+', '-']) {
@@ -6580,7 +9617,7 @@
 						}
 					}
 
-					if (nextNonSpaceChar === null || separators.includes(nextNonSpaceChar)) {
+					if (nextNonSpaceChar === null || separators.includes(nextNonSpaceChar) || [':', '：', '=', '＝'].includes(nextNonSpaceChar)) {
 						inQuote = false;
 						expectedCloseQuote = "";
 					}
@@ -6622,7 +9659,7 @@
 		return normalizedText === normalizedPattern;
 	}
 
-    /**
+	/**
 	 * 解析屏蔽规则字符串
 	 */
 	function parseBlockerRules(input) {
@@ -6634,14 +9671,14 @@
 		tokens.forEach(token => {
 			if (token.op === ',' || !currentRule) {
 				if (currentRule) rules.push(currentRule);
-				currentRule = { 
-					base: smartUnquote(token.value), 
-					conditions: [] 
+				currentRule = {
+					base: smartUnquote(token.value),
+					conditions: []
 				};
 			} else {
-				currentRule.conditions.push({ 
-					type: token.op, 
-					value: smartUnquote(token.value) 
+				currentRule.conditions.push({
+					type: token.op,
+					value: smartUnquote(token.value)
 				});
 			}
 		});
@@ -6681,7 +9718,7 @@
 		return diffMonths;
 	}
 
-    /**
+	/**
 	 * 提取并分类标签
 	 */
 	function getCategorizedTags(blurb) {
@@ -6724,8 +9761,28 @@
 	 * 提取作品卡片中的元数据
 	 */
 	function extractWorkData(blurb) {
+		const isWork = blurb.classList.contains('work');
+		const isSeries = blurb.classList.contains('series');
+		const isCollection = blurb.classList.contains('collection');
+
 		const titleLink = blurb.querySelector('.header .heading a:first-child');
-		const authors = Array.from(blurb.querySelectorAll('a[rel="author"]')).map(a => a.textContent.trim());
+
+		let authors = Array.from(blurb.querySelectorAll('a[rel="author"]')).map(a => a.textContent.trim());
+
+		if (authors.length === 0) {
+			const heading = blurb.querySelector('.header .heading');
+			if (heading) {
+				const clone = heading.cloneNode(true);
+				const tLink = clone.querySelector('a');
+				if (tLink) tLink.remove();
+				let authorText = clone.textContent.replace(/\s+/g, ' ').trim();
+				authorText = authorText.replace(/^by\s+/i, '').trim();
+				if (authorText) {
+					authors = [authorText];
+				}
+			}
+		}
+
 		const summaryNode = blurb.querySelector('blockquote.summary');
 		const summary = summaryNode ? summaryNode.textContent.trim() : '';
 		const wordsNode = blurb.querySelector('dd.words');
@@ -6742,6 +9799,9 @@
 		const fandomCount = explicitFandoms.length;
 
 		return {
+			isWork,
+			isSeries,
+			isCollection,
 			title: titleLink ? titleLink.textContent.trim() : '',
 			authors,
 			summary,
@@ -6804,7 +9864,7 @@
 	 */
 	function compileBlockerRule(input, targetExact, targetFuzzy) {
 		if (!input) return;
-		const rules = parseBlockerRules(input); 
+		const rules = parseBlockerRules(input);
 		for (const rule of rules) {
 			if (rule.base.includes('*') || (rule.conditions && rule.conditions.length > 0)) {
 				targetFuzzy.push(rule);
@@ -6833,16 +9893,16 @@
 		compileBlockerRule(GM_getValue('ao3_blocker_tags_black', DEFAULT_CONFIG.BLOCKER.tags_black), rules.tags.black.exact, rules.tags.black.fuzzy);
 		compileBlockerRule(GM_getValue('ao3_blocker_tags_white', DEFAULT_CONFIG.BLOCKER.tags_white), rules.tags.white.exact, rules.tags.white.fuzzy);
 
-        const parseList = (key, defaultVal, toLowerCase = false) => {
-            const raw = GM_getValue(key, defaultVal);
-            if (!raw) return [];
+		const parseList = (key, defaultVal, toLowerCase = false) => {
+			const raw = GM_getValue(key, defaultVal);
+			if (!raw) return [];
 
-            const normalized = normalizeBlockerInput(raw);
-            return tokenizeQuoteAware(normalized, [',']).map(token => {
-                let clean = smartUnquote(token.value);
-                return toLowerCase ? clean.toLowerCase() : clean;
-            }).filter(Boolean);
-        };
+			const normalized = normalizeBlockerInput(raw);
+			return tokenizeQuoteAware(normalized, [',']).map(token => {
+				let clean = smartUnquote(token.value);
+				return toLowerCase ? clean.toLowerCase() : clean;
+			}).filter(Boolean);
+		};
 
 		const parseIntVal = (key, defaultVal) => {
 			let val = GM_getValue(key, defaultVal);
@@ -6897,6 +9957,7 @@
 		const reasons = [];
 		const workTags = workData.tags || [];
 
+		// 1. 白名单判定
 		const isWhitelisted = workTags.some(tag => {
 			const normalized = getNormalizedText(tag);
 			if (rules.tags.white.exact.has(normalized)) return true;
@@ -6912,8 +9973,8 @@
 		});
 		if (isWhitelisted) return null;
 
+		// 2. 标签黑名单判定
 		const tagReasons = [];
-
 		for (const tag of workTags) {
 			const normalized = getNormalizedText(tag);
 
@@ -6946,6 +10007,7 @@
 			reasons.push(bestReason);
 		}
 
+		// 3. 内容黑名单判定
 		const hitAuthor = workData.authors.find(a => rules.content.author.has(getNormalizedText(a)));
 		if (hitAuthor) reasons.push(`作者 '${hitAuthor}'`);
 
@@ -6959,40 +10021,47 @@
 		const hitSummary = rules.content.summary.find(p => normalizedSummary.includes(p));
 		if (hitSummary) reasons.push(`简介关键词 '${hitSummary}'`);
 
-		if (!isNaN(rules.stats.minWords) && workData.wordCount < rules.stats.minWords) reasons.push(`字数少于 ${rules.stats.minWords}`);
-		if (!isNaN(rules.stats.maxWords) && workData.wordCount > rules.stats.maxWords) reasons.push(`字数多于 ${rules.stats.maxWords}`);
-		if (!isNaN(rules.stats.minChapters) && workData.chapterInfo.current < rules.stats.minChapters) reasons.push(`章节少于 ${rules.stats.minChapters}`);
-		if (!isNaN(rules.stats.maxChapters) && workData.chapterInfo.current > rules.stats.maxChapters) reasons.push(`章节多于 ${rules.stats.maxChapters}`);
+		// 4. 统计数据过滤
+		if (workData.isWork) {
+			if (!isNaN(rules.stats.minWords) && workData.wordCount < rules.stats.minWords) reasons.push(`字数少于 ${rules.stats.minWords}`);
+			if (!isNaN(rules.stats.maxWords) && workData.wordCount > rules.stats.maxWords) reasons.push(`字数多于 ${rules.stats.maxWords}`);
+			if (!isNaN(rules.stats.minChapters) && workData.chapterInfo.current < rules.stats.minChapters) reasons.push(`章节少于 ${rules.stats.minChapters}`);
+			if (!isNaN(rules.stats.maxChapters) && workData.chapterInfo.current > rules.stats.maxChapters) reasons.push(`章节多于 ${rules.stats.maxChapters}`);
 
-		const isOngoing = workData.chapterInfo.total === null || workData.chapterInfo.current !== workData.chapterInfo.total;
-		if (!isNaN(rules.stats.update) && isOngoing && workData.monthsSinceUpdate > rules.stats.update) {
-			reasons.push(`未更新超过 ${rules.stats.update} 个月`);
+			const isOngoing = workData.chapterInfo.total === null || workData.chapterInfo.current !== workData.chapterInfo.total;
+			if (!isNaN(rules.stats.update) && isOngoing && workData.monthsSinceUpdate > rules.stats.update) {
+				reasons.push(`未更新超过 ${rules.stats.update} 个月`);
+			}
 		}
 
+		// 5. 跨圈判定
 		if (!isNaN(rules.stats.crossover) && workData.fandomCount > rules.stats.crossover) reasons.push(`同人圈超过 ${rules.stats.crossover} 个`);
 
-		if (rules.adv.lang.length > 0) {
-			const normalizedLang = getNormalizedText(workData.language);
-			if (!rules.adv.lang.some(l => normalizedLang.includes(l))) {
-				reasons.push(`语言不匹配`);
+		// 6. 高级筛选
+		if (workData.isWork) {
+			if (rules.adv.lang.length > 0) {
+				const normalizedLang = getNormalizedText(workData.language);
+				if (!rules.adv.lang.some(l => normalizedLang.includes(l))) {
+					reasons.push(`语言不匹配`);
+				}
 			}
-		}
 
-		if (rules.adv.pairing.length > 0) {
-			const scope = rules.adv.scopeRel || 1;
-			const relsToCheck = workData.categorizedTags.relationships.slice(0, scope);
-			const hasMatch = relsToCheck.some(tag => rules.adv.pairing.some(p => matchBlockerPattern(tag, p)));
-			if (!hasMatch) {
-				reasons.push(`主要关系不匹配`);
+			if (rules.adv.pairing.length > 0) {
+				const scope = rules.adv.scopeRel || 1;
+				const relsToCheck = workData.categorizedTags.relationships.slice(0, scope);
+				const hasMatch = relsToCheck.some(tag => rules.adv.pairing.some(p => matchBlockerPattern(tag, p)));
+				if (!hasMatch) {
+					reasons.push(`主要关系不匹配`);
+				}
 			}
-		}
 
-		if (rules.adv.char.length > 0) {
-			const scope = rules.adv.scopeChar || 5;
-			const charsToCheck = workData.categorizedTags.characters.slice(0, scope);
-			const hasMatch = charsToCheck.some(tag => rules.adv.char.some(c => matchBlockerPattern(tag, c)));
-			if (!hasMatch) {
-				reasons.push(`主要角色不匹配`);
+			if (rules.adv.char.length > 0) {
+				const scope = rules.adv.scopeChar || 5;
+				const charsToCheck = workData.categorizedTags.characters.slice(0, scope);
+				const hasMatch = charsToCheck.some(tag => rules.adv.char.some(c => matchBlockerPattern(tag, c)));
+				if (!hasMatch) {
+					reasons.push(`主要角色不匹配`);
+				}
 			}
 		}
 
@@ -7014,9 +10083,8 @@
 
 		if (blurb.classList.contains('ao3-blocker-work')) return;
 
-		const ICON_VISIBILITY = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
-
-		const ICON_VISIBILITY_OFF = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>';
+		const ICON_VISIBILITY = SVG_ICONS.visibilityOn;
+		const ICON_VISIBILITY_OFF = SVG_ICONS.visibilityOff;
 
 		const originalContent = Array.from(blurb.childNodes);
 		const cut = document.createElement('div');
@@ -7073,19 +10141,6 @@
 		blurb.classList.remove('ao3-blocker-work', 'ao3-blocker-hidden', 'ao3-blocker-unhide', 'ao3-blocker-processed');
 	}
 
-	/**
-	 * 扫描并屏蔽单个作品卡片
-	 */
-	function processSingleBlurb(blurb) {
-		if (blurb.classList.contains('ao3-blocker-processed') || blurb.classList.contains('muted')) return;
-
-		const data = extractWorkData(blurb);
-		const reason = getBlockReason(data);
-		if (reason) {
-			executeBlocking(blurb, reason);
-		}
-		blurb.classList.add('ao3-blocker-processed');
-	}
 
 	/**
 	 * 同步扫描所有作品
@@ -7160,24 +10215,13 @@
 			displayName: 'Anthropic',
 			modelGmKey: 'anthropic_model',
 			modelMapping: {
-				"claude-sonnet-4-5-20250929": "Claude 4.5 Sonnet-2025-09-29",
-				"claude-sonnet-4-5": "Claude 4.5 Sonnet-Latest",
-				"claude-opus-4-5-20251101": "Claude 4.5 Opus-2025-11-01",
-				"claude-opus-4-5": "Claude 4.5 Opus-Latest",
-				"claude-haiku-4-5-20251001": "Claude 4.5 Haiku-2025-10-01",
-				"claude-haiku-4-5": "Claude 4.5 Haiku-Latest",
-				"claude-opus-4-1-20250805": "Claude 4.1 Opus-2025-08-05",
-				"claude-opus-4-1": "Claude 4.1 Opus-Latest",
-				"claude-sonnet-4-20250514": "Claude 4 Sonnet-2025-05-14",
-				"claude-sonnet-4-0": "Claude 4 Sonnet-Latest",
-				"claude-opus-4-20250514": "Claude 4 Opus-2025-05-14",
-				"claude-opus-4-0": "Claude 4 Opus-Latest",
-				"claude-3-7-sonnet-20250219": "Claude 3.7 Sonnet-2025-02-19",
-				"claude-3-7-sonnet-latest": "Claude 3.7 Sonnet-Latest",
-				"claude-3-5-haiku-20241022": "Claude 3.5 Haiku-2024-10-22",
-				"claude-3-5-haiku-latest": "Claude 3.5 Haiku-Latest",
-				"claude-3-opus-20240229": "Claude 3 Opus-2024-02-29",
-				"claude-3-haiku-20240307": "Claude 3 Haiku"
+				"claude-opus-4-7": "Claude Opus 4.7",
+				"claude-sonnet-4-6": "Claude Sonnet 4.6",
+				"claude-opus-4-6": "Claude Opus 4.6",
+				"claude-opus-4-5-20251101": "Claude Opus 4.5 2025-11-01",
+				"claude-haiku-4-5-20251001": "Claude Haiku 4.5 2025-10-01",
+				"claude-sonnet-4-5-20250929": "Claude Sonnet 4.5 2025-09-29",
+				"claude-opus-4-1-20250805": "Claude Opus 4.1 2025-08-05"
 			},
 			requiresApiKey: true
 		},
@@ -7186,8 +10230,7 @@
 			modelGmKey: 'cerebras_model',
 			modelMapping: {
 				'qwen-3-235b-a22b-instruct-2507': 'Qwen 3 235B',
-				'gpt-oss-120b': 'GPT-OSS 120B',
-				'zai-glm-4.7': 'GLM 4.7'
+				'llama3.1-8b': 'Llama 3 8B'
 			},
 			requiresApiKey: true
 		},
@@ -7195,8 +10238,8 @@
 			displayName: 'DeepSeek',
 			modelGmKey: 'deepseek_model',
 			modelMapping: {
-				'deepseek-reasoner': 'DeepSeek V3.2 Think',
-				'deepseek-chat': 'DeepSeek V3.2 Non-Think'
+				'deepseek-v4-flash': 'DeepSeek V4 Flash',
+				'deepseek-v4-pro': 'DeepSeek V4 Pro'
 			},
 			requiresApiKey: true
 		},
@@ -7204,9 +10247,21 @@
 			displayName: 'Google AI',
 			modelGmKey: 'google_ai_model',
 			modelMapping: {
-				'gemini-2.5-pro': 'Gemini 2.5 Pro',
-				'gemini-flash-latest': 'Gemini 2.5 Flash',
-				'gemini-flash-lite-latest': 'Gemini 2.5 Flash-Lite'
+				'gemini-3.5-flash': 'Gemini 3.5 Flash',
+				"gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
+				"gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite",
+				"gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite Preview",
+				"gemini-3-pro-preview": "Gemini 3 Pro Preview",
+				"gemini-3-flash-preview": "Gemini 3 Flash Preview",
+				"gemini-2.5-pro": "Gemini 2.5 Pro",
+				"gemini-2.5-flash": "Gemini 2.5 Flash",
+				"gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
+				"gemini-2.0-flash": "Gemini 2.0 Flash",
+				"gemini-2.0-flash-lite": "Gemini 2.0 Flash Lite",
+				"gemma-4-26b-a4b-it": "Gemma 4 26B A4B IT",
+				"gemini-pro-latest": "Gemini Pro Latest",
+				"gemini-flash-latest": "Gemini Flash Latest",
+				"gemini-flash-lite-latest": "Gemini Flash Lite Latest"
 			},
 			requiresApiKey: true
 		},
@@ -7214,10 +10269,14 @@
 			displayName: 'Groq AI',
 			modelGmKey: 'groq_model',
 			modelMapping: {
-                'moonshotai/kimi-k2-instruct-0905': 'Kimi K2',
-				'meta-llama/llama-4-maverick-17b-128e-instruct': 'Llama 4 Maverick',
-				'meta-llama/llama-4-scout-17b-16e-instruct': 'Llama 4 Scout',
-				'openai/gpt-oss-120b': 'GPT-OSS 120B'
+				"meta-llama/llama-4-scout-17b-16e-instruct": "Llama 4 Scout 17B 16E Instruct",
+				"llama-3.3-70b-versatile": "Llama 3.3 70B Versatile",
+				"llama-3.1-8b-instant": "Llama 3.1 8B Instant",
+				"openai/gpt-oss-120b": "GPT OSS 120B",
+				"openai/gpt-oss-20b": "GPT OSS 20B",
+				"groq/compound": "Compound",
+				"groq/compound-mini": "Compound Mini",
+				"allam-2-7b": "Allam 2 7B",
 			},
 			requiresApiKey: true
 		},
@@ -7225,10 +10284,29 @@
 			displayName: 'ModelScope',
 			modelGmKey: 'modelscope_model',
 			modelMapping: {
-				'deepseek-ai/DeepSeek-V3.2': 'DeepSeek V3.2',
-				'ZhipuAI/GLM-4.7': 'GLM 4.7',
-				'Qwen/Qwen3-235B-A22B-Instruct-2507': 'Qwen3 235B',
-				'MiniMax/MiniMax-M1-80k': 'MiniMax M1-80k'
+				"MiniMax/MiniMax-M2.5": "MiniMax M2.5",
+				"moonshotai/Kimi-K2.5": "Kimi K2.5",
+				"Qwen/Qwen3.5-397B-A17B": "Qwen 3.5 397B A17B",
+				"Qwen/Qwen3.5-122B-A10B": "Qwen 3.5 122B A10B",
+				"Qwen/Qwen3.5-35B-A3B": "Qwen 3.5 35B A3B",
+				"Qwen/Qwen3.5-27B": "Qwen 3.5 27B",
+				"Qwen/Qwen3-235B-A22B-Thinking-2507": "Qwen 3 235B A22B Thinking 2025-07",
+				"Qwen/Qwen3-235B-A22B-Instruct-2507": "Qwen 3 235B A22B Instruct 2025-07",
+				"Qwen/Qwen3-30B-A3B-Thinking-2507": "Qwen 3 30B A3B Thinking 2025-07",
+				"Qwen/Qwen3-Next-80B-A3B-Thinking": "Qwen 3 Next 80B A3B Thinking",
+				"Qwen/Qwen3-Next-80B-A3B-Instruct": "Qwen 3 Next 80B A3B Instruct",
+				"Qwen/Qwen3-235B-A22B": "Qwen 3 235B A22B",
+				"Qwen/QwQ-32B-Preview": "QwQ 32B Preview",
+				"deepseek-ai/DeepSeek-V4-Flash": "DeepSeek V4 Flash",
+				"deepseek-ai/DeepSeek-V3.2": "DeepSeek V3.2",
+				"deepseek-ai/DeepSeek-R1-0528": "DeepSeek R1 2025-05-28",
+				"deepseek-ai/DeepSeek-R1-Distill-Qwen-32B": "DeepSeek R1 Distill Qwen 32B",
+				"deepseek-ai/DeepSeek-R1-Distill-Qwen-14B": "DeepSeek R1 Distill Qwen 14B",
+				"ZhipuAI/GLM-5.1": "GLM 5.1",
+				"ZhipuAI/GLM-5": "GLM 5",
+				"mistralai/Mistral-Small-Instruct-2409": "Mistral Small Instruct 2024-09",
+				"mistralai/Mistral-Large-Instruct-2407": "Mistral Large Instruct 2024-07",
+				"stepfun-ai/Step-3.5-Flash": "Step 3.5 Flash"
 			},
 			requiresApiKey: true
 		},
@@ -7236,45 +10314,56 @@
 			displayName: 'OpenAI',
 			modelGmKey: 'openai_model',
 			modelMapping: {
-				"gpt-5.2": "GPT-5.2",
-				"gpt-5.1": "GPT-5.1",
-				"gpt-5": "GPT-5",
-				"gpt-5-mini": "GPT-5 Mini",
-				"gpt-5-nano": "GPT-5 Nano",
-				"gpt-5.2-chat-latest": "GPT-5.2 Chat Latest",
-				"gpt-5.1-chat-latest": "GPT-5.1 Chat Latest",
-				"gpt-5-chat-latest": "GPT-5 Chat Latest",
-				"gpt-5.1-codex-max": "GPT-5.1 Codex Max",
-				"gpt-5.1-codex": "GPT-5.1 Codex",
-				"gpt-5-codex": "GPT-5 Codex",
-				"gpt-5.2-pro": "GPT-5.2 Pro",
-				"gpt-5-pro": "GPT-5 Pro",
-				"gpt-4.1": "GPT-4.1",
-				"gpt-4.1-mini": "GPT-4.1 Mini",
-				"gpt-4.1-nano": "GPT-4.1 Nano",
-				"gpt-4o": "GPT-4o",
-				"gpt-4o-2024-05-13": "GPT-4o-2024-05-13",
-				"gpt-4o-mini": "GPT-4o Mini",
-				"o1": "o1",
-				"o1-pro": "o1 Pro",
-				"o3-pro": "o3 Pro",
-				"o3": "o3",
-				"o3-deep-research": "o3 Deep Research",
+				"gpt-5.5-pro-2026-04-23": "GPT 5.5 Pro 2026-04-23",
+				"gpt-5.5-pro": "GPT 5.5 Pro",
+				"gpt-5.5-2026-04-23": "GPT 5.5 2026-04-23",
+				"gpt-5.5": "GPT 5.5",
+				"gpt-5.4-pro-2026-03-05": "GPT 5.4 Pro 2026-03-05",
+				"gpt-5.4-pro": "GPT 5.4 Pro",
+				"gpt-5.4-2026-03-05": "GPT 5.4 2026-03-05",
+				"gpt-5.4": "GPT 5.4",
+				"gpt-5.4-mini-2026-03-17": "GPT 5.4 Mini 2026-03-17",
+				"gpt-5.4-mini": "GPT 5.4 Mini",
+				"gpt-5.3-chat-latest": "GPT 5.3 Chat Latest",
+				"gpt-5.2-pro-2025-12-11": "GPT 5.2 Pro 2025-12-11",
+				"gpt-5.2-pro": "GPT 5.2 Pro",
+				"gpt-5.2-chat-latest": "GPT 5.2 Chat Latest",
+				"gpt-5.2-2025-12-11": "GPT 5.2 2025-12-11",
+				"gpt-5.2": "GPT 5.2",
+				"gpt-5.1-chat-latest": "GPT 5.1 Chat Latest",
+				"gpt-5.1-2025-11-13": "GPT 5.1 2025-11-13",
+				"gpt-5.1": "GPT 5.1",
+				"gpt-5-pro-2025-10-06": "GPT 5 Pro 2025-10-06",
+				"gpt-5-pro": "GPT 5 Pro",
+				"gpt-5-chat-latest": "GPT 5 Chat Latest",
+				"gpt-5-2025-08-07": "GPT 5 2025-08-07",
+				"gpt-5": "GPT 5",
+				"gpt-5-mini-2025-08-07": "GPT 5 Mini 2025-08-07",
+				"gpt-5-mini": "GPT 5 Mini",
+				"o4-mini-2025-04-16": "o4 Mini 2025-04-16",
 				"o4-mini": "o4 Mini",
-				"o4-mini-deep-research": "o4 Mini Deep Research",
+				"o3-2025-04-16": "o3 2025-04-16",
+				"o3": "o3",
+				"o3-mini-2025-01-31": "o3 Mini 2025-01-31",
 				"o3-mini": "o3 Mini",
-				"o1-mini": "o1 Mini",
-				"gpt-5.1-codex-mini": "GPT-5.1 Codex Mini",
-				"codex-mini-latest": "Codex Mini Latest",
-				"gpt-5-search-api": "GPT-5 Search API",
-				"gpt-4o-mini-search-preview": "GPT-4o Mini Search Preview",
-				"gpt-4o-search-preview": "GPT-4o Search Preview",
-				"chatgpt-4o-latest": "ChatGPT-4o Latest",
-				"gpt-4-turbo": "GPT-4 Turbo",
-				"gpt-4": "GPT-4",
-				"gpt-3.5-turbo": "GPT-3.5 Turbo",
-				"gpt-oss-120b": "GPT-OSS 120B",
-				"gpt-oss-20b": "GPT-OSS 20B"
+				"o1-2024-12-17": "o1 2024-12-17",
+				"o1": "o1",
+				"gpt-4.1-2025-04-14": "GPT 4.1 2025-04-14",
+				"gpt-4.1": "GPT 4.1",
+				"gpt-4.1-mini-2025-04-14": "GPT 4.1 Mini 2025-04-14",
+				"gpt-4.1-mini": "GPT 4.1 Mini",
+				"gpt-4o-2024-11-20": "GPT 4o 2024-11-20",
+				"gpt-4o-2024-08-06": "GPT 4o 2024-08-06",
+				"gpt-4o-2024-05-13": "GPT 4o 2024-05-13",
+				"gpt-4o": "GPT 4o",
+				"gpt-4o-mini-2024-07-18": "GPT 4o Mini 2024-07-18",
+				"gpt-4o-mini": "GPT 4o Mini",
+				"gpt-3.5-turbo-0125": "GPT 3.5 Turbo 0125",
+				"gpt-3.5-turbo-1106": "GPT 3.5 Turbo 1106",
+				"gpt-3.5-turbo": "GPT 3.5 Turbo",
+				"gpt-3.5-turbo-16k": "GPT 3.5 Turbo 16k",
+				"gpt-3.5-turbo-instruct-0914": "GPT 3.5 Turbo Instruct 0914",
+				"gpt-3.5-turbo-instruct": "GPT 3.5 Turbo Instruct",
 			},
 			requiresApiKey: true
 		},
@@ -7282,81 +10371,63 @@
 			displayName: 'SiliconFlow',
 			modelGmKey: 'siliconflow_model',
 			modelMapping: {
-				'ascend-tribe/pangu-pro-moe': 'Pangu Pro MoE',
-				'baidu/ERNIE-4.5-300B-A47B': 'ERNIE 4.5 300B',
-				'ByteDance-Seed/Seed-OSS-36B-Instruct': 'Seed OSS 36B',
-				'deepseek-ai/DeepSeek-V3.2': 'DeepSeek V3.2',
-				'Pro/deepseek-ai/DeepSeek-V3.2': 'DeepSeek V3.2 (Pro)',
-				'deepseek-ai/DeepSeek-V3.1-Terminus': 'DeepSeek V3.1 Terminus',
-				'Pro/deepseek-ai/DeepSeek-V3.1-Terminus': 'DeepSeek V3.1 Terminus (Pro)',
-				'deepseek-ai/DeepSeek-V3': 'DeepSeek V3',
-				'Pro/deepseek-ai/DeepSeek-V3': 'DeepSeek V3 (Pro)',
-				'deepseek-ai/DeepSeek-R1': 'DeepSeek R1',
-				'Pro/deepseek-ai/DeepSeek-R1': 'DeepSeek R1 (Pro)',
-				'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B': 'DeepSeek R1 Distill (Qwen 32B)',
-				'deepseek-ai/DeepSeek-R1-Distill-Qwen-14B': 'DeepSeek R1 Distill (Qwen 14B)',
-				'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B': 'DeepSeek R1 Distill (Qwen 7B)',
-				'Pro/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B': 'DeepSeek R1 Distill (Qwen 7B) (Pro)',
-				'deepseek-ai/DeepSeek-R1-0528-Qwen3-8B': 'DeepSeek R1 (Qwen3 8B)',
-				'deepseek-ai/DeepSeek-V2.5': 'DeepSeek V2.5',
-				'inclusionAI/Ring-flash-2.0': 'Ring Flash 2.0',
-				'inclusionAI/Ling-flash-2.0': 'Ling Flash 2.0',
-				'inclusionAI/Ling-mini-2.0': 'Ling Mini 2.0',
-				'internlm/internlm2_5-7b-chat': 'InternLM 2.5 7B',
-				'Kwaipilot/KAT-Dev': 'KAT Dev',
-				'MiniMaxAI/MiniMax-M2': 'MiniMax M2',
-				'MiniMaxAI/MiniMax-M1-80k': 'MiniMax M1 80k',
-				'moonshotai/Kimi-K2-Thinking': 'Kimi K2 Thinking',
-				'Pro/moonshotai/Kimi-K2-Thinking': 'Kimi K2 Thinking (Pro)',
-				'moonshotai/Kimi-K2-Instruct-0905': 'Kimi K2 Instruct',
-				'Pro/moonshotai/Kimi-K2-Instruct-0905': 'Kimi K2 Instruct (Pro)',
-				'moonshotai/Kimi-Dev-72B': 'Kimi Dev 72B',
-				'Qwen/Qwen3-Next-80B-A3B-Thinking': 'Qwen3 Next 80B Thinking',
-				'Qwen/Qwen3-Next-80B-A3B-Instruct': 'Qwen3 Next 80B Instruct',
-				'Qwen/Qwen3-30B-A3B-Thinking-2507': 'Qwen3 30B Thinking',
-				'Qwen/Qwen3-30B-A3B-Instruct-2507': 'Qwen3 30B Instruct',
-				'Qwen/Qwen3-235B-A22B-Thinking-2507': 'Qwen3 235B Thinking',
-				'Qwen/Qwen3-235B-A22B-Instruct-2507': 'Qwen3 235B Instruct',
-				'Qwen/Qwen3-30B-A3B': 'Qwen3 30B',
-				'Qwen/Qwen3-32B': 'Qwen3 32B',
-				'Qwen/Qwen3-14B': 'Qwen3 14B',
-				'Qwen/Qwen3-8B': 'Qwen3 8B',
-				'Qwen/Qwen3-Coder-480B-A35B-Instruct': 'Qwen3 Coder 480B',
-				'Qwen/Qwen3-Coder-30B-A3B-Instruct': 'Qwen3 Coder 30B',
-				'Qwen/Qwen3-Omni-30B-A3B-Thinking': 'Qwen3 Omni 30B Thinking',
-				'Qwen/Qwen3-Omni-30B-A3B-Instruct': 'Qwen3 Omni 30B Instruct',
-				'Qwen/QwQ-32B': 'QwQ 32B',
-				'Qwen/QVQ-72B-Preview': 'QVQ 72B Preview',
-				'Qwen/Qwen2.5-72B-Instruct-128K': 'Qwen 2.5 72B (128K)',
-				'Qwen/Qwen2.5-72B-Instruct': 'Qwen 2.5 72B',
-				'LoRA/Qwen/Qwen2.5-72B-Instruct': 'Qwen 2.5 72B (LoRA)',
-				'Qwen/Qwen2.5-32B-Instruct': 'Qwen 2.5 32B',
-				'LoRA/Qwen/Qwen2.5-32B-Instruct': 'Qwen 2.5 32B (LoRA)',
-				'Qwen/Qwen2.5-14B-Instruct': 'Qwen 2.5 14B',
-				'LoRA/Qwen/Qwen2.5-14B-Instruct': 'Qwen 2.5 14B (LoRA)',
-				'Qwen/Qwen2.5-7B-Instruct': 'Qwen 2.5 7B',
-				'Pro/Qwen/Qwen2.5-7B-Instruct': 'Qwen 2.5 7B (Pro)',
-				'LoRA/Qwen/Qwen2.5-7B-Instruct': 'Qwen 2.5 7B (LoRA)',
-				'Qwen/Qwen2.5-Coder-32B-Instruct': 'Qwen 2.5 Coder 32B',
-				'Qwen/Qwen2.5-Coder-7B-Instruct': 'Qwen 2.5 Coder 7B',
-				'Pro/Qwen/Qwen2.5-Coder-7B-Instruct': 'Qwen 2.5 Coder 7B (Pro)',
-				'Qwen/Qwen2-7B-Instruct': 'Qwen 2 7B',
-				'Pro/Qwen/Qwen2-7B-Instruct': 'Qwen 2 7B (Pro)',
-				'Tongyi-Zhiwen/QwenLong-L1-32B': 'QwenLong L1 32B',
-				'stepfun-ai/step3': 'Step-3',
-				'tencent/Hunyuan-A13B-Instruct': 'Hunyuan A13B',
-				'tencent/Hunyuan-MT-7B': 'Hunyuan MT 7B',
-				'Pro/zai-org/GLM-4.7': 'GLM 4.7 (Pro)',
-				'zai-org/GLM-4.6': 'GLM 4.6',
-				'zai-org/GLM-4.5': 'GLM 4.5',
-				'zai-org/GLM-4.5-Air': 'GLM 4.5 Air',
-				'THUDM/GLM-4-32B-0414': 'GLM-4 32B',
-				'THUDM/GLM-4-9B-0414': 'GLM-4 9B',
-				'THUDM/glm-4-9b-chat': 'GLM-4 9B Chat',
-				'Pro/THUDM/glm-4-9b-chat': 'GLM-4 9B Chat (Pro)',
-				'THUDM/GLM-Z1-32B-0414': 'GLM Z1 32B',
-				'THUDM/GLM-Z1-Rumination-32B-0414': 'GLM Z1 Rumination 32B',
-				'THUDM/GLM-Z1-9B-0414': 'GLM Z1 9B'
+				"Qwen/Qwen3.6-35B-A3B": "Qwen 3.6 35B A3B",
+				"Qwen/Qwen3.6-27B": "Qwen 3.6 27B",
+				"Qwen/Qwen3.5-397B-A17B": "Qwen 3.5 397B A17B",
+				"Qwen/Qwen3.5-122B-A10B": "Qwen 3.5 122B A10B",
+				"Qwen/Qwen3.5-35B-A3B": "Qwen 3.5 35B A3B",
+				"Qwen/Qwen3.5-27B": "Qwen 3.5 27B",
+				"Qwen/Qwen3.5-9B": "Qwen 3.5 9B",
+				"Qwen/Qwen3-235B-A22B-Instruct-2507": "Qwen 3 235B A22B Instruct 2025-07",
+				"Qwen/Qwen3-30B-A3B-Thinking-2507": "Qwen 3 30B A3B Thinking 2025-07",
+				"Qwen/Qwen3-30B-A3B-Instruct-2507": "Qwen 3 30B A3B Instruct 2025-07",
+				"Qwen/Qwen3-32B": "Qwen 3 32B",
+				"Qwen/Qwen3-14B": "Qwen 3 14B",
+				"Qwen/Qwen3-8B": "Qwen 3 8B",
+				"Qwen/Qwen2.5-72B-Instruct-128K": "Qwen 2.5 72B Instruct 128K",
+				"Qwen/Qwen2.5-72B-Instruct": "Qwen 2.5 72B Instruct",
+				"Qwen/Qwen2.5-32B-Instruct": "Qwen 2.5 32B Instruct",
+				"Qwen/Qwen2.5-14B-Instruct": "Qwen 2.5 14B Instruct",
+				"Qwen/Qwen2.5-7B-Instruct": "Qwen 2.5 7B Instruct",
+				"Pro/Qwen/Qwen2.5-7B-Instruct": "Pro Qwen 2.5 7B Instruct",
+				"LoRA/Qwen/Qwen2.5-72B-Instruct": "LoRA Qwen 2.5 72B Instruct",
+				"LoRA/Qwen/Qwen2.5-32B-Instruct": "LoRA Qwen 2.5 32B Instruct",
+				"LoRA/Qwen/Qwen2.5-14B-Instruct": "LoRA Qwen 2.5 14B Instruct",
+				"LoRA/Qwen/Qwen2.5-7B-Instruct": "LoRA Qwen 2.5 7B Instruct",
+				"deepseek-ai/DeepSeek-V4-Flash": "DeepSeek V4 Flash",
+				"Pro/deepseek-ai/DeepSeek-V3.2": "Pro DeepSeek V3.2",
+				"deepseek-ai/DeepSeek-V3.2": "DeepSeek V3.2",
+				"Pro/deepseek-ai/DeepSeek-V3.1-Terminus": "Pro DeepSeek V3.1 Terminus",
+				"deepseek-ai/DeepSeek-V3.1-Terminus": "DeepSeek V3.1 Terminus",
+				"Pro/deepseek-ai/DeepSeek-R1": "Pro DeepSeek R1",
+				"deepseek-ai/DeepSeek-R1": "DeepSeek R1",
+				"deepseek-ai/DeepSeek-R1-0528-Qwen3-8B": "DeepSeek R1 2025-05-28 Qwen3 8B",
+				"Pro/deepseek-ai/DeepSeek-V3": "Pro DeepSeek V3",
+				"deepseek-ai/DeepSeek-V3": "DeepSeek V3",
+				"Pro/moonshotai/Kimi-K2.6": "Pro Kimi K2.6",
+				"Pro/moonshotai/Kimi-K2.5": "Pro Kimi K2.5",
+				"Pro/moonshotai/Kimi-K2-Thinking": "Pro Kimi K2 Thinking",
+				"moonshotai/Kimi-K2-Thinking": "Kimi K2 Thinking",
+				"Pro/moonshotai/Kimi-K2-Instruct-0905": "Pro Kimi K2 Instruct 2025-09-05",
+				"moonshotai/Kimi-K2-Instruct-0905": "Kimi K2 Instruct 2025-09-05",
+				"Pro/zai-org/GLM-5.1": "Pro GLM 5.1",
+				"Pro/zai-org/GLM-5": "Pro GLM 5",
+				"Pro/zai-org/GLM-4.7": "Pro GLM 4.7",
+				"zai-org/GLM-4.6": "GLM 4.6",
+				"zai-org/GLM-4.5-Air": "GLM 4.5 Air",
+				"THUDM/GLM-Z1-32B-0414": "GLM Z1 32B 2024-04-14",
+				"THUDM/GLM-4-32B-0414": "GLM 4 32B 2024-04-14",
+				"THUDM/GLM-Z1-9B-0414": "GLM Z1 9B 2024-04-14",
+				"THUDM/GLM-4-9B-0414": "GLM 4 9B 2024-04-14",
+				"Pro/MiniMaxAI/MiniMax-M2.5": "Pro MiniMax M2.5",
+				"MiniMaxAI/MiniMax-M2.5": "MiniMax M2.5",
+				"tencent/Hunyuan-A13B-Instruct": "Hunyuan A13B Instruct",
+				"tencent/Hunyuan-MT-7B": "Hunyuan MT 7B",
+				"inclusionAI/Ring-flash-2.0": "Ring Flash 2.0",
+				"inclusionAI/Ling-flash-2.0": "Ling Flash 2.0",
+				"inclusionAI/Ling-mini-2.0": "Ling Mini 2.0",
+				"ByteDance-Seed/Seed-OSS-36B-Instruct": "Seed OSS 36B Instruct",
+				"stepfun-ai/Step-3.5-Flash": "Step 3.5 Flash"
 			},
 			requiresApiKey: true
 		},
@@ -7364,12 +10435,86 @@
 			displayName: 'Together AI',
 			modelGmKey: 'together_model',
 			modelMapping: {
-				'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8': 'Llama 4 Maverick',
-				'deepseek-ai/DeepSeek-V3': 'DeepSeek V3',
-				'moonshotai/Kimi-K2-Instruct': 'Kimi K2',
-				'zai-org/GLM-4.6': 'GLM 4.6',
-				'Qwen/Qwen3-235B-A22B-Instruct-2507-tput': 'Qwen3 235B',
-				'openai/gpt-oss-120b': 'GPT-OSS 120B'
+				"Qwen/Qwen3.6-Plus": "Qwen 3.6 Plus",
+				"Qwen/Qwen3.6-35B-A3B": "Qwen 3.6 35B A3B",
+				"Qwen/Qwen3.6-35B-A3B-FP8": "Qwen 3.6 35B A3B FP8",
+				"Qwen/Qwen3.6-27B": "Qwen 3.6 27B",
+				"Qwen/Qwen3.5-397B-A17B": "Qwen 3.5 397B A17B",
+				"Qwen/Qwen3.5-122B-A10B": "Qwen 3.5 122B A10B",
+				"Qwen/Qwen3.5-122B-A10B-FP8": "Qwen 3.5 122B A10B FP8",
+				"Qwen/Qwen3.5-35B-A3B": "Qwen 3.5 35B A3B",
+				"Qwen/Qwen3.5-27B": "Qwen 3.5 27B",
+				"Qwen/Qwen3.5-9B": "Qwen 3.5 9B",
+				"Qwen/Qwen3.5-9B-FP8": "Qwen 3.5 9B FP8",
+				"Qwen/QwQ-32B": "QwQ 32B",
+				"Qwen/Qwen3-Next-80B-A3B-Thinking": "Qwen 3 Next 80B A3B Thinking",
+				"Qwen/Qwen3-Next-80B-A3B-Instruct": "Qwen 3 Next 80B A3B Instruct",
+				"Qwen/Qwen3-Next-80B-A3B-Instruct-FP8": "Qwen 3 Next 80B A3B Instruct FP8",
+				"Qwen/Qwen3-235B-A22B-Instruct-2507-tput": "Qwen 3 235B A22B Instruct 2025-07",
+				"Qwen/Qwen3-30B-A3B-Instruct-2507-Lora": "Qwen 3 30B A3B Instruct 2025-07 LoRA",
+				"Qwen/Qwen3-30B-A3B": "Qwen 3 30B A3B",
+				"Qwen/Qwen3-30B-A3B-Base": "Qwen 3 30B A3B Base",
+				"Qwen/Qwen3-14B-Base": "Qwen 3 14B Base",
+				"Qwen/Qwen2.5-72B-Instruct-Turbo": "Qwen 2.5 72B Instruct Turbo",
+				"Qwen/Qwen2.5-72B-Instruct": "Qwen 2.5 72B Instruct",
+				"Qwen/Qwen2.5-72B": "Qwen 2.5 72B",
+				"Qwen/Qwen2.5-32B": "Qwen 2.5 32B",
+				"Qwen/Qwen2.5-14B-Instruct": "Qwen 2.5 14B Instruct",
+				"Qwen/Qwen2.5-14B": "Qwen 2.5 14B",
+				"Qwen/Qwen2-72B": "Qwen 2 72B",
+				"deepseek-ai/DeepSeek-V4-Pro": "DeepSeek V4 Pro",
+				"deepseek-ai/DeepSeek-V3.1": "DeepSeek V3.1",
+				"deepseek-ai/DeepSeek-R1": "DeepSeek R1",
+				"deepseek-ai/DeepSeek-R1-Distill-Llama-70B": "DeepSeek R1 Distill Llama 70B",
+				"deepseek-ai/DeepSeek-R1-Distill-Qwen-14B": "DeepSeek R1 Distill Qwen 14B",
+				"meta-llama/Llama-4-Scout-17B-16E-Instruct": "Llama 4 Scout 17B 16E Instruct",
+				"meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8": "Llama 4 Maverick 17B 128E Instruct FP8",
+				"meta-llama/Llama-3.3-70B-Instruct-Turbo": "Llama 3.3 70B Instruct Turbo",
+				"meta-llama/Llama-3.3-70B-Instruct": "Llama 3.3 70B Instruct",
+				"meta-llama/Llama-3.3-70B-Instruct-FP8-Lora": "Llama 3.3 70B Instruct FP8 LoRA",
+				"meta-llama/Llama-3.1-405B-Instruct": "Llama 3.1 405B Instruct",
+				"meta-llama/Llama-3.1-405B": "Llama 3.1 405B",
+				"meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo": "Llama 3.1 70B Instruct Turbo",
+				"meta-llama/Meta-Llama-3.1-70B": "Llama 3.1 70B",
+				"meta-llama/Meta-Llama-3-70B-Instruct-Turbo": "Llama 3 70B Instruct Turbo",
+				"google/gemma-4-31B-it": "Gemma 4 31B IT",
+				"google/gemma-4-26B-A4B-it": "Gemma 4 26B A4B IT",
+				"google/gemma-4-E4B-it": "Gemma 4 E4B IT",
+				"google/gemma-4-E2B-it": "Gemma 4 E2B IT",
+				"google/gemma-3n-E4B-it": "Gemma 3N E4B IT",
+				"google/gemma-3-27b-pt": "Gemma 3 27B PT",
+				"google/gemma-2-27b-it": "Gemma 2 27B IT",
+				"google/gemma-2-9b-it": "Gemma 2 9B IT",
+				"zai-org/GLM-5.1": "GLM 5.1",
+				"zai-org/GLM-5": "GLM 5",
+				"zai-org/GLM-4.7": "GLM 4.7",
+				"zai-org/GLM-4.6": "GLM 4.6",
+				"moonshotai/Kimi-K2.6": "Kimi K2.6",
+				"moonshotai/Kimi-K2.5": "Kimi K2.5",
+				"MiniMaxAI/MiniMax-M2.7": "MiniMax M2.7",
+				"MiniMaxAI/MiniMax-M2.5": "MiniMax M2.5",
+				"MiniMaxAI/MiniMax-M2": "MiniMax M2",
+				"MiniMaxAI/MiniMax-M1-80k": "MiniMax M1 80K",
+				"MiniMaxAI/MiniMax-M1-40k": "MiniMax M1 40K",
+				"mistralai/Ministral-3-14B-Instruct-2512": "Ministral 3 14B Instruct 2025-12",
+				"mistralai/Mistral-Small-24B-Instruct-2501": "Mistral Small 24B Instruct 2025-01",
+				"mistralai/Magistral-Small-2506": "Magistral Small 2025-06",
+				"mistralai/Mixtral-8x22B-Instruct-v0.1": "Mixtral 8x22B Instruct",
+				"mistralai/Mixtral-8x7B-Instruct-v0.1": "Mixtral 8x7B Instruct",
+				"openai/gpt-oss-120b": "GPT OSS 120B",
+				"openai/gpt-oss-20b": "GPT OSS 20B",
+				"nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16": "Nemotron 3 Super 120B",
+				"nvidia/Llama-3.1-Nemotron-70B-Instruct-HF": "Llama 3.1 Nemotron 70B",
+				"nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16": "Nemotron 3 Nano 30B",
+				"deepcogito/cogito-v2-1-671b": "Cogito V2.1 671B",
+				"deepcogito/cogito-v1-preview-llama-70B": "Cogito V1 Llama 70B",
+				"deepcogito/cogito-v1-preview-qwen-32B": "Cogito V1 Qwen 32B",
+				"deepcogito/cogito-v1-preview-qwen-14B": "Cogito V1 Qwen 14B",
+				"LiquidAI/LFM2-24B-A2B": "Liquid LFM2 24B",
+				"Hcompany/Holo3-35B-A3B": "Holo3 35B A3B",
+				"ByteDance-Seed/Seed-OSS-36B-Instruct": "Seed OSS 36B Instruct",
+				"essentialai/rnj-1-instruct": "Essential AI RNJ-1",
+				"NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO": "Nous Hermes 2 Mixtral 8x7B"
 			},
 			requiresApiKey: true
 		},
@@ -7377,9 +10522,9 @@
 			displayName: 'Zhipu AI',
 			modelGmKey: 'zhipu_ai_model',
 			modelMapping: {
-				'glm-4-flash-250414': 'GLM 4-Flash',
-				'glm-4.5-flash': 'GLM 4.5-Flash',
-				'GLM-4.7-Flash': 'GLM 4.7-Flash',
+				"GLM-4.7-Flash": "GLM 4.7 Flash",
+				"glm-4.5-flash": "GLM 4.5 Flash",
+				"glm-4-flash-250414": "GLM 4 Flash 2025-04-14"
 			},
 			requiresApiKey: true
 		},
@@ -7399,53 +10544,6 @@
 		} else {
 			document.body.classList.remove('ao3-translation-only');
 		}
-
-		const originalUnits = document.querySelectorAll('[data-translation-state="translated"]');
-		originalUnits.forEach(unit => {
-			const nextSibling = unit.nextElementSibling;
-			if (nextSibling && (nextSibling.classList.contains('translated-by-ao3-translator') || nextSibling.classList.contains('translated-by-ao3-translator-error'))) {
-				unit.style.display = (mode === 'translation_only') ? 'none' : '';
-			}
-		});
-
-		const translatedTagContainers = document.querySelectorAll('.translated-tags-container');
-		translatedTagContainers.forEach(container => {
-			let targetToHide;
-			if (container.parentElement.classList.contains('translated-tags-wrapper')) {
-				let wrapper = container.parentElement;
-				let prev = wrapper.previousElementSibling;
-				while (prev && prev.classList.contains('translate-me-ao3-wrapper')) {
-					prev = prev.previousElementSibling;
-				}
-				targetToHide = prev;
-			} else {
-				let prev = container.previousElementSibling;
-				while (prev && prev.classList.contains('translate-me-ao3-wrapper')) {
-					prev = prev.previousElementSibling;
-				}
-				targetToHide = prev;
-			}
-			if (targetToHide) {
-				targetToHide.style.display = (mode === 'translation_only') ? 'none' : '';
-			}
-		});
-
-		const originalTagSpans = document.querySelectorAll('.ao3-tag-original');
-		originalTagSpans.forEach(span => {
-			if (span.parentElement && span.parentElement.querySelector('.ao3-tag-translation')) {
-				span.style.display = (mode === 'translation_only') ? 'none' : '';
-			} else {
-				span.style.display = '';
-			}
-		});
-
-		const translatedTitles = document.querySelectorAll('.translated-title-element');
-		translatedTitles.forEach(title => {
-			const originalTitle = title.previousElementSibling;
-			if (originalTitle) {
-				originalTitle.style.display = (mode === 'translation_only') ? 'none' : '';
-			}
-		});
 	}
 
 	/****************** 数据模型层 ******************/
@@ -7507,24 +10605,15 @@
 	 * 全局令牌桶流控类
 	 */
 	class GlobalTokenBucket {
-		constructor() {
-			this.storageKey = 'ao3_global_token_bucket';
-			this.lockKey = 'ao3_rate_limit_lock';
+		constructor(engineName = 'default') {
+			this.engineName = engineName;
+			this.storageKey = `ao3_token_bucket_${engineName}`;
+			this.lockKey = `ao3_rate_limit_lock_${engineName}`;
 			this.lockTimeout = 3000;
 		}
 
 		getConfig(engineName) {
-			const isSpecial = ['google_translate', 'bing_translator'].includes(engineName);
-			const base = CONFIG.SERVICE_CONFIG[engineName] || CONFIG.SERVICE_CONFIG.default;
-
-            if (isSpecial) {
-				return {
-					rate: base.REQUEST_RATE,
-					capacity: base.REQUEST_CAPACITY
-				};
-			}
-
-            const params = ProfileManager.getParamsByEngine(engineName);
+			const params = ProfileManager.getParamsByEngine(engineName);
 			return {
 				rate: parseFloat(params.request_rate),
 				capacity: parseInt(params.request_capacity, 10)
@@ -7590,6 +10679,18 @@
 			}
 		}
 
+		async getAvailableTokens(engineName = 'default') {
+			const config = this.getConfig(engineName);
+			const state = GM_getValue(this.storageKey, { tokens: config.capacity, lastRefill: Date.now(), blockedUntil: 0 });
+			const now = Date.now();
+			if (state.blockedUntil && now < state.blockedUntil) {
+				return 0;
+			}
+			const timePassed = Math.max(0, now - state.lastRefill);
+			const tokensToAdd = (timePassed / 1000) * config.rate;
+			return Math.min(config.capacity, state.tokens + tokensToAdd);
+		}
+
 		async fillTokens(engineName = 'default') {
 			const lockId = Math.random().toString(36).substring(2);
 			if (!(await this.acquireLock(lockId))) return;
@@ -7613,7 +10714,7 @@
 				if (!state.blockedUntil || newBlockedUntil > state.blockedUntil) {
 					state.blockedUntil = newBlockedUntil;
 					GM_setValue(this.storageKey, state);
-					Logger.warn('网络', `触发全局熔断，暂停请求 ${Math.round(durationMs / 1000)} 秒`);
+					Logger.warn('Network', `触发全局熔断，暂停请求 ${Math.round(durationMs / 1000)} 秒`);
 				}
 			} finally {
 				this.releaseLock(lockId);
@@ -7623,19 +10724,86 @@
 
 	/****************** API 客户端层 ******************/
 
+	// 定义 API 请求超时常量
+	const AI_REQUEST_TIMEOUT = 180000; 
+	const TRADITIONAL_REQUEST_TIMEOUT = 30000;
+
 	/**
-	 * 所有 API 客户端的基类，定义了标准接口和通用翻译流程
+	 * JSON 提取器
+	 */
+	function extractJson(text) {
+		if (!text || typeof text !== 'string') return null;
+		const start = text.indexOf('{');
+		const end = text.lastIndexOf('}');
+		if (start > -1 && end > -1 && end > start) {
+			try {
+				return JSON.parse(text.substring(start, end + 1));
+			} catch (e) {
+				Logger.warn('Translation', 'JSON 解析失败', { textSnippet: text.substring(start, Math.min(start + 100, end)) });
+				return null;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * 提示词构建器
+	 */
+	const PromptBuilder = {
+		build(paragraphs, fromLang, toLang, engineId) {
+			const fromLangName = LANG_CODE_TO_NAME[fromLang] || fromLang;
+			const toLangName = LANG_CODE_TO_NAME[toLang] || toLang;
+
+			const params = ProfileManager.getParamsByEngine(engineId);
+			
+			// 1. 基础 Prompt 替换
+			let finalSystemPrompt = params.system_prompt
+				.replace(/\{fromLangName\}/g, fromLangName)
+				.replace(/\{toLangName\}/g, toLangName);
+
+			// 2. 获取底层系统指令并注入目标语言示例
+			const directives = getSystemDirectives().replace(/\{exampleOutput\}/g, generatePromptExample(toLang));
+
+			// 3. 变量注入与防误删兜底
+			if (finalSystemPrompt.includes('{systemDirectives}')) {
+				finalSystemPrompt = finalSystemPrompt.replace(/\{systemDirectives\}/g, directives);
+			} else {
+				finalSystemPrompt = `${finalSystemPrompt.trim()}\n\n${directives}`;
+			}
+
+			// 4. 构建 JSON 输入数组
+			const inputArray = paragraphs.map((p, i) => ({
+				id: i,
+				text: p.innerHTML
+			}));
+			const numberedText = JSON.stringify(inputArray, null, 2);
+
+			let finalUserPrompt = params.user_prompt
+				.replace(/\{toLangName\}/g, toLangName)
+				.replace(/\{numberedText\}/g, numberedText);
+
+			return {
+				systemPrompt: finalSystemPrompt,
+				userPrompt: finalUserPrompt,
+				temperature: params.temperature,
+				reasoningEffort: params.reasoning_effort
+			};
+		}
+	};
+
+	/**
+	 * 所有 LLM API 客户端的基类
 	 */
 	class BaseApiClient {
 		constructor(provider) {
 			this.provider = provider;
 		}
 
-		_buildHeaders() {
+		async _buildHeaders() {
 			throw new Error("'_buildHeaders' must be implemented by subclasses.");
 		}
 
-		_buildBody(_paragraphs, _fromLang) {
+		_buildBody(_payload) {
 			throw new Error("'_buildBody' must be implemented by subclasses.");
 		}
 
@@ -7643,26 +10811,20 @@
 			throw new Error("'_parseResponse' must be implemented by subclasses.");
 		}
 
-		_handleError(response, responseData, reqId) {
+		_normalizeError(response, responseData) {
 			const apiErrorMessage = getNestedProperty(responseData, 'error.message') || getNestedProperty(responseData, 'message') || response.statusText || '未知错误';
 			const error = new Error();
 			let userFriendlyError;
 			error.noRetry = false;
 
-			Logger.error('网络', `[${reqId}] API 请求失败: ${this.provider.name}`, {
-				status: response.status,
-				statusText: response.statusText,
-				apiError: apiErrorMessage
-			});
-
 			switch (response.status) {
 				case 401:
 					userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key。`;
-					error.noRetry = true;
+					error.type = 'auth_error';
 					break;
 				case 403:
 					userFriendlyError = `权限被拒绝 (403)：您的 API Key 无权访问所请求的资源，或您所在的地区不受支持。`;
-					error.noRetry = true;
+					error.type = 'auth_error';
 					break;
 				case 429:
 					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
@@ -7675,7 +10837,7 @@
 					break;
 				default:
 					userFriendlyError = `发生未知 API 错误 (代码: ${response.status})。`;
-					error.noRetry = true;
+					error.type = 'auth_error';
 					break;
 			}
 
@@ -7683,41 +10845,38 @@
 			return error;
 		}
 
-		translate(paragraphs, fromLang = 'auto', toLang = 'zh-CN', reqId = 'Unknown') {
+		translate(payload, reqId = 'Unknown') {
 			return new Promise(async (resolve, reject) => {
 				const startTime = Date.now();
 				try {
 					const headers = await this._buildHeaders();
-					const body = this._buildBody(paragraphs, fromLang, toLang);
+					const body = this._buildBody(payload);
 					const url = this.provider.apiHost;
 
 					if (!url) {
 						const error = new Error(`服务 "${this.provider.name}" 未配置接口地址 (API Host)。`);
-						error.noRetry = true;
+						error.type = 'auth_error';
 						return reject(error);
 					}
 
-					Logger.info('网络', `[${reqId}] 发起请求: ${this.provider.name}`, {
-						model: this.provider.selectedModel,
-						paragraphs: paragraphs.length,
-						from: fromLang,
-						to: toLang
-					});
+					Logger.info('Network', `发起请求: ${this.provider.name}`, {
+						model: this.provider.selectedModel
+					}, reqId);
 
-					GM_xmlhttpRequest({
+					safeRequest({
 						method: 'POST',
 						url: url,
 						headers: headers,
 						data: body,
 						responseType: 'text',
-						timeout: 120000,
+						timeout: AI_REQUEST_TIMEOUT,
 						onload: (res) => {
-							const duration = Date.now() - startTime;
+							const durationMs = Date.now() - startTime;
 							let responseData;
 							try {
 								responseData = JSON.parse(res.responseText);
 							} catch (e) {
-								Logger.error('网络', `[${reqId}] JSON 解析失败`, { responseTextSnippet: res.responseText.substring(0, 200) });
+								Logger.error('Network', 'JSON 解析失败', { responseTextSnippet: res.responseText.substring(0, 200) }, reqId);
 								const error = new Error('API 响应不是有效的 JSON 格式。这可能由网络防火墙(WAF/CDN)拦截导致。');
 								error.type = 'invalid_json';
 								return reject(error);
@@ -7725,28 +10884,44 @@
 
 							if (res.status === 200) {
 								try {
-									const translatedText = this._parseResponse(responseData);
-									if (typeof translatedText !== 'string' || !translatedText.trim()) {
+									const parsed = this._parseResponse(responseData);
+									const content = parsed.content || '';
+									const reasoning = parsed.reasoning || '';
+									const meta = parsed.meta || {};
+									
+									meta.durationMs = durationMs;
+									meta.model = this.provider.selectedModel;
+
+									if (typeof content !== 'string' || !content.trim()) {
 										return reject(new Error('API 未返回有效文本。'));
 									}
-									Logger.info('网络', `[${reqId}] 请求成功`, { duration: `${duration}ms` });
-									resolve(translatedText);
+									
+									resolve({ content, reasoning, meta });
 								} catch (e) {
 									reject(new Error(`解析响应失败: ${e.message}`));
 								}
 							} else {
-								reject(this._handleError(res, responseData, reqId));
+								const err = this._normalizeError(res, responseData);
+								if (this.usedApiKey) err.usedKey = this.usedApiKey;
+								
+								// 单 Key 或无 Key 场景下，遇到鉴权错误直接升级为致命错误，中断重试
+								if (err.type === 'auth_error' && this.totalKeys <= 1) {
+									err.originalType = 'auth_error';
+									err.type = 'fatal_error';
+								}
+								
+								reject(err);
 							}
 						},
 						onerror: () => {
-							Logger.error('网络', `[${reqId}] 网络请求发生底层错误`);
-							reject({ type: 'network', message: '网络请求错误' });
+							Logger.error('Network', '网络请求发生底层错误', null, reqId);
+							reject({ type: 'network', message: '网络请求错误', usedKey: this.usedApiKey });
 						},
 						ontimeout: () => {
-							Logger.error('网络', `[${reqId}] 请求超时`);
-							reject({ type: 'timeout', message: '请求超时' });
+							Logger.error('Network', '请求超时', null, reqId);
+							reject({ type: 'timeout', message: '请求超时', usedKey: this.usedApiKey });
 						}
-					});
+					}, reqId);
 				} catch (error) {
 					reject(error);
 				}
@@ -7758,63 +10933,604 @@
 	 * OpenAI 兼容客户端
 	 */
 	class OpenAICompatibleClient extends BaseApiClient {
-		constructor(provider) {
-			super(provider);
-		}
-
 		async _buildHeaders() {
-			const { key: apiKey } = await _getApiKeyForService(this.provider);
-			return {
-				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${apiKey}`
+			const { key: apiKey, totalKeys } = await _getApiKeyForService(this.provider);
+			this.usedApiKey = apiKey;
+			this.totalKeys = totalKeys;
+			const headers = {
+				'Content-Type': 'application/json'
 			};
+			if (apiKey) {
+				headers['Authorization'] = `Bearer ${apiKey}`;
+			}
+			return headers;
 		}
 
-		_buildBody(paragraphs, fromLang, toLang) {
-			const fromLangName = LANG_CODE_TO_NAME[fromLang] || fromLang;
-			const toLangName = LANG_CODE_TO_NAME[toLang] || toLang;
-			const exampleOutput = generatePromptExample(toLang);
-			const numberedText = paragraphs
-				.map((p, i) => `${i + 1}. ${p.innerHTML}`)
-				.join('\n\n');
-
-            const params = ProfileManager.getParamsByEngine(this.provider.id);
-			const systemPromptTemplate = params.system_prompt;
-			const userPromptTemplate = params.user_prompt;
-            const temperature = params.temperature;
-
-			const finalSystemPrompt = systemPromptTemplate
-				.replace(/\{fromLangName\}/g, fromLangName)
-				.replace(/\{toLangName\}/g, toLangName)
-				.replace(/\{exampleOutput\}/g, exampleOutput);
-
-			const finalUserPrompt = userPromptTemplate
-				.replace(/\{toLangName\}/g, toLangName)
-				.replace(/\{numberedText\}/g, numberedText);
-
+		_buildBody(payload) {
 			const requestData = {
 				model: this.provider.selectedModel,
-				messages: [
-					{ "role": "system", "content": finalSystemPrompt },
-					{ "role": "user", "content": finalUserPrompt }
+				messages:[
+					{ "role": "system", "content": payload.systemPrompt },
+					{ "role": "user", "content": payload.userPrompt }
 				],
 				stream: false,
-				temperature: temperature,
+				temperature: payload.temperature,
 			};
+
+			if (payload.reasoningEffort && payload.reasoningEffort !== 'default') {
+				requestData.reasoning_effort = payload.reasoningEffort;
+				delete requestData.temperature;
+			} else if (this.provider.selectedModel && (this.provider.selectedModel.startsWith('o1') || this.provider.selectedModel.startsWith('o3'))) {
+				delete requestData.temperature;
+			}
+
 			return JSON.stringify(requestData);
 		}
 
 		_parseResponse(response) {
-			return getNestedProperty(response, 'choices[0].message.content');
+			const content = getNestedProperty(response, 'choices[0].message.content');
+			const reasoning = getNestedProperty(response, 'choices[0].message.reasoning_content');
+			const usage = response.usage || {};
+			return { 
+				content, 
+				reasoning,
+				meta: {
+					promptTokens: usage.prompt_tokens,
+					completionTokens: usage.completion_tokens
+				}
+			};
 		}
 
-		_handleError(response, responseData, reqId) {
-			const handler = API_ERROR_HANDLERS[this.provider.id] || API_ERROR_HANDLERS['openai'] || super._handleError;
-			return handler(response, this.provider.name, responseData, reqId);
+		_normalizeError(res, responseData) {
+			const apiErrorMessage = getNestedProperty(responseData, 'error.message') || res.statusText;
+			const apiErrorCode = getNestedProperty(responseData, 'error.code');
+			let userFriendlyError;
+			const error = new Error();
+			error.noRetry = false;
+
+			switch (res.status) {
+				case 400:
+					if (apiErrorCode === 'model_not_found') {
+						userFriendlyError = `模型不存在 (400)：您选择的模型当前不可用或您无权访问。请在设置中更换模型。`;
+					} else {
+						userFriendlyError = `错误的请求 (400)：请求的格式或参数有误。`;
+					}
+					error.type = 'auth_error';
+					break;
+				case 401:
+					userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key。`;
+					error.type = 'auth_error';
+					break;
+				case 403:
+					userFriendlyError = `权限被拒绝 (403)：您的 API Key 无权访问所请求的资源，或您所在的地区不受支持。`;
+					error.type = 'auth_error';
+					break;
+				case 404:
+					userFriendlyError = `资源未找到 (404)：请求的 API 端点不存在。`;
+					error.type = 'auth_error';
+					break;
+				case 429:
+					if (apiErrorCode === 'insufficient_quota') {
+						userFriendlyError = `账户余额不足 (429)：您的 ${this.provider.name} 账户已用尽信用点数或达到支出上限。请前往服务官网检查您的账单详情。`;
+						error.type = 'auth_error';
+					} else {
+						userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
+						error.type = 'rate_limit';
+					}
+					break;
+				case 500:
+					userFriendlyError = `服务器内部错误 (500)：${this.provider.name} 的服务器遇到问题。`;
+					error.type = 'server_overloaded';
+					break;
+				case 503:
+					if (apiErrorMessage && apiErrorMessage.includes('Slow Down')) {
+						userFriendlyError = `服务暂时过载 (503 - Slow Down)：由于您的请求速率突然增加，服务暂时受到影响。`;
+					} else {
+						userFriendlyError = `服务器当前过载 (503)：${this.provider.name} 的服务器正经历高流量。`;
+					}
+					error.type = 'server_overloaded';
+					break;
+				default:
+					userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
+					error.type = 'auth_error';
+					break;
+			}
+
+			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			return error;
+		}
+	}
+
+	/**
+	 * Anthropic 客户端
+	 */
+	class AnthropicClient extends BaseApiClient {
+		async _buildHeaders() {
+			const { key: apiKey, totalKeys } = await _getApiKeyForService(this.provider);
+			this.usedApiKey = apiKey;
+			this.totalKeys = totalKeys;
+			const headers = {
+				'Content-Type': 'application/json',
+				'anthropic-version': '2023-06-01'
+			};
+			if (apiKey) {
+				headers['x-api-key'] = apiKey;
+			}
+			return headers;
 		}
 
-		translate(paragraphs, fromLang, toLang, reqId) {
-			return super.translate(paragraphs, fromLang, toLang, reqId);
+		_buildBody(payload) {
+			let maxTokens = 4096;
+			const requestData = {
+				model: this.provider.selectedModel,
+				system: payload.systemPrompt,
+				messages:[ { "role": "user", "content": payload.userPrompt } ],
+				temperature: payload.temperature,
+			};
+
+			if (payload.reasoningEffort && payload.reasoningEffort !== 'default') {
+				let budget = 4096;
+				if (payload.reasoningEffort === 'low') budget = 2048;
+				if (payload.reasoningEffort === 'high') budget = 8192;
+				requestData.thinking = { type: 'enabled', budget_tokens: budget };
+				maxTokens = budget + 4096;
+				delete requestData.temperature;
+			}
+
+			requestData.max_tokens = maxTokens;
+			return JSON.stringify(requestData);
+		}
+
+		_parseResponse(response) {
+			const contentBlocks = response.content ||[];
+			let content = '';
+			let reasoning = '';
+			for (const block of contentBlocks) {
+				if (block.type === 'thinking') reasoning += block.thinking;
+				if (block.type === 'text') content += block.text;
+			}
+			const usage = response.usage || {};
+			return { 
+				content, 
+				reasoning,
+				meta: {
+					promptTokens: usage.input_tokens,
+					completionTokens: usage.output_tokens
+				}
+			};
+		}
+
+		_normalizeError(res, responseData) {
+			const apiErrorType = getNestedProperty(responseData, 'error.type');
+			const apiErrorMessage = getNestedProperty(responseData, 'error.message') || res.statusText;
+			let userFriendlyError;
+			const error = new Error();
+			error.noRetry = false;
+
+			switch (apiErrorType) {
+				case 'invalid_request_error':
+					userFriendlyError = `无效请求 (${res.status})：请求的格式或参数有误。如果问题持续，可能是模型名称不受支持或已更新。`;
+					error.type = 'auth_error';
+					break;
+				case 'authentication_error':
+					userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key。`;
+					error.type = 'auth_error';
+					break;
+				case 'permission_error':
+					userFriendlyError = `权限被拒绝 (403)：您的 API Key 无权访问所请求的资源。`;
+					error.type = 'auth_error';
+					break;
+				case 'not_found_error':
+					userFriendlyError = `资源未找到 (404)：请求的 API 端点或模型不存在。`;
+					error.type = 'auth_error';
+					break;
+				case 'request_too_large':
+					userFriendlyError = `请求内容过长 (413)：发送的文本量超过了 API 的单次请求上限。`;
+					error.type = 'auth_error';
+					break;
+				case 'rate_limit_error':
+					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
+					error.type = 'rate_limit';
+					break;
+				case 'api_error':
+					userFriendlyError = `服务器内部错误 (500)：${this.provider.name} 的服务器遇到问题。`;
+					error.type = 'server_overloaded';
+					break;
+				case 'overloaded_error':
+					userFriendlyError = `服务器过载 (529)：${this.provider.name} 的服务器当前负载过高。`;
+					error.type = 'server_overloaded';
+					break;
+				default:
+					if (res.status === 413) {
+						userFriendlyError = `请求内容过长 (413)：发送的文本量超过了 API 的单次请求上限。`;
+					} else {
+						userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
+					}
+					error.type = 'auth_error';
+					break;
+			}
+
+			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			return error;
+		}
+	}
+
+	/**
+	 * Gemini 客户端
+	 */
+	class GoogleAIClient extends BaseApiClient {
+		async _buildHeaders() {
+			return { 'Content-Type': 'application/json' };
+		}
+
+		_buildBody(payload) {
+			const requestData = {
+				systemInstruction: { role: "user", parts:[{ text: payload.systemPrompt }] },
+				contents:[{ role: "user", parts:[{ text: payload.userPrompt }] }],
+				generationConfig: { temperature: payload.temperature, candidateCount: 1 }
+			};
+
+			if (payload.reasoningEffort && payload.reasoningEffort !== 'default') {
+				let budget = 4096;
+				if (payload.reasoningEffort === 'low') budget = 2048;
+				if (payload.reasoningEffort === 'high') budget = 8192;
+				requestData.generationConfig.thinkingConfig = {
+					includeThoughts: true,
+					thinkingBudget: budget
+				};
+			}
+			return JSON.stringify(requestData);
+		}
+
+		_parseResponse(response) {
+			const candidate = response.candidates && response.candidates[0];
+			if (candidate && candidate.finishReason === 'SAFETY') {
+				const err = new Error('内容触发了 Google Gemini 的安全策略 (SAFETY) 被拦截。');
+				err.type = 'fatal_error';
+				throw err;
+			}
+			const parts = getNestedProperty(response, 'candidates[0].content.parts') ||[];
+			let content = '';
+			let reasoning = '';
+			for (const part of parts) {
+				if (part.thought) reasoning += part.text;
+				else content += part.text;
+			}
+			if (!reasoning && parts.length > 1) {
+				content = parts.map(p => p.text).join('');
+			} else if (!content && parts.length === 1) {
+				content = parts[0].text;
+			}
+			const usage = response.usageMetadata || {};
+			return { 
+				content, 
+				reasoning,
+				meta: {
+					promptTokens: usage.promptTokenCount,
+					completionTokens: usage.candidatesTokenCount
+				}
+			};
+		}
+
+		_normalizeError(res, responseData) {
+			const apiErrorMessage = getNestedProperty(responseData, 'error.message') || res.statusText;
+			const error = new Error();
+			let userFriendlyError;
+
+			switch (res.status) {
+				case 400:
+					userFriendlyError = `请求格式错误 (400)：您的国家/地区可能不支持 Gemini API 的免费套餐，请在 Google AI Studio 中启用结算。`;
+					error.type = 'auth_error';
+					break;
+				case 401:
+				case 403:
+					userFriendlyError = `API Key 无效或权限不足 (${res.status})：请在设置面板中检查您的 API Key。`;
+					error.type = 'auth_error';
+					break;
+				case 429:
+					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
+					error.type = 'rate_limit';
+					break;
+				default:
+					userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
+					error.type = 'auth_error';
+					break;
+			}
+
+			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			return error;
+		}
+
+		// 覆写 translate 以处理 URL 动态拼接 Key 的逻辑
+		translate(payload, reqId = 'Unknown') {
+			return new Promise(async (resolve, reject) => {
+				const startTime = Date.now();
+				try {
+					const { key: apiKey, totalKeys } = await _getApiKeyForService(this.provider);
+					this.usedApiKey = apiKey;
+					this.totalKeys = totalKeys;
+					const modelId = this.provider.selectedModel;
+
+					if (!modelId) {
+						const error = new Error(`服务 "${this.provider.name}" 未选择任何模型。`);
+						error.type = 'auth_error';
+						return reject(error);
+					}
+
+					const finalUrl = this.provider.apiHost.replace('{model}', modelId) + (apiKey ? `?key=${apiKey}` : '');
+					const headers = await this._buildHeaders();
+					const body = this._buildBody(payload);
+
+					Logger.info('Network', '发起请求: Google AI', { model: modelId }, reqId);
+
+					safeRequest({
+						method: 'POST',
+						url: finalUrl,
+						headers: headers,
+						data: body,
+						responseType: 'text',
+						timeout: AI_REQUEST_TIMEOUT,
+						onload: (res) => {
+							const durationMs = Date.now() - startTime;
+							let responseData;
+							try {
+								responseData = JSON.parse(res.responseText);
+							} catch (e) {
+								Logger.error('Network', 'JSON 解析失败', { responseTextSnippet: res.responseText.substring(0, 200) }, reqId);
+								const error = new Error('API 响应不是有效的 JSON 格式。这可能由网络防火墙(WAF/CDN)拦截导致。');
+								error.type = 'invalid_json';
+								return reject(error);
+							}
+
+							if (res.status === 200) {
+								try {
+									const parsed = this._parseResponse(responseData);
+									const content = parsed.content || '';
+									const reasoning = parsed.reasoning || '';
+									const meta = parsed.meta || {};
+									
+									meta.durationMs = durationMs;
+									meta.model = modelId;
+
+									if (typeof content !== 'string' || !content.trim()) {
+										return reject(new Error('API 未返回有效文本。'));
+									}
+									resolve({ content, reasoning, meta });
+								} catch (e) {
+									reject(new Error(`解析响应失败: ${e.message}`));
+								}
+							} else {
+								const err = this._normalizeError(res, responseData);
+								if (this.usedApiKey) err.usedKey = this.usedApiKey;
+								
+								// 单 Key 或无 Key 场景下，遇到鉴权错误直接升级为致命错误，中断重试
+								if (err.type === 'auth_error' && this.totalKeys <= 1) {
+									err.originalType = 'auth_error';
+									err.type = 'fatal_error';
+								}
+								
+								reject(err);
+							}
+						},
+						onerror: () => reject({ type: 'network', message: '网络请求错误', usedKey: this.usedApiKey }),
+						ontimeout: () => reject({ type: 'timeout', message: '请求超时', usedKey: this.usedApiKey })
+					}, reqId);
+				} catch (error) {
+					reject(error);
+				}
+			});
+		}
+	}
+
+	// 各厂商专属的错误处理子类
+
+	class ZhipuClient extends OpenAICompatibleClient {
+		_normalizeError(res, responseData) {
+			const businessErrorCode = getNestedProperty(responseData, 'error.code');
+			const apiErrorMessage = getNestedProperty(responseData, 'error.message') || res.statusText;
+			let userFriendlyError;
+			const error = new Error();
+
+			if (businessErrorCode) {
+				switch (businessErrorCode) {
+					case '1001': case '1002': case '1003': case '1004':
+						userFriendlyError = `API Key 无效或认证失败 (${businessErrorCode})：请在设置面板中检查您的 ${this.provider.name} API Key 是否正确填写。`;
+						error.type = 'auth_error'; break;
+					case '1112':
+						userFriendlyError = `账户异常 (${businessErrorCode})：您的 ${this.provider.name} 账户已被锁定，请联系平台客服。`;
+						error.type = 'auth_error'; break;
+					case '1113':
+						userFriendlyError = `账户余额不足 (${businessErrorCode})：您的 ${this.provider.name} 账户已欠费，请前往 Zhipu AI 官网充值。`;
+						error.type = 'auth_error'; break;
+					case '1301':
+						userFriendlyError = `内容安全策略阻止 (${businessErrorCode})：因含有敏感内容，请求被 Zhipu AI 安全策略阻止。`;
+						error.type = 'auth_error'; error.type = 'content_error'; break;
+					case '1302': case '1303':
+						error.message = `请求频率过高 (${businessErrorCode})：已超出 API 的速率限制。\n\n原始错误信息：\n${apiErrorMessage}`;
+						error.type = 'rate_limit'; return error;
+					case '1304':
+						userFriendlyError = `调用次数超限 (${businessErrorCode})：已达到当日调用次数限额，请联系 Zhipu AI 客服。`;
+						error.type = 'auth_error'; break;
+					default:
+						userFriendlyError = `发生未知的业务错误 (代码: ${businessErrorCode})。`;
+						error.type = 'auth_error'; break;
+				}
+			} else {
+				return super._normalizeError(res, responseData);
+			}
+			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			return error;
+		}
+	}
+
+	class DeepseekClient extends OpenAICompatibleClient {
+		_normalizeError(res, responseData) {
+			const apiErrorMessage = getNestedProperty(responseData, 'error.message') || getNestedProperty(responseData, 'message') || res.statusText;
+			let userFriendlyError;
+			const error = new Error();
+
+			switch (res.status) {
+				case 400: case 422:
+					userFriendlyError = `请求格式或参数错误 (${res.status})：请检插件是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
+					error.type = 'auth_error'; break;
+				case 401:
+					userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key 是否正确填写。`;
+					error.type = 'auth_error'; break;
+				case 402:
+					userFriendlyError = `账户余额不足 (402)：您的 ${this.provider.name} 账户余额不足。请前往 DeepSeek 官网充值。`;
+					error.type = 'auth_error'; break;
+				case 429:
+					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
+					error.type = 'rate_limit'; break;
+				case 500:
+					userFriendlyError = `服务器内部故障 (500)：${this.provider.name} 的服务器遇到未知问题。`;
+					error.type = 'server_overloaded'; break;
+				case 503:
+					userFriendlyError = `服务器繁忙 (503)：${this.provider.name} 的服务器当前负载过高。`;
+					error.type = 'server_overloaded'; break;
+				default:
+					return super._normalizeError(res, responseData);
+			}
+			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			return error;
+		}
+	}
+
+	class SiliconFlowClient extends OpenAICompatibleClient {
+		_normalizeError(res, responseData) {
+			const apiErrorMessage = getNestedProperty(responseData, 'message') || res.statusText;
+			const apiErrorCode = getNestedProperty(responseData, 'code');
+			let userFriendlyError;
+			const error = new Error();
+
+			switch (res.status) {
+				case 400:
+					if (apiErrorCode === 20012) {
+						userFriendlyError = `模型不存在 (400)：您选择的模型名称无效或已下线。请在设置中更换模型。`;
+					} else {
+						userFriendlyError = `请求参数错误 (400)：请检查插件版本或配置。`;
+					}
+					error.type = 'auth_error'; break;
+				case 401:
+					userFriendlyError = `API Key 无效 (401)：请在设置面板中检查您的 ${this.provider.name} API Key。`;
+					error.type = 'auth_error'; break;
+				case 403:
+					userFriendlyError = `权限不足或余额不足 (403)：可能是账户余额不足，或该模型需要实名认证。请前往 SiliconFlow 官网检查账户状态。`;
+					error.type = 'auth_error'; break;
+				case 429:
+					userFriendlyError = `请求频率过高 (429)：触发了速率限制 (RPM/TPM)。`;
+					error.type = 'rate_limit'; break;
+				case 503: case 504:
+					userFriendlyError = `服务系统负载高 (${res.status})：SiliconFlow 服务器暂时繁忙。`;
+					error.type = 'server_overloaded'; break;
+				case 500:
+					userFriendlyError = `服务器内部错误 (500)：服务发生了未知错误。`;
+					error.type = 'server_overloaded'; break;
+				default:
+					userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
+					error.type = 'auth_error'; break;
+			}
+			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			return error;
+		}
+	}
+
+	class GroqClient extends OpenAICompatibleClient {
+		_normalizeError(res, responseData) {
+			const apiErrorMessage = getNestedProperty(responseData, 'error.message') || getNestedProperty(responseData, 'message') || res.statusText;
+			let userFriendlyError;
+			const error = new Error();
+
+			switch (res.status) {
+				case 400: userFriendlyError = `请求无效 (400)：请求语法错误。请检查请求格式。`; error.type = 'auth_error'; break;
+				case 401: userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key。`; error.type = 'auth_error'; break;
+				case 403: userFriendlyError = `权限被拒绝 (403)：您的网络或 API Key 无权访问所请求的资源。`; error.type = 'auth_error'; break;
+				case 404: userFriendlyError = `资源未找到 (404)：请求的模型或端点不存在。请检查模型名称或接口地址。`; error.type = 'auth_error'; break;
+				case 413: userFriendlyError = `请求内容过长 (413)：发送的文本量超过了限制。请尝试减少单次翻译的文本量。`; error.type = 'auth_error'; break;
+				case 422: userFriendlyError = `无法处理的实体 (422)：请求格式正确但包含语义错误。`; error.type = 'auth_error'; break;
+				case 424: userFriendlyError = `依赖失败 (424)：依赖请求失败（可能是 Remote MCP 认证问题）。`; error.type = 'auth_error'; break;
+				case 429: userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`; error.type = 'rate_limit'; break;
+				case 498: userFriendlyError = `Flex Tier 容量超限 (498)：当前 Flex Tier 已满。`; error.type = 'server_overloaded'; break;
+				case 500: userFriendlyError = `服务器内部错误 (500)：${this.provider.name} 服务器发生通用错误。`; error.type = 'server_overloaded'; break;
+				case 502: userFriendlyError = `网关错误 (502)：上游服务器响应无效。`; error.type = 'server_overloaded'; break;
+				case 503: userFriendlyError = `服务不可用 (503)：服务器正在维护或过载。`; error.type = 'server_overloaded'; break;
+				default: userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`; error.type = 'auth_error'; break;
+			}
+			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			return error;
+		}
+	}
+
+	class CerebrasClient extends OpenAICompatibleClient {
+		_normalizeError(res, responseData) {
+			const apiErrorMessage = getNestedProperty(responseData, 'error.message') || getNestedProperty(responseData, 'message') || res.statusText;
+			let userFriendlyError;
+			const error = new Error();
+
+			switch (res.status) {
+				case 400: userFriendlyError = `请求无效 (400)：请求参数有误。请检查模型名称或输入格式。`; error.type = 'auth_error'; break;
+				case 401: userFriendlyError = `认证失败 (401)：API Key 无效或缺失。请在设置面板中检查您的 ${this.provider.name} API Key。`; error.type = 'auth_error'; break;
+				case 402: userFriendlyError = `需要付款 (402)：账户余额不足或需要充值。`; error.type = 'auth_error'; break;
+				case 403: userFriendlyError = `权限被拒绝 (403)：无权访问该资源。`; error.type = 'auth_error'; break;
+				case 404: userFriendlyError = `资源未找到 (404)：请求的模型或端点不存在。`; error.type = 'auth_error'; break;
+				case 408: userFriendlyError = `请求超时 (408)：服务器处理请求超时。`; error.type = 'timeout'; break;
+				case 409: userFriendlyError = `请求冲突 (409)：资源状态冲突。`; error.type = 'server_overloaded'; break;
+				case 422: userFriendlyError = `无法处理的实体 (422)：请求格式正确但包含语义错误（如无效的模型参数）。`; error.type = 'auth_error'; break;
+				case 429: userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`; error.type = 'rate_limit'; break;
+				default:
+					if (res.status >= 500) {
+						userFriendlyError = `服务器内部错误 (${res.status})：${this.provider.name} 服务器发生错误。`;
+						error.type = 'server_overloaded';
+					} else {
+						userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
+						error.type = 'auth_error';
+					}
+					break;
+			}
+			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			return error;
+		}
+	}
+
+	class TogetherClient extends OpenAICompatibleClient {
+		_normalizeError(res, responseData) {
+			const apiErrorMessage = getNestedProperty(responseData, 'error.message') || getNestedProperty(responseData, 'message') || res.statusText;
+			let userFriendlyError;
+			const error = new Error();
+
+			switch (res.status) {
+				case 400: case 422:
+					userFriendlyError = `请求格式或参数错误 (${res.status})：请检查插件是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
+					error.type = 'auth_error'; break;
+				case 401:
+					userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key 是否正确填写。`;
+					error.type = 'auth_error'; break;
+				case 402:
+					userFriendlyError = `需要付费 (402)：您的 ${this.provider.name} 账户已达到消费上限或需要充值。请检查您的账户账单设置。`;
+					error.type = 'auth_error'; break;
+				case 403: case 413:
+					userFriendlyError = `请求内容过长 (${res.status})：发送的文本量超过了模型的上下文长度限制。请尝试翻译更短的文本段落。`;
+					error.type = 'auth_error'; break;
+				case 404:
+					userFriendlyError = `模型或接口地址不存在 (404)：您选择的模型名称可能已失效，或接口地址不正确。请尝试在设置面板中切换至其她模型或检查接口地址。`;
+					error.type = 'auth_error'; break;
+				case 429:
+					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
+					error.type = 'rate_limit'; break;
+				case 500:
+					userFriendlyError = `服务器内部错误 (500)：${this.provider.name} 的服务器遇到问题。`;
+					error.type = 'server_overloaded'; break;
+				case 502:
+					userFriendlyError = `网关错误 (502)：上游服务器响应无效。这通常是临时问题。`;
+					error.type = 'server_overloaded'; break;
+				case 503:
+					userFriendlyError = `服务过载 (503)：${this.provider.name} 的服务器当前流量过高。`;
+					error.type = 'server_overloaded'; break;
+				default:
+					return super._normalizeError(res, responseData);
+			}
+			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			return error;
 		}
 	}
 
@@ -7826,216 +11542,24 @@
 			const clientType = provider.isCustom ? 'openai-compatible' : provider.id;
 
 			switch (clientType) {
-				case 'anthropic':
-					return new AnthropicClient(provider);
-				case 'google_ai':
-					return new GoogleAIClient(provider);
+				case 'anthropic': return new AnthropicClient(provider);
+				case 'google_ai': return new GoogleAIClient(provider);
+				case 'zhipu_ai': return new ZhipuClient(provider);
+				case 'deepseek_ai': return new DeepseekClient(provider);
+				case 'siliconflow': return new SiliconFlowClient(provider);
+				case 'groq_ai': return new GroqClient(provider);
+				case 'together_ai': return new TogetherClient(provider);
+				case 'cerebras_ai': return new CerebrasClient(provider);
+				case 'modelscope_ai': return new TogetherClient(provider); // ModelScope 沿用 Together 的错误逻辑
 				case 'openai':
-				case 'siliconflow':
-				case 'zhipu_ai':
-				case 'deepseek_ai':
-				case 'groq_ai':
-				case 'together_ai':
-				case 'cerebras_ai':
-				case 'modelscope_ai':
 				case 'openai-compatible':
 					return new OpenAICompatibleClient(provider);
 				default:
-					Logger.warn('系统', `未找到服务类型 "${clientType}" 的特定客户端，回退到 OpenAI 兼容客户端`);
+					Logger.warn('System', `未找到服务类型 "${clientType}" 的特定客户端，回退到 OpenAI 兼容客户端`);
 					return new OpenAICompatibleClient(provider);
 			}
 		}
 	};
-
-	/**
-	 * Anthropic 客户端
-	 */
-	class AnthropicClient extends BaseApiClient {
-		constructor(provider) {
-			super(provider);
-		}
-
-		async _buildHeaders() {
-			const { key: apiKey } = await _getApiKeyForService(this.provider);
-			return {
-				'Content-Type': 'application/json',
-				'x-api-key': apiKey,
-				'anthropic-version': '2023-06-01'
-			};
-		}
-
-		_buildBody(paragraphs, fromLang, toLang) {
-			const fromLangName = LANG_CODE_TO_NAME[fromLang] || fromLang;
-			const toLangName = LANG_CODE_TO_NAME[toLang] || toLang;
-			const exampleOutput = generatePromptExample(toLang);
-			const numberedText = paragraphs
-				.map((p, i) => `${i + 1}. ${p.innerHTML}`)
-				.join('\n\n');
-
-            const params = ProfileManager.getParamsByEngine(this.provider.id);
-			const systemPromptTemplate = params.system_prompt;
-			const userPromptTemplate = params.user_prompt;
-            const temperature = params.temperature;
-
-			const finalSystemPrompt = systemPromptTemplate
-				.replace(/\{fromLangName\}/g, fromLangName)
-				.replace(/\{toLangName\}/g, toLangName)
-				.replace(/\{exampleOutput\}/g, exampleOutput);
-
-			const finalUserPrompt = userPromptTemplate
-				.replace(/\{toLangName\}/g, toLangName)
-				.replace(/\{numberedText\}/g, numberedText);
-
-			const requestData = {
-				model: this.provider.selectedModel,
-				system: finalSystemPrompt,
-				max_tokens: 4096,
-				messages: [
-					{
-						"role": "user",
-						"content": finalUserPrompt
-					}
-				],
-				temperature: temperature,
-			};
-			return JSON.stringify(requestData);
-		}
-
-		_parseResponse(response) {
-			return getNestedProperty(response, 'content[0].text');
-		}
-	}
-
-	/**
-	 * Gemini 客户端
-	 */
-	class GoogleAIClient extends BaseApiClient {
-		constructor(provider) {
-			super(provider);
-		}
-
-		_buildHeaders() {
-			return {
-				'Content-Type': 'application/json'
-			};
-		}
-
-		_buildBody(paragraphs, fromLang, toLang) {
-			const fromLangName = LANG_CODE_TO_NAME[fromLang] || fromLang;
-			const toLangName = LANG_CODE_TO_NAME[toLang] || toLang;
-			const exampleOutput = generatePromptExample(toLang);
-			const numberedText = paragraphs
-				.map((p, i) => `${i + 1}. ${p.innerHTML}`)
-				.join('\n\n');
-
-            const params = ProfileManager.getParamsByEngine(this.provider.id);
-			const systemPromptTemplate = params.system_prompt;
-			const userPromptTemplate = params.user_prompt;
-            const temperature = params.temperature;
-
-			const finalSystemPrompt = systemPromptTemplate
-				.replace(/\{fromLangName\}/g, fromLangName)
-				.replace(/\{toLangName\}/g, toLangName)
-				.replace(/\{exampleOutput\}/g, exampleOutput);
-
-			const finalUserPrompt = userPromptTemplate
-				.replace(/\{toLangName\}/g, toLangName)
-				.replace(/\{numberedText\}/g, numberedText);
-
-			const requestData = {
-				systemInstruction: {
-					role: "user",
-					parts: [{ text: finalSystemPrompt }]
-				},
-				contents: [{
-					role: "user",
-					parts: [{ text: finalUserPrompt }]
-				}],
-				generationConfig: {
-					temperature: temperature,
-					candidateCount: 1,
-				}
-			};
-			return JSON.stringify(requestData);
-		}
-
-		_parseResponse(response) {
-			return getNestedProperty(response, 'candidates[0].content.parts[0].text');
-		}
-
-		translate(paragraphs, fromLang, toLang, reqId = 'Unknown') {
-			return new Promise(async (resolve, reject) => {
-				const startTime = Date.now();
-				try {
-					const { key: apiKey } = await _getApiKeyForService(this.provider);
-					const modelId = this.provider.selectedModel;
-
-					if (!modelId) {
-						const error = new Error(`服务 "${this.provider.name}" 未选择任何模型。`);
-						error.noRetry = true;
-						return reject(error);
-					}
-
-					const finalUrl = this.provider.apiHost.replace('{model}', modelId) + `?key=${apiKey}`;
-					const headers = this._buildHeaders();
-					const body = this._buildBody(paragraphs, fromLang, toLang);
-
-					Logger.info('网络', `[${reqId}] 发起请求: Google AI`, {
-						model: modelId,
-						paragraphs: paragraphs.length,
-						from: fromLang,
-						to: toLang
-					});
-
-					GM_xmlhttpRequest({
-						method: 'POST',
-						url: finalUrl,
-						headers: headers,
-						data: body,
-						responseType: 'text',
-						timeout: 120000,
-						onload: (res) => {
-							const duration = Date.now() - startTime;
-							let responseData;
-							try {
-								responseData = JSON.parse(res.responseText);
-							} catch (e) {
-								Logger.error('网络', `[${reqId}] JSON 解析失败`, { responseTextSnippet: res.responseText.substring(0, 200) });
-								const error = new Error('API 响应不是有效的 JSON 格式。这可能由网络防火墙(WAF/CDN)拦截导致。');
-								error.type = 'invalid_json';
-								return reject(error);
-							}
-
-							if (res.status === 200) {
-								try {
-									const translatedText = this._parseResponse(responseData);
-									if (typeof translatedText !== 'string' || !translatedText.trim()) {
-										return reject(new Error('API 未返回有效文本。'));
-									}
-									Logger.info('网络', `[${reqId}] 请求成功`, { duration: `${duration}ms` });
-									resolve(translatedText);
-								} catch (e) {
-									reject(new Error(`解析响应失败: ${e.message}`));
-								}
-							} else {
-								reject(this._handleError(res, responseData, reqId));
-							}
-						},
-						onerror: () => {
-							Logger.error('网络', `[${reqId}] 网络请求发生底层错误`);
-							reject({ type: 'network', message: '网络请求错误' });
-						},
-						ontimeout: () => {
-							Logger.error('网络', `[${reqId}] 请求超时`);
-							reject({ type: 'timeout', message: '请求超时' });
-						}
-					});
-				} catch (error) {
-					reject(error);
-				}
-			});
-		}
-	}
 
 	/****************** 谷歌翻译模块 ******************/
 	// The following GoogleTranslateHelper object incorporates logic adapted from the
@@ -8232,8 +11756,8 @@
 		}
 	};
 
-	/**
-	 * 通用批处理队列，用于合并高频请求
+    /**
+	 * 通用批处理队列
 	 */
 	class BatchQueue {
 		constructor(processor, options = {}) {
@@ -8246,11 +11770,7 @@
 
 		add(item) {
 			return new Promise((resolve, reject) => {
-				this.queue.push({
-					item,
-					resolve,
-					reject
-				});
+				this.queue.push({ item, resolve, reject });
 				if (this.queue.length >= this.limit) {
 					this.flush();
 				} else if (!this.timer) {
@@ -8271,9 +11791,7 @@
 
 			try {
 				const results = await this.processor(items);
-				currentBatch.forEach((task, index) => {
-					task.resolve(results && results[index] ? results[index] : null);
-				});
+				currentBatch.forEach((task, index) => { task.resolve(results && results[index] ? results[index] : null); });
 			} catch (error) {
 				currentBatch.forEach(task => task.reject(error));
 			}
@@ -8298,7 +11816,7 @@
 	 * 微软语言检测批处理
 	 */
 	async function handleMicrosoftBatchDetect(texts) {
-		Logger.info('网络', `语言检测 (Microsoft): 批量处理 ${texts.length} 段`);
+		Logger.info('Network', `语言检测 (Microsoft): 批量处理 ${texts.length} 段`);
 		const token = await apiMsAuth();
 		if (!token) return Array(texts.length).fill(null);
 		return new Promise((resolve) => {
@@ -8317,16 +11835,16 @@
 							const results = data.map(item => item.language);
 							resolve(results);
 						} else {
-							Logger.error('网络', '语言检测 (Microsoft) 解析失败', data);
+							Logger.error('Network', '语言检测 (Microsoft) 解析失败', data);
 							resolve(Array(texts.length).fill(null));
 						}
 					} catch (e) {
-						Logger.error('网络', '语言检测 (Microsoft) JSON 错误', e);
+						Logger.error('Network', '语言检测 (Microsoft) JSON 错误', e);
 						resolve(Array(texts.length).fill(null));
 					}
 				},
 				onerror: (e) => {
-					Logger.error('网络', '语言检测 (Microsoft) 网络错误', e);
+					Logger.error('Network', '语言检测 (Microsoft) 网络错误', e);
 					resolve(Array(texts.length).fill(null));
 				}
 			});
@@ -8349,7 +11867,7 @@
 		return new Promise((resolve) => {
 			const sample = text.substring(0, LANG_DETECT_MAX_LENGTH);
 			const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=${encodeURIComponent(sample)}`;
-			Logger.info('网络', `语言检测 (Google GTX)`);
+			Logger.info('Network', `语言检测 (Google GTX)`);
 			GM_xmlhttpRequest({
 				method: "GET",
 				url: url,
@@ -8359,12 +11877,12 @@
 						const detected = (Array.isArray(data) && data[2]) ? data[2] : "";
 						resolve(detected);
 					} catch (e) {
-						Logger.error('网络', '语言检测 (Google GTX) 解析失败', e);
+						Logger.error('Network', '语言检测 (Google GTX) 解析失败', e);
 						resolve("");
 					}
 				},
 				onerror: (e) => {
-					Logger.error('网络', '语言检测 (Google GTX) 网络错误', e);
+					Logger.error('Network', '语言检测 (Google GTX) 网络错误', e);
 					resolve("");
 				}
 			});
@@ -8376,7 +11894,7 @@
 	 */
 	function apiBaiduLangdetect(text) {
 		return new Promise((resolve) => {
-			Logger.info('网络', `语言检测 (Baidu)`);
+			Logger.info('Network', `语言检测 (Baidu)`);
 			GM_xmlhttpRequest({
 				method: "POST",
 				url: "https://fanyi.baidu.com/langdetect",
@@ -8388,12 +11906,12 @@
 						const detected = (data.error === 0) ? data.lan : "";
 						resolve(detected);
 					} catch (e) {
-						Logger.error('网络', '语言检测 (Baidu) 解析失败', e);
+						Logger.error('Network', '语言检测 (Baidu) 解析失败', e);
 						resolve("");
 					}
 				},
 				onerror: (e) => {
-					Logger.error('网络', '语言检测 (Baidu) 网络错误', e);
+					Logger.error('Network', '语言检测 (Baidu) 网络错误', e);
 					resolve("");
 				}
 			});
@@ -8405,7 +11923,7 @@
 	 */
 	function apiTencentLangdetect(text) {
 		return new Promise((resolve) => {
-			Logger.info('网络', `语言检测 (Tencent)`);
+			Logger.info('Network', `语言检测 (Tencent)`);
 			GM_xmlhttpRequest({
 				method: "POST",
 				url: "https://transmart.qq.com/api/imt",
@@ -8420,12 +11938,12 @@
 						const detected = (data && data.language) ? data.language : "";
 						resolve(detected);
 					} catch (e) {
-						Logger.error('网络', '语言检测 (Tencent) 解析失败', e);
+						Logger.error('Network', '语言检测 (Tencent) 解析失败', e);
 						resolve("");
 					}
 				},
 				onerror: (e) => {
-					Logger.error('网络', '语言检测 (Tencent) 网络错误', e);
+					Logger.error('Network', '语言检测 (Tencent) 网络错误', e);
 					resolve("");
 				}
 			});
@@ -8433,16 +11951,64 @@
 	}
 
 	/**
-	 * 核心语言检测服务，默认使用 Microsoft
+	 * 核心语言检测服务
 	 */
-	const LanguageDetectService = {
+	const FRANC_LANG_MAP = {
+		'cmn': 'zh-CN', 'eng': 'en', 'spa': 'es', 'jpn': 'ja', 'kor': 'ko',
+		'rus': 'ru', 'fra': 'fr', 'deu': 'de', 'ita': 'it', 'por': 'pt',
+		'vie': 'vi', 'tha': 'th', 'ara': 'ar', 'hin': 'hi', 'ben': 'bn',
+		'pol': 'pl', 'nld': 'nl', 'tur': 'tr', 'ind': 'id', 'msa': 'ms',
+		'swe': 'sv', 'dan': 'da', 'fin': 'fi', 'ell': 'el', 'ces': 'cs',
+		'ron': 'ro', 'hun': 'hu', 'ukr': 'uk', 'cat': 'ca', 'hrv': 'hr',
+		'srp': 'hr', 'slk': 'sk', 'slv': 'sl', 'bul': 'bg', 'heb': 'he',
+		'fas': 'fa', 'urd': 'ur', 'tam': 'ta', 'tel': 'te', 'kan': 'kn',
+		'mal': 'ml', 'mar': 'mr', 'pan': 'pa', 'guj': 'gu', 'swh': 'sw',
+		'zul': 'zu', 'afr': 'sw', 'sqi': 'hr', 'mkd': 'bg', 'lit': 'lt',
+		'lav': 'lv', 'est': 'et', 'isl': 'is', 'gle': 'is', 'mya': 'my',
+		'khm': 'my', 'lao': 'my', 'sin': 'si', 'amh': 'my', 'som': 'sw',
+		'yue': 'zh-TW', 'wuu': 'zh-CN', 'hak': 'zh-CN', 'nan': 'zh-TW'
+	};
+
+    const LanguageDetector = {
+		francModule: null,
+
+		async detectWithFranc(text) {
+			if (!this.francModule) {
+				try {
+					this.francModule = await import('https://cdn.jsdelivr.net/npm/franc-min@6.2.0/+esm');
+				} catch (e) {
+					Logger.warn('System', 'franc 库加载失败', { error: e.message });
+					return 'und';
+				}
+			}
+
+			const franc = this.francModule.franc;
+			if (typeof franc !== 'function') return 'und';
+
+			const result = franc(text, { minLength: 3 });
+			const mapped = FRANC_LANG_MAP[result] || 'und';
+			return mapped;
+		},
+
 		async detect(text) {
 			if (!text || !text.trim()) return "auto";
+			
 			const cached = LanguageDetectionCache.get(text);
-			if (cached) return cached;
+			if (cached) {
+				return cached;
+			}
+
 			const strategy = GM_getValue("lang_detector", DEFAULT_CONFIG.GENERAL.lang_detector);
-			let detectedLang = "";
-			if (strategy === "google") {
+
+			let detectedLang = "und";
+
+			if (strategy === "franc") {
+				detectedLang = await this.detectWithFranc(text);
+				if (detectedLang === 'und') {
+					Logger.warn('Network', 'Franc 特征不足，触发回退', { fallbackTo: 'microsoft' });
+					detectedLang = await apiMicrosoftLangdetect(text);
+				}
+			} else if (strategy === "google") {
 				detectedLang = await apiGoogleLangdetect(text);
 			} else if (strategy === "baidu") {
 				detectedLang = await apiBaiduLangdetect(text);
@@ -8451,8 +12017,9 @@
 			} else {
 				detectedLang = await apiMicrosoftLangdetect(text);
 			}
+
 			const finalLang = normalizeLanguageCode(detectedLang);
-			if (finalLang) {
+			if (finalLang && finalLang !== 'und') {
 				LanguageDetectionCache.set(text, finalLang);
 				return finalLang;
 			}
@@ -8460,102 +12027,467 @@
 		}
 	};
 
-    /**
+	/**
+	 * 可中断的睡眠函数
+	 */
+	async function cancellableSleep(ms, isCancelled) {
+		const interval = 200;
+		let elapsed = 0;
+		while (elapsed < ms) {
+			if (isCancelled && isCancelled()) {
+				const err = new Error('用户已取消翻译。');
+				err.type = 'user_cancelled';
+				err.noRetry = true;
+				throw err;
+			}
+			await new Promise(resolve => setTimeout(resolve, Math.min(interval, ms - elapsed)));
+			elapsed += interval;
+		}
+	}
+
+	/**
+	 * 统一重试管理器：指数退避、Jitter 抖动、错误上报与中断
+	 */
+	const RetryManager = {
+		async execute(taskFn, options) {
+			const { maxRetries = 3, isCancelled, onRetryFailure, engineName, reqId } = options;
+			let attempt = 0;
+			let keySwitchCount = 0;
+
+			while (true) {
+				if (isCancelled && isCancelled()) {
+					const err = new Error('用户已取消翻译。');
+					err.type = 'user_cancelled';
+					throw err;
+				}
+				
+				try {
+					return await taskFn(attempt);
+				} catch (error) {
+					// 1. 处理 Key 状态黑名单
+					if (error.usedKey) {
+						if (error.type === 'auth_error' || error.originalType === 'auth_error') {
+							KeyBlacklistManager.markDead(error.usedKey);
+							keySwitchCount++;
+						} else if (error.type === 'rate_limit') {
+							KeyBlacklistManager.markRateLimited(error.usedKey);
+						}
+					}
+
+					// 2. 致命错误直接抛出
+					if (error.type === 'fatal_error') throw error;
+
+					// 3. 防止死循环安全阀
+					if (keySwitchCount > 20) {
+						const err = new Error(`API Key 轮询次数过多，所有 Key 均已失效。`);
+						err.type = 'fatal_error';
+						throw err;
+					}
+
+					// 4. 处理所有 Key 都在冷却的情况
+					if (error.type === 'all_keys_cooling') {
+						attempt++;
+						if (attempt >= maxRetries) throw new Error(`所有 API Key 均频繁触发限流，重试 ${maxRetries} 次后放弃。`);
+						Logger.warn('Translation', `[${engineName}] 所有 Key 均在冷却，等待 ${error.retryAfterMs}ms`, null, reqId);
+						await cancellableSleep(error.retryAfterMs + 500, isCancelled);
+						continue; 
+					}
+
+					// 5. 只有非 Key 级错误，才消耗常规的 attempt 计数
+					const isKeyError = error.usedKey && (error.type === 'auth_error' || error.originalType === 'auth_error' || error.type === 'rate_limit');
+					if (!isKeyError) attempt++;
+
+					if (attempt >= maxRetries) throw error;
+
+					if (onRetryFailure) onRetryFailure(error, attempt);
+
+					// 6. 动态计算延时
+					let finalDelay = 0;
+					if (isKeyError) {
+						finalDelay = 200 + Math.random() * 300;
+					} else {
+						const baseDelay = (error.type === 'server_overloaded') ? 10000 : 2000;
+						finalDelay = Math.floor(baseDelay * Math.pow(2, attempt) + (Math.random() * 1000));
+					}
+
+					Logger.warn('Translation', `[${engineName}] 请求失败，准备重试 (Attempt: ${attempt}/${maxRetries})`, { reason: error.message, delayMs: finalDelay }, reqId);
+					
+					await cancellableSleep(finalDelay, isCancelled);
+				}
+			}
+		}
+	};
+
+	/**
 	 * 远程翻译请求函数
 	 */
-	async function requestRemoteTranslation(paragraphs, { isCancelled = () => false, knownFromLang = null, reqId = 'Unknown', skipRateLimit = false } = {}) {
+	async function requestRemoteTranslation(paragraphs, { isCancelled = () => false, knownFromLang = 'auto', reqId = 'Unknown', skipRateLimit = false } = {}) {
 		const createCancellationError = () => {
 			const error = new Error('用户已取消翻译。');
 			error.type = 'user_cancelled';
-			error.noRetry = true;
 			return error;
 		};
+		
 		if (isCancelled()) throw createCancellationError();
+		
 		const engineName = getValidEngineName();
-		if (!skipRateLimit) {
-			const tokenBucket = new GlobalTokenBucket();
-			while (true) {
-				if (isCancelled()) throw createCancellationError();
-				const result = await tokenBucket.consume(1, engineName);
-				if (result.success) {
-					break;
-				} else {
-					const waitTime = result.waitTime + (Math.random() * 50);
-					Logger.info('网络', `[${reqId}] 流控等待: ${Math.round(waitTime)}ms`);
-					await sleep(waitTime);
+		const toLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
+		const fromLang = knownFromLang || 'auto';
+		
+		const resourceManager = new ResourceManager(engineName);
+
+		// 包装成单次请求任务
+		const singleRequestTask = async (attempt) => {
+			if (attempt > 0 || !skipRateLimit) {
+				while (true) {
+					if (isCancelled()) throw createCancellationError();
+					const result = await resourceManager.acquireToken();
+					if (result.success) break;
+					await cancellableSleep(result.waitTime + Math.random() * 50, isCancelled);
 				}
 			}
-		}
-		const toLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
-		let fromLang;
-		if (knownFromLang) {
-			fromLang = knownFromLang;
-		} else {
-			const userSelectedFromLang = GM_getValue('from_lang', DEFAULT_CONFIG.GENERAL.from_lang);
-			if (userSelectedFromLang === 'script_auto') {
-				const textToDetect = paragraphs.map(p => p.textContent).join(' ').substring(0, 200);
-				fromLang = await LanguageDetectService.detect(textToDetect);
-			} else {
-				fromLang = userSelectedFromLang;
+
+			// 传统引擎：Bing
+			if (engineName === 'bing_translator') {
+				const result = await _handleBingRequest(CONFIG.TRANS_ENGINES.bing_translator, paragraphs, fromLang, toLang, reqId);
+				return { contentArray: result.snippets, reasoning: '', meta: { durationMs: result.durationMs } };
 			}
-		}
-		if (isCancelled()) throw createCancellationError();
-		if (engineName === 'bing_translator') {
-			try {
-				const translatedTexts = await _handleBingRequest(CONFIG.TRANS_ENGINES.bing_translator, paragraphs, fromLang, toLang);
-				return translatedTexts.map((content, index) => `${index + 1}. ${content}`).join('\n\n');
-			} catch (error) {
-				Logger.error('网络', `[${reqId}] 微软翻译错误`, error);
-				throw error;
-			}
-		}
-		if (engineName === 'google_translate') {
-			try {
-				const translatedHtmlSnippets = await _handleGoogleRequest(CONFIG.TRANS_ENGINES.google_translate, paragraphs, fromLang, toLang);
-				if (!Array.isArray(translatedHtmlSnippets)) {
+			
+			// 传统引擎：Google
+			if (engineName === 'google_translate') {
+				const result = await _handleGoogleRequest(CONFIG.TRANS_ENGINES.google_translate, paragraphs, fromLang, toLang, reqId);
+				if (!Array.isArray(result.snippets)) {
 					throw new Error('谷歌翻译接口未返回预期的数组格式');
 				}
-				const innerContents = translatedHtmlSnippets.map(html => {
+				const innerContents = result.snippets.map(html => {
 					const tempDiv = document.createElement('div');
 					tempDiv.innerHTML = html;
 					return tempDiv.firstElementChild ? tempDiv.firstElementChild.innerHTML : '';
 				});
-				return innerContents.map((content, index) => `${index + 1}. ${content}`).join('\n\n');
-			} catch (error) {
-				Logger.error('网络', `[${reqId}] 谷歌翻译错误`, error);
-				throw error;
+				return { contentArray: innerContents, reasoning: '', meta: { durationMs: result.durationMs } };
 			}
-		}
-		try {
+			
+			// LLM 引擎
 			const provider = getProviderById(engineName);
 			if (!provider) {
 				const error = new Error(`未能找到服务 "${engineName}" 的配置信息。`);
-				error.noRetry = true;
+				error.type = 'auth_error';
 				throw error;
 			}
+
+			// 1. 构建纯净的 Payload
+			const payload = PromptBuilder.build(paragraphs, fromLang, toLang, engineName);
+			
+			// 2. 实例化 Client 并请求
 			const client = ApiClientFactory.create(provider);
-			const translatedText = await client.translate(paragraphs, fromLang, toLang, reqId);
-			if (typeof translatedText !== 'string' || !translatedText.trim()) {
-				throw new Error('API 未返回有效文本。');
-			}
-			return translatedText;
-		} catch (error) {
-			throw error;
-		}
+			const result = await client.translate(payload, reqId);
+			
+			// 3. 返回富结果对象
+			return { ...result };
+		};
+
+		return await RetryManager.execute(singleRequestTask, {
+			maxRetries: 3,
+			isCancelled: isCancelled,
+			engineName: engineName,
+			reqId: reqId,
+			onRetryFailure: (err) => resourceManager.reportError(err)
+		});
 	}
 
-    /**
+	/**
+	 * 段落翻译主函数
+	 */
+	async function translateParagraphs(paragraphs, { isCancelled = () => false, knownFromLang = 'auto', reqId = 'Unknown', skipRateLimit = false } = {}) {
+		const createCancellationError = () => {
+			const error = new Error('用户已取消翻译。');
+			error.type = 'user_cancelled';
+			return error;
+		};
+
+		if (isCancelled()) throw createCancellationError();
+		if (!paragraphs || paragraphs.length === 0) return new Map();
+
+		const indexedParagraphs = paragraphs.map((p, index) => ({
+			original: p,
+			id: index,
+			isSeparator: p.tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(p.textContent),
+			content: TranslationDOMUtils.sanitizeForTranslation(p) 
+		}));
+
+		const contentToTranslate = indexedParagraphs.filter(p => !p.isSeparator);
+
+		if (contentToTranslate.length === 0) {
+			const results = new Map();
+			indexedParagraphs.forEach(p => results.set(p.original, { status: 'success', content: p.content }));
+			return results;
+		}
+
+		const fromLang = knownFromLang || 'auto';
+		const toLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
+		const engineName = getValidEngineName();
+
+		// 2. 缓存查询
+		const cacheKeys = await Promise.all(contentToTranslate.map(async (p) => {
+			const scopeId = getScopeId(p.original);
+			const textContent = p.original.textContent.trim();
+			const context = textContent.length < SHORT_TEXT_CONTEXT_THRESHOLD
+				? getLightweightCacheContext(p.original)
+				: null;
+			return buildStableCacheKey(p.content, fromLang, toLang, scopeId, context);
+		}));
+
+		const cachedResults = await TranslationCacheDB.get(cacheKeys);
+
+		const misses =[];
+		const hits = new Map();
+		const hitKeysToUpdate =[];
+		const now = Date.now();
+
+		for (let i = 0; i < contentToTranslate.length; i++) {
+			const p = contentToTranslate[i];
+			const key = cacheKeys[i];
+			const cached = cachedResults[i];
+
+			if (cached) {
+				hits.set(p.id, cached.translatedText);
+				if (now - cached.timestamp > 24 * 60 * 60 * 1000) {
+					hitKeysToUpdate.push(key);
+				}
+			} else {
+				misses.push({ p, key, index: i });
+			}
+		}
+
+		if (hitKeysToUpdate.length > 0) {
+			TranslationCacheDB.updateTimestamps(hitKeysToUpdate);
+		}
+
+		const resultsMap = new Map();
+		for (const [id, text] of hits.entries()) {
+			resultsMap.set(id, text);
+		}
+
+		// 3. 处理未命中的段落
+		if (misses.length > 0) {
+			const preparedRules = await getPreparedGlossaryRules();
+			const pm = new PlaceholderManager();
+			const preprocessedMisses =[];
+
+			TimeSlicer.reset();
+			for (let i = 0; i < misses.length; i++) {
+				if (isCancelled()) throw createCancellationError();
+				const p = misses[i].p;
+				const processedNode = _preprocessParagraph(p.original, preparedRules, pm, engineName);
+				TextNormalizer.normalizeNode(processedNode);
+				preprocessedMisses.push(processedNode);
+				await TimeSlicer.yieldIfNeeded();
+			}
+
+			Logger.info('Translation', '任务开始', {
+				engine: engineName,
+				paragraphs: misses.length,
+				placeholders: pm.placeholders.size,
+				cacheHits: hits.size,
+				cacheMisses: misses.length
+			}, reqId);
+
+			// 获取富结果对象
+			const response = await requestRemoteTranslation(preprocessedMisses, {
+				isCancelled,
+				knownFromLang: fromLang,
+				reqId,
+				skipRateLimit
+			});
+
+			const meta = response.meta || {};
+			const reasoningText = response.reasoning || '';
+
+			// 统一日志打印
+			Logger.info('Translation', '翻译解析成功', { 
+				duration: `${meta.durationMs || 0}ms`, 
+				model: meta.model || 'N/A',
+				usage: meta.promptTokens ? `${meta.promptTokens} -> ${meta.completionTokens}` : 'N/A'
+			}, reqId);
+
+			if (reasoningText && reasoningText.trim()) {
+				console.groupCollapsed(`%c[Reasoning] [${reqId}] Thought Process`, 'color: #9c27b0; font-weight: bold;');
+				console.log('%cBasic Info:\n\n', 'color: #2196F3; font-weight: bold;', JSON.stringify({
+					reqId, engine: engineName, model: meta.model, paragraphs: misses.length, durationMs: meta.durationMs
+				}, null, 2));
+				console.log('%cThought Content:\n\n%c' + reasoningText, 'color: #FFC107; font-weight: bold;', 'color: inherit;');
+				console.groupEnd();
+			}
+
+			const parsedMisses = new Map();
+
+			if (engineName === 'google_translate' || engineName === 'bing_translator') {
+				// 传统引擎
+				const contentArray = response.contentArray;
+				if (!Array.isArray(contentArray) || contentArray.length !== misses.length) {
+					const err = new Error(`传统翻译引擎返回的数组长度不匹配 (预期: ${misses.length}, 实际: ${contentArray ? contentArray.length : 'undefined'})`);
+					err.type = 'validation_failed';
+					throw err;
+				}
+				contentArray.forEach((text, index) => {
+					if (text) parsedMisses.set(index, String(text).trim());
+				});
+			} else {
+				// LLM 引擎：JSON 结构化解析
+				let combinedTranslation = response.content.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
+				combinedTranslation = pm.normalize(combinedTranslation);
+				
+				const jsonObj = extractJson(combinedTranslation);
+				
+				if (!jsonObj || !Array.isArray(jsonObj.translations)) {
+					const err = new Error('AI 未返回有效的 JSON 格式数据');
+					err.type = 'validation_failed';
+					throw err;
+				}
+
+				jsonObj.translations.forEach(item => {
+					if (item && item.id !== undefined && item.trans !== undefined) {
+						parsedMisses.set(parseInt(item.id, 10), String(item.trans).trim());
+					}
+				});
+
+				if (parsedMisses.size !== misses.length) {
+					const err = new Error(`AI 返回的 JSON 数组长度与输入不一致 (预期: ${misses.length}, 实际: ${parsedMisses.size})`);
+					err.type = 'validation_failed';
+					throw err;
+				}
+			}
+
+			// 校验占位符
+			const defaults = CONFIG.SERVICE_CONFIG[engineName]?.VALIDATION || CONFIG.SERVICE_CONFIG.default.VALIDATION;
+			const params = ProfileManager.getParamsByEngine(engineName);
+			const parts = (params.validation_thresholds || '').split(/[,，]/).map(s => parseFloat(s.trim()));
+			const isValid = parts.length >= 4 && !parts.some(isNaN);
+			
+			const baseThresholds = {
+				absolute_loss: isValid ? parts[0] : defaults.absolute_loss,
+				proportional_loss: isValid ? parts[1] : defaults.proportional_loss,
+				proportional_trigger_count: isValid ? parts[2] : defaults.proportional_trigger_count,
+				catastrophic_loss: isValid ? parts[3] : defaults.catastrophic_loss
+			};
+			const currentChunkSize = params.chunk_size;
+			const currentParaLimit = params.para_limit;
+
+			// 统一将译文合并为字符串进行校验
+			let textForValidation = '';
+			if (engineName === 'google_translate' || engineName === 'bing_translator') {
+				textForValidation = response.contentArray.join(' ');
+			} else {
+				textForValidation = response.content;
+			}
+
+			const preprocessedText = preprocessedMisses.map(p => p.innerHTML).join(' ');
+			const validation = pm.validate(preprocessedText, textForValidation, baseThresholds, currentChunkSize, currentParaLimit);
+
+			if (!validation.isValid) {
+				Logger.warn('Translation', `占位符校验失败: ${validation.errorReason}`, { totalLoss: validation.totalLoss }, reqId);
+				const err = new Error(`占位符校验失败 (${validation.errorReason})`);
+				err.type = 'validation_failed';
+				throw err;
+			}
+
+			// 还原、清理并存入缓存
+			const entriesToSave =[];
+			TimeSlicer.reset();
+			for (let i = 0; i < misses.length; i++) {
+				if (isCancelled()) throw createCancellationError();
+				const miss = misses[i];
+				let translatedContent = parsedMisses.get(i);
+				
+				if (translatedContent) {
+					translatedContent = pm.restore(translatedContent);
+					let cleaned = AdvancedTranslationCleaner.clean(translatedContent || miss.p.content);
+					cleaned = applyPostTranslationReplacements(cleaned);
+					
+					resultsMap.set(miss.p.id, cleaned);
+					
+					entriesToSave.push({
+						hashKey: miss.key,
+						textHash: await sha256(miss.p.content),
+						translatedText: cleaned,
+						timestamp: Date.now()
+					});
+				}
+				await TimeSlicer.yieldIfNeeded();
+			}
+
+			if (entriesToSave.length > 0) {
+				await TranslationCacheDB.put(entriesToSave);
+			}
+		} else {
+			Logger.info('Translation', '任务完成 (命中缓存)', {
+				engine: engineName,
+				paragraphs: contentToTranslate.length,
+				cacheHits: hits.size
+			}, reqId);
+		}
+
+		// 4. 合并最终结果
+		const finalResults = new Map();
+		for (const p of indexedParagraphs) {
+			if (isCancelled()) throw createCancellationError();
+
+			if (p.isSeparator) {
+				finalResults.set(p.original, { status: 'success', content: p.content });
+			} else {
+				const translatedContent = resultsMap.get(p.id);
+				if (translatedContent) {
+					finalResults.set(p.original, { status: 'success', content: translatedContent });
+				} else {
+					finalResults.set(p.original, { status: 'error', content: '底层异常：翻译结果丢失' });
+				}
+			}
+		}
+
+		return finalResults;
+	}
+
+	/**
+	 * API Key 黑名单管理器（页面生命周期内有效）
+	 */
+	const KeyBlacklistManager = {
+		blacklist: new Map(),
+		BAN_DURATION_429: 10000,
+
+		markDead(key) {
+			this.blacklist.set(key, { dead: true });
+			Logger.warn('Network', `API Key 已失效 (401/402/403)，本次页面生命周期内不再使用`, { keyMasked: key.substring(0, 8) + '...' });
+		},
+		markRateLimited(key) {
+			this.blacklist.set(key, { banUntil: Date.now() + this.BAN_DURATION_429 });
+			Logger.warn('Network', `API Key 触发限流 (429)，冻结 10 秒`, { keyMasked: key.substring(0, 8) + '...' });
+		},
+		getStatus(key) {
+			const status = this.blacklist.get(key);
+			if (!status) return 'ACTIVE';
+			if (status.dead) return 'DEAD';
+			if (status.banUntil && Date.now() < status.banUntil) return 'COOLING';
+			return 'ACTIVE';
+		}
+	};
+
+	/**
 	 * 为指定服务获取下一个可用的 API Key
 	 */
 	async function _getApiKeyForService(provider) {
 		const serviceId = provider.id;
 		const arrayKey = `${serviceId}_keys_array`;
-		const keys = GM_getValue(arrayKey, []);
+		const keys = GM_getValue(arrayKey,[]);
 
 		if (keys.length === 0) {
-			const error = new Error(`请在设置面板中为 ${provider.name} 设置至少一个 API Key 。各项翻译服务的 API Key 获取地址：<a href="https://v-lipset.github.io/docs/support/service" target="_blank" style="word-break: break-all;">https://v-lipset.github.io/docs/support/service</a>`);
-			error.noRetry = true;
-			throw error;
+			if (!provider.isCustom) {
+				const error = new Error(`请在设置面板中为 ${provider.name} 设置至少一个 API Key 。各项翻译服务的 API Key 获取地址：<a href="https://v-lipset.github.io/docs/support/service" target="_blank" style="word-break: break-all;">https://v-lipset.github.io/docs/support/service</a>`);
+				error.type = 'fatal_error';
+				throw error;
+			} else {
+				// 自定义服务允许不填 API Key（兼容本地部署的 LLM）
+				return { key: '', index: 0, totalKeys: 0 };
+			}
 		}
 
 		const lockKey = `${serviceId}_key_lock`;
@@ -8570,9 +12502,7 @@
 					GM_setValue(lockKey, { id: myLockId, timestamp: Date.now() });
 					await sleep(50);
 					const confirmedLock = GM_getValue(lockKey, null);
-					if (confirmedLock && confirmedLock.id === myLockId) {
-						return true;
-					}
+					if (confirmedLock && confirmedLock.id === myLockId) return true;
 				}
 				await sleep(100 + Math.random() * 100);
 			}
@@ -8581,9 +12511,7 @@
 
 		function releaseLock() {
 			const currentLock = GM_getValue(lockKey, null);
-			if (currentLock && currentLock.id === myLockId) {
-				GM_deleteValue(lockKey);
-			}
+			if (currentLock && currentLock.id === myLockId) GM_deleteValue(lockKey);
 		}
 
 		if (!(await acquireLock())) {
@@ -8593,12 +12521,44 @@
 		try {
 			const indexKey = `${serviceId}_key_index`;
 			const startIndex = GM_getValue(indexKey, 0);
-			const currentIndex = startIndex % keys.length;
-			GM_setValue(indexKey, (startIndex + 1) % keys.length);
+			let currentIndex = startIndex;
+			let attempts = 0;
+			let minWaitTime = Infinity;
 
-			const currentKey = keys[currentIndex];
-			Logger.info('网络', `API Key 调度: ${provider.name}`, { keyIndex: currentIndex + 1, keyMasked: currentKey });
-			return { key: currentKey, index: currentIndex };
+			// 轮询寻找可用 Key
+			while (attempts < keys.length) {
+				const candidateKey = keys[currentIndex];
+				const status = KeyBlacklistManager.getStatus(candidateKey);
+
+				if (status === 'ACTIVE') {
+					GM_setValue(indexKey, (currentIndex + 1) % keys.length);
+					Logger.info('Network', `API Key 调度: ${provider.name}`, { keyIndex: currentIndex + 1 });
+					return { key: candidateKey, index: currentIndex, totalKeys: keys.length };
+				}
+
+				if (status === 'COOLING') {
+					const remaining = KeyBlacklistManager.blacklist.get(candidateKey).banUntil - Date.now();
+					if (remaining < minWaitTime) minWaitTime = remaining;
+				}
+
+				currentIndex = (currentIndex + 1) % keys.length;
+				attempts++;
+			}
+
+			// 所有 Key 都不可用
+			const allDead = keys.every(k => KeyBlacklistManager.getStatus(k) === 'DEAD');
+			if (allDead) {
+				const error = new Error(`所有 ${provider.name} 的 API Key 均已失效，请检查更新。`);
+				error.type = 'fatal_error';
+				throw error;
+			}
+
+			// 都在冷却中
+			const error = new Error(`所有 API Key 均处于限流冷却中`);
+			error.type = 'all_keys_cooling';
+			error.retryAfterMs = minWaitTime; 
+			throw error;
+
 		} finally {
 			releaseLock();
 		}
@@ -8635,7 +12595,7 @@
 	/**
 	 * 处理对谷歌翻译接口的特定请求流程
 	 */
-	async function _handleGoogleRequest(engineConfig, paragraphs, fromLang, toLang) {
+	async function _handleGoogleRequest(engineConfig, paragraphs, fromLang, toLang, reqId = 'Unknown') {
 		await GoogleTranslateHelper.findAuth();
 		if (!GoogleTranslateHelper.translateAuth) {
 			throw new Error('无法获取谷歌翻译的授权凭证');
@@ -8648,25 +12608,30 @@
 		const requestData = JSON.stringify([
 			[sourceTexts, fromLang, toLang], "te"
 		]);
-		Logger.info('网络', '发起请求: 谷歌翻译', {
+
+		Logger.info('Network', '发起请求: 谷歌翻译', {
 			url: engineConfig.url_api,
 			from: fromLang,
 			to: toLang,
 			paragraphs: paragraphs.length
-		});
+		}, reqId);
+
+		const startTime = Date.now();
 		const res = await new Promise((resolve, reject) => {
-			GM_xmlhttpRequest({
+			safeRequest({
 				method: engineConfig.method,
 				url: engineConfig.url_api,
 				headers: headers,
 				data: requestData,
 				responseType: 'json',
-				timeout: 45000,
+				timeout: TRADITIONAL_REQUEST_TIMEOUT,
 				onload: resolve,
 				onerror: () => reject(new Error('网络请求错误')),
 				ontimeout: () => reject(new Error('请求超时'))
-			});
+			}, reqId);
 		});
+
+		const duration = Date.now() - startTime;
 		if (res.status !== 200) {
 			throw new Error(`谷歌翻译 API 错误 (代码: ${res.status}): ${res.statusText}`);
 		}
@@ -8674,13 +12639,17 @@
 		if (!translatedHtmlSnippets || !Array.isArray(translatedHtmlSnippets)) {
 			throw new Error('从谷歌翻译接口返回的响应结构无效');
 		}
-		return translatedHtmlSnippets.map(html => unmaskProtectedTags(html));
+
+		return {
+			snippets: translatedHtmlSnippets.map(html => unmaskProtectedTags(html)),
+			durationMs: duration
+		};
 	}
 
 	/**
 	 * 处理对微软翻译接口的特定请求流程
 	 */
-	async function _handleBingRequest(engineConfig, paragraphs, fromLang, toLang, isRetry = false) {
+	async function _handleBingRequest(engineConfig, paragraphs, fromLang, toLang, reqId = 'Unknown') {
 		const token = await BingTranslateHelper.getToken();
 		const bingFrom = BING_LANG_CODE_MAP[fromLang] || fromLang;
 		const bingTo = BING_LANG_CODE_MAP[toLang] || toLang;
@@ -8692,17 +12661,17 @@
 			text: p.innerHTML
 		})));
 
-		if (!isRetry) {
-			Logger.info('网络', '发起请求: 微软翻译', {
-				url: url,
-				from: bingFrom,
-				to: bingTo,
-				paragraphs: paragraphs.length
-			});
-		}
+		Logger.info('Network', '发起请求: 微软翻译', {
+			url: url,
+			from: bingFrom,
+			to: bingTo,
+			paragraphs: paragraphs.length
+		}, reqId);
+
+		const startTime = Date.now();
 
 		return new Promise((resolve, reject) => {
-			GM_xmlhttpRequest({
+			safeRequest({
 				method: "POST",
 				url: url,
 				headers: {
@@ -8712,17 +12681,16 @@
 				},
 				data: requestBody,
 				responseType: 'json',
-				timeout: 45000,
+				timeout: TRADITIONAL_REQUEST_TIMEOUT,
 				onload: async (res) => {
-					if (res.status === 401 && !isRetry) {
-						Logger.warn('网络', '微软翻译 Token 过期，正在重试');
+					const duration = Date.now() - startTime;
+					if (res.status === 401) {
+						Logger.warn('Network', '微软翻译 Token 过期，清理 Token 并触发重试', null, reqId);
 						BingTranslateHelper.clearToken();
-						try {
-							const retryResult = await _handleBingRequest(engineConfig, paragraphs, fromLang, toLang, true);
-							resolve(retryResult);
-						} catch (retryError) {
-							reject(retryError);
-						}
+						const e = new Error('Bing Token Expired');
+						e.type = 'auth_error';
+						e.noRetry = false;
+						reject(e);
 						return;
 					}
 					if (res.status !== 200) {
@@ -8738,9 +12706,12 @@
 						reject(e);
 						return;
 					}
-					resolve(responseData.map(item => item.translations[0].text));
+					resolve({
+						snippets: responseData.map(item => item.translations[0].text),
+						durationMs: duration
+					});
 				},
-				onerror: (err) => {
+				onerror: () => {
 					const e = new Error('Network Error');
 					e.type = 'network';
 					reject(e);
@@ -8750,673 +12721,13 @@
 					e.type = 'timeout';
 					reject(e);
 				}
-			});
+			}, reqId);
 		});
 	}
-
-	/**
-	 * OpenAI 的专属错误处理策略
-	 */
-	function _handleOpenaiError(res, name, responseData) {
-		const apiErrorMessage = getNestedProperty(responseData, 'error.message') || res.statusText;
-		const apiErrorCode = getNestedProperty(responseData, 'error.code');
-		let userFriendlyError;
-		const error = new Error();
-		error.noRetry = false;
-
-		switch (res.status) {
-			case 400:
-				if (apiErrorCode === 'model_not_found') {
-					userFriendlyError = `模型不存在 (400)：您选择的模型当前不可用或您无权访问。请在设置中更换模型。`;
-				} else {
-					userFriendlyError = `错误的请求 (400)：请求的格式或参数有误。`;
-				}
-				error.noRetry = true;
-				break;
-			case 401:
-				userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${name} API Key。`;
-				error.noRetry = true;
-				break;
-			case 403:
-				userFriendlyError = `权限被拒绝 (403)：您的 API Key 无权访问所请求的资源，或您所在的地区不受支持。`;
-				error.noRetry = true;
-				break;
-			case 404:
-				userFriendlyError = `资源未找到 (404)：请求的 API 端点不存在。`;
-				error.noRetry = true;
-				break;
-			case 429:
-				if (apiErrorCode === 'insufficient_quota') {
-					userFriendlyError = `账户余额不足 (429)：您的 ${name} 账户已用尽信用点数或达到支出上限。请前往服务官网检查您的账单详情。`;
-					error.noRetry = true;
-					error.type = 'billing_error';
-				} else {
-					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
-					error.type = 'rate_limit';
-				}
-				break;
-			case 500:
-				userFriendlyError = `服务器内部错误 (500)：${name} 的服务器遇到问题。`;
-				error.type = 'server_overloaded';
-				break;
-			case 503:
-				if (apiErrorMessage && apiErrorMessage.includes('Slow Down')) {
-					userFriendlyError = `服务暂时过载 (503 - Slow Down)：由于您的请求速率突然增加，服务暂时受到影响。`;
-				} else {
-					userFriendlyError = `服务器当前过载 (503)：${name} 的服务器正经历高流量。`;
-				}
-				error.type = 'server_overloaded';
-				break;
-			default:
-				userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
-				error.noRetry = true;
-				break;
-		}
-
-		error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
-		return error;
-	}
-
-	/**
-	 * Anthropic 的专属错误处理策略
-	 */
-	function _handleAnthropicError(res, name, responseData) {
-		const apiErrorType = getNestedProperty(responseData, 'error.type');
-		const apiErrorMessage = getNestedProperty(responseData, 'error.message') || res.statusText;
-		let userFriendlyError;
-		const error = new Error();
-		error.noRetry = false;
-
-		switch (apiErrorType) {
-			case 'invalid_request_error':
-				userFriendlyError = `无效请求 (${res.status})：请求的格式或参数有误。如果问题持续，可能是模型名称不受支持或已更新。`;
-				error.noRetry = true;
-				break;
-			case 'authentication_error':
-				userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${name} API Key。`;
-				error.noRetry = true;
-				break;
-			case 'permission_error':
-				userFriendlyError = `权限被拒绝 (403)：您的 API Key 无权访问所请求的资源。`;
-				error.noRetry = true;
-				break;
-			case 'not_found_error':
-				userFriendlyError = `资源未找到 (404)：请求的 API 端点或模型不存在。`;
-				error.noRetry = true;
-				break;
-			case 'request_too_large':
-				userFriendlyError = `请求内容过长 (413)：发送的文本量超过了 API 的单次请求上限。`;
-				error.noRetry = true;
-				break;
-			case 'rate_limit_error':
-				userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
-				error.type = 'rate_limit';
-				break;
-			case 'api_error':
-				userFriendlyError = `服务器内部错误 (500)：${name} 的服务器遇到问题。`;
-				error.type = 'server_overloaded';
-				break;
-			case 'overloaded_error':
-				userFriendlyError = `服务器过载 (529)：${name} 的服务器当前负载过高。`;
-				error.type = 'server_overloaded';
-				break;
-			default:
-				if (res.status === 413) {
-					userFriendlyError = `请求内容过长 (413)：发送的文本量超过了 API 的单次请求上限。`;
-				} else {
-					userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
-				}
-				error.noRetry = true;
-				break;
-		}
-
-		error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
-		return error;
-	}
-
-	/**
-	 * Zhipu AI 的专属错误处理策略
-	 */
-	function _handleZhipuAiError(res, name, responseData) {
-		const businessErrorCode = getNestedProperty(responseData, 'error.code');
-		const apiErrorMessage = getNestedProperty(responseData, 'error.message') || res.statusText;
-		let userFriendlyError;
-		const error = new Error();
-
-		if (businessErrorCode) {
-			switch (businessErrorCode) {
-				case '1001':
-				case '1002':
-				case '1003':
-				case '1004':
-					userFriendlyError = `API Key 无效或认证失败 (${businessErrorCode})：请在设置面板中检查您的 ${name} API Key 是否正确填写。`;
-					error.noRetry = true;
-					break;
-				case '1112':
-					userFriendlyError = `账户异常 (${businessErrorCode})：您的 ${name} 账户已被锁定，请联系平台客服。`;
-					error.noRetry = true;
-					break;
-				case '1113':
-					userFriendlyError = `账户余额不足 (${businessErrorCode})：您的 ${name} 账户已欠费，请前往 Zhipu AI 官网充值。`;
-					error.noRetry = true;
-					break;
-				case '1301':
-					userFriendlyError = `内容安全策略阻止 (${businessErrorCode})：因含有敏感内容，请求被 Zhipu AI 安全策略阻止。`;
-					error.noRetry = true;
-					error.type = 'content_error';
-					break;
-				case '1302':
-				case '1303':
-					error.message = `请求频率过高 (${businessErrorCode})：已超出 API 的速率限制。\n\n原始错误信息：\n${apiErrorMessage}`;
-					error.type = 'rate_limit';
-					return error;
-				case '1304':
-					userFriendlyError = `调用次数超限 (${businessErrorCode})：已达到当日调用次数限额，请联系 Zhipu AI 客服。`;
-					error.noRetry = true;
-					break;
-				default:
-					userFriendlyError = `发生未知的业务错误 (代码: ${businessErrorCode})。`;
-					error.noRetry = true;
-					break;
-			}
-		} else {
-			return new BaseApiClient({ name })._handleError(res, responseData);
-		}
-
-		error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
-		return error;
-	}
-
-	/**
-	 * DeepSeek AI 的专属错误处理策略
-	 */
-	function _handleDeepseekAiError(res, name, responseData) {
-		const apiErrorMessage = getNestedProperty(responseData, 'error.message') || getNestedProperty(responseData, 'message') || res.statusText;
-		let userFriendlyError;
-		const error = new Error();
-
-		switch (res.status) {
-			case 400:
-			case 422:
-				userFriendlyError = `请求格式或参数错误 (${res.status})：请检插件是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
-				error.noRetry = true;
-				break;
-			case 401:
-				userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${name} API Key 是否正确填写。`;
-				error.noRetry = true;
-				break;
-			case 402:
-				userFriendlyError = `账户余额不足 (402)：您的 ${name} 账户余额不足。请前往 DeepSeek 官网充值。`;
-				error.noRetry = true;
-				break;
-			case 429:
-				userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
-				error.type = 'rate_limit';
-				break;
-			case 500:
-				userFriendlyError = `服务器内部故障 (500)：${name} 的服务器遇到未知问题。`;
-				error.type = 'server_overloaded';
-				break;
-			case 503:
-				userFriendlyError = `服务器繁忙 (503)：${name} 的服务器当前负载过高。`;
-				error.type = 'server_overloaded';
-				break;
-			default:
-				return new BaseApiClient({ name })._handleError(res, responseData);
-		}
-
-		error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
-		return error;
-	}
-
-	/**
-	 * Google AI 的专属错误处理策略
-	 */
-	function _handleGoogleAiError(errorData) {
-		const { type, message, res, name } = errorData;
-		const error = new Error();
-		let userFriendlyError;
-
-		if (type === 'content_error') {
-			userFriendlyError = `内容安全策略阻止：${message}。请尝试修改原文内容。`;
-			error.noRetry = true;
-		} else if (type === 'key_invalid') {
-			userFriendlyError = `API Key 无效或认证失败：${message}。请在设置面板中检查您的 API Key。`;
-			error.noRetry = true;
-		} else if (res) {
-			switch (res.status) {
-				case 400:
-					userFriendlyError = `请求格式错误 (400)：您的国家/地区可能不支持 Gemini API 的免费套餐，请在 Google AI Studio 中启用结算。`;
-					error.noRetry = true;
-					break;
-				case 429:
-					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
-					error.type = 'rate_limit';
-					break;
-				default:
-					return new BaseApiClient({ name })._handleError(res, res.response);
-			}
-		} else {
-			userFriendlyError = `发生未知错误：${message}`;
-			error.noRetry = (type !== 'network' && type !== 'timeout');
-		}
-
-		error.message = userFriendlyError + `\n\n原始错误信息：\n${message}`;
-		return error;
-	}
-
-	/**
-	 * SiliconFlow 的专属错误处理策略
-	 */
-	function _handleSiliconFlowError(res, name, responseData) {
-		const apiErrorMessage = getNestedProperty(responseData, 'message') || res.statusText;
-		const apiErrorCode = getNestedProperty(responseData, 'code');
-		let userFriendlyError;
-		const error = new Error();
-
-		switch (res.status) {
-			case 400:
-				if (apiErrorCode === 20012) {
-					userFriendlyError = `模型不存在 (400)：您选择的模型名称无效或已下线。请在设置中更换模型。`;
-				} else {
-					userFriendlyError = `请求参数错误 (400)：请检查插件版本或配置。`;
-				}
-				error.noRetry = true;
-				break;
-			case 401:
-				userFriendlyError = `API Key 无效 (401)：请在设置面板中检查您的 ${name} API Key。`;
-				error.noRetry = true;
-				break;
-			case 403:
-				userFriendlyError = `权限不足或余额不足 (403)：可能是账户余额不足，或该模型需要实名认证。请前往 SiliconFlow 官网检查账户状态。`;
-				error.noRetry = true;
-				break;
-			case 429:
-				userFriendlyError = `请求频率过高 (429)：触发了速率限制 (RPM/TPM)。`;
-				error.type = 'rate_limit';
-				break;
-			case 503:
-			case 504:
-				userFriendlyError = `服务系统负载高 (${res.status})：SiliconFlow 服务器暂时繁忙。`;
-				error.type = 'server_overloaded';
-				break;
-			case 500:
-				userFriendlyError = `服务器内部错误 (500)：服务发生了未知错误。`;
-				error.type = 'server_overloaded';
-				break;
-			default:
-				userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
-				error.noRetry = true;
-				break;
-		}
-
-		error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
-		return error;
-	}
-
-	/**
-	 * Groq AI 的专属错误处理策略
-	 */
-	function _handleGroqAiError(res, name, responseData) {
-		const apiErrorMessage = getNestedProperty(responseData, 'error.message') || getNestedProperty(responseData, 'message') || res.statusText;
-		let userFriendlyError;
-		const error = new Error();
-
-		switch (res.status) {
-			case 400:
-				userFriendlyError = `请求无效 (400)：请求语法错误。请检查请求格式。`;
-				error.noRetry = true;
-				break;
-			case 401:
-				userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${name} API Key。`;
-				error.noRetry = true;
-				break;
-			case 403:
-				userFriendlyError = `权限被拒绝 (403)：您的网络或 API Key 无权访问所请求的资源。`;
-				error.noRetry = true;
-				break;
-			case 404:
-				userFriendlyError = `资源未找到 (404)：请求的模型或端点不存在。请检查模型名称或接口地址。`;
-				error.noRetry = true;
-				break;
-			case 413:
-				userFriendlyError = `请求内容过长 (413)：发送的文本量超过了限制。请尝试减少单次翻译的文本量。`;
-				error.noRetry = true;
-				break;
-			case 422:
-				userFriendlyError = `无法处理的实体 (422)：请求格式正确但包含语义错误。`;
-				error.noRetry = true;
-				break;
-			case 424:
-				userFriendlyError = `依赖失败 (424)：依赖请求失败（可能是 Remote MCP 认证问题）。`;
-				error.noRetry = true;
-				break;
-			case 429:
-				userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
-				error.type = 'rate_limit';
-				break;
-			case 498:
-				userFriendlyError = `Flex Tier 容量超限 (498)：当前 Flex Tier 已满。`;
-				error.type = 'server_overloaded';
-				break;
-			case 500:
-				userFriendlyError = `服务器内部错误 (500)：${name} 服务器发生通用错误。`;
-				error.type = 'server_overloaded';
-				break;
-			case 502:
-				userFriendlyError = `网关错误 (502)：上游服务器响应无效。`;
-				error.type = 'server_overloaded';
-				break;
-			case 503:
-				userFriendlyError = `服务不可用 (503)：服务器正在维护或过载。`;
-				error.type = 'server_overloaded';
-				break;
-			default:
-				userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
-				error.noRetry = true;
-				break;
-		}
-
-		error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
-		return error;
-	}
-
-	/**
-	 * Cerebras AI 的专属错误处理策略
-	 */
-	function _handleCerebrasAiError(res, name, responseData) {
-		const apiErrorMessage = getNestedProperty(responseData, 'error.message') || getNestedProperty(responseData, 'message') || res.statusText;
-		let userFriendlyError;
-		const error = new Error();
-
-		switch (res.status) {
-			case 400:
-				userFriendlyError = `请求无效 (400)：请求参数有误。请检查模型名称或输入格式。`;
-				error.noRetry = true;
-				break;
-			case 401:
-				userFriendlyError = `认证失败 (401)：API Key 无效或缺失。请在设置面板中检查您的 ${name} API Key。`;
-				error.noRetry = true;
-				break;
-			case 402:
-				userFriendlyError = `需要付款 (402)：账户余额不足或需要充值。`;
-				error.noRetry = true;
-				break;
-			case 403:
-				userFriendlyError = `权限被拒绝 (403)：无权访问该资源。`;
-				error.noRetry = true;
-				break;
-			case 404:
-				userFriendlyError = `资源未找到 (404)：请求的模型或端点不存在。`;
-				error.noRetry = true;
-				break;
-			case 408:
-				userFriendlyError = `请求超时 (408)：服务器处理请求超时。`;
-				error.type = 'timeout';
-				break;
-			case 409:
-				userFriendlyError = `请求冲突 (409)：资源状态冲突。`;
-				error.type = 'server_overloaded';
-				break;
-			case 422:
-				userFriendlyError = `无法处理的实体 (422)：请求格式正确但包含语义错误（如无效的模型参数）。`;
-				error.noRetry = true;
-				break;
-			case 429:
-				userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
-				error.type = 'rate_limit';
-				break;
-			default:
-				if (res.status >= 500) {
-					userFriendlyError = `服务器内部错误 (${res.status})：${name} 服务器发生错误。`;
-					error.type = 'server_overloaded';
-				} else {
-					userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
-					error.noRetry = true;
-				}
-				break;
-		}
-
-		error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
-		return error;
-	}
-
-	/**
-	 * Together AI 的专用错误处理策略
-	 */
-	function _handleTogetherAiError(res, name, responseData) {
-		const apiErrorMessage = getNestedProperty(responseData, 'error.message') || getNestedProperty(responseData, 'message') || res.statusText;
-		let userFriendlyError;
-		const error = new Error();
-
-		switch (res.status) {
-			case 400:
-			case 422:
-				userFriendlyError = `请求格式或参数错误 (${res.status})：请检查插件是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
-				error.noRetry = true;
-				break;
-			case 401:
-				userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${name} API Key 是否正确填写。`;
-				error.noRetry = true;
-				break;
-			case 402:
-				userFriendlyError = `需要付费 (402)：您的 ${name} 账户已达到消费上限或需要充值。请检查您的账户账单设置。`;
-				error.noRetry = true;
-				break;
-			case 403:
-			case 413:
-				userFriendlyError = `请求内容过长 (${res.status})：发送的文本量超过了模型的上下文长度限制。请尝试翻译更短的文本段落。`;
-				error.noRetry = true;
-				break;
-			case 404:
-				userFriendlyError = `模型或接口地址不存在 (404)：您选择的模型名称可能已失效，或接口地址不正确。请尝试在设置面板中切换至其她模型或检查接口地址。`;
-				error.noRetry = true;
-				break;
-			case 429:
-				userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
-				error.type = 'rate_limit';
-				break;
-			case 500:
-				userFriendlyError = `服务器内部错误 (500)：${name} 的服务器遇到问题。`;
-				error.type = 'server_overloaded';
-				break;
-			case 502:
-				userFriendlyError = `网关错误 (502)：上游服务器响应无效。这通常是临时问题。`;
-				error.type = 'server_overloaded';
-				break;
-			case 503:
-				userFriendlyError = `服务过载 (503)：${name} 的服务器当前流量过高。`;
-				error.type = 'server_overloaded';
-				break;
-			default:
-				return new BaseApiClient({ name })._handleError(res, responseData);
-		}
-
-		error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
-		return error;
-	}
-
-	/**
-	 * API 错误处理策略注册表
-	 */
-	const API_ERROR_HANDLERS = {
-		'openai': _handleOpenaiError,
-		'siliconflow': _handleSiliconFlowError,
-		'anthropic': _handleAnthropicError,
-		'zhipu_ai': _handleZhipuAiError,
-		'deepseek_ai': _handleDeepseekAiError,
-		'google_ai': _handleGoogleAiError,
-		'groq_ai': _handleGroqAiError,
-		'together_ai': _handleTogetherAiError,
-		'cerebras_ai': _handleCerebrasAiError,
-		'modelscope_ai': _handleTogetherAiError
-	};
 
 	/**************************************************************************
 	 * 术语表系统、工具函数与核心逻辑
 	 **************************************************************************/
-
-	/**
-	 * 为词形变体创建正则表达式
-	 */
-	function createSmartRegexPattern(forms) {
-		if (!forms || forms.size === 0) {
-			return '';
-		}
-
-		const sortedForms = Array.from(forms).sort((a, b) => b.length - a.length);
-
-		const escapedForms = sortedForms.map(form =>
-			form.replace(/([.*+?^${}()|[\]\\])/g, '\\$&')
-		);
-
-		const pattern = escapedForms.join('|');
-
-		const longestForm = sortedForms[0];
-		const startsWithWordChar = /^[a-zA-Z0-9_]/.test(longestForm);
-		const endsWithWordChar = /[a-zA-Z0-9_]$/.test(longestForm);
-
-		const prefix = startsWithWordChar ? '\\b' : '';
-		const suffix = endsWithWordChar ? '\\b' : '';
-
-		return `${prefix}(?:${pattern})${suffix}`;
-	}
-
-	/**
-	 * 生成一个随机的6位数字字符串
-	 */
-	function generateRandomPlaceholder() {
-		const chars = '0123456789';
-		let result = '';
-		for (let i = 0; i < 6; i++) {
-			result += chars.charAt(Math.floor(Math.random() * chars.length));
-		}
-		return result;
-	}
-
-	/**
-	 * 在DOM节点内查找一个由多部分文本组成的、有序的邻近序列
-	 */
-	function findOrderedDOMSequence(rootNode, rule) {
-		const { parts: partsWithForms, isGeneral } = rule;
-
-		const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT, {
-			acceptNode: (node) => {
-				if (node.parentElement.closest('[data-glossary-applied="true"]')) {
-					return NodeFilter.FILTER_REJECT;
-				}
-				return NodeFilter.FILTER_ACCEPT;
-			}
-		});
-
-		const textNodes = [];
-		let node;
-		while ((node = walker.nextNode())) {
-			textNodes.push(node);
-		}
-
-		if (textNodes.length === 0) return null;
-
-		for (let i = 0; i < textNodes.length; i++) {
-			for (let j = 0; j < textNodes[i].nodeValue.length; j++) {
-				const matchResult = findSequenceFromPosition(i, j);
-				if (matchResult) {
-					return matchResult;
-				}
-			}
-		}
-
-		return null;
-
-		function findSequenceFromPosition(startNodeIndex, startOffset) {
-			let currentNodeIndex = startNodeIndex;
-			let currentOffset = startOffset;
-			const matchedWords = [];
-			const endPoints = [];
-
-			for (let partIndex = 0; partIndex < partsWithForms.length; partIndex++) {
-				const currentPartForms = partsWithForms[partIndex].sort((a, b) => b.length - a.length);
-				let bestMatch = null;
-
-				let searchStr = textNodes[currentNodeIndex].nodeValue.substring(currentOffset);
-				let lookaheadIndex = currentNodeIndex + 1;
-				while (lookaheadIndex < textNodes.length && searchStr.length < 200) {
-					searchStr += textNodes[lookaheadIndex].nodeValue;
-					lookaheadIndex++;
-				}
-
-				const textToSearch = isGeneral ? searchStr.toLowerCase() : searchStr;
-
-				for (const form of currentPartForms) {
-					const formToMatch = isGeneral ? form.toLowerCase() : form;
-					if (textToSearch.startsWith(formToMatch)) {
-						const prevChar = (startNodeIndex === 0 && startOffset === 0) ? ' ' : textNodes[startNodeIndex].nodeValue[startOffset - 1] || ' ';
-						if (partIndex === 0 && /[a-zA-Z0-9]/.test(prevChar)) {
-							continue;
-						}
-						bestMatch = form;
-						break;
-					}
-				}
-
-				if (bestMatch) {
-					matchedWords.push(bestMatch);
-					let consumedLength = bestMatch.length;
-					currentOffset += consumedLength;
-
-					while (currentOffset >= textNodes[currentNodeIndex].nodeValue.length && currentNodeIndex < textNodes.length - 1) {
-						currentOffset -= textNodes[currentNodeIndex].nodeValue.length;
-						currentNodeIndex++;
-					}
-					endPoints.push({ nodeIndex: currentNodeIndex, offset: currentOffset });
-
-					if (partIndex < partsWithForms.length - 1) {
-						let separatorFound = false;
-
-						while (currentNodeIndex < textNodes.length) {
-							const remainingInNode = textNodes[currentNodeIndex].nodeValue.substring(currentOffset);
-							const separatorMatch = remainingInNode.match(/^[\s-－﹣—–]+/);
-
-							if (separatorMatch) {
-								currentOffset += separatorMatch[0].length;
-								separatorFound = true;
-								break;
-							}
-
-							if (remainingInNode.trim() !== '') {
-								return null;
-							}
-
-							currentNodeIndex++;
-							currentOffset = 0;
-							if (currentNodeIndex < textNodes.length) {
-								separatorFound = true;
-							} else {
-								return null;
-							}
-						}
-						if (!separatorFound) return null;
-					}
-				} else {
-					return null;
-				}
-			}
-
-			const finalEndPoint = endPoints[endPoints.length - 1];
-			const nextChar = textNodes[finalEndPoint.nodeIndex].nodeValue[finalEndPoint.offset] || ' ';
-			if (/[a-zA-Z0-9]/.test(nextChar)) {
-				return null;
-			}
-
-			return {
-				startNode: textNodes[startNodeIndex],
-				startOffset: startOffset,
-				endNode: textNodes[finalEndPoint.nodeIndex],
-				endOffset: finalEndPoint.offset,
-				matchedWords: matchedWords
-			};
-		}
-	}
 
 	/**
 	 * 在DOM节点内查找一个由多部分文本组成的、无序但邻近的序列
@@ -9517,8 +12828,22 @@
 			if (isValid) {
 				const prevChar = normalizedText[overallStart - 1];
 				const nextChar = normalizedText[overallEnd];
-				const startBoundaryOK = !prevChar || !WORD_CHAR_REGEX.test(prevChar);
-				const endBoundaryOK = !nextChar || !WORD_CHAR_REGEX.test(nextChar);
+
+				let startBoundaryOK = !prevChar || !WORD_CHAR_REGEX.test(prevChar);
+				if (!startBoundaryOK) {
+					const strBefore = normalizedText.substring(0, overallStart);
+					if (PlaceholderConfig.endBoundaryRegex.test(strBefore)) {
+						startBoundaryOK = true;
+					}
+				}
+
+				let endBoundaryOK = !nextChar || !WORD_CHAR_REGEX.test(nextChar);
+				if (!endBoundaryOK) {
+					const remainingStr = normalizedText.substring(overallEnd);
+					if (PlaceholderConfig.startBoundaryRegex.test(remainingStr)) {
+						endBoundaryOK = true;
+					}
+				}
 
 				if (startBoundaryOK && endBoundaryOK) {
 					const startMapping = textMap[overallStart];
@@ -9541,10 +12866,11 @@
 	/**
 	 * 预处理单个段落 DOM 节点，应用所有术语表规则并替换为占位符
 	 */
-	function _preprocessParagraph(p, preparedRules, placeholders, placeholderCache, engineName) {
+	function _preprocessParagraph(p, preparedRules, pm, engineName) {
 		const clone = p.cloneNode(true);
 		const { domRules, executionPlan } = preparedRules;
 
+		// 1. 正则规则处理
 		if (executionPlan && executionPlan.length > 0) {
 			const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, {
 				acceptNode: (node) => {
@@ -9554,7 +12880,7 @@
 					return NodeFilter.FILTER_ACCEPT;
 				}
 			});
-			const nodesToProcess = [];
+			const nodesToProcess =[];
 			let n;
 			while (n = walker.nextNode()) {
 				nodesToProcess.push(n);
@@ -9566,7 +12892,6 @@
 				const text = currentNode.nodeValue;
 				if (!text) continue;
 
-				let matchFound = false;
 				for (const planItem of executionPlan) {
 					const regex = planItem.regex || planItem.rule.regex;
 					regex.lastIndex = 0;
@@ -9594,77 +12919,397 @@
 							}
 						}
 
-						let placeholder;
-						if (placeholderCache.has(finalValue)) {
-							placeholder = placeholderCache.get(finalValue);
-						} else {
-							do {
-								placeholder = `ph_${generateRandomPlaceholder()}`;
-							} while (placeholders.has(placeholder));
-							placeholderCache.set(finalValue, placeholder);
-							placeholders.set(placeholder, { value: finalValue, rule: rule, originalHTML: matchedText });
-						}
-
+						const placeholder = pm.create(finalValue, rule, matchedText);
 						fragment.appendChild(document.createTextNode(placeholder));
 
 						if (matchIndex + matchedText.length < text.length) {
 							fragment.appendChild(document.createTextNode(text.substring(matchIndex + matchedText.length)));
 						}
 
-						const newNodes = Array.from(fragment.childNodes).filter(n => n.nodeType === Node.TEXT_NODE && n.nodeValue);
+						const newNodes = Array.from(fragment.childNodes).filter(node => node.nodeType === Node.TEXT_NODE && node.nodeValue);
 						if (newNodes.length > 0) {
 							nodesToProcess.unshift(...newNodes);
 						}
 
 						currentNode.parentNode.replaceChild(fragment, currentNode);
-						matchFound = true;
 						break;
 					}
 				}
 			}
 		}
 
+		// 2. DOM 规则处理
 		if (domRules.length > 0) {
-			let domReplaced;
-			do {
-				domReplaced = false;
-				for (const rule of domRules) {
-					let match;
-					if (rule.isUnordered) {
-						match = findUnorderedDOMSequence(clone, rule);
-					} else {
-						match = findOrderedDOMSequence(clone, rule);
+			let plainText = '';
+			const textMap =[];
+			const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
+				acceptNode: (node) => {
+					if (node.parentElement && node.parentElement.closest('[data-glossary-applied="true"]')) {
+						return NodeFilter.FILTER_REJECT;
 					}
-					if (match) {
-						const range = document.createRange();
-						range.setStart(match.startNode, match.startOffset);
-						range.setEnd(match.endNode, match.endOffset);
-						const contents = range.extractContents();
-						const tempDiv = document.createElement('div');
-						tempDiv.appendChild(contents);
-						const originalHTML = tempDiv.innerHTML;
-						const finalValue = rule.type === 'forbidden' ? originalHTML : rule.replacement;
-						let placeholder;
-						if (placeholderCache.has(finalValue)) {
-							placeholder = placeholderCache.get(finalValue);
-						} else {
-							do {
-								placeholder = `ph_${generateRandomPlaceholder()}`;
-							} while (placeholders.has(placeholder));
-							placeholderCache.set(finalValue, placeholder);
-							placeholders.set(placeholder, { value: finalValue, rule: rule, originalHTML: originalHTML });
-						}
-						const placeholderNode = document.createTextNode(placeholder);
-						range.insertNode(placeholderNode);
-						clone.normalize();
-						domReplaced = true;
-						break;
+					return NodeFilter.FILTER_ACCEPT;
+				}
+			});
+
+			let node;
+			while ((node = walker.nextNode())) {
+				if (node.nodeType === Node.TEXT_NODE) {
+					const val = node.nodeValue;
+					for (let i = 0; i < val.length; i++) {
+						textMap.push({ node, offset: i });
+					}
+					plainText += val;
+				} else if (node.nodeType === Node.ELEMENT_NODE) {
+					if (['EM', 'STRONG', 'B', 'I', 'U', 'SPAN', 'CODE', 'A', 'KBD', 'SAMP', 'VAR', 'SUB', 'SUP', 'MARK', 'RUBY', 'RT', 'RP', 'BDI', 'BDO', 'WBR'].includes(node.tagName.toUpperCase())) {
+						textMap.push({ node, offset: -1, isTag: true });
+						plainText += '\u0001';
+					} else {
+						textMap.push({ node, offset: -1, isBoundary: true });
+						plainText += '\u0002';
 					}
 				}
-			} while (domReplaced);
+			}
+
+			if (plainText.length > 0) {
+				const used = new Uint8Array(plainText.length);
+				const allMatches =[];
+
+				for (const rule of domRules) {
+					const searchText = rule.isGeneral ? plainText.toLowerCase() : plainText;
+					
+					if (rule.isUnordered) {
+						const numParts = rule.parts.length;
+						const instances =[];
+						let missingPart = false;
+						
+						for (let pIdx = 0; pIdx < numParts; pIdx++) {
+							const forms = Array.from(rule.parts[pIdx]).sort((a, b) => b.length - a.length);
+							let foundAny = false;
+							for (const form of forms) {
+								const formStr = rule.isGeneral ? form.toLowerCase() : form;
+								let pos = 0;
+								while ((pos = searchText.indexOf(formStr, pos)) !== -1) {
+									instances.push({ start: pos, end: pos + formStr.length, partIndex: pIdx });
+									pos += formStr.length;
+									foundAny = true;
+								}
+							}
+							if (!foundAny) { missingPart = true; break; }
+						}
+						
+						if (missingPart) continue;
+						
+						instances.sort((a, b) => {
+							if (a.start !== b.start) return a.start - b.start;
+							return b.end - a.end;
+						});
+						
+						for (let i = 0; i < instances.length; i++) {
+							const startInst = instances[i];
+							if (used[startInst.start]) continue;
+							
+							const chain =[startInst];
+							const seenParts = new Set([startInst.partIndex]);
+							let currentEnd = startInst.end;
+							
+							for (let j = i + 1; j < instances.length; j++) {
+								if (seenParts.size === numParts) break;
+								const nextInst = instances[j];
+								if (seenParts.has(nextInst.partIndex)) continue;
+								if (nextInst.start < currentEnd) continue;
+								
+								const gap = plainText.substring(currentEnd, nextInst.start);
+								if (!/^[\s\u0001-－﹣—–]*$/.test(gap)) break;
+								
+								chain.push(nextInst);
+								seenParts.add(nextInst.partIndex);
+								currentEnd = nextInst.end;
+							}
+							
+							if (seenParts.size === numParts) {
+								const matchStart = chain[0].start;
+								const matchEnd = chain[chain.length - 1].end;
+								const prevChar = matchStart === 0 ? ' ' : plainText[matchStart - 1];
+								const nextChar = matchEnd < plainText.length ? plainText[matchEnd] : ' ';
+								
+								if (!/[a-zA-Z0-9]/.test(prevChar) && !/[a-zA-Z0-9]/.test(nextChar)) {
+									let isOverlap = false;
+									for(let k = matchStart; k < matchEnd; k++) { if(used[k]) { isOverlap = true; break; } }
+									if (!isOverlap) {
+										allMatches.push({ start: matchStart, end: matchEnd, rule });
+										for(let k = matchStart; k < matchEnd; k++) used[k] = 1;
+									}
+								}
+							}
+						}
+					} else {
+						const firstForms = Array.from(rule.parts[0]).sort((a, b) => b.length - a.length);
+						
+						for (const firstForm of firstForms) {
+							const formStr = rule.isGeneral ? firstForm.toLowerCase() : firstForm;
+							let pos = 0;
+							while ((pos = searchText.indexOf(formStr, pos)) !== -1) {
+								if (used[pos]) {
+									pos++;
+									continue;
+								}
+								
+								let currentI = pos;
+								let matchStart = pos;
+								let matchEnd = -1;
+								let matchedAll = true;
+								
+								const prevChar = currentI === 0 ? ' ' : plainText[currentI - 1];
+								if (/[a-zA-Z0-9]/.test(prevChar)) {
+									pos++;
+									continue;
+								}
+								
+								currentI += formStr.length;
+								if (rule.parts.length === 1) {
+									matchEnd = currentI;
+									const nextChar = currentI < plainText.length ? plainText[currentI] : ' ';
+									if (/[a-zA-Z0-9]/.test(nextChar)) {
+										matchedAll = false;
+									}
+								} else {
+									for (let pIdx = 1; pIdx < rule.parts.length; pIdx++) {
+										let sepLen = 0;
+										while (currentI + sepLen < plainText.length) {
+											const c = plainText[currentI + sepLen];
+											if (/[\s\u0001-－﹣—–]/.test(c)) sepLen++;
+											else break;
+										}
+										if (sepLen === 0) { matchedAll = false; break; }
+										currentI += sepLen;
+										
+										const forms = Array.from(rule.parts[pIdx]).sort((a, b) => b.length - a.length);
+										let foundForm = null;
+										for (const form of forms) {
+											const fStr = rule.isGeneral ? form.toLowerCase() : form;
+											if (searchText.startsWith(fStr, currentI)) {
+												foundForm = fStr;
+												break;
+											}
+										}
+										
+										if (foundForm) {
+											currentI += foundForm.length;
+											if (pIdx === rule.parts.length - 1) {
+												matchEnd = currentI;
+												const nextChar = currentI < plainText.length ? plainText[currentI] : ' ';
+												if (/[a-zA-Z0-9]/.test(nextChar)) { matchedAll = false; break; }
+											}
+										} else {
+											matchedAll = false;
+											break;
+										}
+									}
+								}
+								
+								if (matchedAll && matchStart !== -1 && matchEnd !== -1) {
+									let isOverlap = false;
+									for(let k = matchStart; k < matchEnd; k++) { if(used[k]) { isOverlap = true; break; } }
+									if (!isOverlap) {
+										allMatches.push({ start: matchStart, end: matchEnd, rule });
+										for(let k = matchStart; k < matchEnd; k++) used[k] = 1;
+									}
+								}
+								pos++;
+							}
+						}
+					}
+				}
+
+				allMatches.sort((a, b) => b.start - a.start);
+
+				for (const match of allMatches) {
+					let startIdx = match.start;
+					while (startIdx < match.end && textMap[startIdx].offset === -1) startIdx++;
+					let endIdx = match.end - 1;
+					while (endIdx >= match.start && textMap[endIdx].offset === -1) endIdx--;
+					
+					if (startIdx <= endIdx) {
+						const startMap = textMap[startIdx];
+						const endMap = textMap[endIdx];
+						
+						if (startMap && endMap && startMap.node && endMap.node) {
+							const range = document.createRange();
+							range.setStart(startMap.node, startMap.offset);
+							range.setEnd(endMap.node, endMap.offset + 1);
+							
+							const contents = range.extractContents();
+							const tempDiv = document.createElement('div');
+							tempDiv.appendChild(contents);
+							const originalHTML = tempDiv.innerHTML;
+							
+							const finalValue = match.rule.type === 'forbidden' ? originalHTML : match.rule.replacement;
+							const placeholder = pm.create(finalValue, match.rule, originalHTML);
+							
+							range.insertNode(document.createTextNode(placeholder));
+						}
+					}
+				}
+				clone.normalize();
+			}
 		}
 
 		return clone;
+	}
+
+	/**
+	 * 占位符生命周期管理器
+	 */
+	class PlaceholderManager {
+		constructor() {
+			this.placeholders = new Map();
+			this.placeholderCache = new Map();
+			this.BASE_CHUNK = 1600;
+			this.BASE_PARA = 8;
+		}
+
+		create(finalValue, rule, originalHTML) {
+			if (this.placeholderCache.has(finalValue)) {
+				return this.placeholderCache.get(finalValue);
+			}
+			let placeholder;
+			do {
+				placeholder = PlaceholderConfig.generate();
+			} while (this.placeholders.has(placeholder));
+
+			this.placeholderCache.set(finalValue, placeholder);
+			this.placeholders.set(placeholder, { value: finalValue, rule, originalHTML });
+			return placeholder;
+		}
+
+		normalize(translatedText) {
+			if (this.placeholders.size === 0) return translatedText;
+			try {
+				const fuzzyRegex = PlaceholderConfig.fuzzyRegex;
+				return translatedText.replace(fuzzyRegex, (match, digits) => {
+					const standardPlaceholder = PlaceholderConfig.prefix + digits;
+					return this.placeholders.has(standardPlaceholder) ? standardPlaceholder : match;
+				});
+			} catch (e) {
+				Logger.warn('Translation', '占位符模糊还原出错', e);
+				return translatedText;
+			}
+		}
+
+		validate(preprocessedText, normalizedTranslatedText, baseThresholds, currentChunkSize, currentParaLimit) {
+			if (this.placeholders.size === 0) return { isValid: true, errorReason: null, totalLoss: 0 };
+
+			// 计算动态缩放因子
+			const chunkScale = currentChunkSize / this.BASE_CHUNK;
+			const paraScale = currentParaLimit / this.BASE_PARA;
+			const scale = Math.max(chunkScale, paraScale);
+
+			// 计算动态阈值
+			const dynamicThresholds = {
+				absoluteLoss: Math.max(3, Math.round(baseThresholds.absolute_loss * scale)),
+				proportionalLoss: baseThresholds.proportional_loss,
+				proportionalTrigger: Math.max(3, Math.round(baseThresholds.proportional_trigger_count * scale)),
+				catastrophicLoss: Math.max(2, Math.round(baseThresholds.catastrophic_loss * scale))
+			};
+
+			// 统计实际存在的占位符
+			const actualCounts = {};
+			const legalPlaceholders = Array.from(this.placeholders.keys());
+			legalPlaceholders.forEach(key => actualCounts[key] = 0);
+
+			let hasUnknownPlaceholders = false;
+			const fuzzyRegex = PlaceholderConfig.fuzzyRegex;
+			fuzzyRegex.lastIndex = 0;
+			let match;
+			while ((match = fuzzyRegex.exec(normalizedTranslatedText)) !== null) {
+				const suspected = PlaceholderConfig.prefix + match[1];
+				if (this.placeholders.has(suspected)) {
+					actualCounts[suspected]++;
+				} else {
+					hasUnknownPlaceholders = true;
+				}
+			}
+
+			if (hasUnknownPlaceholders) {
+				return { isValid: false, errorReason: "检测到未知占位符", totalLoss: 0 };
+			}
+
+			// 校验丢失量
+			let totalLoss = 0;
+			for (const key of legalPlaceholders) {
+				const expected = preprocessedText.split(key).length - 1;
+				const actual = actualCounts[key];
+				const loss = expected - actual;
+
+				if (loss > 0) {
+					totalLoss += loss;
+					const isCatastrophic = expected > dynamicThresholds.catastrophicLoss && actual === 0;
+					const isAbsolute = loss >= dynamicThresholds.absoluteLoss;
+					const isProportional = expected >= dynamicThresholds.proportionalTrigger && (loss / expected) >= dynamicThresholds.proportionalLoss;
+
+					if (isCatastrophic || isAbsolute || isProportional) {
+						return {
+							isValid: false,
+							errorReason: `占位符大量缺失 (预期:${expected}, 实际:${actual}, 动态Abs阈值:${dynamicThresholds.absoluteLoss})`,
+							totalLoss
+						};
+					}
+				}
+			}
+
+			return { isValid: true, errorReason: null, totalLoss };
+		}
+
+		restore(normalizedTranslatedText) {
+			if (this.placeholders.size === 0) return normalizedTranslatedText;
+
+			let processedText = normalizedTranslatedText;
+			for (const[placeholder, data] of this.placeholders.entries()) {
+				const { value: replacement, originalHTML, rule } = data;
+				const escapedPlaceholder = placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+				const regex = new RegExp(escapedPlaceholder, 'g');
+
+				if (rule.matchStrategy === 'dom' && originalHTML) {
+					const tempDiv = document.createElement('div');
+					tempDiv.innerHTML = originalHTML;
+
+					const htmlChunks = Array.from(tempDiv.childNodes).filter(node =>
+						!(node.nodeType === Node.TEXT_NODE && !node.nodeValue.trim())
+					);
+
+					let finalHTML = '';
+
+					if (htmlChunks.length === 1) {
+						const singleChunk = htmlChunks[0];
+						replaceTextInNode(singleChunk, replacement);
+						finalHTML = singleChunk.nodeType === Node.ELEMENT_NODE ? singleChunk.outerHTML : singleChunk.nodeValue;
+					} else {
+						const separator = replacement.includes('·') || replacement.includes('・') ? /[·・]/ : /[\s-－﹣—–]+/;
+						const joinSeparator = replacement.includes('·') || replacement.includes('・') ? '·' : ' ';
+						const translationParts = replacement.split(separator);
+
+                        if (htmlChunks.length === translationParts.length) {
+                            htmlChunks.forEach((chunk, index) => {
+                                const part = translationParts[index];
+                                replaceTextInNode(chunk, part);
+                            });
+
+                            finalHTML = htmlChunks.map(chunk => {
+                                return chunk.nodeType === Node.ELEMENT_NODE ? chunk.outerHTML : chunk.nodeValue;
+                            }).join(joinSeparator);
+                        } else {
+                            tempDiv.innerHTML = originalHTML;
+                            tempDiv.textContent = replacement;
+                            finalHTML = tempDiv.innerHTML;
+                        }
+					}
+					processedText = processedText.replace(regex, finalHTML);
+				} else {
+					processedText = processedText.replace(regex, replacement);
+				}
+			}
+			return processedText;
+		}
 	}
 
 	/**
@@ -9691,78 +13336,6 @@
 		} else if (node.nodeType === Node.ELEMENT_NODE) {
 			node.textContent = newText;
 		}
-	}
-
-	/**
-	 * 译文后处理与占位符还原
-	 */
-	function _postprocessAndRestoreText(translatedText, placeholders) {
-		let processedText = translatedText;
-
-		try {
-			const fuzzyPlaceholderRegex = /(?:ph|p)[\s_\-－＿—:：]*(\d{6})/gi;
-			processedText = processedText.replace(fuzzyPlaceholderRegex, (match, digits) => {
-				const standardPlaceholder = `ph_${digits}`;
-				if (placeholders.has(standardPlaceholder)) {
-					return standardPlaceholder;
-				}
-				return match;
-			});
-		} catch (e) {
-			Logger.warn('翻译', '占位符模糊还原出错', e);
-		}
-
-		if (placeholders.size === 0) {
-			return applyPostTranslationReplacements(processedText);
-		}
-
-		for (const [placeholder, data] of placeholders.entries()) {
-			const { value: replacement, originalHTML, rule } = data;
-			const escapedPlaceholder = placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-			const regex = new RegExp(escapedPlaceholder, 'g');
-
-			if (rule.matchStrategy === 'dom' && originalHTML) {
-				const tempDiv = document.createElement('div');
-				tempDiv.innerHTML = originalHTML;
-
-				const htmlChunks = Array.from(tempDiv.childNodes).filter(node =>
-					!(node.nodeType === Node.TEXT_NODE && !node.nodeValue.trim())
-				);
-
-				let finalHTML = '';
-
-				if (htmlChunks.length === 1) {
-					const singleChunk = htmlChunks[0];
-					replaceTextInNode(singleChunk, replacement);
-					finalHTML = singleChunk.nodeType === Node.ELEMENT_NODE ? singleChunk.outerHTML : singleChunk.nodeValue;
-				} else {
-					const separator = replacement.includes('·') || replacement.includes('・') ? /[·・]/ : /[\s-－﹣—–]+/;
-					const joinSeparator = replacement.includes('·') || replacement.includes('・') ? '·' : ' ';
-					const translationParts = replacement.split(separator);
-
-					if (htmlChunks.length === translationParts.length) {
-						htmlChunks.forEach((chunk, index) => {
-							const part = translationParts[index];
-							replaceTextInNode(chunk, part);
-						});
-
-						finalHTML = htmlChunks.map(chunk => {
-							return chunk.nodeType === Node.ELEMENT_NODE ? chunk.outerHTML : chunk.nodeValue;
-						}).join(joinSeparator);
-					} else {
-						tempDiv.innerHTML = originalHTML;
-						tempDiv.textContent = replacement;
-						finalHTML = tempDiv.innerHTML;
-					}
-				}
-				processedText = processedText.replace(regex, finalHTML);
-
-			} else {
-				processedText = processedText.replace(regex, replacement);
-			}
-		}
-
-		return applyPostTranslationReplacements(processedText);
 	}
 
 	/**
@@ -9806,244 +13379,1229 @@
 		}
 	};
 
-    /**
-	 * 段落翻译主函数
+	/**
+	 * DOM 处理与遍历器
 	 */
-    async function translateParagraphs(paragraphs, { maxRetries = 3, isCancelled = () => false, knownFromLang = null, reqId = 'Unknown', skipRateLimit = false } = {}) {
-		const createCancellationError = () => {
-			const error = new Error('用户已取消翻译。');
-			error.type = 'user_cancelled';
-			error.noRetry = true;
-			return error;
-		};
-
-		if (isCancelled()) throw createCancellationError();
-		if (!paragraphs || paragraphs.length === 0) return new Map();
-
-		const indexedParagraphs = paragraphs.map((p, index) => ({
-			original: p,
-			index: index,
-			isSeparator: p.tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(p.textContent),
-			content: p.innerHTML
-		}));
-
-		const contentToTranslate = indexedParagraphs.filter(p => !p.isSeparator);
-
-		if (contentToTranslate.length === 0) {
-			const results = new Map();
-			indexedParagraphs.forEach(p => results.set(p.original, { status: 'success', content: p.content }));
-			return results;
+	class DOMNormalizer {
+		constructor() {
+			this.elementState = new WeakMap();
+			this.displayCache = new WeakMap();
 		}
 
-		const engineName = getValidEngineName();
-		const preparedRules = await getPreparedGlossaryRules();
+		/**
+		 * 判断元素是否在视觉上被隐藏或对屏幕阅读器隐藏
+		 */
+		_isHidden(el) {
+			if (el.hasAttribute('aria-hidden') && el.getAttribute('aria-hidden') === 'true') return true;
+			if (el.classList.contains('sr-only') || el.classList.contains('visually-hidden')) return true;
+			if (el.style.display === 'none' || el.style.visibility === 'hidden') return true;
 
-		const placeholders = new Map();
-		const placeholderCache = new Map();
-		const preprocessedParagraphs = [];
+			const style = window.getComputedStyle(el);
+			if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return true;
 
-		for (let i = 0; i < contentToTranslate.length; i++) {
-			if (isCancelled()) throw createCancellationError();
-			const p = contentToTranslate[i];
-			const processedNode = _preprocessParagraph(p.original, preparedRules, placeholders, placeholderCache, engineName);
-			TextNormalizer.normalizeNode(processedNode);
-			preprocessedParagraphs.push(processedNode);
+			// 过滤在屏幕上不占据实际物理像素的节点
+			const rect = el.getBoundingClientRect();
+			if (rect.width === 0 || rect.height === 0) return true;
+
+			return false;
 		}
 
-        Logger.info('翻译', `[${reqId}] 任务开始`, {
-            engine: engineName,
-            paragraphs: contentToTranslate.length,
-            placeholders: placeholders.size
-        });
+		/**
+		 * 动态判断是否为块级元素
+		 */
+		_isBlockNode(el) {
+			if (this.displayCache.has(el)) return this.displayCache.get(el);
 
-		for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
-			try {
-				let combinedTranslation = await requestRemoteTranslation(preprocessedParagraphs, {
-					isCancelled,
-					knownFromLang,
-					reqId,
-					skipRateLimit
-				});
+			const blockTags = new Set([
+				'P', 'DIV', 'BLOCKQUOTE', 'LI', 'DD', 'DT', 'DL', 'UL', 'OL',
+				'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR', 'CENTER', 'PRE',
+				'ARTICLE', 'SECTION', 'MAIN', 'ASIDE', 'HEADER', 'FOOTER', 'NAV',
+				'FIGURE', 'FIGCAPTION', 'ADDRESS', 'TABLE', 'FORM', 'FIELDSET'
+			]);
+			if (blockTags.has(el.tagName)) {
+				this.displayCache.set(el, true);
+				return true;
+			}
 
-				combinedTranslation = combinedTranslation.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
+			const inlineTags = new Set([
+				'SPAN', 'A', 'STRONG', 'EM', 'B', 'I', 'U', 'CODE', 'KBD', 'SAMP',
+				'VAR', 'SUB', 'SUP', 'MARK', 'RUBY', 'RT', 'RP', 'BDI', 'BDO', 'WBR', 'BR', 'IMG', 'SVG'
+			]);
+			if (inlineTags.has(el.tagName) && !el.classList.contains('ao3-text-block')) {
+				this.displayCache.set(el, false);
+				return false;
+			}
 
-				const fuzzyPlaceholderRegex = /(?:ph|p)[\s\-_]*(\d{6})/gi;
-				const suspectedPlaceholders = [];
-				let match;
-				while ((match = fuzzyPlaceholderRegex.exec(combinedTranslation)) !== null) {
-					suspectedPlaceholders.push(`ph_${match[1]}`);
+			const style = window.getComputedStyle(el);
+			const isBlock = !style.display.startsWith('inline') && style.display !== 'contents';
+			this.displayCache.set(el, isBlock);
+			return isBlock;
+		}
+
+		/**
+		 * 判断是否包含块级子元素
+		 */
+		_hasBlockChild(el) {
+			for (let i = 0; i < el.children.length; i++) {
+				const child = el.children[i];
+				if (child.classList.contains('ao3-text-block') || this._isBlockNode(child)) {
+					return true;
 				}
+			}
+			return false;
+		}
 
-				const legalPlaceholders = new Set(placeholders.keys());
-				const actualCounts = {};
-				legalPlaceholders.forEach(key => actualCounts[key] = 0);
-				let hasUnknownPlaceholders = false;
+		async *generateUnits(container) {
+			const skipHeaders =['Summary', 'Notes', 'Work Text', 'Chapter Text'];
+			let yieldedAny = false;
+			let hasTranslatedChildren = false;
 
-				for (const suspected of suspectedPlaceholders) {
-					if (legalPlaceholders.has(suspected)) {
-						actualCounts[suspected]++;
-					} else {
-						hasUnknownPlaceholders = true;
-					}
+			const elementsToSplit = Array.from(container.querySelectorAll('p, blockquote'))
+				.filter(el => !this._isTranslated(el));
+
+			TimeSlicer.reset();
+			for (let i = 0; i < elementsToSplit.length; i++) {
+				const el = elementsToSplit[i];
+				
+				if (!this.elementState.has(el)) {
+					splitBrParagraphs(el);
+					this.elementState.set(el, { preprocessed: true });
 				}
+				
+				if (i % 100 === 0) await TimeSlicer.yieldIfNeeded();
+			}
 
-				let absoluteLossThreshold, proportionalLossThreshold, proportionalTriggerCount, catastrophicLossThreshold;
-				const defaults = CONFIG.SERVICE_CONFIG[engineName]?.VALIDATION || CONFIG.SERVICE_CONFIG.default.VALIDATION;
+			const liElements = Array.from(container.querySelectorAll('li'));
+			for (let i = 0; i < liElements.length; i++) {
+				this._wrapListContent(liElements[i]);
+				if (i % 100 === 0) await TimeSlicer.yieldIfNeeded();
+			}
 
-				if (engineName === 'google_translate' || engineName === 'bing_translator') {
-					absoluteLossThreshold = defaults.absolute_loss;
-					proportionalLossThreshold = defaults.proportional_loss;
-					proportionalTriggerCount = defaults.proportional_trigger_count;
-					catastrophicLossThreshold = defaults.catastrophic_loss || 5;
-				} else {
-					const params = ProfileManager.getParamsByEngine(engineName);
-					const parts = (params.validation_thresholds || '').split(/[,，]/).map(s => parseFloat(s.trim()));
-					const isValid = parts.length >= 3 && !parts.slice(0, 3).some(isNaN);
-					absoluteLossThreshold = isValid ? parts[0] : defaults.absolute_loss;
-					proportionalLossThreshold = isValid ? parts[1] : defaults.proportional_loss;
-					proportionalTriggerCount = isValid ? parts[2] : defaults.proportional_trigger_count;
-					catastrophicLossThreshold = (isValid && !isNaN(parts[3])) ? parts[3] : (defaults.catastrophic_loss || 5);
-				}
-
-				let hasMissingPlaceholders = false;
-				let totalLoss = 0;
-				const expectedCounts = {};
-				const preprocessedText = preprocessedParagraphs.map(p => p.innerHTML).join(' ');
-
-				for (const key of placeholders.keys()) {
-					expectedCounts[key] = (preprocessedText.match(new RegExp(key, 'g')) || []).length;
-				}
-
-				for (const key of legalPlaceholders) {
-					const expected = expectedCounts[key];
-					const actual = actualCounts[key];
-					const loss = expected - actual;
-					if (loss > 0) {
-						totalLoss += loss;
-						const isCatastrophicLoss = expected > catastrophicLossThreshold && actual === 0;
-						const isAbsoluteLoss = loss >= absoluteLossThreshold;
-						const isProportionalLoss = expected >= proportionalTriggerCount && (loss / expected) >= proportionalLossThreshold;
-
-						if (isCatastrophicLoss || isAbsoluteLoss || isProportionalLoss) {
-							hasMissingPlaceholders = true;
-							break;
+			const walker = document.createTreeWalker(
+				container,
+				NodeFilter.SHOW_ELEMENT,
+				{
+					acceptNode: (node) => {
+						if (this._isTranslated(node)) {
+							hasTranslatedChildren = true;
+							return NodeFilter.FILTER_REJECT;
 						}
+						if (this._isHidden(node)) return NodeFilter.FILTER_REJECT;
+						return NodeFilter.FILTER_ACCEPT;
 					}
 				}
+			);
 
-				if (hasMissingPlaceholders || hasUnknownPlaceholders) {
-					const errorReason = hasUnknownPlaceholders ? "检测到未知占位符" : "占位符大量缺失";
-					Logger.warn('翻译', `[${reqId}] 占位符校验失败: ${errorReason}`, { totalLoss });
-					const err = new Error(`占位符校验失败 (${errorReason})`);
-					err.type = 'validation_failed';
-					throw err;
-				}
-
-				const restoredTranslation = _postprocessAndRestoreText(combinedTranslation, placeholders, engineName);
-
-				let translatedParts = [];
-				if (contentToTranslate.length === 1 && !restoredTranslation.trim().startsWith('1.')) {
-					translatedParts.push(restoredTranslation.trim());
-				} else {
-					const regex = /\d+\.\s*([\s\S]*?)(?=\n\d+\.|$)/g;
-					let match;
-					while ((match = regex.exec(restoredTranslation)) !== null) {
-						translatedParts.push(match[1].trim());
-					}
-					if (translatedParts.length !== contentToTranslate.length && restoredTranslation.includes('\n')) {
-						const potentialParts = restoredTranslation.split('\n').filter(p => p.trim().length > 0);
-						if (potentialParts.length === contentToTranslate.length) {
-							translatedParts = potentialParts.map(p => p.replace(/^\d+\.\s*/, '').trim());
-						}
-					}
-				}
-
-				if (translatedParts.length !== contentToTranslate.length) {
-					throw new Error('AI 响应格式不一致，分段数量不匹配');
-				}
-
-				const finalResults = new Map();
-				indexedParagraphs.forEach(p => {
-					if (p.isSeparator) {
-						finalResults.set(p.original, { status: 'success', content: p.content });
-					} else {
-						const originalPara = contentToTranslate.find(item => item.index === p.index);
-						if (originalPara) {
-							const transIndex = contentToTranslate.indexOf(originalPara);
-							const cleanedContent = AdvancedTranslationCleaner.clean(translatedParts[transIndex] || p.content);
-							finalResults.set(p.original, { status: 'success', content: cleanedContent });
-						}
-					}
-				});
-				return finalResults;
-
-			} catch (e) {
-				if (isCancelled() || e.type === 'user_cancelled') {
-					throw createCancellationError();
-				}
-
-				if (e.noRetry) {
-					Logger.error('翻译', `[${reqId}] 发生不可重试错误`, e.message);
-					throw e;
-				}
-
-				if (retryCount < maxRetries) {
-					let baseDelay = 5000;
-					if (e.type === 'rate_limit' || e.type === 'server_overloaded') {
-						baseDelay = 10000;
-					} else if (e.type === 'validation_failed') {
-						baseDelay = 2000;
-					}
-
-					const delay = baseDelay * Math.pow(2, retryCount);
-					const jitter = delay * 0.2 * (Math.random() * 2 - 1);
-					const finalDelay = Math.floor(delay + jitter);
-
-					Logger.warn('翻译', `[${reqId}] 任务重试 (${retryCount + 1}/${maxRetries})`, {
-						reason: e.message,
-						waitingFor: `${Math.round(finalDelay / 1000)}s`
-					});
-
-					await sleep(finalDelay);
-
-					if (isCancelled()) throw createCancellationError();
+			let node;
+			let count = 0;
+			while ((node = walker.nextNode())) {
+				if (node.parentElement && node.parentElement.closest('.ao3-text-block')) {
 					continue;
 				}
 
-				Logger.error('翻译', `[${reqId}] 重试次数耗尽，任务失败: ${e.message}`);
+				if (node.classList.contains('ao3-text-block') ||
+					node.tagName === 'HR' ||
+					(this._isBlockNode(node) && !this._hasBlockChild(node))) {
+					
+					const content = node.textContent.trim();
+					if (!content && node.tagName !== 'HR') continue;
+					if (skipHeaders.includes(content)) continue;
 
-				if (e.message.includes('分段数量不匹配') && paragraphs.length > 1) {
-					Logger.warn('翻译', `[${reqId}] 触发逐段回退策略`);
-					if (isCancelled()) throw createCancellationError();
-
-					const fallbackResults = new Map();
-					for (const p of paragraphs) {
-						if (isCancelled()) break;
-						const singleResultMap = await translateParagraphs([p], {
-							maxRetries: 1,
-							isCancelled,
-							knownFromLang,
-							reqId: `${reqId}-FB`,
-							skipRateLimit
-						});
-						const singleResult = singleResultMap.get(p);
-						fallbackResults.set(p, singleResult || { status: 'error', content: '逐段翻译失败' });
-					}
-					return fallbackResults;
+					yieldedAny = true;
+					yield node;
 				}
+				
+				count++;
+				if (count % 50 === 0) await TimeSlicer.yieldIfNeeded();
+			}
 
-				const finalResults = new Map();
-				indexedParagraphs.forEach(p => {
-					if (p.isSeparator) {
-						finalResults.set(p.original, { status: 'success', content: p.content });
-					} else {
-						finalResults.set(p.original, { status: 'error', content: `翻译失败：${e.message}` });
+			if (!yieldedAny && !hasTranslatedChildren && container.textContent.trim().length > 0) {
+				if (!this._isTranslated(container) && !this._isHidden(container)) {
+					yield container;
+				}
+			}
+		}
+
+		_isTranslated(el) {
+			const state = el.getAttribute('data-translation-state');
+			if (state === 'translated' || state === 'translated-title' || state === 'skipped') return true;
+			if (el.closest('.ao3-translated-content, .ao3-translated-title, .ao3-tag-translation, .translate-me-ao3-wrapper, .translated-by-ao3-translator-error')) return true;
+			return false;
+		}
+
+		_wrapListContent(li) {
+			if (li.querySelector('ul, ol')) {
+				const childNodes = Array.from(li.childNodes);
+				let contentBuffer =[];
+				const flushBuffer = () => {
+					if (contentBuffer.length === 0) return;
+					if (contentBuffer.some(n => (n.nodeType === Node.TEXT_NODE && n.nodeValue.trim().length > 0) || (n.nodeType === Node.ELEMENT_NODE && n.textContent.trim().length > 0))) {
+						const p = document.createElement('p');
+						p.style.margin = '0'; p.style.padding = '0'; p.style.display = 'block'; p.style.width = '100%';
+						contentBuffer[0].parentNode.insertBefore(p, contentBuffer[0]);
+						contentBuffer.forEach(n => p.appendChild(n));
+						this.elementState.set(p, { preprocessed: true });
 					}
+					contentBuffer =[];
+				};
+				childNodes.forEach(node => {
+					if (node.nodeType === Node.ELEMENT_NODE && (node.tagName === 'UL' || node.tagName === 'OL')) flushBuffer();
+					else contentBuffer.push(node);
 				});
-				return finalResults;
+				flushBuffer();
 			}
 		}
 	}
+
+	/**
+	 * DOM 顺序队列管理器
+	 */
+	class DomOrderedQueueManager {
+		constructor() {
+			this.viewportQueue =[];
+			this.backgroundQueue =[];
+			this.unitMap = new Map();
+		}
+
+		add(unit, retryCount = 0, unshift = false, priority = 1, forcedGroup = null) {
+			if (unit.dataset.translationState && unit.dataset.translationState !== 'queued') return;
+			if (this.unitMap.has(unit)) return;
+
+			unit.dataset.translationState = 'queued';
+			
+			const domIndex = parseInt(unit.dataset.domIndex || '0', 10);
+			const node = { unit, retryCount, domIndex, priority, forcedGroup };
+			
+			const targetQueue = priority === 0 ? this.viewportQueue : this.backgroundQueue;
+
+			if (unshift) {
+				node.domIndex = -Date.now();
+				targetQueue.unshift(node);
+			} else {
+				targetQueue.push(node);
+				targetQueue.sort((a, b) => a.domIndex - b.domIndex);
+			}
+			this.unitMap.set(unit, node);
+		}
+
+		updatePriority(unit, priority) {
+			const node = this.unitMap.get(unit);
+			if (!node || node.priority === priority) return;
+
+			const oldQueue = node.priority === 0 ? this.viewportQueue : this.backgroundQueue;
+			const idx = oldQueue.indexOf(node);
+			if (idx > -1) oldQueue.splice(idx, 1);
+
+			node.priority = priority;
+			const newQueue = priority === 0 ? this.viewportQueue : this.backgroundQueue;
+			newQueue.push(node);
+			newQueue.sort((a, b) => a.domIndex - b.domIndex);
+		}
+
+		remove(unit) {
+			const node = this.unitMap.get(unit);
+			if (node) {
+				const targetQueue = node.priority === 0 ? this.viewportQueue : this.backgroundQueue;
+				const idx = targetQueue.indexOf(node);
+				if (idx > -1) targetQueue.splice(idx, 1);
+				this.unitMap.delete(unit);
+			}
+		}
+
+		get size() { return this.viewportQueue.length + this.backgroundQueue.length; }
+		
+		peek() {
+			if (this.viewportQueue.length > 0) return this.viewportQueue[0];
+			if (this.backgroundQueue.length > 0) return this.backgroundQueue[0];
+			return null;
+		}
+		
+		pop() {
+			let node = null;
+			if (this.viewportQueue.length > 0) {
+				node = this.viewportQueue.shift();
+			} else if (this.backgroundQueue.length > 0) {
+				node = this.backgroundQueue.shift();
+			}
+			if (node) this.unitMap.delete(node.unit);
+			return node;
+		}
+	}
+
+	/**
+	 * 分包策略
+	 */
+	class BatchStrategy {
+		constructor(configProvider) {
+			this.config = configProvider;
+		}
+
+		createBatch(queueManager) {
+			if (queueManager.size === 0) return { batchNodes:[], reason: 'empty', batchLang: 'auto' };
+
+			const { chunkSize, paragraphLimit } = this.config.getLimits();
+			const batchNodes =[];
+			let currentChars = 0;
+			let reason = 'underfilled';
+			
+			const firstNode = queueManager.peek();
+			const batchLang = firstNode.unit.dataset.detectedLang || 'auto';
+			const forcedGroup = firstNode.forcedGroup || null;
+
+			while (queueManager.size > 0) {
+				const node = queueManager.peek();
+				const unitLang = node.unit.dataset.detectedLang || 'auto';
+
+				if (forcedGroup && node.forcedGroup !== forcedGroup) {
+					reason = 'forced_group_boundary';
+					break;
+				}
+
+				if (batchNodes.length > 0 && unitLang !== batchLang) {
+					reason = 'language_boundary';
+					break;
+				}
+
+				const isSeparator = node.unit.tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(node.unit.textContent);
+				if (isSeparator) {
+					if (batchNodes.length > 0) {
+						reason = 'separator_cut';
+						break;
+					} else {
+						batchNodes.push(queueManager.pop());
+						reason = 'separator_single';
+						break;
+					}
+				}
+
+				batchNodes.push(queueManager.pop());
+				currentChars += node.unit.textContent.length;
+
+				if (batchNodes.length >= paragraphLimit || currentChars >= chunkSize) {
+					reason = 'full';
+					break;
+				}
+
+				if (forcedGroup && queueManager.size > 0 && queueManager.peek().forcedGroup !== forcedGroup) {
+					reason = 'forced_group_complete';
+					break;
+				}
+			}
+
+			return { batchNodes, reason, batchLang };
+		}
+	}
+
+	/**
+	 * 渲染代理：负责将翻译结果写入 DOM
+	 */
+	class RenderDelegate {
+		constructor(customRenderersMap, displayModeGetter) {
+			this.customRenderers = customRenderersMap || new Map();
+			this.getDisplayMode = displayModeGetter;
+		}
+
+		applyResult(unit, result, onRetry) {
+			if (this.customRenderers.has(unit)) {
+				try {
+					this.customRenderers.get(unit)(unit, result);
+				} catch (e) {
+					Logger.error('Translation', '自定义渲染失败', e);
+					unit.dataset.translationState = 'error';
+				}
+				return;
+			}
+
+			let originalWrapper = unit.querySelector(':scope > .ao3-original-content');
+
+			if (!originalWrapper) {
+				originalWrapper = document.createElement('span');
+				originalWrapper.className = 'ao3-original-content';
+				if (unit.firstChild) {
+					originalWrapper.append(...unit.childNodes);
+				}
+
+				unit.appendChild(originalWrapper);
+			}
+
+			let translatedWrapper = unit.querySelector(':scope > .ao3-translated-content');
+			if (translatedWrapper) translatedWrapper.remove();
+
+			translatedWrapper = document.createElement('span');
+			translatedWrapper.className = 'ao3-translated-content';
+
+			if (result.status === 'success') {
+				let cleanContent = result.content;
+				if (cleanContent.includes('ao3-original-content')) {
+					const temp = document.createElement('div');
+					temp.innerHTML = cleanContent;
+					const inner = temp.querySelector('.ao3-original-content, .ao3-translated-content');
+					if (inner) cleanContent = inner.innerHTML;
+				}
+				
+				translatedWrapper.innerHTML = cleanContent;
+				unit.dataset.translationState = 'translated';
+			} else {
+				translatedWrapper.classList.add('ao3-translation-error');
+				translatedWrapper.innerHTML = `翻译失败：${result.content.replace('翻译失败：', '')}`;
+				unit.dataset.translationState = 'error';
+				const retryBtn = this._createRetryButton(unit, onRetry);
+				translatedWrapper.appendChild(retryBtn);
+			}
+			unit.appendChild(translatedWrapper);
+		}
+
+		/**
+		 * 创建重试按钮
+		 */
+		_createRetryButton(unit, onRetry) {
+			const span = document.createElement('span');
+			span.className = 'retry-translation-button';
+			span.title = '重试';
+			span.innerHTML = TranslationDOMUtils.RETRY_ICON_SVG;
+			span.addEventListener('click', (e) => {
+				e.stopPropagation();
+				onRetry(unit);
+			});
+			return span;
+		}
+	}
+
+	/**
+	 * 资源管理器
+	 */
+	class ResourceManager {
+		constructor(engineName) {
+			this.engineName = engineName;
+			this.tokenBucket = new GlobalTokenBucket(engineName);
+			this.consecutiveErrors = 0;
+		}
+
+		async acquireToken() {
+			const result = await this.tokenBucket.consume(1, this.engineName);
+			if (result.success) {
+				this.consecutiveErrors = Math.max(0, this.consecutiveErrors - 1);
+			}
+			return result;
+		}
+
+		async getAvailableTokens() {
+			return await this.tokenBucket.getAvailableTokens(this.engineName);
+		}
+
+		async getCapacity() {
+			return this.tokenBucket.getConfig(this.engineName).capacity;
+		}
+
+			reportError(error) {
+				if (error.type === 'rate_limit' || error.type === 'auth_error') return;
+				
+				if (error.type === 'server_overloaded' || (error.message && error.message.includes('503'))) {
+				this.consecutiveErrors++;
+				let baseFreezeTime = 15000;
+				const multiplier = Math.pow(1.5, this.consecutiveErrors - 1);
+				const freezeTime = Math.min(baseFreezeTime * multiplier, 60000);
+				const jitter = Math.random() * 2000;
+				const finalFreezeTime = Math.floor(freezeTime + jitter);
+
+				Logger.warn('Network', `[${this.engineName}] 触发动态全局熔断`, {
+					errorType: error.type,
+					consecutiveErrors: this.consecutiveErrors,
+					freezeTimeMs: finalFreezeTime
+				});
+
+				this.tokenBucket.triggerFreeze(finalFreezeTime);
+			}
+		}
+	}
+
+	/**
+	 * 通用翻译调度引擎
+	 */
+	class UniversalEngine {
+		constructor(options) {
+			this.container = options.containerElement;
+			this.isCancelled = options.isCancelled;
+			this.onComplete = options.onComplete;
+			this.onProgress = options.onProgress;
+			this.onRetryCallback = options.onRetry;
+			this.onActiveStateChange = options.onActiveStateChange;
+			this.onErrorCallback = options.onError;
+			this.containerLang = options.containerLang || "auto";
+			this.useObserver = options.useObserver !== false;
+
+			this.normalizer = new DOMNormalizer();
+			this.queueManager = new DomOrderedQueueManager();
+
+			const engine = getValidEngineName();
+
+			this.batchStrategy = new BatchStrategy({
+				getLimits: () => {
+					const params = ProfileManager.getParamsByEngine(engine);
+					return {
+						chunkSize: params.chunk_size,
+						paragraphLimit: params.para_limit
+					};
+				}
+			});
+
+			this.renderer = new RenderDelegate(options.customRenderers, () => GM_getValue('translation_display_mode'));
+			this.resourceManager = new ResourceManager(engine);
+
+			this.preloadObserver = null;
+			this.viewportObserver = null;
+			this.dwellTimers = new Map();
+
+			this.pendingNodes = new Set();
+			this.inFlightBatches = 0;
+			this.isEngineActive = false;
+
+			// 记录当前的 rootMargin
+			this.currentRootMargin = this._getRootMargin();
+
+			// 将 preloadObserver 的回调函数提取出来，以便重建时复用
+			this.preloadObserverCallback = (entries) => {
+				if (this.isCancelled()) return;
+				let addedOrRemoved = false;
+				entries.forEach(entry => {
+					const unit = entry.target;
+					if (entry.isIntersecting) {
+						if (!this.dwellTimers.has(unit) && (!unit.dataset.translationState || unit.dataset.translationState === 'queued')) {
+							const timer = setTimeout(() => {
+								this.dwellTimers.delete(unit);
+								this.queueManager.add(unit, 0, false, 1);
+								this.schedule(false);
+							}, 200);
+							this.dwellTimers.set(unit, timer);
+						}
+					} else {
+						if (this.dwellTimers.has(unit)) {
+							clearTimeout(this.dwellTimers.get(unit));
+							this.dwellTimers.delete(unit);
+						}
+						if (unit.dataset.translationState === 'queued') {
+							this.queueManager.remove(unit);
+							delete unit.dataset.translationState;
+							addedOrRemoved = true;
+						}
+					}
+				});
+				if (addedOrRemoved) this.schedule(false);
+			};
+
+			if (this.useObserver) {
+				// 使用提取的回调函数和记录的 margin 初始化
+				this.preloadObserver = new IntersectionObserver(this.preloadObserverCallback, { rootMargin: this.currentRootMargin });
+
+				this.viewportObserver = new IntersectionObserver((entries) => {
+					if (this.isCancelled()) return;
+					let changed = false;
+					entries.forEach(entry => {
+						const unit = entry.target;
+						if (this.queueManager.unitMap.has(unit)) {
+							const priority = entry.isIntersecting ? 0 : 1;
+							this.queueManager.updatePriority(unit, priority);
+							changed = true;
+						}
+					});
+					if (changed) this.schedule(false);
+				}, { rootMargin: '200px 0px 200px 0px' });
+			}
+
+			this.timer = null;
+			this.detectedLang = null;
+			this.prependNodes = options.prependNodes ||[];
+			this.currentDomIndex = 0;
+			this.hasError = false;
+			
+			this.prependNodes.forEach((n, i) => {
+				if (!n.dataset.translationState || n.dataset.translationState === 'queued') {
+					n.dataset.domIndex = -(this.prependNodes.length - i);
+					this.pendingNodes.add(n);
+					this.queueManager.add(n, 0, false, 0);
+				}
+			});
+
+			// 绑定并监听懒加载参数变更事件
+			this._onMarginChange = this._handleMarginChange.bind(this);
+			document.addEventListener(CUSTOM_EVENTS.LAZY_LOAD_MARGIN_CHANGED, this._onMarginChange);
+		}
+
+		// 处理懒加载参数变更
+		_handleMarginChange() {
+			if (!this.useObserver || this.isCancelled()) return;
+			
+			const newMargin = this._getRootMargin();
+			if (newMargin === this.currentRootMargin) return;
+			
+			Logger.info('Translation', `懒加载范围已动态更新: ${this.currentRootMargin} -> ${newMargin}`);
+			this.currentRootMargin = newMargin;
+			
+			// 1. 销毁旧的观察者
+			if (this.preloadObserver) {
+				this.preloadObserver.disconnect();
+			}
+			
+			// 2. 使用新参数创建新的观察者
+			this.preloadObserver = new IntersectionObserver(this.preloadObserverCallback, { rootMargin: this.currentRootMargin });
+			
+			// 3. 遍历所有待处理节点，重新加入观察
+			this.pendingNodes.forEach(unit => {
+				if (!unit.classList.contains('ao3-title-translatable-temp')) {
+					this.preloadObserver.observe(unit);
+				}
+			});
+			
+			// 4. 触发一次调度，让新观察者立刻生效
+			this.schedule(false);
+		}
+
+		_updateActiveState() {
+			const isActive = this.queueManager.size > 0 || this.inFlightBatches > 0;
+			if (this.isEngineActive !== isActive) {
+				this.isEngineActive = isActive;
+				if (this.onActiveStateChange) {
+					this.onActiveStateChange(isActive);
+				}
+			}
+		}
+
+		async start() {
+			try {
+				const unitGenerator = this.normalizer.generateUnits(this.container);
+
+				for await (const unit of unitGenerator) {
+					if (this.isCancelled()) break;
+					if (unit.dataset.translationState && unit.dataset.translationState !== 'queued') continue;
+
+					// 统一继承语言状态
+					if (!unit.dataset.detectedLang) {
+						unit.dataset.detectedLang = this.container.dataset.detectedLang || this.containerLang || 'auto';
+					}
+
+					this.pendingNodes.add(unit);
+					unit.dataset.domIndex = this.currentDomIndex++;
+
+					if (this.useObserver) {
+						this.preloadObserver.observe(unit);
+						this.viewportObserver.observe(unit);
+					} else {
+						this.queueManager.add(unit, 0, false, 0);
+					}
+
+					this.schedule(false);
+				}
+
+				this.schedule(true);
+
+				if (this.pendingNodes.size === 0) {
+					this._finish();
+				}
+			} catch (e) {
+				Logger.error('Translation', '通用引擎启动失败', e);
+				this._finish();
+			}
+		}
+
+		schedule(force = false) {
+			if (this.isCancelled()) return;
+			clearTimeout(this.timer);
+			this.timer = setTimeout(() => this.runLoop(force), 50);
+		}
+
+		async runLoop(force) {
+			if (this.isCancelled()) return;
+			
+			this._updateActiveState();
+
+			if (this.queueManager.size === 0) {
+				if (this.pendingNodes.size === 0 && this.inFlightBatches === 0) {
+					this._finish();
+				}
+				return;
+			}
+
+			const nextNode = this.queueManager.peek();
+			if (nextNode && nextNode.priority === 1) {
+				const availableTokens = await this.resourceManager.getAvailableTokens();
+				const capacity = await this.resourceManager.getCapacity();
+				const threshold = Math.max(1, capacity * 0.3);
+				if (availableTokens < threshold) {
+					this.timer = setTimeout(() => this.runLoop(force), 1000);
+					return;
+				}
+			}
+
+			const { batchNodes, reason, batchLang } = this.batchStrategy.createBatch(this.queueManager);
+
+			if (!batchNodes || batchNodes.length === 0) return;
+
+			const tokenResult = await this.resourceManager.acquireToken();
+			if (!tokenResult.success) {
+				batchNodes.reverse().forEach(node => this.queueManager.add(node.unit, node.retryCount, true, node.priority, node.forcedGroup || null));
+				this.timer = setTimeout(() => this.runLoop(force), tokenResult.waitTime + 50);
+				return;
+			}
+
+			this._executeBatch(batchNodes, batchLang);
+
+			if (this.queueManager.size > 0) {
+				this.schedule(false);
+			}
+		}
+
+		async _executeBatch(batchNodes, batchLang) {
+			this.inFlightBatches++;
+			this._updateActiveState();
+
+			const batch = batchNodes.map(n => n.unit);
+			batch.forEach(el => {
+				el.dataset.translationState = 'translating';
+			});
+
+			try {
+				const validUnits = batch.filter(el => el.tagName !== 'HR' && el.textContent.trim());
+				const reqId = `Batch-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+				let results = new Map();
+
+				if (validUnits.length > 0) {
+					results = await translateParagraphs(validUnits, {
+						isCancelled: this.isCancelled,
+						knownFromLang: batchLang,
+						reqId: reqId,
+						skipRateLimit: true
+					});
+				}
+
+				TimeSlicer.reset();
+				for (const el of batch) {
+					if (this.viewportObserver) this.viewportObserver.unobserve(el);
+
+					if (el.dataset.translationState !== 'translating') continue;
+
+					if (el.tagName === 'HR') {
+						el.dataset.translationState = 'translated';
+						this.pendingNodes.delete(el);
+						continue;
+					}
+
+					const res = results.get(el);
+					if (res) {
+						this.renderer.applyResult(el, res, this.onRetryCallback);
+						this.pendingNodes.delete(el);
+						if (res.status !== 'success') {
+							this.hasError = true;
+						}
+					} else {
+						this.renderer.applyResult(el, { status: 'error', content: '底层异常：翻译结果丢失' }, this.onRetryCallback);
+						this.pendingNodes.delete(el);
+						this.hasError = true;
+					}
+					await TimeSlicer.yieldIfNeeded();
+				}
+
+			} catch (e) {
+				if (this.isCancelled() || e.type === 'user_cancelled') return;
+
+				// 二分降级策略
+				if (batchNodes.length > 1 && e.type !== 'fatal_error' && e.type !== 'auth_error') {
+					Logger.warn('Translation', `批次重试耗尽或校验失败，触发二分降级策略`, { batchSize: batchNodes.length });
+					const mid = Math.ceil(batchNodes.length / 2);
+					const batchA = batchNodes.slice(0, mid);
+					const batchB = batchNodes.slice(mid);
+					const splitGroupBase = `${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
+					[
+						{ nodes: batchB, group: `${splitGroupBase}_b` },
+						{ nodes: batchA, group: `${splitGroupBase}_a` }
+					].forEach(({ nodes, group }) => {
+						const subBatch = nodes.slice();
+						subBatch.reverse().forEach(node => {
+							node.unit.dataset.translationState = 'queued';
+							this.queueManager.add(node.unit, node.retryCount + 1, true, node.priority, group); 
+						});
+					});
+					this.schedule(true);
+					return;
+				}
+
+				// 彻底失败，渲染错误 UI
+				Logger.error('Translation', `重试与降级耗尽，任务彻底失败: ${e.message}`);
+				this.hasError = true;
+				if (this.onErrorCallback) this.onErrorCallback(e);
+				for (const node of batchNodes) {
+					if (node.unit.dataset.translationState !== 'translating') continue;
+					this.renderer.applyResult(node.unit, { status: 'error', content: e.message }, this.onRetryCallback);
+					this.pendingNodes.delete(node.unit);
+				}
+			} finally {
+				this.inFlightBatches--;
+				this._updateActiveState();
+				this.schedule(false);
+			}
+		}
+
+		_getRootMargin() {
+			const engineName = getValidEngineName();
+			const params = ProfileManager.getParamsByEngine(engineName);
+			return params.lazy_load_margin;
+		}
+
+		_finish() {
+			if (this.preloadObserver) this.preloadObserver.disconnect();
+			if (this.viewportObserver) this.viewportObserver.disconnect();
+			if (this.onComplete) this.onComplete(this.hasError);
+		}
+
+		disconnect() {
+			clearTimeout(this.timer);
+			if (this.preloadObserver) this.preloadObserver.disconnect();
+			if (this.viewportObserver) this.viewportObserver.disconnect();
+			if (this.dwellTimers) {
+				this.dwellTimers.forEach(timer => clearTimeout(timer));
+				this.dwellTimers.clear();
+			}
+			document.removeEventListener(CUSTOM_EVENTS.LAZY_LOAD_MARGIN_CHANGED, this._onMarginChange);
+		}
+
+		addUnits(units) {
+			units.forEach(u => {
+				if (u.dataset.translationState && u.dataset.translationState !== 'queued') return;
+				
+				if (u.dataset.domIndex === undefined) {
+					u.dataset.domIndex = this.currentDomIndex++;
+				}
+				
+				this.pendingNodes.add(u);
+
+				if (this.useObserver && !u.classList.contains('ao3-title-translatable-temp')) {
+					this.preloadObserver.observe(u);
+					this.viewportObserver.observe(u);
+				} else {
+					this.queueManager.add(u, 0, false, 0);
+				}
+			});
+			this.schedule(false);
+		}
+
+		scheduleProcessing(force) {
+			this.schedule(force);
+		}
+	}
+
+	/**
+	 * 通用翻译引擎启动入口
+	 */
+	function runUniversalTranslationEngine(options) {
+		const engine = new UniversalEngine(options);
+		engine.start();
+		return {
+			disconnect: () => engine.disconnect(),
+			addUnits: (units) => engine.addUnits(units),
+			scheduleProcessing: (force) => engine.scheduleProcessing(force),
+			get queueSize() { return engine.queueManager.size; }
+		};
+	}
+
+	/**
+	 * 翻译 DOM 操作助手：统一管理包装、还原与清理逻辑
+	 */
+	const TranslationDOMUtils = {
+		RETRY_ICON_SVG: SVG_ICONS.retry,
+
+		createErrorDisplay(message, onRetry) {
+			const errorDiv = document.createElement('div');
+			errorDiv.className = 'translated-by-ao3-translator-error';
+			errorDiv.style.margin = '15px 0';
+			const cleanMsg = message.replace(/^翻译失败：/, '');
+			errorDiv.innerHTML = `翻译失败：${cleanMsg}`;
+
+			const retryBtn = document.createElement('span');
+			retryBtn.className = 'retry-translation-button';
+			retryBtn.title = '重试';
+			retryBtn.innerHTML = this.RETRY_ICON_SVG;
+			retryBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				onRetry();
+			});
+			errorDiv.appendChild(retryBtn);
+			return errorDiv;
+		},
+
+		unwrapUnit(unit) {
+			if (!unit) return;
+
+			const originalWrapper = unit.querySelector(':scope > .ao3-original-content');
+			const translatedWrapper = unit.querySelector(':scope > .ao3-translated-content');
+
+			if (translatedWrapper) translatedWrapper.remove();
+
+			if (originalWrapper) {
+				while (originalWrapper.firstChild) {
+					unit.insertBefore(originalWrapper.firstChild, originalWrapper);
+				}
+				originalWrapper.remove();
+			}
+
+			delete unit.dataset.translationState;
+			delete unit.dataset.brSplit;
+			delete unit.dataset.indentCleaned;
+		},
+
+		resetFailedUnits(container) {
+			const units = Array.from(container.querySelectorAll('[data-translation-state]'))
+				.filter(u => {
+					const s = u.dataset.translationState;
+					return s === 'error' || s === 'translating' || s === 'queued';
+				});
+			
+			units.forEach(unit => this.unwrapUnit(unit));
+			return units;
+		},
+
+		// 剔除第三方插件注入的不可见节点
+		sanitizeForTranslation(element) {
+			const clone = element.cloneNode(true);
+			const junkSelectors = [
+				'.notranslate', 
+				'[translate="no"]', 
+				'[style*="display: none"]', 
+				'[style*="display:none"]', 
+				'[aria-hidden="true"]'
+			];
+			const junkElements = clone.querySelectorAll(junkSelectors.join(', '));
+			junkElements.forEach(el => el.remove());
+			return clone.innerHTML;
+		},
+
+		deepCleanup(container, isFullCleanup = false) {
+			if (!container) return;
+			// 1. 移除所有错误提示和按钮包装器
+			if (isFullCleanup) {
+				container.querySelectorAll('.translated-by-ao3-translator-error, .translate-me-ao3-wrapper').forEach(el => el.remove());
+			} else {
+				container.querySelectorAll('.translated-by-ao3-translator-error').forEach(el => el.remove());
+			}
+			
+			// 2. 还原所有带有翻译状态的单元
+			container.querySelectorAll('[data-translation-state]').forEach(unit => {
+				if (!isFullCleanup && unit.classList.contains('translate-me-ao3-wrapper')) return;
+				this.unwrapUnit(unit);
+			});
+			
+			// 3. 移除所有译文容器
+			container.querySelectorAll('.ao3-translated-content, .ao3-translated-title, .ao3-tag-translation, .translated-tags-container').forEach(el => el.remove());
+
+			// 4. 还原被拆分的文本块
+			container.querySelectorAll('.ao3-text-block').forEach(block => {
+				block.replaceWith(...block.childNodes);
+			});
+			if (container.dataset && container.dataset.brSplit) {
+				delete container.dataset.brSplit;
+			}
+			container.querySelectorAll('[data-br-split]').forEach(el => {
+				delete el.dataset.brSplit;
+			});
+
+			// 5. 还原标签结构
+			container.querySelectorAll('.ao3-tag-original').forEach(el => {
+				const parent = el.parentElement;
+				if (parent) {
+					el.replaceWith(...el.childNodes);
+					delete parent.dataset.translationState;
+				}
+			});
+
+			// 6. 重置单元模式的逻辑锁标记，允许重新扫描
+			if (isFullCleanup) {
+				if (container.dataset && container.dataset.translationHandled) {
+					delete container.dataset.translationHandled;
+				}
+				container.querySelectorAll('[data-translation-handled]').forEach(el => {
+					delete el.dataset.translationHandled;
+				});
+			}
+		}
+	};
+
+	/**
+	 * 统一的翻译目标容器规则配置
+	 */
+	const TRANSLATION_TARGET_RULES = {
+		universal:[
+			{ selector: 'blockquote.userstuff.summary', text: '翻译简介' },
+			{ selector: '.summary > blockquote.userstuff', text: '翻译简介' },
+			{ selector: 'blockquote.userstuff.notes', text: '翻译注释' },
+			{ selector: '.notes > blockquote.userstuff', text: '翻译注释' },
+			{ selector: '.comment blockquote.userstuff', text: '翻译评论' },
+			{ selector: 'div.bio > div.userstuff', text: '翻译简介' },
+			{ selector: '.pseud blockquote.userstuff', text: '翻译简介' },
+			{ selector: '.latest.news .post.group > blockquote.userstuff', text: '翻译概述' },
+			{ selector: 'dl.work.meta.group', text: '翻译标签', above: false, isTags: true },
+			{ selector: 'ul.tags.commas', text: '翻译标签', above: false, isTags: true },
+			{ selector: 'ul.tags.cloud', text: '翻译标签', above: false, isTags: true },
+			{ selector: 'ol.tags.index.group, ol.tag.index.group', text: '翻译标签', above: false, isTags: true },
+			{ selector: 'ul.tags.index.group, ul.tag.index.group', text: '翻译标签', above: false, isTags: true },
+			{ selector: '#admin-banner blockquote.userstuff', text: '翻译公告', insertInside: true },
+			{ selector: '#chapters > .userstuff', text: '翻译正文', above: true, isLazyLoad: true },
+			{ selector: '#chapters > .chapter > .userstuff[role="article"]', text: '翻译正文', above: true, isLazyLoad: true },
+			{ selector: '.preface.group h2.title.heading', text: '翻译标题', isTitle: true },
+			{ selector: '.chapter.preface.group h3.title', text: '翻译标题', isTitle: true }
+		],
+		specific: {
+			'collections_dashboard_common':[
+				{ selector: '.primary.header.module blockquote.userstuff', text: '翻译概述', above: false, isLazyLoad: false },
+				{ selector: '#intro blockquote.userstuff', text: '翻译简介', above: false, isLazyLoad: false },
+				{ selector: '#rules blockquote.userstuff', text: '翻译规则', above: false, isLazyLoad: false }
+			],
+			'admin_posts_show': [
+				{ selector: 'div[role="article"] > .userstuff', text: '翻译动态', above: true, isLazyLoad: true },
+				{ selector: '.news.module .header h3.heading', text: '翻译标题', isTitle: true },
+				{ selector: 'dd.tags > ul.tags.commas', text: '翻译标签', above: false, isTags: true, fullPageOnly: true }
+			],
+			'tos_page':[
+				{ selector: '#tos.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			],
+			'content_policy_page':[
+				{ selector: '#content.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			],
+			'privacy_policy_page':[
+				{ selector: '#privacy.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			],
+			'dmca_policy_page':[
+				{ selector: '#DMCA.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			],
+			'tos_faq_page':[
+				{ selector: 'div.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			],
+			'wrangling_guidelines_page':[
+				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			],
+			'faq_page':[
+				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			],
+			'known_issues_page':[
+				{ selector: 'div.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			],
+			'report_and_support_page':[
+				{ selector: 'div.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
+			]
+		}
+	};
+
+	/**
+	 * 标题翻译管理器：集中管理标题的提取、渲染、错误处理与状态清理
+	 */
+	const TitleTranslationManager = {
+		registry: new Map(),
+		nextId: 1,
+
+		generateId() {
+			return `ctrl_${this.nextId++}`;
+		},
+
+		findTitleNode(containerElement) {
+			if (containerElement.matches('h2.title.heading, h3.title, .news.module .header h3.heading')) {
+				return containerElement;
+			}
+			let prefaceGroup = containerElement.previousElementSibling;
+			while (prefaceGroup && !prefaceGroup.classList.contains('preface')) {
+				prefaceGroup = prefaceGroup.previousElementSibling;
+			}
+			if (!prefaceGroup && containerElement.parentElement && containerElement.parentElement.classList.contains('chapter')) {
+				prefaceGroup = Array.from(containerElement.parentElement.children).find(c => c.classList.contains('preface'));
+			}
+			if (prefaceGroup) {
+				const h3 = prefaceGroup.querySelector('h3.title');
+				if (h3) return h3;
+			}
+			const workPreface = containerElement.closest('.preface.group') || document.querySelector('.preface.group');
+			if (workPreface) {
+				const h2 = workPreface.querySelector('h2.title.heading');
+				if (h2) return h2;
+			}
+			return null;
+		},
+
+		extractTextToTranslate(titleNode) {
+			const isChapterTitle = titleNode.matches('h3.title');
+			let textToTranslate = '';
+			let isValid = true;
+
+			if (isChapterTitle) {
+				const fullText = titleNode.textContent.trim();
+				const simpleChapterRegex = /^(?:Chapter|第)\s*\d+\s*(?:章)?$/i;
+				const link = titleNode.querySelector('a');
+
+				if (link) {
+					const linkText = link.textContent;
+					const remaining = fullText.replace(linkText, '').trim();
+					if (!remaining || /^[:：]\s*$/.test(remaining)) {
+						isValid = false;
+					} else {
+						textToTranslate = remaining.replace(/^[:：]\s*/, '');
+					}
+				} else if (simpleChapterRegex.test(fullText)) {
+					isValid = false;
+				} else {
+					textToTranslate = fullText;
+				}
+			} else {
+				const clone = titleNode.cloneNode(true);
+				clone.querySelectorAll('img, svg, .ao3-title-translatable-temp, .ao3-translated-title').forEach(el => el.remove());
+				textToTranslate = clone.textContent.trim();
+			}
+
+			if (!isValid || !textToTranslate) return null;
+			return { textToTranslate, isChapterTitle };
+		},
+
+		getOrPrepareTitle(containerElement, controllerId) {
+			const titleNode = this.findTitleNode(containerElement);
+			if (!titleNode) return null;
+
+			// 1. 检查是否已被接管
+			if (this.registry.has(titleNode)) {
+				const record = this.registry.get(titleNode);
+				if (record.ownerId !== controllerId) {
+					return null;
+				}
+				return record;
+			}
+
+			// 2. 检查是否已被整页模式或其它机制翻译
+			if (titleNode.dataset.translationState === 'translated-title' || titleNode.querySelector('.ao3-translated-title')) {
+				return null;
+			}
+
+			// 3. 提取并准备临时节点
+			const extracted = this.extractTextToTranslate(titleNode);
+			if (!extracted) return null;
+			const { textToTranslate, isChapterTitle } = extracted;
+
+			const tempDiv = document.createElement('span');
+			tempDiv.className = 'ao3-title-translatable-temp';
+			tempDiv.style.display = 'none';
+			tempDiv.textContent = textToTranslate;
+			titleNode.appendChild(tempDiv);
+
+			const record = {
+				ownerId: controllerId,
+				titleNode,
+				tempDiv,
+				originalText: textToTranslate,
+				isChapterTitle,
+				errorElement: null
+			};
+
+			this.registry.set(titleNode, record);
+			return record;
+		},
+
+		renderSuccess(record, translatedText) {
+			const { titleNode, originalText, isChapterTitle, tempDiv } = record;
+			const finalTitleContent = AdvancedTranslationCleaner.cleanTitle(translatedText, originalText);
+			titleNode.dataset.translationState = 'translated-title';
+
+			let originalWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-original-title'));
+			if (!originalWrapper) {
+				originalWrapper = document.createElement('span');
+				originalWrapper.className = 'ao3-original-title';
+				while (titleNode.firstChild) {
+					if (titleNode.firstChild !== tempDiv) {
+						originalWrapper.appendChild(titleNode.firstChild);
+					} else {
+						titleNode.removeChild(titleNode.firstChild);
+					}
+				}
+				titleNode.appendChild(originalWrapper);
+			}
+
+			let translatedWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-translated-title'));
+			if (translatedWrapper) translatedWrapper.remove();
+
+			translatedWrapper = document.createElement('span');
+			translatedWrapper.className = 'ao3-translated-title';
+
+			if (isChapterTitle) {
+				const translatedContent = originalWrapper.cloneNode(true);
+				translatedContent.className = '';
+				const link = translatedContent.querySelector('a');
+				if (link) {
+					let next = link.nextSibling;
+					while (next) { const toRemove = next; next = next.nextSibling; toRemove.remove(); }
+					translatedContent.appendChild(document.createTextNode(`: ${finalTitleContent}`));
+				} else {
+					translatedContent.textContent = finalTitleContent;
+				}
+				while (translatedContent.firstChild) translatedWrapper.appendChild(translatedContent.firstChild);
+			} else {
+				translatedWrapper.textContent = finalTitleContent;
+			}
+
+			titleNode.appendChild(translatedWrapper);
+			if (tempDiv.parentNode) tempDiv.remove();
+			
+			if (record.errorElement) {
+				record.errorElement.remove();
+				record.errorElement = null;
+			}
+		},
+
+		renderError(record, errorMessage, onRetry) {
+			const { titleNode, tempDiv } = record;
+			titleNode.dataset.translationState = 'error';
+			tempDiv.dataset.translationState = 'error';
+
+			if (record.errorElement) {
+				record.errorElement.remove();
+			}
+
+			record.errorElement = TranslationDOMUtils.createErrorDisplay(errorMessage, () => {
+				if (record.errorElement) {
+					record.errorElement.remove();
+					record.errorElement = null;
+				}
+				titleNode.dataset.translationState = 'queued';
+				delete tempDiv.dataset.translationState;
+				onRetry(tempDiv);
+			});
+			titleNode.after(record.errorElement);
+		},
+
+		clearForController(controllerId) {
+			for (const [titleNode, record] of this.registry.entries()) {
+				if (record.ownerId === controllerId) {
+					this._clearRecord(record);
+					this.registry.delete(titleNode);
+				}
+			}
+		},
+
+		_clearRecord(record) {
+			const { titleNode, tempDiv, errorElement } = record;
+			delete titleNode.dataset.translationState;
+			
+			const originalWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-original-title'));
+			if (originalWrapper) {
+				while (originalWrapper.firstChild) titleNode.insertBefore(originalWrapper.firstChild, originalWrapper);
+				originalWrapper.remove();
+			}
+			
+			const translatedWrapper = Array.from(titleNode.children).find(c => c.classList.contains('ao3-translated-title'));
+			if (translatedWrapper) translatedWrapper.remove();
+
+			if (tempDiv && tempDiv.parentNode) tempDiv.remove();
+			if (errorElement && errorElement.parentNode) errorElement.remove();
+		},
+
+		clearAll() {
+			for (const record of this.registry.values()) {
+				this._clearRecord(record);
+			}
+			this.registry.clear();
+		}
+	};
 
 	/**
 	 * 通用翻译控制器基座：管理状态切换、RunID 校验及 UI 更新
@@ -10136,197 +14694,177 @@
 	function createTranslationController(options) {
 		const { containerElement, buttonWrapper, originalButtonText, isLazyLoad } = options;
 		let activeTask = null;
-		let translatedTitleElement = null;
+		let errorElement = null;
+		const controllerId = TitleTranslationManager.generateId();
 
 		const controller = createBaseController({
 			buttonWrapper,
 			originalButtonText,
 			onStart: async (isCancelled, onDone) => {
-				let titleNode = null;
-				let titleTempDiv = null;
-				let isChapterTitle = false;
+				try {
+					const rule = JSON.parse(containerElement.dataset.translationRule || '{}');
+					const { detectedLang } = await LanguageDetectionManager.processContainer(containerElement, rule, 'unit');
+					containerElement.dataset.detectedLang = detectedLang;
 
-				let prefaceGroup = containerElement.previousElementSibling;
-				while (prefaceGroup && !prefaceGroup.classList.contains('preface')) {
-					prefaceGroup = prefaceGroup.previousElementSibling;
-				}
-				if (!prefaceGroup && containerElement.parentElement.classList.contains('chapter')) {
-					prefaceGroup = containerElement.parentElement.querySelector('.chapter.preface.group');
-				}
+					const titleRecord = TitleTranslationManager.getOrPrepareTitle(containerElement, controllerId);
+					const customRenderers = new Map();
+					const prependNodes = [];
 
-				if (prefaceGroup) {
-					const titleEl = prefaceGroup.querySelector('h3.title');
-					if (titleEl && !titleEl.nextElementSibling?.classList.contains('translated-title-element')) {
-						const fullText = titleEl.textContent.trim();
-						const simpleChapterRegex = /^(?:Chapter|第)\s*\d+\s*(?:章)?$/i;
-						const link = titleEl.querySelector('a');
-						let textToTranslate = fullText;
-						let isValid = true;
-
-						if (link) {
-							const linkText = link.textContent;
-							const remaining = fullText.replace(linkText, '').trim();
-							if (!remaining || /^[:：]\s*$/.test(remaining)) {
-								isValid = false;
+					if (titleRecord) {
+						titleRecord.tempDiv.dataset.detectedLang = detectedLang;
+						prependNodes.push(titleRecord.tempDiv);
+						customRenderers.set(titleRecord.tempDiv, (_node, result) => {
+							if (result.status === 'success') {
+								TitleTranslationManager.renderSuccess(titleRecord, result.content);
 							} else {
-								textToTranslate = remaining.replace(/^[:：]\s*/, '');
-							}
-						} else {
-							if (simpleChapterRegex.test(fullText)) {
-								isValid = false;
-							}
-						}
-
-						if (isValid && textToTranslate) {
-							titleNode = titleEl;
-							titleTempDiv = document.createElement('div');
-							titleTempDiv.textContent = textToTranslate;
-							isChapterTitle = true;
-						}
-					}
-				}
-
-				if (!titleNode) {
-					const workPreface = containerElement.closest('.preface.group');
-					if (workPreface) {
-						const workTitleEl = workPreface.querySelector('h2.title.heading');
-						if (workTitleEl && !workTitleEl.nextElementSibling?.classList.contains('translated-title-element')) {
-							const clone = workTitleEl.cloneNode(true);
-							clone.querySelectorAll('img, svg').forEach(el => el.remove());
-							const textContent = clone.textContent.trim();
-
-							if (textContent) {
-								titleNode = workTitleEl;
-								titleTempDiv = document.createElement('div');
-								titleTempDiv.textContent = textContent;
-								isChapterTitle = false;
-							}
-						}
-					}
-				}
-
-				const customRenderers = new Map();
-				if (titleTempDiv) {
-					customRenderers.set(titleTempDiv, (_node, result) => {
-						if (result.status === 'success') {
-							const translatedTitle = titleNode.cloneNode(true);
-							translatedTitle.classList.add('translated-title-element');
-							translatedTitle.removeAttribute('id');
-
-							if (isChapterTitle) {
-								const link = translatedTitle.querySelector('a');
-								if (link) {
-									let next = link.nextSibling;
-									while (next) {
-										const toRemove = next;
-										next = next.nextSibling;
-										toRemove.remove();
-									}
-									translatedTitle.appendChild(document.createTextNode(`: ${result.content}`));
-								} else {
-									translatedTitle.textContent = result.content;
-								}
-							} else {
-								let textNodeFound = false;
-								Array.from(translatedTitle.childNodes).forEach(child => {
-									if (child.nodeType === Node.TEXT_NODE && child.nodeValue.trim()) {
-										if (!textNodeFound) {
-											child.nodeValue = ` ${result.content} `;
-											textNodeFound = true;
-										} else {
-											child.nodeValue = '';
+								TitleTranslationManager.renderError(titleRecord, result.content, (retryNode) => {
+									if (activeTask) {
+										if (controller.state === 'complete') {
+											controller.state = 'running';
+											controller.updateButtonState('翻译中…', 'state-running');
 										}
+										activeTask.addUnits([retryNode]);
+										activeTask.scheduleProcessing(true);
 									}
 								});
-								if (!textNodeFound) {
-									translatedTitle.appendChild(document.createTextNode(result.content));
-								}
 							}
+						});
+					}
 
-							titleNode.after(translatedTitle);
-							translatedTitleElement = translatedTitle;
-
-							const currentMode = GM_getValue('translation_display_mode', 'bilingual');
-							if (currentMode === 'translation_only') {
-								titleNode.style.display = 'none';
+					activeTask = runUniversalTranslationEngine({
+						containerElement, 
+						containerLang: detectedLang,
+						isCancelled, onComplete: onDone, useObserver: isLazyLoad,
+						prependNodes: prependNodes,
+						customRenderers: customRenderers,
+						onRetry: () => {
+							const failed = TranslationDOMUtils.resetFailedUnits(containerElement);
+							if (failed.length > 0 && activeTask) {
+								if (controller.state === 'complete') {
+									controller.state = 'running';
+									controller.updateButtonState('翻译中…', 'state-running');
+								}
+								activeTask.addUnits(failed);
+								activeTask.scheduleProcessing(true);
 							}
 						}
 					});
+				} catch (error) {
+					if (isCancelled()) return;
+					onDone();
+					errorElement = TranslationDOMUtils.createErrorDisplay(error.message, () => {
+						if (errorElement) { errorElement.remove(); errorElement = null; }
+						controller.start();
+					});
+					buttonWrapper.before(errorElement);
 				}
-
-				const instanceState = {
-					elementState: new WeakMap(),
-					isFirstTranslationChunk: true,
-				};
-
-				activeTask = runUniversalTranslationEngine({
-					containerElement,
-					isCancelled,
-					onComplete: onDone,
-					instanceState,
-					useObserver: isLazyLoad,
-					prependNodes: titleTempDiv ? [titleTempDiv] : [],
-					customRenderers: customRenderers,
-					onRetry: () => {
-                        const failedUnits = Array.from(containerElement.querySelectorAll('[data-translation-state="error"]'));
-                        if (failedUnits.length === 0) return;
-
-                        failedUnits.forEach(unit => {
-                            const errorNode = unit.nextElementSibling;
-                            if (errorNode && errorNode.classList.contains('translated-by-ao3-translator-error')) {
-                                errorNode.remove();
-                            }
-                            delete unit.dataset.translationState;
-                        });
-
-						if (controller.state === 'complete') {
-							controller.state = 'running';
-							controller.updateButtonState('翻译中…', 'state-running');
-						}
-
-                        if (activeTask) {
-                            activeTask.addUnits(failedUnits);
-                            activeTask.scheduleProcessing(true);
-                        }
-					}
-				});
 			},
 			onPause: () => {
-				if (activeTask && activeTask.disconnect) {
-					activeTask.disconnect();
-				}
+				if (activeTask) activeTask.disconnect();
 				activeTask = null;
 				containerElement.querySelectorAll('[data-translation-state="translating"]').forEach(unit => {
 					delete unit.dataset.translationState;
 				});
 			},
 			onClear: () => {
-				const internalNodes = containerElement.querySelectorAll('.translated-by-ao3-translator, .translated-by-ao3-translator-error');
-				internalNodes.forEach(node => node.remove());
-				let nextNode = containerElement.nextElementSibling;
-				while (nextNode && nextNode !== buttonWrapper) {
-					if (nextNode.classList.contains('translated-by-ao3-translator') || nextNode.classList.contains('translated-by-ao3-translator-error')) {
-						const nodeToRemove = nextNode;
-						nextNode = nextNode.nextElementSibling;
-						nodeToRemove.remove();
-					} else {
-						nextNode = nextNode.nextElementSibling;
-					}
-				}
-				containerElement.querySelectorAll('[data-translation-state]').forEach(unit => {
-					unit.style.display = '';
-					delete unit.dataset.translationState;
+				TranslationDOMUtils.deepCleanup(containerElement, false);
+				TitleTranslationManager.clearForController(controllerId);
+				if (errorElement) { errorElement.remove(); errorElement = null; }
+			}
+		});
+
+		return controller;
+	}
+
+	/**
+	 * 混合作品卡片（Blurb）翻译控制器，同步管理简介与标签的翻译任务
+	 */
+	function createBlurbTranslationController(options) {
+		const { summaryElement, tagsElement, buttonWrapper, originalButtonText } = options;
+		let activeSummaryTask = null;
+
+		const controller = createBaseController({
+			buttonWrapper,
+			originalButtonText,
+			onStart: async (isCancelled, onDone) => {
+				summaryElement.parentElement?.querySelectorAll('.translated-by-ao3-translator-error').forEach(el => el.remove());
+				TranslationDOMUtils.resetFailedUnits(summaryElement);
+
+				tagsElement.querySelectorAll('.ao3-tag-translation').forEach(el => el.remove());
+				tagsElement.querySelectorAll('[data-translation-state]').forEach(el => {
+					if (el.dataset.translationState !== 'translated') delete el.dataset.translationState;
 				});
-				if (containerElement.dataset.translationState) {
-					containerElement.style.display = '';
-					delete containerElement.dataset.translationState;
-				}
-				if (translatedTitleElement) {
-					const originalTitle = translatedTitleElement.previousElementSibling;
-					if (originalTitle) originalTitle.style.display = '';
-					translatedTitleElement.remove();
-					translatedTitleElement = null;
-				}
+
+				const rule = JSON.parse(summaryElement.dataset.translationRule || '{}');
+				const { detectedLang } = await LanguageDetectionManager.processContainer(summaryElement, rule, 'unit');
+				summaryElement.dataset.detectedLang = detectedLang;
+
+				let tagsFinished = false;
+				let summaryFinished = false;
+
+				const checkAllDone = () => {
+					if (tagsFinished && summaryFinished && !isCancelled()) {
+						onDone();
+					}
+				};
+
+				// 传递 detectedLang 给标签引擎
+				runTagsTranslationEngine(tagsElement, isCancelled, detectedLang, false)
+					.then(() => {
+						tagsFinished = true;
+					})
+					.catch((err) => {
+						tagsFinished = true;
+						Logger.error('Translation', '标签翻译最终失败', err);
+					})
+					.finally(() => {
+						checkAllDone();
+					});
+
+				activeSummaryTask = runUniversalTranslationEngine({
+					containerElement: summaryElement,
+					containerLang: detectedLang,
+					isCancelled,
+					onComplete: () => {
+						summaryFinished = true;
+						checkAllDone();
+					},
+					onRetry: (unit) => {
+						if (!activeSummaryTask) return;
+						if (controller.state === 'complete') {
+							controller.state = 'running';
+							controller.updateButtonState('翻译中…', 'state-running');
+						}
+						summaryFinished = false;
+						TranslationDOMUtils.unwrapUnit(unit);
+						activeSummaryTask.addUnits([unit]);
+						activeSummaryTask.scheduleProcessing(true);
+
+						const hasFailedTags = tagsElement.querySelector('[data-translation-state="error"]');
+						if (hasFailedTags) {
+							tagsFinished = false;
+							runTagsTranslationEngine(tagsElement, isCancelled, detectedLang, false)
+								.then(() => {
+									tagsFinished = true;
+								})
+								.catch((err) => {
+									tagsFinished = true;
+									Logger.error('Translation', '标签翻译重试最终失败', err);
+								})
+								.finally(() => {
+									checkAllDone();
+								});
+						}
+					}
+				});
+			},
+			onPause: () => {
+				if (activeSummaryTask) activeSummaryTask.disconnect();
+				activeSummaryTask = null;
+			},
+			onClear: () => {
+				TranslationDOMUtils.deepCleanup(summaryElement, false);
+				TranslationDOMUtils.deepCleanup(tagsElement, false);
 			}
 		});
 
@@ -10345,858 +14883,591 @@
 			originalButtonText,
 			onStart: async (isCancelled, onDone) => {
 				try {
-					await runTagsTranslationEngine(containerElement, isCancelled);
+					const rule = JSON.parse(containerElement.dataset.translationRule || '{}');
+					const { detectedLang } = await LanguageDetectionManager.processContainer(containerElement, rule, 'unit');
+					containerElement.dataset.detectedLang = detectedLang;
+
+					await runTagsTranslationEngine(containerElement, isCancelled, detectedLang, false);
 					if (isCancelled()) return;
 					onDone();
 				} catch (error) {
 					if (isCancelled()) return;
 					onDone();
-
-					const errorDiv = document.createElement('div');
-					errorDiv.className = 'translated-by-ao3-translator-error';
-					errorDiv.style.margin = '15px 0';
-					errorDiv.innerHTML = `翻译失败：${error.message}`;
-
-					const retryBtn = document.createElement('span');
-					retryBtn.className = 'retry-translation-button';
-					retryBtn.title = '重试';
-					retryBtn.innerHTML = `<svg viewBox="0 -960 960 960"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-694v-106h80v240H560v-80h136q-34-45-84.5-72.5T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q88 0 151.5-54T713-440h82q-19 127-115 203.5T480-160Z"/></svg>`;
-					retryBtn.addEventListener('click', (e) => {
-						e.stopPropagation();
-						if (errorElement) {
-							errorElement.remove();
-							errorElement = null;
-						}
+					errorElement = TranslationDOMUtils.createErrorDisplay(error.message, () => {
+						if (errorElement) { errorElement.remove(); errorElement = null; }
 						controller.start();
 					});
-					errorDiv.appendChild(retryBtn);
-
-					buttonWrapper.before(errorDiv);
-					errorElement = errorDiv;
-
-					Logger.error('翻译', '标签翻译失败', error);
+					buttonWrapper.before(errorElement);
 				}
 			},
 			onClear: () => {
-				const translations = containerElement.querySelectorAll('.ao3-tag-translation');
-				translations.forEach(el => el.remove());
-
-				const originals = containerElement.querySelectorAll('.ao3-tag-original');
-				originals.forEach(el => el.style.display = '');
-
-				if (errorElement) {
-					errorElement.remove();
-					errorElement = null;
-				}
-
-				containerElement.style.display = '';
+				TranslationDOMUtils.deepCleanup(containerElement, false);
+				if (errorElement) { errorElement.remove(); errorElement = null; }
 			}
 		});
 
 		return controller;
 	}
 
-    /**
-	 * 混合作品卡片（Blurb）翻译控制器，同步管理简介与标签的翻译任务
+	/**
+	 * 提取需要翻译的标签节点 (DOM 查询与过滤)
 	 */
-	function createBlurbTranslationController(options) {
-		const { summaryElement, tagsElement, buttonWrapper, originalButtonText } = options;
-		let errorElement = null;
-		let activeSummaryTask = null;
-
-		const controller = createBaseController({
-			buttonWrapper,
-			originalButtonText,
-			onStart: async (isCancelled, onDone) => {
-				try {
-					const tagsPromise = runTagsTranslationEngine(tagsElement, isCancelled);
-
-					const summaryPromise = new Promise((resolve) => {
-						const instanceState = {
-							elementState: new WeakMap(),
-							isFirstTranslationChunk: true,
-						};
-						activeSummaryTask = runUniversalTranslationEngine({
-							containerElement: summaryElement,
-							isCancelled,
-							onComplete: resolve,
-							instanceState,
-							useObserver: false,
-							onRetry: () => {
-                                const failedUnits = Array.from(summaryElement.querySelectorAll('[data-translation-state="error"]'));
-                                if (failedUnits.length === 0) return;
-                                failedUnits.forEach(unit => {
-                                    const errorNode = unit.nextElementSibling;
-                                    if (errorNode && errorNode.classList.contains('translated-by-ao3-translator-error')) {
-                                        errorNode.remove();
-                                    }
-                                    delete unit.dataset.translationState;
-                                });
-								if (controller.state === 'complete') {
-									controller.state = 'running';
-									controller.updateButtonState('翻译中…', 'state-running');
-								}
-                                if (activeSummaryTask) {
-                                    activeSummaryTask.addUnits(failedUnits);
-                                    activeSummaryTask.scheduleProcessing(true);
-                                }
-							}
-						});
-					});
-
-					await Promise.all([tagsPromise, summaryPromise]);
-					if (isCancelled()) return;
-					onDone();
-				} catch (error) {
-					if (isCancelled()) return;
-					onDone();
-					const errorDiv = document.createElement('div');
-					errorDiv.className = 'translated-by-ao3-translator-error';
-					errorDiv.style.margin = '15px 0';
-					errorDiv.innerHTML = `翻译失败：${error.message}`;
-					const retryBtn = document.createElement('span');
-					retryBtn.className = 'retry-translation-button';
-					retryBtn.title = '重试';
-					retryBtn.innerHTML = `<svg viewBox="0 -960 960 960"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-694v-106h80v240H560v-80h136q-34-45-84.5-72.5T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q88 0 151.5-54T713-440h82q-19 127-115 203.5T480-160Z"/></svg>`;
-					retryBtn.addEventListener('click', (e) => {
-						e.stopPropagation();
-						if (errorElement) {
-							errorElement.remove();
-							errorElement = null;
-						}
-						controller.start();
-					});
-					errorDiv.appendChild(retryBtn);
-					buttonWrapper.before(errorDiv);
-					errorElement = errorDiv;
-					Logger.error('翻译', 'Blurb 翻译失败', error);
-				}
-			},
-			onPause: () => {
-				if (activeSummaryTask && activeSummaryTask.disconnect) {
-					activeSummaryTask.disconnect();
-				}
-				activeSummaryTask = null;
-				summaryElement.querySelectorAll('[data-translation-state="translating"]').forEach(unit => {
-					delete unit.dataset.translationState;
-				});
-			},
-			onClear: () => {
-				const internalTranslationNodes = summaryElement.querySelectorAll('.translated-by-ao3-translator, .translated-by-ao3-translator-error');
-				internalTranslationNodes.forEach(node => node.remove());
-
-				let nextNode = summaryElement.nextSibling;
-				while (nextNode && (nextNode.classList?.contains('translated-by-ao3-translator') || nextNode.classList?.contains('translated-by-ao3-translator-error'))) {
-					const nodeToRemove = nextNode;
-					nextNode = nextNode.nextSibling;
-					nodeToRemove.remove();
-				}
-
-				summaryElement.querySelectorAll('[data-translation-state]').forEach(unit => {
-					unit.style.display = '';
-					delete unit.dataset.translationState;
-				});
-
-                const translations = tagsElement.querySelectorAll('.ao3-tag-translation');
-                translations.forEach(el => el.remove());
-                const originals = tagsElement.querySelectorAll('.ao3-tag-original');
-                originals.forEach(el => el.style.display = '');
-
-				if (errorElement) {
-					errorElement.remove();
-					errorElement = null;
-				}
-
-				tagsElement.style.display = '';
-				if (tagsElement.parentElement.classList.contains('wrapper') && tagsElement.tagName === 'DL') {
-					tagsElement.parentElement.style.display = '';
-				}
-			}
-		});
-
-		return controller;
-	}
-
-    /**
-	 * 标签区域翻译引擎
-	 */
-	async function runTagsTranslationEngine(containerElement, isCancelled) {
-		if (isCancelled()) return null;
-
-		const targetSelectors = [
+	function extractTagsToTranslate(containerElement) {
+		const targetSelectors =[
 			'dd.fandom a.tag', 'dd.relationship a.tag', 'dd.character a.tag', 'dd.freeform a.tag',
-			'dd.series a:not(.previous):not(.next)', // <--- 修改了这一行
-			'dd.collections a', 'dd.language', 'li.fandoms a.tag',
+			'dd.series a:not(.previous):not(.next)',
+			'dd.collections a','li.fandoms a.tag',
 			'li.relationships a.tag', 'li.characters a.tag', 'li.freeforms a.tag',
-			'a.tag:not(.rating):not(.warning):not(.category)'
+			'a.tag:not(.rating):not(.warning):not(.category)',
+			'a[class^="cloud"]'
 		];
 
-		const nodesToTranslate = [];
-		const wrapperMap = new Map();
+		const nodesToTranslate =[];
 		const processedElements = new Set();
+		const fullDictionary = { ...pageConfig.staticDict, ...pageConfig.globalFlexibleDict, ...pageConfig.pageFlexibleDict };
 
 		targetSelectors.forEach(selector => {
 			containerElement.querySelectorAll(selector).forEach(el => {
 				if (processedElements.has(el)) return;
 				processedElements.add(el);
 
-				if (el.closest('.rating, .warnings, .category, .warning')) return;
+				if (el.closest('.rating, .warnings, .category, .warning, h5.fandoms')) return;
 				if (el.querySelector('.ao3-tag-translation')) return;
-
-				const text = el.textContent.trim();
-				const fullDictionary = {
-					...pageConfig.staticDict,
-					...pageConfig.globalFlexibleDict,
-					...pageConfig.pageFlexibleDict
-				};
-
+				const cut = el.closest('.ao3-blocker-cut');
+				if (cut && !cut.parentElement.classList.contains('ao3-blocker-unhide')) return;
+				const originalSpan = el.querySelector('.ao3-tag-original');
+				const text = (originalSpan ? originalSpan.textContent : el.textContent).trim();
 				if (text && !/^\d+$/.test(text) && !fullDictionary[text]) {
-					let originalSpan = el.querySelector('.ao3-tag-original');
-
-					if (!originalSpan) {
-						originalSpan = document.createElement('span');
-						originalSpan.className = 'ao3-tag-original';
-
-						while (el.firstChild) {
-							originalSpan.appendChild(el.firstChild);
-						}
-						el.appendChild(originalSpan);
-					}
-
-					nodesToTranslate.push(originalSpan);
-					wrapperMap.set(originalSpan, el);
+					nodesToTranslate.push(el);
 				}
 			});
 		});
-
-		if (nodesToTranslate.length > 0) {
-			try {
-				const reqId = 'Tags-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-				const translationResults = await translateParagraphs(nodesToTranslate, { isCancelled, reqId });
-
-				if (isCancelled()) return null;
-
-				nodesToTranslate.forEach(originalSpan => {
-					const result = translationResults.get(originalSpan);
-					const parentLink = wrapperMap.get(originalSpan);
-
-					if (result && result.status === 'success' && parentLink) {
-						if (parentLink.querySelector('.ao3-tag-translation')) return;
-
-						const translationSpan = document.createElement('span');
-						translationSpan.className = 'ao3-tag-translation';
-
-						const cleanedContent = result.content.trim().replace(/[。\.]$/, '');
-						translationSpan.textContent = cleanedContent;
-
-						parentLink.appendChild(translationSpan);
-					}
-				});
-			} catch (error) {
-				if (isCancelled()) return null;
-				throw error;
-			}
-		}
-
-		const currentMode = GM_getValue('translation_display_mode', 'bilingual');
-		applyDisplayModeChange(currentMode);
-
-		return containerElement;
+		return nodesToTranslate;
 	}
 
 	/**
-	 * DOM 处理与遍历器
+	 * 准备标签的 DOM 结构 (DOM 预处理)
 	 */
-	class DOMNormalizer {
-		constructor() {
-			this.elementState = new WeakMap();
-			this.splitThreshold = 200;
-			this.yieldInterval = 30;
+	function prepareTagDOM(el) {
+		let originalSpan = el.querySelector('.ao3-tag-original');
+		if (!originalSpan) {
+			originalSpan = document.createElement('span');
+			originalSpan.className = 'ao3-tag-original';
+			while (el.firstChild) originalSpan.appendChild(el.firstChild);
+			el.appendChild(originalSpan);
+		}
+		return originalSpan;
+	}
+
+	/**
+	 * 渲染标签的翻译结果 (DOM 渲染)
+	 */
+	function renderTagTranslation(parentLink, result) {
+		if (parentLink.querySelector('.ao3-tag-translation')) return;
+		const translationSpan = document.createElement('span');
+		translationSpan.className = 'ao3-tag-translation';
+		translationSpan.textContent = AdvancedTranslationCleaner.smartStripPunctuation(result.content);
+		parentLink.appendChild(translationSpan);
+		parentLink.dataset.translationState = 'translated';
+	}
+
+	/**
+	 * 标签区域翻译引擎协调者 (流程编排与 API 调度)
+	 */
+	async function runTagsTranslationEngine(containerElement, isCancelled, knownFromLang = 'auto', skipTargetLanguage = false) {
+		if (isCancelled()) return null;
+
+		const targetLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
+		if (skipTargetLanguage && knownFromLang === targetLang) {
+			containerElement.dataset.translationState = 'skipped';
+			return containerElement;
 		}
 
-		async *generateUnits(container) {
-			const splitSelectors = 'p, blockquote';
-			const elementsToSplit = Array.from(container.querySelectorAll(splitSelectors))
-				.filter(el => !this._isTranslated(el));
+		const tagElements = extractTagsToTranslate(containerElement);
+		if (tagElements.length === 0) return containerElement;
 
-			for (let i = 0; i < elementsToSplit.length; i++) {
-				const el = elementsToSplit[i];
-				if (!this.elementState.has(el) && el.textContent.length > this.splitThreshold && el.querySelector('br')) {
-					const newElements = this._splitElement(el);
-					if (newElements.length > 0) el.replaceWith(...newElements);
+		const nodesToTranslate = [];
+		const wrapperMap = new Map();
+
+		tagElements.forEach(el => {
+			const originalSpan = prepareTagDOM(el);
+			nodesToTranslate.push(originalSpan);
+			wrapperMap.set(originalSpan, el);
+			el.dataset.translationState = 'translating';
+		});
+
+		try {
+			const reqId = 'Tags-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+			const translationResults = await translateParagraphs(nodesToTranslate, { 
+				isCancelled, 
+				reqId, 
+				knownFromLang 
+			});
+
+			if (isCancelled()) return null;
+
+			nodesToTranslate.forEach(originalSpan => {
+				const result = translationResults.get(originalSpan);
+				const parentLink = wrapperMap.get(originalSpan);
+				if (result && result.status === 'success' && parentLink) {
+					renderTagTranslation(parentLink, result);
+				}
+			});
+			return containerElement;
+
+		} catch (error) {
+			if (isCancelled() || error.type === 'user_cancelled') return null;
+			tagElements.forEach(el => el.dataset.translationState = 'error');
+			throw error; 
+		}
+	}
+
+	/**
+	 * 状态灯 UI 控制器
+	 */
+	class FabStatusLight {
+		constructor(fabContainer, lightElement) {
+			this.fabContainer = fabContainer;
+			this.lightElement = lightElement;
+			this.currentState = 'idle';
+			
+			// 初始化时读取状态
+			this.updateVisibility(GM_getValue('show_status_light', true));
+
+			// 监听来自菜单的切换事件
+			document.addEventListener(CUSTOM_EVENTS.STATUS_LIGHT_TOGGLED, (e) => {
+				this.updateVisibility(e.detail.show);
+			});
+		}
+
+		updateVisibility(show) {
+			if (this.lightElement) {
+				if (show) {
+					this.lightElement.classList.remove('hide-status-light');
 				} else {
-					this.elementState.set(el, { preprocessed: true });
+					this.lightElement.classList.add('hide-status-light');
 				}
-				if ((i + 1) % this.yieldInterval === 0) await sleep(0);
-			}
-
-			const liElements = Array.from(container.querySelectorAll('li'));
-			for (let i = 0; i < liElements.length; i++) {
-				this._wrapListContent(liElements[i]);
-				if ((i + 1) % this.yieldInterval === 0) await sleep(0);
-			}
-
-			const selectors = 'p, blockquote, li, h1, h2, h3, h4, h5, h6, hr, center';
-			const skipHeaders = ['Summary', 'Notes', 'Work Text', 'Chapter Text'];
-			const candidates = Array.from(container.querySelectorAll(selectors))
-				.filter(el => !this._isTranslated(el));
-
-			let yieldedAny = false;
-			for (let i = 0; i < candidates.length; i++) {
-				const unit = candidates[i];
-				const content = unit.textContent.trim();
-
-				if (!content && unit.tagName !== 'HR') continue;
-				if (skipHeaders.includes(content)) continue;
-				if (unit.querySelector(selectors)) continue;
-
-				yieldedAny = true;
-				yield unit;
-
-				if ((i + 1) % this.yieldInterval === 0) await sleep(0);
-			}
-
-			if (!yieldedAny && container.textContent.trim().length > 0) {
-				yield container;
 			}
 		}
 
-		_isTranslated(el) {
-			return el.closest('.translated-by-ao3-translator, .translated-by-ao3-translator-error');
-		}
-
-		_splitElement(el) {
-			const newElements = [];
-			let contentBuffer = [];
-			const flushBuffer = () => {
-				if (contentBuffer.length === 0) return;
-				const hasContent = contentBuffer.some(node =>
-					(node.nodeType === Node.TEXT_NODE && node.nodeValue.trim().length > 0) ||
-					(node.nodeType === Node.ELEMENT_NODE)
-				);
-				if (hasContent) {
-					const newEl = document.createElement(el.tagName);
-					if (el.className) newEl.className = el.className;
-					contentBuffer.forEach(node => newEl.appendChild(node));
-					this.elementState.set(newEl, { preprocessed: true });
-					newElements.push(newEl);
-				}
-				contentBuffer = [];
-			};
-			Array.from(el.childNodes).forEach(node => {
-				if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR') flushBuffer();
-				else contentBuffer.push(node);
-			});
-			flushBuffer();
-			return newElements;
-		}
-
-		_wrapListContent(li) {
-			if (li.querySelector('ul, ol')) {
-				const childNodes = Array.from(li.childNodes);
-				let contentBuffer = [];
-				const flushBuffer = () => {
-					if (contentBuffer.length === 0) return;
-					if (contentBuffer.some(n => (n.nodeType === Node.TEXT_NODE && n.nodeValue.trim().length > 0) || (n.nodeType === Node.ELEMENT_NODE && n.textContent.trim().length > 0))) {
-						const p = document.createElement('p');
-						p.style.margin = '0'; p.style.padding = '0'; p.style.display = 'inline-block'; p.style.width = '100%';
-						contentBuffer[0].parentNode.insertBefore(p, contentBuffer[0]);
-						contentBuffer.forEach(n => p.appendChild(n));
-						this.elementState.set(p, { preprocessed: true });
-					}
-					contentBuffer = [];
-				};
-				childNodes.forEach(node => {
-					if (node.nodeType === Node.ELEMENT_NODE && (node.tagName === 'UL' || node.tagName === 'OL')) flushBuffer();
-					else contentBuffer.push(node);
-				});
-				flushBuffer();
+		setState(state) {
+			if (this.currentState === state) return;
+			this.currentState = state;
+			if (this.lightElement) {
+				const isHidden = this.lightElement.classList.contains('hide-status-light');
+				this.lightElement.className = `fab-status-light status-${state} ${isHidden ? 'hide-status-light' : ''}`.trim();
 			}
+		}
+
+		updateDirection() {
+			if (!this.lightElement || !document.body.classList.contains('ao3-full-page-mode')) return;
+			const rect = this.fabContainer.getBoundingClientRect();
+			const fabCenterX = rect.left + rect.width / 2;
+			const fabCenterY = rect.top + rect.height / 2;
+			const screenCenterX = window.innerWidth / 2;
+			const screenCenterY = window.innerHeight / 2;
+
+			let angle = Math.atan2(screenCenterY - fabCenterY, screenCenterX - fabCenterX) * (180 / Math.PI);
+			this.lightElement.style.setProperty('--light-angle', `${angle + 90}deg`);
 		}
 	}
-
-    /**
-     * 优先级队列管理器
-     */
-    class PriorityQueueManager {
-        constructor(prependNodes = []) {
-            this.queue = new Set();
-            this.prependSet = new Set(prependNodes);
-            prependNodes.forEach(n => this.queue.add(n));
-        }
-
-        add(unit, delay = 0) {
-            if (!unit.dataset.translationState) {
-                if (delay > 0) {
-                    unit.dataset.readyAt = Date.now() + delay;
-                } else {
-                    delete unit.dataset.readyAt;
-                }
-                this.queue.add(unit);
-            }
-        }
-
-        remove(unit) {
-            this.queue.delete(unit);
-            delete unit.dataset.readyAt;
-        }
-
-        get size() {
-            return this.queue.size;
-        }
-
-        getSortedList() {
-            if (this.queue.size === 0) return [];
-
-            const high = [];
-            const medium = [];
-            const low = [];
-
-            const viewportHeight = window.innerHeight;
-            const now = Date.now();
-
-            for (const unit of this.queue) {
-                if (unit.dataset.readyAt) {
-                    const readyAt = parseInt(unit.dataset.readyAt, 10);
-                    if (now < readyAt) {
-                        continue;
-                    }
-                }
-
-                if (this.prependSet.has(unit)) {
-                    high.push(unit);
-                    continue;
-                }
-
-                const rect = unit.getBoundingClientRect();
-                const isVisible = (rect.top < viewportHeight && rect.bottom >= 0);
-
-                if (isVisible) {
-                    medium.push(unit);
-                } else {
-                    low.push(unit);
-                }
-            }
-
-            return [...high, ...medium, ...low];
-        }
-    }
 
 	/**
-	 * 分包策略
+	 * 翻译任务状态管理器 (状态机)
+	 * 负责统一收集各异步任务的生命周期，仲裁并输出唯一的状态灯颜色
 	 */
-	class BatchStrategy {
-		constructor(configProvider) {
-			this.config = configProvider;
+	class TranslationTaskManager {
+		constructor(onStateChange) {
+			this.activeTasks = new Set(); // 绿灯任务集合
+			this.retryTasks = new Set();  // 黄灯任务集合
+			this.errorTasks = new Set();  // 红灯任务集合
+			this.onStateChange = onStateChange;
 		}
 
-		createBatch(sortedList) {
-			if (sortedList.length === 0) return { batch: [], reason: 'empty' };
-
-			const { chunkSize, paragraphLimit } = this.config.getLimits();
-			const batch = [];
-			let currentChars = 0;
-			let reason = 'underfilled';
-
-			for (const unit of sortedList) {
-				const isSeparator = unit.tagName === 'HR' || /^\s*[-—*~<>=.]{3,}\s*$/.test(unit.textContent);
-
-				if (isSeparator) {
-					if (batch.length > 0) {
-						reason = 'separator_cut';
-						break;
-					} else {
-						batch.push(unit);
-						reason = 'separator_single';
-						break;
-					}
-				}
-
-				batch.push(unit);
-				currentChars += unit.textContent.length;
-
-				if (batch.length >= paragraphLimit || currentChars >= chunkSize) {
-					reason = 'full';
-					break;
-				}
-			}
-
-			return { batch, reason };
-		}
-	}
-
-    /**
-	 * 渲染代理
-	 */
-	class RenderDelegate {
-		constructor(customRenderersMap, displayModeGetter) {
-			this.customRenderers = customRenderersMap || new Map();
-			this.getDisplayMode = displayModeGetter;
+		startTask(taskId) {
+			this.activeTasks.add(taskId);
+			this.errorTasks.clear();
+			this.evaluateState();
 		}
 
-		applyResult(unit, result, onRetry) {
-			if (this.customRenderers.has(unit)) {
-				try {
-					const renderer = this.customRenderers.get(unit);
-					renderer(unit, result);
-					unit.dataset.translationState = 'translated';
-				} catch (e) {
-					Logger.error('翻译', '自定义渲染失败', e);
-					unit.dataset.translationState = 'error';
-				}
-				return;
-			}
+		endTask(taskId) {
+			this.activeTasks.delete(taskId);
+			this.evaluateState();
+		}
 
-			const transNode = document.createElement('div');
-			const newTranslatedElement = unit.cloneNode(false);
-			newTranslatedElement.removeAttribute('data-translation-state');
+		startRetry(taskId) {
+			this.retryTasks.add(taskId);
+			this.errorTasks.clear();
+			this.evaluateState();
+		}
 
-			if (result.status === 'success') {
-				delete unit.dataset.batchRetryCount;
+		endRetry(taskId) {
+			this.retryTasks.delete(taskId);
+			this.evaluateState();
+		}
 
-				transNode.className = 'translated-by-ao3-translator';
-				newTranslatedElement.innerHTML = result.content;
+		addError(taskId) {
+			this.errorTasks.add(taskId);
+			this.evaluateState();
+		}
 
-				if (this.getDisplayMode() === 'translation_only') {
-					unit.style.display = 'none';
-				}
-				unit.dataset.translationState = 'translated';
+		clearError(taskId) {
+			this.errorTasks.delete(taskId);
+			this.evaluateState();
+		}
+
+		clearAll() {
+			this.activeTasks.clear();
+			this.retryTasks.clear();
+			this.errorTasks.clear();
+			this.evaluateState();
+		}
+
+		evaluateState() {
+			// 优先级仲裁：Error(红) > Retrying(黄) > Translating(绿) > Idle(蓝)
+			if (this.errorTasks.size > 0) {
+				this.onStateChange('error');
+			} else if (this.retryTasks.size > 0) {
+				this.onStateChange('retrying');
+			} else if (this.activeTasks.size > 0) {
+				this.onStateChange('translating');
 			} else {
-				transNode.className = 'translated-by-ao3-translator-error';
-				newTranslatedElement.innerHTML = `翻译失败：${result.content.replace('翻译失败：', '')}`;
-				unit.dataset.translationState = 'error';
-
-				const retryBtn = this._createRetryButton(unit, onRetry);
-				newTranslatedElement.appendChild(retryBtn);
-			}
-
-			transNode.appendChild(newTranslatedElement);
-			unit.after(transNode);
-		}
-
-		_createRetryButton(_unit, onRetry) {
-			const span = document.createElement('span');
-			span.className = 'retry-translation-button';
-			span.title = '重试';
-			span.innerHTML = `<svg viewBox="0 -960 960 960"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-694v-106h80v240H560v-80h136q-34-45-84.5-72.5T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q88 0 151.5-54T713-440h82q-19 127-115 203.5T480-160Z"/></svg>`;
-			span.addEventListener('click', (e) => {
-				e.stopPropagation();
-				onRetry();
-			});
-			return span;
-		}
-	}
-
-    /**
-	 * 资源管理器
-	 */
-	class ResourceManager {
-		constructor(engineName, maxConcurrency = 5) {
-			this.engineName = engineName;
-			this.maxConcurrency = maxConcurrency;
-			this.activeCount = 0;
-			this.tokenBucket = new GlobalTokenBucket();
-		}
-
-		canSchedule() {
-			return this.activeCount < this.maxConcurrency;
-		}
-
-		async acquireToken() {
-			if (!this.canSchedule()) {
-				return { success: false, waitTime: 1000 };
-			}
-			const result = await this.tokenBucket.consume(1, this.engineName);
-			if (result.success) {
-				this.activeCount++;
-			}
-			return result;
-		}
-
-		release() {
-			this.activeCount = Math.max(0, this.activeCount - 1);
-		}
-
-		reportError(error) {
-			if (error.type === 'rate_limit' || error.type === 'server_overloaded' || (error.message && (error.message.includes('429') || error.message.includes('503')))) {
-				const freezeTime = 10000;
-				this.tokenBucket.triggerFreeze(freezeTime);
+				this.onStateChange('idle');
 			}
 		}
 	}
-
-    /**
-     * 通用翻译调度引擎
-     */
-    class UniversalEngine {
-        constructor(options) {
-            this.container = options.containerElement;
-            this.isCancelled = options.isCancelled;
-            this.onComplete = options.onComplete;
-            this.onProgress = options.onProgress;
-            this.onRetryCallback = options.onRetry;
-
-            this.normalizer = new DOMNormalizer();
-            this.queueManager = new PriorityQueueManager(options.prependNodes);
-
-            const engine = getValidEngineName();
-
-            this.batchStrategy = new BatchStrategy({
-                getLimits: () => {
-                    const isSpecial = ['google_translate', 'bing_translator'].includes(engine);
-                    const base = CONFIG.SERVICE_CONFIG[engine] || CONFIG.SERVICE_CONFIG.default;
-                    if (isSpecial) {
-                        return {
-                            chunkSize: base.CHUNK_SIZE,
-                            paragraphLimit: base.PARAGRAPH_LIMIT
-                        };
-                    }
-                    const params = ProfileManager.getParamsByEngine(engine);
-                    return {
-                        chunkSize: params.chunk_size,
-                        paragraphLimit: params.para_limit
-                    };
-                }
-            });
-
-            this.renderer = new RenderDelegate(options.customRenderers, () => GM_getValue('translation_display_mode'));
-            this.resourceManager = new ResourceManager(engine);
-
-            this.observer = null;
-            this.timer = null;
-            this.detectedLang = null;
-            this.totalUnits = 0;
-            this.processedUnits = 0;
-            this.prependNodes = options.prependNodes || [];
-            this.hasSkippedFirstLimit = false;
-        }
-
-        async start(useObserver = true) {
-            const unitGenerator = this.normalizer.generateUnits(this.container);
-
-            if (useObserver) {
-                const rootMargin = this._getRootMargin();
-                this.observer = new IntersectionObserver((entries) => {
-                    if (this.isCancelled()) return;
-                    let added = false;
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting && !entry.target.dataset.translationState) {
-                            this.queueManager.add(entry.target);
-                            added = true;
-                        }
-                    });
-                    if (added) this.schedule(false);
-                }, { rootMargin });
-            }
-
-            let sampleBatch = [];
-            let detectionAttempted = false;
-
-            for await (const unit of unitGenerator) {
-                if (this.isCancelled()) break;
-                if (unit.dataset.translationState) continue;
-
-                this.totalUnits++;
-
-                if (!this.detectedLang && !detectionAttempted && !this.prependNodes.includes(unit)) {
-                    sampleBatch.push(unit);
-                    if (sampleBatch.length >= 5) {
-                        await this._detectLanguage(sampleBatch);
-                        detectionAttempted = true;
-                        sampleBatch = [];
-                    }
-                }
-
-                if (useObserver) {
-                    this.observer.observe(unit);
-                    if (this._isInViewport(unit)) this.queueManager.add(unit);
-                } else {
-                    this.queueManager.add(unit);
-                }
-
-                if (this.totalUnits <= 10 || this.totalUnits % 50 === 0) {
-                    this.schedule(this.totalUnits <= 10);
-                }
-            }
-
-            if (!this.detectedLang && !detectionAttempted && sampleBatch.length > 0) {
-                await this._detectLanguage(sampleBatch);
-            }
-
-            if (!useObserver) {
-                this.schedule(true);
-            }
-
-            if (this.totalUnits === 0) {
-                this._finish();
-            }
-        }
-
-        schedule(force = false) {
-            if (this.isCancelled()) return;
-            clearTimeout(this.timer);
-            this.timer = setTimeout(() => this.runLoop(force), 100);
-        }
-
-        async runLoop(force) {
-            if (this.isCancelled()) return;
-
-            if (!this.resourceManager.canSchedule()) return;
-            if (this.queueManager.size === 0) {
-                if (this.processedUnits >= this.totalUnits) this._finish();
-                return;
-            }
-
-            const sortedList = this.queueManager.getSortedList();
-            const { batch, reason } = this.batchStrategy.createBatch(sortedList);
-
-            if (batch.length === 0) {
-                if (this.queueManager.size > 0) {
-                    this.timer = setTimeout(() => this.schedule(true), 1000);
-                }
-                return;
-            }
-
-            const isFull = reason === 'full';
-            const isSeparatorAction = reason.startsWith('separator');
-
-            if (!force && !isFull && !isSeparatorAction) {
-                this.timer = setTimeout(() => this.schedule(true), 4000);
-                return;
-            }
-
-            const tokenResult = await this.resourceManager.acquireToken();
-            if (!tokenResult.success) {
-                setTimeout(() => this.schedule(force), tokenResult.waitTime + 50);
-                return;
-            }
-
-            this._executeBatch(batch);
-
-            if (this.resourceManager.canSchedule() && this.queueManager.size > 0) {
-                this.schedule(false);
-            }
-        }
-
-		async _executeBatch(batch) {
-            batch.forEach(el => {
-                this.queueManager.remove(el);
-                if (this.observer) this.observer.unobserve(el);
-                el.dataset.translationState = 'translating';
-            });
-
-            try {
-                const validUnits = batch.filter(el => el.tagName !== 'HR' && el.textContent.trim());
-                const reqId = `Batch-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-
-                let results = new Map();
-
-                if (validUnits.length > 0) {
-                    const isFirstBatch = !this.hasSkippedFirstLimit;
-                    if (isFirstBatch) {
-                        this.hasSkippedFirstLimit = true;
-                    }
-
-                    results = await translateParagraphs(validUnits, {
-                        isCancelled: this.isCancelled,
-                        knownFromLang: this.detectedLang,
-                        reqId: reqId,
-                        maxRetries: 3,
-                        skipRateLimit: isFirstBatch
-                    });
-                }
-
-                batch.forEach(el => {
-                    if (el.dataset.translationState !== 'translating') {
-                        return;
-                    }
-
-                    this.processedUnits++;
-                    if (el.tagName === 'HR') {
-                        el.dataset.translationState = 'translated';
-                        return;
-                    }
-
-                    const res = results.get(el) || { status: 'error', content: 'Unknown error' };
-                    this.renderer.applyResult(el, res, this.onRetryCallback);
-                });
-
-            } catch (e) {
-                if (!this.isCancelled() && e.type !== 'user_cancelled') {
-                    Logger.error('翻译', '批次执行发生未捕获错误', e);
-                    batch.forEach(el => {
-                        if (el.dataset.translationState !== 'translating') {
-                            return;
-                        }
-                        
-                        this.processedUnits++;
-                        this.renderer.applyResult(el, { status: 'error', content: e.message }, this.onRetryCallback);
-                    });
-                }
-            } finally {
-                this.resourceManager.release();
-                if (this.onProgress) this.onProgress(this.processedUnits, this.totalUnits);
-                this.schedule(false);
-            }
-        }
-
-        async _detectLanguage(samples) {
-            const userSelectedFromLang = GM_getValue('from_lang', 'auto');
-            if (userSelectedFromLang === 'script_auto') {
-                const textToDetect = samples.map(p => p.textContent).join(' ').substring(0, 200);
-                this.detectedLang = await LanguageDetectService.detect(textToDetect);
-                Logger.info('翻译', `自动检测源语言: ${this.detectedLang}`);
-            } else {
-                this.detectedLang = userSelectedFromLang;
-            }
-        }
-
-        _getRootMargin() {
-            const engineName = getValidEngineName();
-            const isSpecial = ['google_translate', 'bing_translator'].includes(engineName);
-            const base = CONFIG.SERVICE_CONFIG[engineName] || CONFIG.SERVICE_CONFIG.default;
-            if (isSpecial) {
-                return base.LAZY_LOAD_ROOT_MARGIN;
-            }
-            const params = ProfileManager.getParamsByEngine(engineName);
-            return params.lazy_load_margin;
-        }
-
-        _isInViewport(el) {
-            const rect = el.getBoundingClientRect();
-            return (rect.top < window.innerHeight && rect.bottom >= 0);
-        }
-
-        _finish() {
-            if (this.observer) this.observer.disconnect();
-            if (this.onComplete) this.onComplete();
-        }
-
-        disconnect() {
-            if (this.observer) this.observer.disconnect();
-        }
-
-        addUnits(units) {
-            units.forEach(u => this.queueManager.add(u));
-            this.processedUnits = Math.max(0, this.processedUnits - units.length);
-        }
-
-        scheduleProcessing(force) {
-            this.schedule(force);
-        }
-    }
 
 	/**
-	 * 通用翻译引擎启动入口
+	 * 整页翻译控制器
 	 */
-	function runUniversalTranslationEngine(options) {
-		const engine = new UniversalEngine(options);
-		const useObserver = options.useObserver !== false;
-		engine.start(useObserver);
+	function createFullPageTranslationController(options) {
+		const { statusLightController } = options;
+
+		// 1. 状态管理器
+		const STATE = {
+			IDLE: 'idle',
+			TRANSLATING: 'translating',
+			PAUSED: 'paused',
+			STOPPED: 'stopped'
+		};
+
+		const stateManager = {
+			current: STATE.IDLE,
+			get isActive() { return this.current === STATE.TRANSLATING; },
+			get isPaused() { return this.current === STATE.PAUSED; },
+			start() { this.current = STATE.TRANSLATING; },
+			pause() { this.current = STATE.PAUSED; },
+			stop() { this.current = STATE.STOPPED; }
+		};
+
+		// 2. 核心依赖与变量
+		const taskManager = new TranslationTaskManager((newState) => {
+			if (statusLightController) statusLightController.setState(newState);
+		});
+
+		// 定义全局唯一的任务标识符
+		const ENGINE_TASK_ID = Symbol('main-engine');
+		const ENGINE_RETRY_ID = Symbol('main-engine-retry');
+
+		let globalEngine = null;
+		let containerObserver = null;
+		const customRenderers = new Map();
+
+		// 3. 翻译调度器：负责 DOM 监听与翻译策略路由分发
+		const scheduler = {
+			init() {
+				const rootMargin = globalEngine ? globalEngine._getRootMargin() : '1200px 0px 10000px 0px';
+				
+				containerObserver = new IntersectionObserver(async (entries) => {
+					if (!stateManager.isActive) return;
+
+					await Promise.all(entries.map(async (entry) => {
+						if (entry.isIntersecting) {
+							const container = entry.target;
+							if (container.dataset.translationState) return;
+
+							container.dataset.translationState = 'processing';
+							containerObserver.unobserve(container);
+
+							const rule = JSON.parse(container.dataset.translationRule || '{}');
+							
+							// 1. 语言检测
+							const detectionTaskId = Symbol('container-detection');
+							taskManager.startTask(detectionTaskId);
+							const { detectedLang, shouldSkip } = await LanguageDetectionManager.processContainer(container, rule, 'full_page');
+							container.dataset.detectedLang = detectedLang;
+							taskManager.endTask(detectionTaskId);
+
+							if (!stateManager.isActive) return;
+
+							if (shouldSkip) {
+								container.dataset.translationState = 'skipped';
+								Logger.info('Translation', `容器语言检测为 ${detectedLang}，跳过翻译。`);
+								return;
+							}
+
+							// 2. 策略路由分发
+							if (rule.isTags) {
+								this.processTags(container, detectedLang);
+							} else if (rule.isTitle) {
+								this.processTitle(container, detectedLang);
+							} else {
+								this.processContent(container, detectedLang);
+							}
+						}
+					}));
+				}, { rootMargin });
+			},
+
+			observe(element) {
+				if (containerObserver) containerObserver.observe(element);
+			},
+
+			disconnect() {
+				if (containerObserver) {
+					containerObserver.disconnect();
+					containerObserver = null;
+				}
+			},
+
+			// 策略：处理标签
+			processTags(container, detectedLang) {
+				const taskId = Symbol('tag-task');
+				taskManager.startTask(taskId);
+				
+				runTagsTranslationEngine(container, () => !stateManager.isActive, detectedLang, true)
+					.then(() => { if (stateManager.isActive) container.dataset.translationState = 'translated'; })
+					.catch(e => { 
+						if (stateManager.isActive) { 
+							container.dataset.translationState = 'error'; 
+							taskManager.addError(taskId); 
+						} 
+					})
+					.finally(() => { taskManager.endTask(taskId); });
+			},
+
+			// 策略：处理标题
+			processTitle(container, detectedLang) {
+				const titleRecord = TitleTranslationManager.getOrPrepareTitle(container, 'full_page');
+				
+				if (titleRecord) {
+					titleRecord.tempDiv.dataset.detectedLang = detectedLang;
+					
+					customRenderers.set(titleRecord.tempDiv, (_node, result) => {
+						if (result.status === 'success') {
+							TitleTranslationManager.renderSuccess(titleRecord, result.content);
+						} else {
+							TitleTranslationManager.renderError(titleRecord, result.content, (retryNode) => {
+								if (globalEngine) {
+									taskManager.startRetry(ENGINE_RETRY_ID);
+									globalEngine.addUnits([retryNode]);
+								}
+							});
+						}
+					});
+
+					if (globalEngine) {
+						globalEngine.addUnits([titleRecord.tempDiv]);
+					}
+					container.dataset.translationState = 'queued';
+				} else {
+					container.dataset.translationState = 'skipped';
+				}
+			},
+
+			// 策略：处理正文/普通内容
+			async processContent(container, detectedLang) {
+				try {
+					let unitsBatch = [];
+					if (!globalEngine) return;
+
+					for await (const unit of globalEngine.normalizer.generateUnits(container)) {
+						if (!stateManager.isActive) return;
+						unit.dataset.detectedLang = detectedLang;
+						unitsBatch.push(unit);
+						
+						if (unitsBatch.length >= 50) {
+							globalEngine.addUnits(unitsBatch);
+							unitsBatch = [];
+						}
+					}
+
+					if (unitsBatch.length > 0 && globalEngine) {
+						globalEngine.addUnits(unitsBatch);
+					}
+					container.dataset.translationState = 'queued';
+				} catch (e) {
+					Logger.error('Translation', '提取翻译单元失败', e);
+					container.dataset.translationState = 'error';
+				}
+			}
+		};
+
+		// 4. 内部辅助方法
+		const scanAndObserveContainers = (rootNode = document) => {
+			if (!stateManager.isActive) return;
+
+			const rules = [...TRANSLATION_TARGET_RULES.universal];
+			const specific = TRANSLATION_TARGET_RULES.specific[pageConfig.currentPageType];
+			if (specific) rules.push(...specific);
+
+			rules.forEach(rule => {
+				if (rule.selector === 'ul.tags.commas' && ['admin_posts_show', 'admin_posts_index', 'collections_dashboard_common'].includes(pageConfig.currentPageType)) return;
+
+				rootNode.querySelectorAll(rule.selector).forEach(el => {
+					if (el.dataset.translationState) return;
+					if (el.textContent.trim() === '') return;
+					if (el.classList.contains('translated-tags-container') || el.closest('.translated-tags-container')) return;
+
+					el.dataset.translationRule = JSON.stringify(rule);
+					scheduler.observe(el);
+				});
+			});
+		};
+
+		// 5. 对外暴露的 API (Facade)
+		const clearAllTranslations = () => {
+			stateManager.stop();
+			if (globalEngine) {
+				globalEngine.disconnect();
+				globalEngine = null;
+			}
+			scheduler.disconnect();
+			taskManager.clearAll();
+			customRenderers.clear();
+			
+			TranslationDOMUtils.deepCleanup(document.body, true);
+			TitleTranslationManager.clearAll();
+			
+			document.querySelectorAll('[data-translation-state]').forEach(el => delete el.dataset.translationState);
+			document.querySelectorAll('[data-detected-lang]').forEach(el => delete el.dataset.detectedLang);
+		};
+
+		const startFullPageTranslation = async () => {
+			if (stateManager.isActive) return;
+			
+			stateManager.start();
+			taskManager.clearAll();
+			customRenderers.clear();
+
+			const initTaskId = Symbol('init-detection');
+			taskManager.startTask(initTaskId);
+
+			globalEngine = new UniversalEngine({
+				containerElement: document.body,
+				isCancelled: () => !stateManager.isActive,
+				onComplete: (hasErrors) => {
+					taskManager.endRetry(ENGINE_RETRY_ID);
+				},
+				onError: (err) => {
+					taskManager.addError(ENGINE_TASK_ID);
+				},
+				onRetry: (unit) => {
+					taskManager.startRetry(ENGINE_RETRY_ID);
+					if (unit) {
+						const translatedWrapper = unit.querySelector(':scope > .ao3-translated-content');
+						if (translatedWrapper) translatedWrapper.remove();
+						delete unit.dataset.translationState;
+						if (globalEngine) {
+							globalEngine.addUnits([unit]);
+							globalEngine.scheduleProcessing(true);
+						}
+					}
+				},
+				onActiveStateChange: (isActive) => {
+					if (isActive) {
+						taskManager.startTask(ENGINE_TASK_ID);
+					} else {
+						taskManager.endTask(ENGINE_TASK_ID);
+						taskManager.endRetry(ENGINE_RETRY_ID);
+					}
+				},
+				customRenderers: customRenderers,
+				useObserver: true 
+			});
+
+			scheduler.init();
+			scanAndObserveContainers();
+			
+			taskManager.endTask(initTaskId);
+		};
+
+		const handleFabClick = () => {
+			if (stateManager.isActive) {
+				clearAllTranslations();
+				stateManager.pause();
+
+				const autoTranslateEnabled = GM_getValue('ao3_auto_translate', false);
+				if (autoTranslateEnabled) {
+					Logger.info('Translation', '用户主动中断翻译或清除译文，当前页面已暂停自动翻译。');
+				} else {
+					Logger.info('Translation', '用户主动中断翻译或清除译文。');
+				}
+			} else {
+				startFullPageTranslation();
+			}
+		};
+
+		const checkAutoTranslate = () => {
+			const autoTranslateEnabled = GM_getValue('ao3_auto_translate', false);
+			if (autoTranslateEnabled && !stateManager.isPaused) {
+				startFullPageTranslation();
+			}
+		};
+
+		const handleNewNodes = (rootNode = document) => {
+			if (stateManager.isActive) {
+				scanAndObserveContainers(rootNode);
+
+				if (globalEngine && rootNode !== document && rootNode.closest) {
+					if (rootNode.closest('.ao3-original-content, .ao3-translated-content, .ao3-original-title, .ao3-translated-title, .ao3-tag-original, .ao3-tag-translation')) {
+						return;
+					}
+
+					if (globalEngine.normalizer._isHidden(rootNode)) {
+						return;
+					}
+
+					const container = rootNode.closest('[data-translation-state]');
+					if (container && container !== rootNode) {
+						const state = container.dataset.translationState;
+						if (state === 'translated' || state === 'queued') {
+							const extractAndAdd = async () => {
+								try {
+									let unitsBatch = [];
+									for await (const unit of globalEngine.normalizer.generateUnits(rootNode)) {
+										if (!stateManager.isActive) return;
+										unit.dataset.detectedLang = container.dataset.detectedLang || 'auto';
+										unitsBatch.push(unit);
+										if (unitsBatch.length >= 30) {
+											globalEngine.addUnits(unitsBatch);
+											unitsBatch = [];
+										}
+									}
+									if (unitsBatch.length > 0) {
+										globalEngine.addUnits(unitsBatch);
+									}
+								} catch (e) {
+									Logger.error('Translation', '动态追加翻译单元失败', e);
+								}
+							};
+							extractAndAdd();
+						}
+					}
+				}
+			}
+		};
+
 		return {
-			disconnect: () => engine.disconnect(),
-			addUnits: (units) => engine.addUnits(units),
-			scheduleProcessing: (force) => engine.scheduleProcessing(force)
+			handleFabClick,
+			checkAutoTranslate,
+			clearAllTranslations,
+			handleNewNodes,
+			get isPseudoOff() { return stateManager.isPaused; },
+			set isPseudoOff(val) { 
+				if (val) stateManager.pause(); 
+				else if (stateManager.isPaused) stateManager.stop(); 
+			}
 		};
 	}
 
@@ -11215,6 +15486,13 @@
 	const LAST_SELECTED_GLOSSARY_KEY = 'ao3_last_selected_glossary_url';
 	const GLOSSARY_RULES_CACHE_KEY = 'ao3_glossary_rules_cache';
 	const GLOSSARY_STATE_VERSION_KEY = 'ao3_glossary_state_version';
+	const GLOSSARY_RAW_TEXT_CACHE_KEY = 'ao3_glossary_raw_text_cache';
+
+	/**
+	 * 术语表引擎版本号
+	 * 仅在修改了术语表底层解析逻辑（如分词算法、正则生成规则等）时，才手动递增此常量
+	 */
+	const GLOSSARY_ENGINE_VERSION = 3;
 
 	/**
 	 * 解析自定义的、非 JSON 格式的术语表文本
@@ -11227,19 +15505,19 @@
 			multiPartTerms: {},
 			multiPartGeneralTerms: {},
 			forbiddenTerms: [],
-			regexTerms: []
+			regexTerms:[]
 		};
 		const lines = text.split('\n');
 
 		const sectionHeaders = {
-			TERMS: ['terms', '词条'],
+			TERMS:['terms', '词条'],
 			GENERAL_TERMS: ['general terms', '通用词条'],
 			FORBIDDEN_TERMS: ['forbidden terms', '禁翻词条'],
-			REGEX_TERMS: ['regex', '正则表达式']
+			REGEX_TERMS:['regex', '正则表达式']
 		};
 
 		const sections = [];
-		let metadataLines = [];
+		let metadataLines =[];
 		let inMetadata = true;
 
 		for (let i = 0; i < lines.length; i++) {
@@ -11258,14 +15536,23 @@
 			}
 		}
 
-		const metadataRegex = /^\s*(maintainer|version|last_updated|维护者|版本号|更新时间)\s*[:：]\s*(.*?)\s*[,，]?\s*$/;
+		const metadataRegex = /^\s*(maintainer|version|last_updated|visibility|feedback|contact|维护者|版本号|更新时间|可见性|反馈方式|联系方式)\s*[:：]\s*(.*?)\s*[,，]?\s*$/i;
 		for (const line of metadataLines) {
 			const metadataMatch = line.match(metadataRegex);
 			if (metadataMatch) {
-				let key = metadataMatch[1].trim();
+				let key = metadataMatch[1].trim().toLowerCase();
 				let value = metadataMatch[2].trim();
-				const keyMap = { '维护者': 'maintainer', '版本号': 'version', '更新时间': 'last_updated' };
-				result.metadata[keyMap[key] || key] = value;
+				const keyMap = { 
+					'维护者': 'maintainer', '版本号': 'version', '更新时间': 'last_updated',
+					'可见性': 'visibility', '反馈方式': 'feedback', '联系方式': 'feedback', 'contact': 'feedback'
+				};
+				const mappedKey = keyMap[key] || key;
+				
+				if (mappedKey === 'visibility') {
+					result.metadata[mappedKey] = !/^(否|no|false|0)$/i.test(value);
+				} else {
+					result.metadata[mappedKey] = value;
+				}
 			}
 		}
 
@@ -11336,6 +15623,155 @@
 	}
 
 	/**
+	 * 解析术语表 URL，提取仓库信息
+	 */
+	function parseGlossaryUrl(url) {
+		let owner, repo, branch, filePath;
+		let match = url.match(/^https:\/\/raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/(?:refs\/heads\/)?([^\/]+)\/(.+)$/);
+		if (match) {
+			owner = match[1]; repo = match[2]; branch = match[3]; filePath = match[4];
+		} else {
+			match = url.match(/^https:\/\/cdn\.jsdelivr\.net\/gh\/([^\/]+)\/([^@\/]+)@([^\/]+)\/(.+)$/);
+			if (match) {
+				owner = match[1]; repo = match[2]; branch = match[3]; filePath = match[4];
+			}
+		}
+		
+		if (owner && repo && branch && filePath) {
+			const glossaryName = decodeURIComponent(filePath.split('/').pop().replace(/\.[^/.]+$/, ''));
+			return {
+				owner, repo, glossaryName,
+				visitUrl: `https://github.com/${owner}/${repo}/blob/${branch}/${filePath}`,
+				feedbackUrl: `https://github.com/${owner}/${repo}/issues/new?title=${encodeURIComponent(`[术语表反馈] ${glossaryName}`)}`
+			};
+		}
+		return null;
+	}
+
+	/**
+	 * 获取在线术语表的备用链接 (GitHub Raw <-> jsDelivr 双向转换)
+	 */
+	function getFallbackUrl(url) {
+		try {
+			const urlObj = new URL(url);
+			const baseUrl = urlObj.origin + urlObj.pathname;
+			const search = urlObj.search;
+
+			let match;
+			// GitHub Raw -> jsDelivr
+			match = baseUrl.match(/^https:\/\/raw\.githubusercontent\.com\/([^\/]+)\/([^\/]+)\/(?:refs\/heads\/)?([^\/]+)\/(.+)$/);
+			if (match) {
+				return `https://cdn.jsdelivr.net/gh/${match[1]}/${match[2]}@${match[3]}/${match[4]}${search}`;
+			}
+			// jsDelivr -> GitHub Raw
+			match = baseUrl.match(/^https:\/\/cdn\.jsdelivr\.net\/gh\/([^\/]+)\/([^@\/]+)@([^\/]+)\/(.+)$/);
+			if (match) {
+				return `https://raw.githubusercontent.com/${match[1]}/${match[2]}/${match[3]}/${match[4]}${search}`;
+			}
+		} catch (e) {
+			return null;
+		}
+		return null;
+	}
+
+	/**
+	 * 带有超时控制和自动备用链接重试的网络请求包装器
+	 */
+	function fetchWithFallback(primaryUrl, options = {}) {
+		const { timeout = 5000, method = 'GET', headers = {} } = options;
+		const fallbackUrl = getFallbackUrl(primaryUrl);
+
+		return new Promise((resolve, reject) => {
+			const makeRequest = (url, isFallback) => {
+				GM_xmlhttpRequest({
+					method: method,
+					url: url,
+					headers: headers,
+					timeout: timeout,
+					onload: (res) => {
+						if (res.status === 200) {
+							resolve({ responseText: res.responseText, status: res.status, usedUrl: url, isFallback });
+						} else {
+							handleError(`HTTP ${res.status}`, isFallback);
+						}
+					},
+					onerror: () => handleError('Network Error', isFallback),
+					ontimeout: () => handleError('Timeout', isFallback)
+				});
+			};
+
+			const handleError = (reason, isFallback) => {
+				if (!isFallback && fallbackUrl) {
+					Logger.warn('Network', `请求失败 (${reason}): ${primaryUrl}，正在尝试备用链接: ${fallbackUrl}`);
+					makeRequest(fallbackUrl, true);
+				} else {
+					reject(new Error(reason));
+				}
+			};
+
+			makeRequest(primaryUrl, false);
+		});
+	}
+
+	/**
+	 * GitHub 议题状态管理器
+	 */
+	const GitHubStatusManager = {
+		CACHE_KEY: 'ao3_github_status_cache',
+		EXPIRATION: 24 * 60 * 60 * 1000,
+		pendingChecks: new Map(),
+
+		async check(owner, repo, force = false) {
+			const cache = GM_getValue(this.CACHE_KEY, {});
+			const key = `${owner}/${repo}`;
+			const now = Date.now();
+
+			// 缓存有效且不强制刷新时，直接返回
+			if (!force && cache[key] && (now - cache[key].timestamp < this.EXPIRATION)) {
+				return cache[key].canUseIssues;
+			}
+
+			// 防止同一仓库并发发起多个请求
+			if (this.pendingChecks.has(key)) {
+				return this.pendingChecks.get(key);
+			}
+
+			const checkPromise = new Promise((resolve) => {
+				GM_xmlhttpRequest({
+					method: 'GET',
+					url: `https://github.com/${owner}/${repo}/issues/new`,
+					onload: (res) => {
+						let canUse = false;
+						// 状态 200 且未被重定向到登录页，说明已登录且启用了议题
+						if (res.status === 200 && !(res.finalUrl && res.finalUrl.includes('/login'))) {
+							canUse = true;
+						}
+						cache[key] = { canUseIssues: canUse, timestamp: Date.now() };
+						GM_setValue(this.CACHE_KEY, cache);
+						resolve(canUse);
+					},
+					onerror: () => resolve(false),
+					ontimeout: () => resolve(false)
+				});
+			});
+
+			this.pendingChecks.set(key, checkPromise);
+			const result = await checkPromise;
+			this.pendingChecks.delete(key);
+			return result;
+		},
+
+		getSync(owner, repo) {
+			const cache = GM_getValue(this.CACHE_KEY, {});
+			const key = `${owner}/${repo}`;
+			if (cache[key] && (Date.now() - cache[key].timestamp < this.EXPIRATION)) {
+				return cache[key].canUseIssues;
+			}
+			return null;
+		}
+	};
+
+	/**
 	 * 从 GitHub 或 jsDelivr 导入在线术语表文件
 	 */
 	function importOnlineGlossary(url, options = {}) {
@@ -11358,17 +15794,10 @@
 			const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
 			const glossaryName = decodeURIComponent(baseName);
 
-			GM_xmlhttpRequest({
-				method: 'GET',
-				url: url,
-				onload: function (response) {
-					if (response.status !== 200) {
-						const message = `下载 ${glossaryName} 术语表失败！服务器返回状态码: ${response.status}`;
-						if (!silent) notifyAndLog(message, '导入错误', 'error');
-						return resolve({ success: false, name: glossaryName, message });
-					}
+			fetchWithFallback(url, { timeout: 5000 })
+				.then(({ responseText, isFallback }) => {
 					try {
-						const onlineData = parseCustomGlossaryFormat(response.responseText);
+						const onlineData = parseCustomGlossaryFormat(responseText);
 
 						const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
 						allImportedGlossaries[url] = {
@@ -11380,6 +15809,15 @@
 							regexTerms: onlineData.regexTerms
 						};
 						GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
+
+						const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
+						rawTextCache[url] = responseText;
+						GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, rawTextCache);
+
+						const parsedUrls = parseGlossaryUrl(url);
+						if (parsedUrls) {
+							GitHubStatusManager.check(parsedUrls.owner, parsedUrls.repo);
+						}
 
 						const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
 						const existingMetadata = metadata[url] || {};
@@ -11393,11 +15831,16 @@
 						const importedCount = Object.keys(onlineData.terms).length + Object.keys(onlineData.generalTerms).length +
 							Object.keys(onlineData.multiPartTerms).length + Object.keys(onlineData.multiPartGeneralTerms).length +
 							onlineData.regexTerms.length;
-						const message = `已成功导入 ${glossaryName} 术语表，共 ${importedCount} 个词条。版本号：v${onlineData.metadata.version || '未知'}，维护者：${onlineData.metadata.maintainer || '未知'}。`;
+						
+						let message = `已成功导入 ${glossaryName} 术语表，共 ${importedCount} 个词条。版本号：v${onlineData.metadata.version || '未知'}，维护者：${onlineData.metadata.maintainer || '未知'}。`;
+						if (isFallback) message += ' (通过备用链接下载)';
 
 						if (!silent) {
 							notifyAndLog(message, '导入成功');
 						}
+
+						GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
+						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.GLOSSARY_IMPORTED));
 
 						resolve({ success: true, name: glossaryName, message });
 
@@ -11406,13 +15849,12 @@
 						if (!silent) notifyAndLog(message, '处理错误', 'error');
 						resolve({ success: false, name: glossaryName, message });
 					}
-				},
-				onerror: function () {
-					const message = `下载 ${glossaryName} 术语表失败！请检查网络连接或链接。`;
+				})
+				.catch((err) => {
+					const message = `下载 ${glossaryName} 术语表失败！请检查网络连接或链接。(${err.message})`;
 					if (!silent) notifyAndLog(message, '网络错误', 'error');
 					resolve({ success: false, name: glossaryName, message });
-				}
-			});
+				});
 		});
 	}
 
@@ -11420,8 +15862,10 @@
 	 * 比较版本号的函数
 	 */
 	function compareVersions(v1, v2) {
-		const parts1 = v1.split('.').map(Number);
-		const parts2 = v2.split('.').map(Number);
+		const cleanV1 = String(v1).replace(/[^\d.]/g, '');
+		const cleanV2 = String(v2).replace(/[^\d.]/g, '');
+		const parts1 = cleanV1.split('.').map(Number);
+		const parts2 = cleanV2.split('.').map(Number);
 		const len = Math.max(parts1.length, parts2.length);
 
 		for (let i = 0; i < len; i++) {
@@ -11444,18 +15888,14 @@
 			return;
 		}
 
-		for (const url of urls) {
+		const updatePromises = urls.map(async (url) => {
 			try {
-				const response = await new Promise((resolve, reject) => {
-					const urlWithCacheBust = url + '?t=' + new Date().getTime();
-					GM_xmlhttpRequest({ method: 'GET', url: urlWithCacheBust, onload: resolve, onerror: reject, ontimeout: reject });
-				});
+				const separator = url.includes('?') ? '&' : '?';
+				const urlWithCacheBust = url + separator + 't=' + Date.now();
 
-				if (response.status !== 200) {
-					throw new Error(`服务器返回状态码: ${response.status}`);
-				}
+				const { responseText } = await fetchWithFallback(urlWithCacheBust, { timeout: 5000 });
 
-				const onlineData = parseCustomGlossaryFormat(response.responseText);
+				const onlineData = parseCustomGlossaryFormat(responseText);
 				const currentMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
 				const localVersion = currentMetadata[url]?.version;
 				const onlineVersion = onlineData.metadata.version;
@@ -11471,21 +15911,28 @@
 						forbiddenTerms: onlineData.forbiddenTerms,
 						regexTerms: onlineData.regexTerms
 					};
+					
+					const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
+					rawTextCache[url] = responseText;
+					GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, rawTextCache);
+
 					currentMetadata[url] = { ...onlineData.metadata, last_updated: getShanghaiTimeString() };
 
 					GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
 					GM_setValue(GLOSSARY_METADATA_KEY, currentMetadata);
 					invalidateGlossaryCache();
 
-					Logger.info('数据', `术语表 ${glossaryName} 更新成功: v${localVersion} -> v${onlineVersion}`);
+					Logger.info('Data', `术语表 ${glossaryName} 更新成功: v${localVersion} -> v${onlineVersion}`);
 					GM_notification(`检测到术语表 ${glossaryName} 新版本，已自动更新至 v${onlineVersion} 。`, 'AO3 Translator');
 				} else {
-					Logger.info('数据', `术语表 ${glossaryName} 已是最新版本 (v${localVersion})`);
+					Logger.info('Data', `术语表 ${glossaryName} 已是最新版本 (v${localVersion})`);
 				}
 			} catch (e) {
-				Logger.warn('数据', `检查术语表更新失败 (${url})`, e.message);
+				Logger.warn('Data', `检查术语表更新失败 (${url})`, e.message);
 			}
-		}
+		});
+
+		await Promise.allSettled(updatePromises);
 	}
 
 	/**
@@ -11494,14 +15941,12 @@
 	function getGlossaryRules() {
 		const cache = GM_getValue(GLOSSARY_RULES_CACHE_KEY, null);
 		const currentStateVersion = GM_getValue(GLOSSARY_STATE_VERSION_KEY, 0);
-        const currentScriptVersion = GM_info.script.version;
 
-		if (cache && 
-            cache.version === currentStateVersion && 
-            cache.scriptVersion === currentScriptVersion &&
-            cache.rules) {
-            
-            Logger.info('数据', '命中术语表规则缓存');
+		if (cache &&
+			cache.version === currentStateVersion &&
+			cache.engineVersion === GLOSSARY_ENGINE_VERSION &&
+			cache.rules) {
+
 			return cache.rules.map(rule => {
 				if (rule.regex && typeof rule.regex === 'object' && rule.regex.source) {
 					try {
@@ -11514,7 +15959,7 @@
 			}).filter(Boolean);
 		}
 
-		Logger.info('数据', '缓存未命中、已失效或插件已更新，正在重建规则');
+		Logger.info('Data', '缓存未命中、已失效或术语表引擎已更新，正在重建规则');
 		return buildPrioritizedGlossaryMaps();
 	}
 
@@ -11524,10 +15969,9 @@
 	async function getPreparedGlossaryRules() {
 		let currentStateVersion = GM_getValue(GLOSSARY_STATE_VERSION_KEY, 0);
 		if (runtimePreparedGlossaryCache && runtimePreparedGlossaryCache.version === currentStateVersion) {
-			Logger.info('数据', '命中术语表正则二级缓存');
 			return runtimePreparedGlossaryCache.preparedRules;
 		}
-		Logger.info('数据', '二级缓存未命中，正在构建术语匹配策略');
+		Logger.info('Data', '二级缓存未命中，正在构建术语匹配策略');
 		const rules = getGlossaryRules();
 		currentStateVersion = GM_getValue(GLOSSARY_STATE_VERSION_KEY, 0);
 		const domRules = rules.filter(r => r.matchStrategy === 'dom');
@@ -11552,7 +15996,7 @@
 					rules: [...currentBatch.rules]
 				});
 			} catch (e) {
-				Logger.error('数据', `合并正则失败: ${e.message}`);
+				Logger.error('Data', `合并正则失败: ${e.message}`);
 			}
 			currentBatch.rules = [];
 			currentBatch.flags = null;
@@ -11585,75 +16029,75 @@
 		return preparedRules;
 	}
 
-    /**
-     * 安全解析术语表键值对
-     */
-    function parseGlossaryKeyValuePair(entry) {
-        if (!entry) return null;
-        let inQuote = false;
-        let expectedCloseQuote = '';
-        let splitIndex = -1;
-        let separator = '';
+	/**
+	 * 安全解析术语表键值对
+	 */
+	function parseGlossaryKeyValuePair(entry) {
+		if (!entry) return null;
+		let inQuote = false;
+		let expectedCloseQuote = '';
+		let splitIndex = -1;
+		let separator = '';
 
-        const quotePairs = {
-            '"': '"',
-            "'": "'",
-            '“': '”',
-            '‘': '’'
-        };
+		const quotePairs = {
+			'"': '"',
+			"'": "'",
+			'“': '”',
+			'‘': '’'
+		};
 
-        const rawChars = entry.split('');
-        
-        for (let i = 0; i < rawChars.length; i++) {
-            const char = rawChars[i];
-            
-            if (inQuote) {
-                if (char === expectedCloseQuote) {
+		const rawChars = entry.split('');
 
-                    let nextNonSpaceChar = null;
-                    for (let k = i + 1; k < rawChars.length; k++) {
-                        if (!/\s/.test(rawChars[k])) {
-                            nextNonSpaceChar = rawChars[k];
-                            break;
-                        }
-                    }
+		for (let i = 0; i < rawChars.length; i++) {
+			const char = rawChars[i];
 
-                    const isSeparator = 
-                        nextNonSpaceChar === ':' || 
-                        nextNonSpaceChar === '：' || 
-                        nextNonSpaceChar === '=' || 
-                        nextNonSpaceChar === '＝';
+			if (inQuote) {
+				if (char === expectedCloseQuote) {
 
-                    if (isSeparator) {
-                        inQuote = false;
-                    }
-                }
-            } else {
-                if (quotePairs.hasOwnProperty(char)) {
-                    inQuote = true;
-                    expectedCloseQuote = quotePairs[char];
-                } else {
-                    if (char === ':' || char === '：') {
-                        splitIndex = i;
-                        separator = ':';
-                        break;
-                    }
-                    if (char === '=' || char === '＝') {
-                        splitIndex = i;
-                        separator = '=';
-                        break;
-                    }
-                }
-            }
-        }
+					let nextNonSpaceChar = null;
+					for (let k = i + 1; k < rawChars.length; k++) {
+						if (!/\s/.test(rawChars[k])) {
+							nextNonSpaceChar = rawChars[k];
+							break;
+						}
+					}
 
-        if (splitIndex === -1) return null;
+					const isSeparator =
+						nextNonSpaceChar === ':' ||
+						nextNonSpaceChar === '：' ||
+						nextNonSpaceChar === '=' ||
+						nextNonSpaceChar === '＝';
 
-        const key = entry.substring(0, splitIndex).trim();
-        const value = entry.substring(splitIndex + 1).trim();
-        
-        return { key, value, separator };
-    }
+					if (isSeparator) {
+						inQuote = false;
+					}
+				}
+			} else {
+				if (quotePairs.hasOwnProperty(char)) {
+					inQuote = true;
+					expectedCloseQuote = quotePairs[char];
+				} else {
+					if (char === ':' || char === '：') {
+						splitIndex = i;
+						separator = ':';
+						break;
+					}
+					if (char === '=' || char === '＝') {
+						splitIndex = i;
+						separator = '=';
+						break;
+					}
+				}
+			}
+		}
+
+		if (splitIndex === -1) return null;
+
+		const key = entry.substring(0, splitIndex).trim();
+		const value = entry.substring(splitIndex + 1).trim();
+
+		return { key, value, separator };
+	}
 
 	/**
 	 * 构建并排序所有术语表规则
@@ -11661,6 +16105,7 @@
 	function buildPrioritizedGlossaryMaps() {
 		const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
 		const glossaryMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+		const glossaryErrors = [];
 		const localGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
 		const onlineOrder = GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []);
 		const orderedGlossaries = [];
@@ -11726,7 +16171,7 @@
 			return trans;
 		};
 
-        const tryAddRule = (term, translation, glossaryIndex, sourceName, isSensitive, isForbidden, isRegex = false, isUnordered = false) => {
+		const tryAddRule = (term, translation, glossaryIndex, sourceName, isSensitive, isForbidden, isRegex = false, isUnordered = false) => {
 			let normalizedTerm = term.trim();
 			if (!normalizedTerm) return;
 
@@ -11739,8 +16184,15 @@
 				normalizedTerm = unquoted.trim();
 			}
 
+			if (!isLiteral && !isRegex && !isUnordered) {
+				const parts = smartSplit(normalizedTerm, termSeparatorRegex);
+				if (parts.length > 1) {
+					isLiteral = true;
+				}
+			}
+
 			const sanitizedTrans = sanitizeTranslation(normalizedTerm, translation);
-			
+
 			const lowerTerm = normalizedTerm.toLowerCase();
 			if (processedInsensitiveTerms.has(lowerTerm)) {
 				return;
@@ -11759,11 +16211,15 @@
 				try {
 					const testRegex = new RegExp(normalizedTerm);
 					if (testRegex.test("")) {
-						Logger.warn('数据', `术语表 ${sourceName} 中的正则 "${normalizedTerm}" 匹配空字符串，已跳过以防止死循环`);
+						const msg = `术语表 "${sourceName}" 中的正则 "${normalizedTerm}" 匹配空字符串，已跳过以防止死循环。`;
+						Logger.error('Data', msg);
+						glossaryErrors.push(msg);
 						return;
 					}
 				} catch (e) {
-					Logger.error('数据', `术语表 ${sourceName} 中的正则 "${normalizedTerm}" 非法: ${e.message}`);
+					const msg = `术语表 "${sourceName}" 中的正则 "${normalizedTerm}" 非法: ${e.message}`;
+					Logger.error('Data', msg);
+					glossaryErrors.push(msg);
 					return;
 				}
 				ruleObject = {
@@ -11788,7 +16244,7 @@
 				};
 			} else {
 				const termParts = smartSplit(normalizedTerm, termSeparatorRegex);
-				
+
 				const termForms = termParts.map(part => {
 					const partLiteralMatch = part.match(/^["“‘'](.*)["”’']$/);
 					if (partLiteralMatch) {
@@ -11821,53 +16277,57 @@
 			}
 		};
 
-        const processStringRules = (rawString, glossaryIndex, sourceName, isSensitive, isForbidden) => {
-            if (!rawString) return;
-            const tokens = tokenizeQuoteAware(rawString, [',', '，']);
-            
-            tokens.forEach(token => {
-                const entry = token.value.trim();
-                if (!entry) return;
+		const processStringRules = (rawString, glossaryIndex, sourceName, isSensitive, isForbidden) => {
+			if (!rawString) return;
+			const tokens = tokenizeQuoteAware(rawString, [',', '，']);
 
-                if (isForbidden) {
-                    tryAddRule(entry, null, glossaryIndex, sourceName, isSensitive, true);
-                    return;
-                }
+			tokens.forEach(token => {
+				const entry = token.value.trim();
+				if (!entry) return;
 
-                const parsed = parseGlossaryKeyValuePair(entry);
-                if (parsed) {
-                    if (parsed.separator === '=') {
-                        processEqualsSyntax(parsed.key, parsed.value, glossaryIndex, sourceName, isSensitive);
-                    } else {
-                        tryAddRule(parsed.key, parsed.value, glossaryIndex, sourceName, isSensitive, false);
-                    }
-                }
-            });
-        };
+				if (isForbidden) {
+					tryAddRule(entry, null, glossaryIndex, sourceName, isSensitive, true);
+					return;
+				}
+
+				const parsed = parseGlossaryKeyValuePair(entry);
+				if (parsed) {
+					if (parsed.separator === '=') {
+						processEqualsSyntax(parsed.key, parsed.value, glossaryIndex, sourceName, isSensitive);
+					} else {
+						tryAddRule(parsed.key, parsed.value, glossaryIndex, sourceName, isSensitive, false);
+					}
+				} else {
+					const msg = `术语表 "${sourceName}" 中发现格式错误的词条: "${entry}"，请检查是否缺少冒号或等号。`;
+					Logger.warn('Data', msg);
+					glossaryErrors.push(msg);
+				}
+			});
+		};
 
 		orderedGlossaries.forEach((glossary, index) => {
 			const sourceName = glossary.sourceName;
 
 			if (glossary.forbidden) {
-                processStringRules(glossary.forbidden, index, sourceName, true, true);
+				processStringRules(glossary.forbidden, index, sourceName, true, true);
 			}
 			(glossary.forbiddenTerms || []).forEach(term => {
 				tryAddRule(term, null, index, sourceName, true, true);
 			});
 
 			if (glossary.sensitive) {
-                processStringRules(glossary.sensitive, index, sourceName, true, false);
+				processStringRules(glossary.sensitive, index, sourceName, true, false);
 			}
 			Object.entries(glossary.terms || {}).forEach(([k, v]) => tryAddRule(k, v, index, sourceName, true, false));
 			Object.entries(glossary.multiPartTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, index, sourceName, true));
 
 			if (glossary.insensitive) {
-                processStringRules(glossary.insensitive, index, sourceName, false, false);
+				processStringRules(glossary.insensitive, index, sourceName, false, false);
 			}
 			Object.entries(glossary.generalTerms || {}).forEach(([k, v]) => tryAddRule(k, v, index, sourceName, false, false));
 			Object.entries(glossary.multiPartGeneralTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, index, sourceName, false));
 
-            (glossary.regexTerms || []).forEach(({ pattern, replacement }) => {
+			(glossary.regexTerms || []).forEach(({ pattern, replacement }) => {
 				tryAddRule(pattern, replacement, index, sourceName, true, false, true);
 			});
 		});
@@ -11897,10 +16357,19 @@
 		});
 		GM_setValue(GLOSSARY_RULES_CACHE_KEY, {
 			version: currentStateVersion,
-            scriptVersion: GM_info.script.version,
+			engineVersion: GLOSSARY_ENGINE_VERSION,
 			rules: serializedRules
 		});
-		Logger.info('数据', `术语表规则重建完成，当前版本: v${currentStateVersion}`);
+		Logger.info('Data', `术语表规则重建完成，当前版本: v${currentStateVersion}`);
+
+		if (glossaryErrors.length > 0) {
+			const summaryMsg = `术语表解析完成，发现 ${glossaryErrors.length} 处错误，请前往“调试模式与日志”查看详情。`;
+			GM_notification({
+				text: summaryMsg,
+				title: 'AO3 Translator'
+			});
+		}
+
 		return validRules;
 	}
 
@@ -12060,9 +16529,9 @@
 	function notifyAndLog(message, title = 'AO3 Translator', logType = 'info') {
 		GM_notification(message, title);
 		if (logType === 'error') {
-			Logger.error('系统', message);
+			Logger.error('System', message);
 		} else {
-			Logger.info('系统', message);
+			Logger.info('System', message);
 		}
 	}
 
@@ -12072,6 +16541,23 @@
 	function sleep(ms) {
 		return new Promise(resolve => setTimeout(resolve, ms));
 	}
+
+	/**
+	 * 时间切片工具：用于在长耗时同步任务中主动让出主线程，避免阻塞 UI
+	 */
+	const TimeSlicer = {
+		lastYieldTime: Date.now(),
+		async yieldIfNeeded(maxExecutionTime = 15) {
+			const now = Date.now();
+			if (now - this.lastYieldTime > maxExecutionTime) {
+				await new Promise(resolve => setTimeout(resolve, 0));
+				this.lastYieldTime = Date.now();
+			}
+		},
+		reset() {
+			this.lastYieldTime = Date.now();
+		}
+	};
 
 	/**
 	 * 获取当前时间的上海时区格式化字符串
@@ -12108,7 +16594,7 @@
 		GM_deleteValue(GLOSSARY_RULES_CACHE_KEY);
 		generateGlossaryStateVersion();
 		runtimePreparedGlossaryCache = null;
-		Logger.info('数据', '术语表规则缓存已失效');
+		Logger.info('Data', '术语表规则缓存已失效');
 	}
 
 	/**
@@ -12118,12 +16604,13 @@
 	 * @returns {*} - 返回嵌套属性的值
 	 */
 	function getNestedProperty(obj, path) {
+		if (!obj) return undefined;
 		return path.split('.').reduce((acc, part) => {
 			const match = part.match(/(\w+)(?:\[(\d+)\])?/);
 			if (!match) return undefined;
 			const key = match[1];
 			const index = match[2];
-			if (acc && typeof acc === 'object' && acc[key] !== undefined) {
+			if (acc && typeof acc === 'object' && acc[key] !== undefined && acc[key] !== null) {
 				return index !== undefined ? acc[key][index] : acc[key];
 			}
 			return undefined;
@@ -12131,7 +16618,7 @@
 	}
 
 	/**
-	 * 翻译文本处理函数
+	 * 翻译文本处理函数：负责译文的净化、格式修复及标点守护
 	 */
 	const AdvancedTranslationCleaner = new (class {
 		constructor() {
@@ -12142,17 +16629,28 @@
 			this.junkLineRegex = new RegExp(`^\\s*(\\d+\\.\\s*)?(${this.metaKeywords.join('|')})[:：\\s]`, 'i');
 			this.lineNumbersRegex = /^\d+\.\s*/;
 			this.aiGenericExplanationRegex = /\s*[\uff08(](?:原文|译文|说明|保留|注释|译注|注)[:：\s][^\uff08\uff09()]*?[\uff09)]\s*/g;
+
 			this.cjkIdeographs = '\\u4e00-\\u9fff\\u3400-\\u4dbf\\u2e80-\\u2eff\\uf900-\\ufaff';
 			this.cjkSymbols = '\\u3000-\\u303f\\uff00-\\uffef\\u30fb';
 			this.cjkTypoQuotes = '\\u2018-\\u201d\\u2026';
 			this.cjkBoundaryChars = this.cjkIdeographs + this.cjkTypoQuotes;
 			this.cjkAll = this.cjkBoundaryChars + this.cjkSymbols;
+
+			this.trailingPunctuationRegex = /[.!?。！？\s]+$/;
+		}
+
+		smartStripPunctuation(translatedText, originalText = '') {
+			if (!translatedText) return '';
+			let cleaned = translatedText.trim();
+			const origTrimmed = originalText ? originalText.trim() : '';
+			if (!origTrimmed || !/[.!?。！？]$/.test(origTrimmed)) {
+				cleaned = cleaned.replace(this.trailingPunctuationRegex, '');
+			}
+			return cleaned;
 		}
 
 		clean(text) {
-			if (!text || typeof text !== 'string') {
-				return '';
-			}
+			if (!text || typeof text !== 'string') return '';
 
 			let cleanedText = text
 				.replace(/&nbsp;/g, ' ')
@@ -12166,7 +16664,6 @@
 			cleanedText = cleanedText.split('\n').filter(line => !this.junkLineRegex.test(line)).join('\n');
 			cleanedText = cleanedText.replace(this.lineNumbersRegex, '');
 			cleanedText = cleanedText.replace(this.aiGenericExplanationRegex, '');
-
 			cleanedText = cleanedText.replace(/(<(em|strong|span|b|i|u)[^>]*>)([\s\S]*?)(<\/\2>)/g, (_match, openTag, _tagName, content, closeTag) => {
 				return openTag + content.trim() + closeTag;
 			});
@@ -12178,10 +16675,8 @@
 
 			cleanedText = cleanedText.replace(new RegExp(`(${cjkBoundaryBlock})((?:${simpleFormattingTags})*)(${latinChar}+)`, 'g'), '$1$2 $3');
 			cleanedText = cleanedText.replace(new RegExp(`(${latinChar}+)((?:${simpleFormattingTags})*)(${cjkBoundaryBlock})`, 'g'), '$1 $2$3');
-
 			cleanedText = cleanedText.replace(/(“|‘|「|『)\s+/g, '$1');
 			cleanedText = cleanedText.replace(/\s+(”|’|」|』)/g, '$1');
-
 			cleanedText = cleanedText.replace(/\s+/g, ' ');
 
 			const cjkSpaceRegex = new RegExp(`(${cjkContext})\\s+(?=${cjkContext})`, 'g');
@@ -12192,6 +16687,18 @@
 			} while (cleanedText !== prevText);
 
 			return cleanedText.trim();
+		}
+
+
+		cleanTitle(translatedText, originalText) {
+			if (!translatedText || typeof translatedText !== 'string') return '';
+			let cleaned = this.smartStripPunctuation(translatedText, originalText);
+			const origTrimmed = originalText ? originalText.trim() : '';
+			if (!/^["'“‘「『]/.test(origTrimmed) && !/["'”’」』]$/.test(origTrimmed)) {
+				cleaned = cleaned.replace(/^["'“‘「『]+|["'”’」』]+$/g, '');
+			}
+
+			return cleaned;
 		}
 	})();
 
@@ -12326,224 +16833,878 @@
 
 	/**
 	 * 执行数据迁移，将旧版存储格式更新为新版
+	 * 采用线性任务队列模式，确保迁移的顺序性、容错性和可扩展性
 	 */
 	function runDataMigration() {
-		const CURRENT_MIGRATION_VERSION = 1;
-		const savedVersion = GM_getValue('ao3_migration_version', 0);
+		const CURRENT_MIGRATION_VERSION = 4;
+		let savedVersion = GM_getValue('ao3_migration_version', 0);
 
 		if (savedVersion >= CURRENT_MIGRATION_VERSION) {
+			routineCleanup();
 			return;
 		}
 
-        {
-            const newRules = GM_getValue(POST_REPLACE_RULES_KEY, null);
-            if (newRules === null) {
-                const oldString = GM_getValue(POST_REPLACE_STRING_KEY, '');
-                if (oldString) {
-                    const defaultRule = {
-                        id: `replace_${Date.now()}`,
-                        name: '默认',
-                        content: oldString,
-                        enabled: true
-                    };
-                    GM_setValue(POST_REPLACE_RULES_KEY, [defaultRule]);
-                    GM_setValue(POST_REPLACE_SELECTED_ID_KEY, defaultRule.id);
-                    GM_setValue(POST_REPLACE_EDIT_MODE_KEY, 'settings');
-                } else {
-                    const postReplaceData = GM_getValue(POST_REPLACE_MAP_KEY, null);
-                    if (postReplaceData && typeof postReplaceData === 'object' && !postReplaceData.hasOwnProperty('singleRules')) {
-                        GM_setValue(POST_REPLACE_MAP_KEY, {
-                            singleRules: postReplaceData,
-                            multiPartRules: []
-                        });
-                    }
-                }
-            }
-        }
+		// 定义各版本的迁移任务
+		const migrations =[
+			{
+				version: 1,
+				name: 'V1 基础数据结构规范化',
+				migrate: () => {
+					// 1. 替换规则迁移
+					const newRules = GM_getValue(POST_REPLACE_RULES_KEY, null);
+					if (newRules === null) {
+						const oldString = GM_getValue(POST_REPLACE_STRING_KEY, '');
+						if (oldString) {
+							const defaultRule = { id: `replace_${Date.now()}`, name: '默认', content: oldString, enabled: true };
+							GM_setValue(POST_REPLACE_RULES_KEY,[defaultRule]);
+							GM_setValue(POST_REPLACE_SELECTED_ID_KEY, defaultRule.id);
+							GM_setValue(POST_REPLACE_EDIT_MODE_KEY, 'settings');
+						} else {
+							const postReplaceData = GM_getValue(POST_REPLACE_MAP_KEY, null);
+							if (postReplaceData && typeof postReplaceData === 'object' && !postReplaceData.hasOwnProperty('singleRules')) {
+								GM_setValue(POST_REPLACE_MAP_KEY, { singleRules: postReplaceData, multiPartRules:[] });
+							}
+						}
+					}
 
-        {
-            const newGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, null);
-            if (newGlossaries !== null) {
-                let changed = false;
-                newGlossaries.forEach(g => {
-                    if (typeof g.enabled === 'undefined') {
-                        g.enabled = true;
-                        changed = true;
-                    }
-                });
-                if (changed) {
-                    GM_setValue(CUSTOM_GLOSSARIES_KEY, newGlossaries);
-                }
-            } else {
-                const oldGlossaryStr = GM_getValue('ao3_local_glossary_string', '');
-                const oldForbiddenStr = GM_getValue('ao3_local_forbidden_string', '');
+					// 2. 本地术语表迁移
+					const newGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, null);
+					if (newGlossaries !== null) {
+						let changed = false;
+						newGlossaries.forEach(g => {
+							if (typeof g.enabled === 'undefined') { g.enabled = true; changed = true; }
+						});
+						if (changed) GM_setValue(CUSTOM_GLOSSARIES_KEY, newGlossaries);
+					} else {
+						const oldGlossaryStr = GM_getValue('ao3_local_glossary_string', '');
+						const oldForbiddenStr = GM_getValue('ao3_local_forbidden_string', '');
+						let finalSensitive = oldGlossaryStr;
+						if (!finalSensitive) {
+							const oldGlossaryObj = GM_getValue('ao3_local_glossary') || GM_getValue('ao3_translation_glossary');
+							if (oldGlossaryObj && typeof oldGlossaryObj === 'object') {
+								finalSensitive = Object.entries(oldGlossaryObj).map(([k, v]) => `${k}:${v}`).join(', ');
+							}
+						}
+						let finalForbidden = oldForbiddenStr;
+						if (!finalForbidden) {
+							const oldForbiddenArray = GM_getValue('ao3_local_forbidden_terms');
+							if (Array.isArray(oldForbiddenArray)) finalForbidden = oldForbiddenArray.join(', ');
+						}
+						if (finalSensitive || finalForbidden) {
+							const defaultGlossary = { id: `local_${Date.now()}`, name: '默认', sensitive: finalSensitive || '', insensitive: '', forbidden: finalForbidden || '', enabled: true };
+							GM_setValue(CUSTOM_GLOSSARIES_KEY, [defaultGlossary]);
+						}['ao3_local_glossary_string', 'ao3_local_forbidden_string', 'ao3_local_glossary', 'ao3_translation_glossary', 'ao3_local_forbidden_terms'].forEach(key => GM_deleteValue(key));
+					}
 
-                let finalSensitive = oldGlossaryStr;
-                if (!finalSensitive) {
-                    const oldGlossaryObj = GM_getValue('ao3_local_glossary') || GM_getValue('ao3_translation_glossary');
-                    if (oldGlossaryObj && typeof oldGlossaryObj === 'object') {
-                        finalSensitive = Object.entries(oldGlossaryObj).map(([k, v]) => `${k}:${v}`).join(', ');
-                    }
-                }
+					// 3. API Key 格式迁移
+					const servicesToMigrate =['zhipu_ai', 'deepseek_ai', 'groq_ai', 'together_ai', 'cerebras_ai', 'modelscope_ai'];
+					servicesToMigrate.forEach(serviceName => {
+						const oldKeyName = `${serviceName.split('_')[0]}_api_key`;
+						const newStringKey = `${serviceName}_keys_string`;
+						const newArrayKey = `${serviceName}_keys_array`;
+						const oldKeyValue = GM_getValue(oldKeyName);
+						if (oldKeyValue && GM_getValue(newStringKey) === undefined) {
+							GM_setValue(newStringKey, oldKeyValue);
+							GM_setValue(newArrayKey, oldKeyValue.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean));
+							GM_deleteValue(oldKeyName);
+						}
+					});
 
-                let finalForbidden = oldForbiddenStr;
-                if (!finalForbidden) {
-                    const oldForbiddenArray = GM_getValue('ao3_local_forbidden_terms');
-                    if (Array.isArray(oldForbiddenArray)) {
-                        finalForbidden = oldForbiddenArray.join(', ');
-                    }
-                }
+					const oldChatglmKey = GM_getValue('chatglm_api_key');
+					if (oldChatglmKey && GM_getValue('zhipu_ai_keys_string') === undefined) {
+						GM_setValue('zhipu_ai_keys_string', oldChatglmKey);
+						GM_setValue('zhipu_ai_keys_array', [oldChatglmKey]);
+						GM_deleteValue('chatglm_api_key');
+					}
 
-                if (finalSensitive || finalForbidden) {
-                    const defaultGlossary = {
-                        id: `local_${Date.now()}`,
-                        name: '默认',
-                        sensitive: finalSensitive || '',
-                        insensitive: '',
-                        forbidden: finalForbidden || '',
-                        enabled: true
-                    };
-                    GM_setValue(CUSTOM_GLOSSARIES_KEY, [defaultGlossary]);
-                }
+					const oldKeysArray = GM_getValue('google_ai_keys_array');
+					const newKeysString = GM_getValue('google_ai_keys_string');
+					if (Array.isArray(oldKeysArray) && !newKeysString) {
+						GM_setValue('google_ai_keys_string', oldKeysArray.join(', '));
+					}
 
-                ['ao3_local_glossary_string', 'ao3_local_forbidden_string', 'ao3_local_glossary',
-                    'ao3_translation_glossary', 'ao3_local_forbidden_terms'].forEach(key => GM_deleteValue(key));
-            }
-        }
+					// 4. 模型名称迁移
+					const modelKey = 'google_ai_model';
+					const currentModel = GM_getValue(modelKey);
+					const migrationMap = { 'gemini-2.5-flash': 'gemini-flash-latest', 'gemini-2.5-flash-lite': 'gemini-flash-lite-latest' };
+					if (currentModel && migrationMap[currentModel]) {
+						GM_setValue(modelKey, migrationMap[currentModel]);
+					}
+				}
+			},
+			{
+				version: 2,
+				name: 'V2 AI 参数与占位符规则升级',
+				migrate: () => {
+					// 1. 迁移旧版散装 AI 参数到 profile_default
+					const oldKeys = {
+						'custom_ai_system_prompt': 'system_prompt', 'custom_ai_user_prompt': 'user_prompt',
+						'custom_ai_temperature': 'temperature', 'custom_ai_chunk_size': 'chunk_size',
+						'custom_ai_para_limit': 'para_limit', 'custom_ai_request_rate': 'request_rate',
+						'custom_ai_request_capacity': 'request_capacity', 'custom_ai_lazy_load_margin': 'lazy_load_margin',
+						'custom_ai_validation_thresholds': 'validation_thresholds'
+					};
 
-        {
-            const servicesToMigrate = ['zhipu_ai', 'deepseek_ai', 'groq_ai', 'together_ai', 'cerebras_ai', 'modelscope_ai'];
-            servicesToMigrate.forEach(serviceName => {
-                const oldKeyName = `${serviceName.split('_')[0]}_api_key`;
-                const newStringKey = `${serviceName}_keys_string`;
-                const newArrayKey = `${serviceName}_keys_array`;
+					let profiles = GM_getValue(AI_PROFILES_KEY);
+					if (Array.isArray(profiles)) {
+						const defaultProfile = profiles.find(p => p.id === 'profile_default');
+						let profilesChanged = false;
+						if (defaultProfile) {
+							for (const [oldKey, paramKey] of Object.entries(oldKeys)) {
+								const oldVal = GM_getValue(oldKey);
+								if (oldVal !== undefined && oldVal !== null) {
+									defaultProfile.params[paramKey] = oldVal;
+									profilesChanged = true;
+									GM_deleteValue(oldKey);
+								}
+							}
+						}
+						if (profilesChanged) GM_setValue(AI_PROFILES_KEY, profiles);
+					}
 
-                const oldKeyValue = GM_getValue(oldKeyName);
-                if (oldKeyValue && GM_getValue(newStringKey) === undefined) {
-                    GM_setValue(newStringKey, oldKeyValue);
-                    const keysArray = oldKeyValue.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
-                    GM_setValue(newArrayKey, keysArray);
-                    GM_deleteValue(oldKeyName);
-                }
-            });
+					// 2. 占位符规则迁移 (ph_ -> vtr_)
+					const migratePrompt = (prompt) => {
+						if (!prompt) return prompt;
+						const numWord = PlaceholderConfig.length === 5 ? 'five' : (PlaceholderConfig.length === 6 ? 'six' : PlaceholderConfig.length);
+						return prompt
+							.replace(/ph_/g, PlaceholderConfig.prefix)
+							.replace(/Ph_/g, PlaceholderConfig.prefix.charAt(0).toUpperCase() + PlaceholderConfig.prefix.slice(1))
+							.replace(/P_/g, PlaceholderConfig.prefix.toUpperCase())
+							.replace(/six digits/gi, `${numWord} digits`)
+							.replace(/6 digits/gi, `${PlaceholderConfig.length} digits`)
+							.replace(/123456/g, PlaceholderConfig.exampleString.replace(PlaceholderConfig.prefix, ''));
+					};
 
-            const oldChatglmKey = GM_getValue('chatglm_api_key');
-            if (oldChatglmKey && GM_getValue('zhipu_ai_keys_string') === undefined) {
-                GM_setValue('zhipu_ai_keys_string', oldChatglmKey);
-                GM_setValue('zhipu_ai_keys_array', [oldChatglmKey]);
-                GM_deleteValue('chatglm_api_key');
-            }
-        }
+					profiles = GM_getValue(AI_PROFILES_KEY);
+					if (Array.isArray(profiles)) {
+						let changed = false;
+						profiles.forEach(p => {
+							if (p.params) {
+								if (p.params.system_prompt) { p.params.system_prompt = migratePrompt(p.params.system_prompt); changed = true; }
+								if (p.params.user_prompt) { p.params.user_prompt = migratePrompt(p.params.user_prompt); changed = true; }
+							}
+						});
+						if (changed) GM_setValue(AI_PROFILES_KEY, profiles);
+					}
+				}
+			},
+			{
+				version: 3,
+				name: 'V3 提示词格式、日志系统与新参数适配',
+				migrate: () => {
+					// 1. 迁移 System Prompt 格式 ([#id] 模式) 与 占位符校验阈值更新，补齐 reasoning_effort
+					const oldDefaultThresholds = '10, 0.8, 10, 5';
+					const newDefaultThresholds = '6, 0.5, 6, 3';
 
-        {
-            const oldKeysArray = GM_getValue('google_ai_keys_array');
-            const newKeysString = GM_getValue('google_ai_keys_string');
-            if (Array.isArray(oldKeysArray) && !newKeysString) {
-                GM_setValue('google_ai_keys_string', oldKeysArray.join(', '));
-            }
-        }
+					const globalKey = 'custom_ai_validation_thresholds';
+					if (GM_getValue(globalKey) === oldDefaultThresholds || GM_getValue(globalKey) === undefined) {
+						GM_setValue(globalKey, newDefaultThresholds);
+					}
 
-        {
-            const modelKey = 'google_ai_model';
-            const currentModel = GM_getValue(modelKey);
-            const migrationMap = {
-                'gemini-2.5-flash': 'gemini-flash-latest',
-                'gemini-2.5-flash-lite': 'gemini-flash-lite-latest'
-            };
-            if (currentModel && migrationMap[currentModel]) {
-                GM_setValue(modelKey, migrationMap[currentModel]);
-            }
-        }
+					let profiles = GM_getValue(AI_PROFILES_KEY);
+					if (Array.isArray(profiles)) {
+						let profilesChanged = false;
+						profiles.forEach(p => {
+							if (p.params) {
+								// 迁移 System Prompt 格式
+								if (p.params.system_prompt) {
+									let sp = p.params.system_prompt;
+									
+									// A. 替换任务描述
+									const oldTaskDesc = /translate a numbered list of text segments provided by the user\. These segments can be anything from full paragraphs to single phrases or words\./gi;
+									const newTaskDesc = 'translate multiple text segments provided by the user. For each segment,';
+									sp = sp.replace(oldTaskDesc, newTaskDesc);
 
-        {
-            const sysPrompt = GM_getValue('custom_ai_system_prompt');
-            if (typeof sysPrompt === 'string' && sysPrompt.includes('${')) {
-                GM_setValue('custom_ai_system_prompt', sysPrompt.replace(/\$\{/g, '{'));
-            }
-        }
+									// B. 替换输出格式指令
+									const oldFormatInst = /- Your entire response MUST consist of \*only\* the polished translation from Stage 3, formatted as a numbered list that exactly matches the input's numbering\./gi;
+									const newFormatInst = '- The input consists of multiple segments, each prefixed with an ID tag like [#0], [#1], etc.\n\t\t- Your entire response MUST consist of *only* the polished translations from Stage 3.\n\t\t- You MUST prefix each translated segment with its EXACT corresponding ID tag (e.g., [#0] Translated text...).';
+									sp = sp.replace(oldFormatInst, newFormatInst);
 
-        {
-            const targetThresholds = '10, 0.8, 10, 5';
-            const globalKey = 'custom_ai_validation_thresholds';
-            GM_setValue(globalKey, targetThresholds);
+									// C. 替换 Example Input 块
+									const oldExampleBlock = /### Example Input:\s*1\. This is the <em>first<\/em> sentence\.\s*2\. ---\s*3\. Her name is (.*?)\.\s*4\. This is the fourth sentence\./gi;
+									const newExampleBlock = '### Example Input:\n\t\t[#0] This is the <em>first</em> sentence.\n\t\t[#1] ---\n\t\t[#2] Her name is $1.';
+									sp = sp.replace(oldExampleBlock, newExampleBlock);
 
-            const profiles = GM_getValue(AI_PROFILES_KEY);
-            if (Array.isArray(profiles)) {
-                let changed = false;
-                profiles.forEach(p => {
-                    if (p.params) {
-                        p.params.validation_thresholds = targetThresholds;
-                        changed = true;
-                    }
-                });
-                if (changed) {
-                    GM_setValue(AI_PROFILES_KEY, profiles);
-                }
-            }
-        }
+									if (sp !== p.params.system_prompt) {
+										p.params.system_prompt = sp;
+										profilesChanged = true;
+									}
+								}
 
-        const keysToCheck = [
-            { key: 'enable_RegExp', default: DEFAULT_CONFIG.GENERAL.enable_RegExp },
-            { key: 'enable_transDesc', default: DEFAULT_CONFIG.GENERAL.enable_transDesc },
-            { key: 'enable_ui_trans', default: DEFAULT_CONFIG.GENERAL.enable_ui_trans },
-            { key: 'show_fab', default: DEFAULT_CONFIG.GENERAL.show_fab },
-            { key: 'enable_debug_mode', default: DEFAULT_CONFIG.GENERAL.enable_debug_mode },
-            { key: 'translation_display_mode', default: DEFAULT_CONFIG.GENERAL.translation_display_mode },
-            { key: 'from_lang', default: DEFAULT_CONFIG.GENERAL.from_lang },
-            { key: 'to_lang', default: DEFAULT_CONFIG.GENERAL.to_lang },
-            { key: 'lang_detector', default: DEFAULT_CONFIG.GENERAL.lang_detector },
-            { key: 'transEngine', default: DEFAULT_CONFIG.ENGINE.current },
-            { key: 'custom_url_first_save_done', default: DEFAULT_CONFIG.GENERAL.custom_url_first_save_done }
-        ];
+								// 更新校验阈值
+								if (p.params.validation_thresholds === oldDefaultThresholds || p.params.validation_thresholds === undefined) {
+									p.params.validation_thresholds = newDefaultThresholds;
+									profilesChanged = true;
+								}
 
-        let cleanedCount = 0;
-        keysToCheck.forEach(item => {
-            const currentValue = GM_getValue(item.key);
-            if (currentValue === item.default) {
-                GM_deleteValue(item.key);
-                cleanedCount++;
-            }
-        });
-        Logger.info('系统', `配置清理完成，移除了 ${cleanedCount} 个未修改的默认设置`);
+								// 补齐 reasoning_effort
+								if (p.params.reasoning_effort === undefined) {
+									p.params.reasoning_effort = 'default';
+									profilesChanged = true;
+								}
+							}
+						});
+						if (profilesChanged) GM_setValue(AI_PROFILES_KEY, profiles);
+					}
 
-		GM_setValue('ao3_migration_version', CURRENT_MIGRATION_VERSION);
+					// 2. 迁移旧版调试模式开关到新的日志级别
+					const oldDebugMode = GM_getValue('enable_debug_mode');
+					if (oldDebugMode !== undefined) {
+						GM_setValue('ao3_log_level', oldDebugMode ? 'INFO' : 'OFF');
+						GM_deleteValue('enable_debug_mode');
+					}
+
+					// 3. 补齐历史日志缺少 timestampMs
+					let logHistory = GM_getValue('ao3_log_history');
+					if (Array.isArray(logHistory)) {
+						let logsChanged = false;
+						logHistory.forEach(entry => {
+							if (entry.timestampMs === undefined) {
+								const parsedTime = new Date(entry.timestamp).getTime();
+								entry.timestampMs = isNaN(parsedTime) ? Date.now() : parsedTime;
+								logsChanged = true;
+							}
+						});
+						if (logsChanged) GM_setValue('ao3_log_history', logHistory);
+					}
+
+					// 4. 迁移 from_lang 的 'auto' 值为 'script_auto'
+					if (GM_getValue('from_lang') === 'auto') {
+						GM_setValue('from_lang', 'script_auto');
+					}
+				}
+			},
+			{
+				version: 4,
+				name: 'V4 提示词结构化输出与传统引擎专属配置',
+				migrate: () => {
+					let profiles = GM_getValue(AI_PROFILES_KEY);
+					if (Array.isArray(profiles)) {
+						let profilesChanged = false;
+						
+						// 1. 提示词结构化输出与变量化升级
+						profiles.forEach(p => {
+							if (p.params) {
+								// 迁移 System Prompt (引入 {systemDirectives} 变量)
+								if (p.params.system_prompt && !p.params.system_prompt.includes('{systemDirectives}')) {
+									let sp = p.params.system_prompt;
+									const splitKeyword = '### CRITICAL OUTPUT INSTRUCTIONS:';
+									const splitIndex = sp.indexOf(splitKeyword);
+									
+									if (splitIndex !== -1) {
+										// 找到旧版硬编码指令，切掉并替换为变量
+										sp = sp.substring(0, splitIndex).trim() + '\n\n{systemDirectives}';
+									} else {
+										// 找不到分隔符，直接在末尾追加变量
+										sp = sp.trim() + '\n\n{systemDirectives}';
+									}
+									
+									p.params.system_prompt = sp;
+									profilesChanged = true;
+								}
+
+								// 迁移 User Prompt (改为 JSON 格式)
+								if (p.params.user_prompt) {
+									let up = p.params.user_prompt;
+									const oldUserPrompt = /Translate the following numbered list to \{toLangName\} \(output translation only\):/gi;
+									const newUserPrompt = 'Translate the following JSON array to {toLangName} (output JSON only):';
+									up = up.replace(oldUserPrompt, newUserPrompt);
+									
+									if (up !== p.params.user_prompt) {
+										p.params.user_prompt = up;
+										profilesChanged = true;
+									}
+								}
+							}
+						});
+						
+						// 2. 注入传统翻译引擎专属配置
+						const hasTraditional = profiles.some(p => p.isTraditional || p.id === 'profile_traditional_init');
+						if (!hasTraditional) {
+							const traditionalProfile = {
+								id: 'profile_traditional_init',
+								name: '谷歌、微软',
+								isProtected: true,
+								isTraditional: true,
+								services: ['google_translate', 'bing_translator'],
+								params: {
+									...BASE_AI_PARAMS,
+									chunk_size: 3000,
+									para_limit: 15,
+									request_rate: 5,
+									request_capacity: 20,
+									lazy_load_margin: '1200px 0px 10000px 0px'
+								}
+							};
+							const defaultIndex = profiles.findIndex(p => p.id === 'profile_default');
+							if (defaultIndex !== -1) {
+								profiles.splice(defaultIndex + 1, 0, traditionalProfile);
+							} else {
+								profiles.unshift(traditionalProfile);
+							}
+							profilesChanged = true;
+						}
+
+						if (profilesChanged) GM_setValue(AI_PROFILES_KEY, profiles);
+					}
+				}
+			},
+			{
+				version: 5,
+				name: 'V5 文章格式首行缩进精细化升级',
+				migrate: () => {
+					let profiles = GM_getValue(FORMATTING_PROFILES_KEY);
+					if (Array.isArray(profiles)) {
+						let changed = false;
+						profiles.forEach(p => {
+							if (p.params && p.params.indent) {
+								if (p.params.indent === 'true') {
+									p.params.indent = 'force_indent';
+									p.params.indentElements = ['work_text', 'summary', 'notes', 'comments', 'other'];
+									changed = true;
+								} else if (p.params.indent === 'false') {
+									p.params.indent = 'force_zero';
+									p.params.indentElements = ['work_text', 'summary', 'notes', 'comments', 'other'];
+									changed = true;
+								}
+							}
+						});
+						if (changed) GM_setValue(FORMATTING_PROFILES_KEY, profiles);
+					}
+				}
+			}
+		];
+
+		// 线性执行迁移任务
+		for (const task of migrations) {
+			if (savedVersion < task.version) {
+				try {
+					task.migrate();
+					savedVersion = task.version;
+					GM_setValue('ao3_migration_version', savedVersion);
+					Logger.info('System', `数据迁移成功: [v${task.version}] ${task.name}`);
+				} catch (e) {
+					Logger.error('System', `数据迁移失败: [v${task.version}] ${task.name}，已中断后续迁移`, e);
+					break;
+				}
+			}
+		}
+
+		// 执行日常清理
+		routineCleanup();
 	}
 
 	/**
-	 * 脚本主入口
+	 * 日常清理逻辑：移除与默认值完全相同的冗余配置，保持存储干净
 	 */
-	function main() {
-		if (window.top !== window.self) {
-			return;
-		}
-		if (window.ao3_translator_running) {
-			Logger.warn('系统', '检测到脚本重复执行，已拦截');
-			return;
-		}
-		window.ao3_translator_running = true;
+	function routineCleanup() {
+		const keysToCheck =[
+			{ key: 'enable_RegExp', default: DEFAULT_CONFIG.GENERAL.enable_RegExp },
+			{ key: 'enable_transDesc', default: DEFAULT_CONFIG.GENERAL.enable_transDesc },
+			{ key: 'enable_ui_trans', default: DEFAULT_CONFIG.GENERAL.enable_ui_trans },
+			{ key: 'show_fab', default: DEFAULT_CONFIG.GENERAL.show_fab },
+			{ key: 'ao3_log_level', default: DEFAULT_CONFIG.GENERAL.log_level },
+			{ key: 'ao3_log_auto_clear', default: DEFAULT_CONFIG.GENERAL.log_auto_clear },
+			{ key: 'translation_display_mode', default: DEFAULT_CONFIG.GENERAL.translation_display_mode },
+			{ key: 'from_lang', default: DEFAULT_CONFIG.GENERAL.from_lang },
+			{ key: 'to_lang', default: DEFAULT_CONFIG.GENERAL.to_lang },
+			{ key: 'lang_detector', default: DEFAULT_CONFIG.GENERAL.lang_detector },
+			{ key: 'transEngine', default: DEFAULT_CONFIG.ENGINE.current },
+			{ key: 'custom_url_first_save_done', default: DEFAULT_CONFIG.GENERAL.custom_url_first_save_done },
+			{ key: 'ao3_fab_actions', default: DEFAULT_CONFIG.GENERAL.fab_actions },
+			{ key: 'ao3_cache_auto_cleanup_enabled', default: true }
+		];
 
-		Logger.info('系统', `插件初始化完成，当前版本：v${GM_info.script.version}`);
-
-		ProfileManager.init();
-		FormattingManager.init();
-		runDataMigration();
-		updateBlockerCache();
-		checkForGlossaryUpdates();
-
-		const fabElements = createFabUI();
-		const panelElements = createSettingsPanelUI();
-		let rerenderMenu;
-		let fabLogic;
-
-		const handlePanelClose = () => {
-			if (fabLogic) {
-				fabLogic.retractFab();
+		let cleanedCount = 0;
+		keysToCheck.forEach(item => {
+			const currentValue = GM_getValue(item.key);
+			if (currentValue !== undefined) {
+				const isSame = typeof currentValue === 'object' 
+					? JSON.stringify(currentValue) === JSON.stringify(item.default)
+					: currentValue === item.default;
+				
+				if (isSame) {
+					GM_deleteValue(item.key);
+					cleanedCount++;
+				}
 			}
-		};
+		});
 
-		const panelLogic = initializeSettingsPanelLogic(panelElements, () => rerenderMenu(), handlePanelClose);
-		fabLogic = initializeFabInteraction(fabElements, panelLogic);
+		if (cleanedCount > 0) {
+			Logger.info('System', `日常配置清理完成，移除了 ${cleanedCount} 个未修改的默认设置`);
+		}
+	}
 
+	/**
+	 * 获取统一的 Shadow DOM CSS 组件库
+	 */
+	function getUnifiedShadowCSS() {
+		return `
+			:host {
+				--ao3-bg: #ffffff;
+				--ao3-text: #000000DE;
+				--ao3-text-secondary: #666666;
+				--ao3-text-placeholder: #757575;
+				--ao3-border: rgba(0, 0, 0, 0.20);
+				--ao3-border-hover: rgba(0, 0, 0, 0.5);
+				--ao3-primary: #1976d2;
+				--ao3-danger: #d32f2f;
+				--ao3-hover-bg: #f5f5f5;
+				--ao3-selected-bg: #e3f2fd;
+				--ao3-shadow: 0 8px 24px rgba(0,0,0,0.12);
+				--ao3-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+			}
+			
+			/* 1. 统一滚动条 */
+			.ao3-custom-scrollbar::-webkit-scrollbar,
+			.settings-panel-body::-webkit-scrollbar,
+			.custom-dropdown-menu ul::-webkit-scrollbar,
+			.settings-group textarea.settings-control::-webkit-scrollbar,
+			.ao3-modal-body::-webkit-scrollbar { width: 4px; height: 4px; }
+			
+			.ao3-custom-scrollbar::-webkit-scrollbar-track,
+			.settings-panel-body::-webkit-scrollbar-track,
+			.custom-dropdown-menu ul::-webkit-scrollbar-track,
+			.settings-group textarea.settings-control::-webkit-scrollbar-track,
+			.ao3-modal-body::-webkit-scrollbar-track { background: transparent; }
+			
+			.ao3-custom-scrollbar::-webkit-scrollbar-thumb,
+			.settings-panel-body::-webkit-scrollbar-thumb,
+			.custom-dropdown-menu ul::-webkit-scrollbar-thumb,
+			.settings-group textarea.settings-control::-webkit-scrollbar-thumb,
+			.ao3-modal-body::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 3px; }
+
+			/* 2. 统一弹窗组件 */
+			.ao3-overlay {
+				position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+				background-color: rgba(0, 0, 0, 0.5);
+				z-index: 1000; 
+				display: flex; align-items: center; justify-content: center;
+				font-family: var(--ao3-font);
+			}
+			.ao3-modal {
+				background-color: var(--ao3-bg); border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+				width: 85%; max-width: 300px; overflow: hidden; display: flex; flex-direction: column;
+				max-height: 85vh; color: var(--ao3-text);
+			}
+			
+			/* 确认提示框 */
+			#ao3-custom-confirm-modal {
+				max-width: 360px !important;
+			}
+			#ao3-custom-confirm-modal.whitelist-auth-modal {
+				max-width: 300px !important;
+			}
+			.ao3-modal-header {
+				padding: 0 16px; border-bottom: none !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+				z-index: 5; background-color: var(--ao3-bg); display: flex; justify-content: center; align-items: center;
+				position: relative; height: 42px; box-sizing: border-box; flex-shrink: 0;
+			}
+			.ao3-modal-header h3 { 
+				margin: 0; font-size: 16px; font-weight: 600; color: var(--ao3-text); 
+				font-family: Georgia, serif; 
+			}
+			.ao3-modal-body { padding: 8px 0; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+			
+			/* 全局 footer 的阴影 */
+			.ao3-modal-footer {
+				padding: 0 16px; border-top: none !important; 
+				box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+				z-index: 5; background-color: var(--ao3-bg); display: flex; flex-direction: row; justify-content: space-between; align-items: center;
+				gap: 8px; height: 42px; box-sizing: border-box; flex-shrink: 0;
+			}
+			
+			.ao3-modal-btn {
+				flex: 1 1 0; padding: 6px 0; border-radius: 4px; 
+				font-size: 14px;
+				font-family: var(--ao3-font); 
+				cursor: pointer; border: none; background: transparent !important; color: var(--ao3-text);
+				transition: opacity 0.2s; white-space: nowrap; display: flex; justify-content: center; align-items: center;
+				line-height: 1; -webkit-tap-highlight-color: transparent !important; outline: none !important; box-shadow: none !important;
+			}
+			
+			.ao3-modal-btn:hover { opacity: 0.7; }
+
+			/* 为“确认模态框”移除底栏阴影 */
+			#ao3-custom-confirm-modal .ao3-modal-footer {
+				box-shadow: none !important;
+			}
+
+			/* 3. 统一图标按钮 */
+			.ao3-icon-btn {
+				background: transparent !important; border: none !important; padding: 0; cursor: pointer;
+				display: flex; align-items: center; justify-content: center; color: var(--ao3-primary);
+				-webkit-tap-highlight-color: transparent !important; outline: none !important; box-shadow: none !important;
+			}
+			.ao3-icon-btn svg { width: 22px; height: 22px; fill: currentColor; opacity: 0.85; transition: opacity 0.2s; }
+			.ao3-icon-btn:hover svg { opacity: 1; }
+			.ao3-icon-btn:disabled { opacity: 0.5 !important; cursor: default; }
+			.ao3-icon-btn.danger { color: var(--ao3-danger); }
+
+			/* 4. 悬浮球样式 */
+			#ao3-trans-fab-container { position: fixed; top: 0; left: 0; z-index: 100; touch-action: none; cursor: grab; user-select: none; }
+			#ao3-trans-fab-container.dragging { cursor: grabbing; }
+			#ao3-trans-fab { width: 42px; height: 42px; border-radius: 50%; background-color: #990000; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); transition: all 0.3s ease; position: relative; }
+			#ao3-trans-fab.christmas-mode::after { content: ''; position: absolute; top: 5px; left: 18px; width: 14px; height: 14px; background-image: var(--santa-hat-url); background-size: contain; background-repeat: no-repeat; transform: rotate(-3deg); filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.4)); pointer-events: none; z-index: 10; }
+			#ao3-trans-fab-container.snapped:not(.is-active) #ao3-trans-fab { opacity: 0.3; }
+			#ao3-trans-fab-container:hover #ao3-trans-fab { transform: scale(1.05); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25); }
+			.fab-icon { width: 26px; height: 26px; background-image: var(--fab-icon-url); background-size: contain; background-repeat: no-repeat; background-position: center; filter: brightness(0) invert(1); }
+			.fab-status-light { position: absolute; width: 6px; height: 6px; border-radius: 50%; border: 1px solid #ffffff; top: 50%; left: 50%; margin-top: -4px; margin-left: -4px; transform-origin: center; transition: background-color 0.3s ease; z-index: 11; pointer-events: none; display: none; transform: rotate(var(--light-angle, 0deg)) translateY(-21px) scale(1); }
+			:host-context(.ao3-full-page-mode) .fab-status-light { display: block; }
+			.fab-status-light.status-idle { background-color: #2196F3; }
+			.fab-status-light.status-translating { background-color: #4CAF50; animation: fab-breathe 2.5s infinite ease-in-out; }
+			.fab-status-light.status-retrying { background-color: #FFC107; animation: fab-breathe 2.5s infinite ease-in-out; }
+			.fab-status-light.status-error { background-color: #F44336; }
+			/* 隐藏状态灯 */
+			.fab-status-light.hide-status-light { display: none !important; }
+
+			/* 5. 设置面板样式 */
+			#ao3-trans-settings-panel { display: none; position: fixed; z-index: 200; width: 300px; border-radius: 12px; overflow: hidden; flex-direction: column; max-height: 85vh; background-color: var(--ao3-bg); color: var(--ao3-text); border: none; box-shadow: var(--ao3-shadow); font-family: var(--ao3-font); }
+			#ao3-trans-settings-panel.dragging { opacity: 0.8; transition: opacity 0.2s ease-in-out; }
+			.settings-panel-header { padding: 0px 4px 0px 16px; border-bottom: none !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); z-index: 10; cursor: move; user-select: none; display: flex; justify-content: space-between; align-items: center; height: 42px; box-sizing: border-box; flex-shrink: 0; background-color: var(--ao3-bg); }
+			.settings-panel-header-title { display: flex; align-items: center; gap: 8px; }
+			.settings-panel-header-title h2 { margin: 0; font-size: 16px; font-weight: bold; font-family: inherit; }
+			.settings-panel-header-title .home-icon-link { display: flex; align-items: center; justify-content: center; text-decoration: none; margin: 0 !important; padding: 0 !important; height: 24px !important; width: 24px !important; min-width: 24px !important; }
+			.settings-panel-header-title .home-icon-link svg { width: 24px; height: 24px; fill: var(--ao3-text) !important; display: block !important; margin: 0 !important; padding: 0 !important; }
+			.settings-panel-close-btn { cursor: pointer; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: rgba(0, 0, 0, 0.54); outline: none !important; box-shadow: none !important; -webkit-tap-highlight-color: transparent; }
+			.settings-panel-body { padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; flex: 1; min-height: 0; }
+			.editable-section { display: none; flex-direction: column; gap: 16px; width: 100%; }
+			#local-edit-container-translation { display: flex; flex-direction: column; gap: 16px; }
+			.settings-switch-group { display: flex; justify-content: space-between; align-items: center; padding: 0; }
+			.settings-panel-body > .settings-switch-group:first-child { padding-left: 14px; padding-right: 7px; }
+			.settings-panel-body > .settings-switch-group:first-child .settings-label { font-size: 15px; }
+			.settings-switch-group .settings-label { font-size: 13px; font-weight: 400; color: var(--ao3-text); }
+			.settings-switch { position: relative; display: inline-block; width: 44px; height: 24px; -webkit-tap-highlight-color: transparent; outline: none; }
+			.settings-switch input { opacity: 0; width: 0; height: 0; }
+			.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; -webkit-tap-highlight-color: transparent; outline: none; }
+			.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+			input:checked + .slider { background-color: #209CEE; }
+			input:checked + .slider:before { transform: translateX(20px); }
+			.settings-group { position: relative; }
+			.settings-group.ao3-trans-control-disabled { pointer-events: none; opacity: 1 !important; }
+			.settings-group .settings-control { -webkit-appearance: none; appearance: none; width: 100%; height: 40px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--ao3-border); font-size: 15px; font-family: inherit; box-sizing: border-box; line-height: 40px; min-width: 0; transition: border-color 0.2s ease; background-color: var(--ao3-bg); color: var(--ao3-text); outline: none; }
+			.settings-group textarea.settings-control { height: 72px !important; min-height: 72px !important; max-height: 72px !important; line-height: 1.5; padding-top: 8px; padding-bottom: 8px; resize: none; }
+			.settings-group .settings-control:hover:not(:disabled) { border-color: var(--ao3-border-hover); }
+			.settings-group .settings-control:focus { border-color: var(--ao3-border-hover); border-width: 1px; }
+			.settings-group .settings-control:disabled { opacity: 1; border-color: var(--ao3-border); color: var(--ao3-text); -webkit-text-fill-color: var(--ao3-text); background-color: var(--ao3-bg); }
+			.settings-group .settings-control::placeholder { color: var(--ao3-text-placeholder); -webkit-text-fill-color: var(--ao3-text-placeholder); }
+			.settings-group .settings-label { position: absolute; top: 50%; transform: translateY(-50%); left: 12px; font-size: 14px; color: var(--ao3-text-secondary); pointer-events: none; transition: all 0.2s ease; padding: 0 4px; background-color: var(--ao3-bg); }
+			.settings-group .settings-control:focus + .settings-label, .settings-group .settings-control.has-value + .settings-label { top: 0; left: 10px; font-size: 12px; color: var(--ao3-text-secondary); }
+			.settings-group .settings-control:not(:focus).has-value + .settings-label { color: var(--ao3-text-secondary); }
+			.settings-group.static-label .settings-label { top: 0; left: 10px; font-size: 12px; transform: translateY(-50%); color: var(--ao3-text-secondary); }
+			.settings-group.static-label .settings-control { line-height: normal; padding-top: 4px; padding-bottom: 4px; height: 40px; }
+			.settings-group.settings-group-select .settings-control.settings-select { padding-right: 40px; }
+			.settings-group.settings-group-select::after { content: ''; position: absolute; right: 14px; top: 20px; transform: translateY(-50%) rotate(0deg); width: .65em; height: .65em; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-13%200-5-1.9-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: center; background-size: contain; pointer-events: none; }
+			.settings-group.settings-group-select.dropdown-active::after { transform: translateY(-50%) rotate(180deg); }
+			.input-wrapper { position: relative; }
+			.input-wrapper .settings-input { padding-right: 52px; }
+			#ai-param-input-area .input-wrapper textarea.settings-input { padding-right: 12px; }
+			input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+			input[type=number] { -moz-appearance: textfield; }
+			.settings-action-button-inline { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--ao3-primary); font-size: 14px; font-weight: 500; cursor: pointer; padding: 4px 0; display: flex; align-items: center; justify-content: center; width: 42px; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+			.settings-action-button-inline:disabled { opacity: 1; cursor: default; pointer-events: none; }
+			.data-sync-actions-container { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; margin-top: -10px; margin-bottom: -10px; overflow: visible; }
+			.data-sync-action-btn { background: none; border: none; color: var(--ao3-primary); font-size: 13px; font-weight: 500; cursor: pointer; padding: 2px 4px; text-align: center; outline: none; -webkit-tap-highlight-color: transparent; }
+			.language-swap-container { display: flex; align-items: center; gap: 2px; }
+			.language-swap-container .settings-group { flex: 1; min-width: 0; }
+			#swap-lang-btn { background: transparent; border: none; cursor: pointer; font-size: 14px; color: var(--ao3-text-secondary); opacity: 0.7; padding: 0 4px; line-height: 1; transition: all 0.2s ease; flex-shrink: 0; outline: none; -webkit-tap-highlight-color: transparent; }
+			#swap-lang-btn:hover:not(:disabled) { opacity: 1; color: var(--ao3-primary); }
+			#swap-lang-btn:disabled { color: var(--ao3-text-secondary); opacity: 0.3; cursor: default; }
+			.service-details-toggle-container { display: flex; justify-content: center; align-items: center; height: 0; width: 12.5%; margin: -8px auto; z-index: 10; overflow: visible; cursor: pointer; position: relative; outline: none; -webkit-tap-highlight-color: transparent; }
+			.service-details-toggle-container::before { content: ""; position: absolute; top: -15px; bottom: -15px; left: 0; right: 0; }
+			.service-details-toggle-btn { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 8px solid var(--ao3-primary); border-top: 0; transition: transform 0.3s ease; }
+			.service-details-toggle-btn.collapsed { transform: rotate(180deg); }
+			.pseudo-select { cursor: pointer; height: 40px; line-height: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; display: flex; align-items: center; outline: none; -webkit-tap-highlight-color: transparent; }
+			/* 媒体查询 */
+			@media (max-width: 767px) {
+				#ao3-trans-settings-panel {
+					top: 50% !important;
+					left: 50% !important;
+					transform: translate(-50%, -50%) !important;
+					width: 85% !important;
+					max-width: 380px !important;
+					max-height: 90vh !important;
+				}
+			}
+
+			/* 6. 下拉菜单 */
+			.custom-dropdown-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: transparent; z-index: 2000; }
+			.custom-dropdown-menu { position: fixed; border-radius: 8px; border: none; z-index: 2001; overflow: hidden; opacity: 0; transform: scale(0.95) translateY(-10px); transform-origin: top center; transition: opacity 0.15s ease-out, transform 0.15s ease-out; box-sizing: border-box; background-color: var(--ao3-bg); color: var(--ao3-text); box-shadow: var(--ao3-shadow); }
+			.custom-dropdown-menu.visible { opacity: 1; transform: scale(1) translateY(0); }
+			.custom-dropdown-menu ul { list-style: none; margin: 0; padding: 8px 0; max-height: 250px; overflow-y: auto; }
+			.custom-dropdown-menu li { padding: 8px 16px; margin: 10px 0; border-radius: 4px; min-height: 34px; height: 34px; box-sizing: border-box; cursor: pointer; font-size: 15px; transition: background-color 0.2s ease; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: transparent; color: var(--ao3-text); border: none; }
+			.custom-dropdown-menu li:hover { background-color: var(--ao3-hover-bg); }
+			.custom-dropdown-menu li.selected { background-color: var(--ao3-selected-bg); }
+			.custom-dropdown-menu li .item-text { white-space: nowrap; overflow: hidden; text-overflow: clip; flex-grow: 1; line-height: 1; }
+			.custom-dropdown-menu li .item-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+			.item-action-btn { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; background: transparent !important; border: none !important; padding: 0; cursor: pointer; outline: none !important; box-shadow: none !important; -webkit-tap-highlight-color: transparent; }
+			.item-action-btn svg { width: 22px !important; height: 22px !important; fill: var(--ao3-primary) !important; opacity: 0.8; transition: all 0.2s ease; display: block; }
+			.item-action-btn.is-disabled svg { fill: var(--ao3-text-placeholder) !important; opacity: 0.5; }
+			.item-action-btn.delete[data-confirming="true"] svg { fill: var(--ao3-danger) !important; opacity: 1; }
+			.custom-dropdown-menu li.drag-placeholder { opacity: 0.3 !important; background: var(--ao3-border) !important; border: 1px dashed var(--ao3-text-secondary) !important; color: transparent !important; }
+			.custom-dropdown-menu li.drag-placeholder * { visibility: hidden !important; }
+			.custom-dropdown-menu.small-menu ul { padding: 0; }
+			.custom-dropdown-menu.small-menu li { padding: 2px 8px; font-size: 11px; min-height: 18px; height: 18px; }
+			.custom-dropdown-menu.small-menu li .item-text { font-size: 11px; line-height: 1.2; }
+			.custom-dropdown-menu.small-menu li .ao3-icon-btn svg { width: 14px; height: 14px; }
+
+			/* 7. 拖拽占位符 */
+			.drag-ghost { position: fixed !important; z-index: 2002 !important; box-shadow: 0 8px 20px rgba(0,0,0,0.3) !important; opacity: 1 !important; pointer-events: none !important; transition: none !important; list-style: none !important; border-radius: 4px !important; cursor: grabbing !important; white-space: nowrap !important; overflow: hidden !important; box-sizing: border-box !important; margin: 0 !important; border: none !important; display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 8px 16px !important; font-size: 15px !important; font-family: var(--ao3-font) !important; background-color: var(--ao3-bg) !important; color: var(--ao3-text) !important; }
+			.drag-ghost .item-text { flex-grow: 1 !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: clip !important; }
+			.drag-ghost .item-actions { display: flex !important; gap: 8px !important; flex-shrink: 0 !important; }
+			:host-context(body.ao3-dragging-active) { cursor: grabbing !important; user-select: none !important; }
+			:host-context(body.ao3-dragging-active) .custom-dropdown-menu { pointer-events: none !important; }
+
+			/* 8. 底栏详情信息 (在线术语表、缓存管理) */
+			.online-glossary-details { width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ao3-text); padding: 4px 12px; min-height: 32px; overflow: hidden; box-sizing: border-box; }
+			#online-glossary-details-container, #cache-manage-details-container { margin-top: -10px; margin-bottom: -10px; }
+			#online-glossary-info { flex-grow: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; min-width: 0; }
+			.online-glossary-delete-btn { flex-shrink: 0; background: none; border: none; color: var(--ao3-primary); font-size: 13px; font-weight: 500; cursor: pointer; padding: 2px 4px; text-align: right; outline: none; -webkit-tap-highlight-color: transparent; }
+			.online-glossary-delete-btn[data-confirming="true"] { color: var(--ao3-danger) !important; }
+
+			/* 9. 数据选择与服务关联模态框 */
+			#ai-service-modal, 
+			#ao3-data-selection-modal, 
+			#ao3-library-modal, 
+			#ao3-glossary-view-modal {
+				max-width: 300px !important; 
+			}
+			#ai-service-list, #ao3-data-selection-modal .ao3-modal-body {
+				max-height: 300px;
+				padding: 4px 0;
+			}
+			.ai-service-item, .data-selection-item {
+				height: 32px;
+				box-sizing: border-box;
+				padding: 0 16px;
+				display: flex; 
+				align-items: center;
+				gap: 12px;
+				cursor: pointer; 
+				transition: background-color 0.2s;
+				-webkit-tap-highlight-color: transparent;
+				justify-content: flex-start;
+			}
+			.ai-service-item:hover, .data-selection-item:hover { background-color: var(--ao3-hover-bg); }
+			.ai-service-label, .data-item-label { font-size: 14px; font-weight: 400; color: var(--ao3-text); margin: 0; }
+			.ai-service-item input, .data-selection-item input { margin: 0; cursor: pointer; width: 16px; height: 16px; }
+			
+			.ai-select-all-btn, .data-select-all-wrapper {
+				font-size: 13px; color: var(--ao3-primary); cursor: pointer; user-select: none;
+				position: absolute; right: 16px;
+				-webkit-tap-highlight-color: transparent !important;
+				outline: none !important; box-shadow: none !important;
+			}
+
+			/* 10. 导出功能 */
+			.export-format-item { height: 32px; box-sizing: border-box; padding: 0 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background-color 0.2s; }
+			.export-format-item:hover { background-color: var(--ao3-hover-bg); }
+			.export-format-item input { width: 18px; height: 18px; cursor: pointer; margin: 0; }
+			.export-format-item span { font-size: 15px; color: var(--ao3-text); }
+			
+			#ao3-export-style-modal { max-width: 360px !important; width: 85%; height: 80vh; }
+			.style-editor-textarea { width: 100%; height: 100%; resize: none; border: none; outline: none; padding: 12px; font-family: monospace; font-size: 13px; background: var(--ao3-bg); color: var(--ao3-text); box-sizing: border-box; }
+
+			/* 深色模式 */
+			@media (prefers-color-scheme: dark) {
+				/* 全局变量 */
+				:host {
+					--ao3-bg: #1e1e1e;
+					--ao3-text: #e0e0e0;
+					--ao3-text-secondary: #a0a0a0;
+					--ao3-text-placeholder: #666666;
+					--ao3-border: rgba(255, 255, 255, 0.20);
+					--ao3-border-hover: rgba(255, 255, 255, 0.5);
+					--ao3-primary: #64b5f6;
+					--ao3-danger: #e57373;
+					--ao3-hover-bg: rgba(255, 255, 255, 0.08);
+					--ao3-selected-bg: rgba(100, 181, 246, 0.16);
+					--ao3-shadow: 0 8px 24px rgba(0,0,0,0.5);
+				}
+
+				/* 1. 滚动条 */
+				.ao3-custom-scrollbar::-webkit-scrollbar-thumb,
+				.settings-panel-body::-webkit-scrollbar-thumb,
+				.custom-dropdown-menu ul::-webkit-scrollbar-thumb,
+				.settings-group textarea.settings-control::-webkit-scrollbar-thumb,
+				.ao3-modal-body::-webkit-scrollbar-thumb { 
+					background: rgba(255, 255, 255, 0.15); 
+				}
+
+				/* 2. 弹窗组件 */
+				.ao3-modal-header { 
+					box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) !important; 
+				}
+				.ao3-modal-footer { 
+					box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.05) !important; 
+				}
+				.ao3-modal-btn { 
+					color: #ffffff; 
+				}
+
+				/* 5. 设置面板 */
+				.settings-panel-header { 
+					box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) !important; 
+				}
+				.settings-panel-close-btn { 
+					color: rgba(255, 255, 255, 0.7) !important; 
+				}
+
+				/* 表单控件 */
+				.settings-group.settings-group-select::after { 
+					background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a0a0a0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2013l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-13%200-5-1.9-9.4-5.4-13z%22%2F%3E%3C%2Fsvg%3E'); 
+				}
+			}
+		`;
+	}
+
+	/**
+	 * 初始化 Shadow DOM
+	 */
+	function initShadowDOM() {
+		if (shadowHost) return;
+
+		shadowHost = document.createElement('div');
+		shadowHost.id = 'ao3-translator-host';
+		shadowHost.style.cssText = 'position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647; overflow: visible; pointer-events: none;';
+		document.body.appendChild(shadowHost);
+
+		shadowRoot = shadowHost.attachShadow({ mode: 'open' });
+
+		const style = document.createElement('style');
+		style.textContent = getUnifiedShadowCSS();
+		shadowRoot.appendChild(style);
+
+		shadowWrapper = document.createElement('div');
+		shadowWrapper.id = 'ao3-translator-ui-wrapper';
+		shadowWrapper.className = 'notranslate';
+		shadowWrapper.style.pointerEvents = 'auto';
+		shadowRoot.appendChild(shadowWrapper);
+
+		protectSelectAllShadowRoot(shadowHost, shadowWrapper);
+	}
+
+	/**
+	 * 保护 Shadow DOM 全选逻辑
+	 */
+	function protectSelectAllShadowRoot(host, wrapper) {
+		let pointerInside = false;
+		host.addEventListener("pointerenter", () => pointerInside = true);
+		host.addEventListener("pointerleave", () => pointerInside = false);
+
+		window.addEventListener("keydown", (e) => {
+			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "a" && !e.shiftKey) {
+				const active = document.activeElement;
+
+				if (host.contains(active)) return;
+				if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+				if (active && active.shadowRoot) return;
+
+				if (pointerInside) {
+					e.preventDefault();
+					e.stopPropagation();
+					requestAnimationFrame(() => {
+						const sel = window.getSelection();
+						if (!sel) return;
+						sel.removeAllRanges();
+						const range = document.createRange();
+						range.selectNodeContents(wrapper);
+						sel.addRange(range);
+					});
+					return;
+				}
+
+				if (active === document.body || !active) {
+					e.preventDefault();
+					e.stopPropagation();
+					requestAnimationFrame(() => {
+						const sel = window.getSelection();
+						if (!sel) return;
+						sel.removeAllRanges();
+						const before = document.createRange();
+						before.setStart(document.body, 0);
+						before.setEndBefore(host);
+						const after = document.createRange();
+						after.setStartAfter(host);
+						after.setEnd(document.body, document.body.childNodes.length);
+						sel.addRange(before);
+						sel.addRange(after);
+					});
+				}
+			}
+		}, true);
+	}
+
+	/**
+	 * 注入全局样式
+	 */
+	function initGlobalStyles() {
+		const styles = `
+            .autocomplete.dropdown p.notice { margin-bottom: 0; }
+            .ao3-text-block, .ao3-original-content { display: inline; }
+            .ao3-translated-content { display: block; color: inherit; margin-top: 1.5em; margin-bottom: 0; }
+            body.ao3-translation-only .ao3-original-content { display: none !important; }
+            body.ao3-translation-only .ao3-translated-content { margin-top: 0 !important; }
+            .ao3-text-block:has(> .ao3-translated-content) + br { display: none; }
+            body:not(.ao3-translation-only) .ao3-text-block:has(> .ao3-translated-content):has(+ br) .ao3-translated-content { margin-bottom: 1.5em; }
+            body:not(.ao3-translation-only) .ao3-text-block:has(> .ao3-translated-content):has(+ br + br) .ao3-translated-content { margin-bottom: 0; }
+            .ao3-tag-translation { margin-left: 6px; opacity: 0.9; display: inline; color: inherit; }
+            body.ao3-translation-only .ao3-tag-translation { margin-left: 0; }
+            .ao3-tag-original { display: inline; }
+			body.ao3-translation-only [data-translation-state="translated"] > .ao3-tag-original { display: none !important; }
+            .ao3-translated-title { display: block; margin-top: 0.5em; }
+			body.ao3-translation-only [data-translation-state="translated-title"] > .ao3-original-title { display: none !important; }
+            body.ao3-translation-only .ao3-translated-title { margin-top: 0 !important; }
+            li.post .userstuff { margin-bottom: 15px; }
+            li.post .userstuff .ao3-translated-content { margin-bottom: 0; }
+			.translate-me-ao3-wrapper { border: none; background: transparent; box-shadow: none; margin-top: 15px; margin-bottom: 5px; clear: both; display: block; -webkit-tap-highlight-color: transparent; }
+			.translate-me-ao3-button { color: #1b95e0; font-size: small; cursor: pointer; display: inline-block; margin-left: 10px; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
+            .translated-tags-container { margin-top: 15px; margin-bottom: 10px; }
+            .collection.profile .primary.header.module .translate-me-ao3-wrapper, .collection.home .primary.header.module .translate-me-ao3-wrapper { clear: none !important; margin-left: 120px !important; margin-top: 15px !important; width: auto !important; }
+            p.kudos { line-height: 1.5; }
+            .retry-translation-button { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; margin-left: 8px; cursor: pointer; color: #1b95e0; -webkit-tap-highlight-color: transparent; user-select: none; }
+            .retry-translation-button:hover { color: #0d8bd9; }
+            .retry-translation-button:active { opacity: 0.7; }
+            .retry-translation-button svg { width: 18px; height: 18px; fill: currentColor; }
+            li.blurb ul.tags li, dl.meta dd ul.tags li, ul.tags.commas li { display: inline; }
+            
+            /* 屏蔽器样式 */
+            .ao3-blocker-hidden { display: none !important; }
+            .ao3-blocker-work { padding: 0 !important; min-height: auto !important; }
+            .ao3-blocker-fold {
+                display: flex !important; flex-direction: row !important;
+                justify-content: space-between !important; align-items: center !important;
+                padding: 0.6em 1em !important; background: transparent !important;
+                border: none !important; box-shadow: none !important; opacity: 1 !important;
+                width: 100% !important; box-sizing: border-box !important;
+            }
+            .ao3-blocker-note {
+                font-size: 13px !important; color: inherit !important;
+                font-style: normal !important; font-weight: normal !important;
+                flex: 1 !important; margin-right: 10px !important; word-break: break-all !important;
+            }
+            .ao3-blocker-toggle {
+                padding: 4px !important; margin: 0 !important; background: transparent !important;
+                border: none !important; box-shadow: none !important; color: inherit !important;
+                cursor: pointer !important; display: flex !important; align-items: center !important;
+                justify-content: center !important; user-select: none !important; flex-shrink: 0 !important;
+                outline: none !important;
+            }
+            .ao3-blocker-toggle svg { width: 20px; height: 20px; fill: currentColor; cursor: pointer; }
+            .ao3-blocker-cut { display: none !important; }
+            .ao3-blocker-unhide > .ao3-blocker-fold {
+                border-bottom: 1px solid currentColor !important;
+                border-bottom-color: rgba(127, 127, 127, 0.25) !important; margin-bottom: 0 !important;
+            }
+            .ao3-blocker-unhide > .ao3-blocker-cut { display: block !important; padding: 10px !important; }
+        `;
+		GM_addStyle(styles);
+	}
+
+	/**
+	 * 初始化快速屏蔽功能 (Alt + Click)
+	 */
+	function initQuickBlockFeature() {
 		document.addEventListener('click', (e) => {
 			if (!e.altKey || e.button !== 0) return;
 
@@ -12560,12 +17721,10 @@
 					addBlockRule('ao3_blocker_content_id', idMatch[1]);
 					added = true;
 				}
-			}
-			else if (link.rel && link.rel.includes('author')) {
+			} else if (link.rel && link.rel.includes('author')) {
 				addBlockRule('ao3_blocker_content_author', text);
 				added = true;
-			}
-			else if (link.classList.contains('tag')) {
+			} else if (link.classList.contains('tag')) {
 				addBlockRule('ao3_blocker_tags_black', `'${text}'`);
 				added = true;
 			}
@@ -12576,114 +17735,173 @@
 				e.stopImmediatePropagation();
 				link.style.pointerEvents = 'none';
 				setTimeout(() => { link.style.pointerEvents = ''; }, 100);
-				refreshBlocker('incremental');
+				SettingsSyncManager.syncBlocker('incremental');
 			}
 		}, true);
+	}
 
-		const globalStyles = document.createElement('style');
-		globalStyles.textContent = `
-            .autocomplete.dropdown p.notice {
-                margin-bottom: 0;
-            }
-            .translated-by-ao3-translator, .translated-by-ao3-translator-error {
-                margin-top: 15px;
-                margin-bottom: 15px;
-            }
-            li.post .userstuff {
-                margin-bottom: 15px;
-            }
-            li.post .userstuff .translated-by-ao3-translator {
-                margin-bottom: 0;
-            }
-            .translate-me-ao3-wrapper {
-                border: none;
-                background: transparent;
-                box-shadow: none;
-                margin-top: 15px;
-                margin-bottom: 5px;
-                clear: both;
-                display: block;
-            }
-            .translate-me-ao3-button {
-                color: #1b95e0;
-                font-size: small;
-                cursor: pointer;
-                display: inline-block;
-                margin-left: 10px;
-            }
-            .translated-tags-container {
-                margin-top: 15px;
-                margin-bottom: 10px;
-            }
-            .collection.profile .primary.header.module .translate-me-ao3-wrapper,
-            .collection.home .primary.header.module .translate-me-ao3-wrapper {
-                clear: none !important;
-                margin-left: 120px !important;
-                margin-top: 15px !important;
-                width: auto !important;
-            }
-            p.kudos {
-                line-height: 1.5;
-            }
-            .retry-translation-button {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                vertical-align: middle;
-                margin-left: 8px;
-                cursor: pointer;
-                color: #1b95e0;
-                -webkit-tap-highlight-color: transparent;
-                user-select: none;
-            }
-            .retry-translation-button:hover {
-                color: #0d8bd9;
-            }
-            .retry-translation-button:active {
-                opacity: 0.7;
-            }
-            .retry-translation-button svg {
-                width: 18px;
-                height: 18px;
-                fill: currentColor;
-            }
-
-            /* 标签翻译样式 */
-            .ao3-tag-translation {
-                margin-left: 6px;
-                opacity: 0.85;
-                font-size: 0.95em;
-                display: inline;
-                color: inherit;
-            }
-            /* 当处于仅译文模式时，移除左侧间隔 */
-            body.ao3-translation-only .ao3-tag-translation {
-                margin-left: 0;
-            }
-            
-            /* 标签原文包裹样式 */
-            .ao3-tag-original {
-                display: inline;
-            }
-            
-            /* 防止在标签列表中换行导致布局错乱 */
-            li.blurb ul.tags li, 
-            dl.meta dd ul.tags li, 
-            ul.tags.commas li {
-                display: inline;
-            }
-        `;
-		document.head.appendChild(globalStyles);
-		if (document.documentElement.lang !== CONFIG.LANG) {
-			document.documentElement.lang = CONFIG.LANG;
-		}
-		new MutationObserver(() => {
-			if (document.documentElement.lang !== CONFIG.LANG && document.documentElement.lang.toLowerCase().startsWith('en')) {
-				document.documentElement.lang = CONFIG.LANG;
+	/**
+	 * 跨标签页与 BFCache 状态同步管理器
+	 */
+	const CrossTabSyncManager = {
+		init() {
+			if (typeof GM_addValueChangeListener !== 'function') {
+				console.warn('[AO3 Translator] 跨标签页同步初始化失败：缺少 GM_addValueChangeListener 权限。');
+				return;
 			}
-		}).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
-		updatePageConfig('初始载入');
 
+			// 1. 监听核心键值
+			const coreKeys = [
+				CUSTOM_GLOSSARIES_KEY,
+				POST_REPLACE_RULES_KEY,
+				'transEngine',
+				'ao3_translation_mode',
+				CUSTOM_SERVICES_LIST_KEY,
+				AI_PROFILES_KEY,
+				'translation_display_mode',
+				FORMATTING_PROFILES_KEY,
+				FORMATTING_SELECTED_ID_KEY,
+				'ao3_log_level'
+			];
+
+			const blockerKeys = typeof BLOCKER_KEYS !== 'undefined' ? BLOCKER_KEYS : [];
+
+			[...coreKeys, ...blockerKeys].forEach(key => {
+				GM_addValueChangeListener(key, (name, old_value, new_value, remote) => {
+					if (remote) {
+						setTimeout(() => {
+							this.handleRemoteChange(name, new_value);
+						}, 50);
+					}
+				});
+			});
+
+			window.addEventListener('pageshow', (e) => {
+				if (e.persisted) {
+					setTimeout(() => this.handleWakeUp(), 100);
+				}
+			});
+		},
+
+		handleRemoteChange(key, newValue) {
+			Logger.info('System', `检测到跨标签页配置更改: ${key}`);
+			this.refreshMemoryAndUI(key, newValue);
+		},
+
+		handleWakeUp() {
+			Logger.info('System', '页面从 BFCache 唤醒，执行全局状态同步');
+			this.refreshMemoryAndUI('all');
+		},
+
+		refreshMemoryAndUI(key, newValue) {
+			// 1. 更新内存缓存
+			if (key === CUSTOM_GLOSSARIES_KEY || key === POST_REPLACE_RULES_KEY || key === 'all') {
+				invalidateGlossaryCache();
+			}
+			
+			if (key === 'ao3_translation_mode' || key === 'all') {
+				FeatureSet.enable_transDesc = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
+			}
+
+			if (key === 'ao3_log_level' || key === 'all') {
+				const newLevel = key === 'ao3_log_level' ? newValue : GM_getValue('ao3_log_level', DEFAULT_CONFIG.GENERAL.log_level);
+				if (newLevel !== undefined) {
+					Logger.config.level = newLevel;
+				}
+			}
+
+			// 2. 实时应用纯视觉 DOM 更改
+			if (key === 'translation_display_mode' || key === 'all') {
+				let mode;
+				if (key === 'translation_display_mode') {
+					mode = newValue !== undefined ? newValue : DEFAULT_CONFIG.GENERAL.translation_display_mode;
+				} else {
+					mode = GM_getValue('translation_display_mode', DEFAULT_CONFIG.GENERAL.translation_display_mode);
+				}
+				applyDisplayModeChange(mode);
+			}
+			
+			if (key === FORMATTING_PROFILES_KEY || key === FORMATTING_SELECTED_ID_KEY || key === 'all') {
+				applyFormatting();
+			}
+
+			if ((typeof BLOCKER_KEYS !== 'undefined' && BLOCKER_KEYS.includes(key)) || key === 'all') {
+				if (typeof refreshBlocker === 'function') {
+					refreshBlocker('full');
+				}
+			}
+
+			// 3. 触发面板状态同步事件
+			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.PANEL_STATE_SYNC));
+		}
+	};
+
+	/**
+	 * 脚本主入口
+	 */
+	function main() {
+		// 环境检查
+		if (window.top !== window.self) return;
+		if (window.ao3_translator_running) {
+			Logger.warn('System', '检测到脚本重复执行，已拦截');
+			return;
+		}
+		window.ao3_translator_running = true;
+
+		// 全局异常捕获
+		window.addEventListener('error', (event) => {
+			Logger.error('System', '未捕获的全局异常', {
+				message: event.message,
+				filename: event.filename,
+				lineno: event.lineno,
+				colno: event.colno,
+				stack: event.error ? event.error.stack : null
+			});
+		});
+
+		window.addEventListener('unhandledrejection', (event) => {
+			Logger.error('System', '未处理的 Promise 拒绝', {
+				reason: event.reason ? (event.reason.stack || event.reason.message || event.reason) : 'Unknown'
+			});
+		});
+
+		// 基础数据与样式初始化
+		Logger.init(); 
+		Logger.info('System', `插件初始化开始，版本：v${GM_info.script.version}`);
+		normalizeAllApiKeys();
+		// 初始化 Shadow DOM
+		initShadowDOM();
+		ProfileManager.init();
+		FormattingManager.init();
+		// 初始化翻译缓存数据库，并在后台触发自动清理
+		TranslationCacheDB.init().then(() => {
+			TranslationCacheDB.autoCleanup();
+		});
+		runDataMigration();
+		updateBlockerCache();
+		checkForGlossaryUpdates();
+		initGlobalStyles();
+		applyFormatting();
+
+		// 初始化跨标签页同步
+		CrossTabSyncManager.init();
+
+		// UI 组件初始化
+		const fabElements = createFabUI();
+		const statusLightController = new FabStatusLight(fabElements.fabContainer, fabElements.statusLight);
+		const panelElements = createSettingsPanelUI();
+		const handlePanelClose = () => fabLogic?.retractFab();
+		const panelLogic = initializeSettingsPanelLogic(panelElements, () => rerenderMenu(), handlePanelClose);
+		const fabLogic = initializeFabInteraction(fabElements, panelLogic, statusLightController);
+
+		// 交互功能初始化
+		initQuickBlockFeature();
+
+		// 初始化整页翻译控制器
+		const fullPageController = createFullPageTranslationController({ statusLightController });
+
+		// 翻译业务调度
+		updatePageConfig('初始载入');
 		if (pageConfig.currentPageType) {
 			if (FeatureSet.enable_ui_trans) {
 				transTitle();
@@ -12691,23 +17909,58 @@
 				traverseNode(document.body);
 				runHighPriorityFunctions();
 			}
-			
 			scanAllWorks();
-
 			fabLogic.toggleFabVisibility();
-			if (FeatureSet.enable_transDesc) {
+
+			// 根据当前模式决定执行哪种翻译逻辑
+			const currentMode = GM_getValue('ao3_translation_mode', 'unit');
+			if (currentMode === 'full_page') {
+				fullPageController.checkAutoTranslate();
+			} else if (FeatureSet.enable_transDesc) {
 				setTimeout(transDesc, 1000);
 			}
 		}
-		rerenderMenu = setupMenuCommands(fabLogic, panelLogic);
+
+		// 菜单与监听器启动
+		const rerenderMenu = setupMenuCommands(fabLogic, panelLogic);
 		rerenderMenu();
-		watchUpdate(fabLogic);
+		watchUpdate(fabLogic, fullPageController);
+
+		// 监听自定义事件
+		document.addEventListener(CUSTOM_EVENTS.MODE_CHANGED, (e) => {
+			const newMode = e.detail.mode;
+			FeatureSet.enable_transDesc = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
+			fullPageController.clearAllTranslations();
+
+			if (newMode === 'full_page') {
+				fullPageController.checkAutoTranslate();
+			} else {
+				if (FeatureSet.enable_transDesc) {
+					transDesc();
+				}
+			}
+		});
+
+		document.addEventListener(CUSTOM_EVENTS.AUTO_TRANSLATE_CHANGED, (e) => {
+			const isEnabled = e.detail.enabled;
+			if (isEnabled) {
+				fullPageController.checkAutoTranslate();
+			} else {
+				fullPageController.clearAllTranslations();
+			}
+		});
+
+		document.addEventListener(CUSTOM_EVENTS.FAB_CLICKED, () => {
+			if (fullPageController) {
+				fullPageController.handleFabClick();
+			}
+		});
 	}
 
 	/**
 	 * 监视页面变化
 	 */
-	function watchUpdate(fabLogic) {
+	function watchUpdate(fabLogic, fullPageController) {
 		let previousURL = window.location.href;
 
 		const handleUrlChange = () => {
@@ -12715,77 +17968,182 @@
 			if (currentURL !== previousURL) {
 				previousURL = currentURL;
 				updatePageConfig('URL变化');
+
 				if (FeatureSet.enable_ui_trans) {
 					transTitle();
 					transBySelector();
 					traverseNode(document.body);
 					runHighPriorityFunctions();
 				}
+
 				scanAllWorks();
 				fabLogic.toggleFabVisibility();
-				if (FeatureSet.enable_transDesc) {
+
+				const currentMode = GM_getValue('ao3_translation_mode', 'unit');
+				if (currentMode === 'full_page') {
+					fullPageController.isPseudoOff = false;
+					fullPageController.checkAutoTranslate();
+				} else if (FeatureSet.enable_transDesc) {
 					transDesc();
 				}
 			}
 		};
 
-		const processMutations = mutations => {
-			if (BlockerCache.enabled) {
-				let hasNewBlurbs = false;
-				for (const mutation of mutations) {
-					if (mutation.type === 'childList') {
-						for (const node of mutation.addedNodes) {
-							if (node.nodeType === 1) {
-								if (node.classList.contains('blurb') || node.querySelector('li.blurb')) {
-									hasNewBlurbs = true;
-									break;
-								}
-							}
-						}
-					}
-					if (hasNewBlurbs) break;
+		const dirtyNodes = new Set();
+		let hasNewBlurbs = false;
+		let isUiUpdateScheduled = false;
+
+		const processBlockerQueue = debounce(() => {
+			if (BlockerCache.enabled && hasNewBlurbs) {
+				checkWorksSynchronously();
+				hasNewBlurbs = false;
+			}
+		}, 200);
+
+		const processUiQueue = async () => {
+			if (dirtyNodes.size === 0) return;
+
+			const rawNodes =[...dirtyNodes];
+			dirtyNodes.clear();
+			isUiUpdateScheduled = false;
+
+			// 1. 提取有效的 Element 节点
+			const scopeNodes = new Set();
+			rawNodes.forEach(node => {
+				if (node.nodeType === Node.ELEMENT_NODE) {
+					scopeNodes.add(node);
+				} else if (node.parentElement) {
+					scopeNodes.add(node.parentElement);
 				}
-				if (hasNewBlurbs) {
-					checkWorksSynchronously();
+			});
+
+			// 2. 过滤嵌套节点，只保留最外层
+			const rootNodes =[];
+			const scopeArray =[...scopeNodes].filter(el => document.documentElement.contains(el));
+			
+			for (let i = 0; i < scopeArray.length; i++) {
+				let isChild = false;
+				for (let j = 0; j < scopeArray.length; j++) {
+					if (i !== j && scopeArray[j].contains(scopeArray[i])) {
+						isChild = true;
+						break;
+					}
+				}
+				if (!isChild) {
+					rootNodes.push(scopeArray[i]);
 				}
 			}
 
-			const nodesToProcess = mutations.flatMap(({ target, addedNodes, type }) => {
-				if (type === 'childList' && addedNodes.length > 0) {
-					return Array.from(addedNodes);
-				}
-				if (type === 'attributes' || (type === 'characterData' && pageConfig.characterData)) {
-					return [target];
-				}
-				return [];
-			});
+			const currentMode = GM_getValue('ao3_translation_mode', 'unit');
+			
+			// 获取当前格式化配置，判断是否需要清理缩进
+			const currentProfile = FormattingManager.getCurrentProfile();
 
-			if (nodesToProcess.length === 0) return;
+			TimeSlicer.reset();
 
-			const uniqueNodes = [...new Set(nodesToProcess)];
-			uniqueNodes.forEach(node => {
-				if (node.nodeType === Node.ELEMENT_NODE || node.parentElement) {
-					if (FeatureSet.enable_ui_trans) {
-						traverseNode(node);
-						runHighPriorityFunctions(node.parentElement || node);
-					}
+			// 3. 仅对最外层节点执行处理
+			for (let i = 0; i < rootNodes.length; i++) {
+				const scopeNode = rootNodes[i];
+
+				splitBrParagraphs(scopeNode);
+				cleanManualIndents(scopeNode);
+
+				if (FeatureSet.enable_ui_trans) {
+					traverseNode(scopeNode);
+					transBySelector(scopeNode);
+					runHighPriorityFunctions(scopeNode);
 				}
-			});
+
+				if (currentMode === 'full_page') {
+					fullPageController.handleNewNodes(scopeNode);
+				} else if (FeatureSet.enable_transDesc) {
+					transDesc(scopeNode);
+				}
+
+				await TimeSlicer.yieldIfNeeded(15);
+			}
 
 			fabLogic.toggleFabVisibility();
-			if (FeatureSet.enable_transDesc) {
-				transDesc();
-			}
 		};
 
 		const observer = new MutationObserver(mutations => {
 			handleUrlChange();
-			if (window.location.href === previousURL) {
-				processMutations(mutations);
+			if (window.location.href !== previousURL) return;
+
+			let needsUiUpdate = false;
+
+			for (const mutation of mutations) {
+
+				if (mutation.target.nodeType === Node.ELEMENT_NODE) {
+					const el = mutation.target;
+					if (
+						el.classList.contains('ao3-translated-content') ||
+						el.classList.contains('translate-me-ao3-wrapper') ||
+						el.classList.contains('ao3-tag-translation')
+					) {
+						continue;
+					}
+				}
+
+				if (BlockerCache.enabled && mutation.type === 'childList') {
+					for (const node of mutation.addedNodes) {
+						if (node.nodeType === 1 && (node.classList.contains('blurb') || node.querySelector('li.blurb'))) {
+							hasNewBlurbs = true;
+							processBlockerQueue();
+							break;
+						}
+					}
+				}
+
+				if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+					mutation.addedNodes.forEach(node => {
+						// 获取用于判断的 Element 节点
+						const checkNode = node.nodeType === 1 ? node : node.parentElement;
+						
+						if (checkNode) {
+							// 将所有插件生成的包裹类名加入忽略列表
+							if (checkNode.classList && (
+								checkNode.classList.contains('ao3-translated-content') ||
+								checkNode.classList.contains('ao3-original-content') ||
+								checkNode.classList.contains('ao3-translated-title') ||
+								checkNode.classList.contains('ao3-original-title') ||
+								checkNode.classList.contains('ao3-tag-translation') ||
+								checkNode.classList.contains('ao3-tag-original'))) return;
+								
+							// 忽略插件自身 UI 元素的 DOM 插入
+							if (checkNode.closest && checkNode.closest('#ao3-trans-settings-panel, #ao3-trans-fab-container, .custom-dropdown-menu, .custom-dropdown-backdrop, #ao3-data-selection-overlay, #ao3-custom-confirm-overlay, #ai-service-overlay, .translated-by-ao3-translator-error')) {
+								return;
+							}
+						}
+						dirtyNodes.add(node);
+					});
+					if (dirtyNodes.size > 0) needsUiUpdate = true; 
+				} else if (
+					mutation.type === 'attributes' ||
+					(mutation.type === 'characterData' && pageConfig.characterData)
+				) {
+					if (mutation.target === document.body && mutation.attributeName === 'class') {
+						return; 
+					}
+
+					if (mutation.target.nodeType === 1 && mutation.target.closest && mutation.target.closest('#ao3-trans-settings-panel, #ao3-trans-fab-container')) {
+						continue;
+					}
+					dirtyNodes.add(mutation.target);
+					needsUiUpdate = true;
+				}
+			}
+
+			if (needsUiUpdate && !isUiUpdateScheduled) {
+				isUiUpdateScheduled = true;
+				queueMicrotask(processUiQueue);
 			}
 		});
 
-		observer.observe(document.documentElement, { ...CONFIG.OBSERVER_CONFIG, subtree: true });
+		observer.observe(document.documentElement, {
+			...CONFIG.OBSERVER_CONFIG,
+			subtree: true
+		});
 	}
 
 	/**
@@ -12796,7 +18154,9 @@
 		if (!rootElement || typeof rootElement.querySelectorAll !== 'function') {
 			return;
 		}
-		const innerHTMLRules = pageConfig.innerHTMLRules || [];
+
+		// 1. 局部可执行的规则
+		const innerHTMLRules = pageConfig.innerHTMLRules ||[];
 		if (innerHTMLRules.length > 0) {
 			innerHTMLRules.forEach(rule => {
 				if (!Array.isArray(rule) || rule.length !== 3) return;
@@ -12813,14 +18173,41 @@
 				} catch (e) { /* 忽略无效的选择器 */ }
 			});
 		}
+
 		const kudosDiv = rootElement.querySelector('#kudos');
 		if (kudosDiv && !kudosDiv.dataset.kudosObserverAttached) {
 			translateKudosSection();
 		}
 
-		// 通用的后处理和格式化函数
 		handleTrailingPunctuation(rootElement);
-		translateSymbolsKeyModal(rootElement);
+		translateHeadingTags();
+
+		// 统一寻找并重新格式化所有日期容器
+		const dateSelectors =[
+			'.header.module .meta span.published',
+			'li.collection .summary p:has(abbr.day)',
+			'.comment .posted.datetime',
+			'.comment .edited.datetime',
+			'dd.datetime',
+			'p:has(> span.datetime)',
+			'p.caution.notice > span:has(abbr.day)',
+			'p.notice > span:has(abbr.day)',
+			'div.flash.notice span.datetime',
+		];
+		rootElement.querySelectorAll(dateSelectors.join(', ')).forEach(reformatDateInElement);
+
+		// 2. 拦截全局查询
+		const isGlobal = rootElement === document;
+		const isModal = rootElement.id === 'modal' || (rootElement.closest && rootElement.closest('#modal'));
+		const isMain = rootElement.id === 'main' || (rootElement.closest && rootElement.closest('#main'));
+		const isTosPrompt = rootElement.id === 'tos_prompt' || (rootElement.closest && rootElement.closest('#tos_prompt'));
+		
+		if (!isGlobal && !isModal && !isMain && !isTosPrompt) {
+			return; 
+		}
+
+		// 仅在页面初次加载或弹窗打开时执行
+		translateSymbolsKeyModal();
 		translateFirstLoginBanner();
 		translateBookmarkSymbolsKeyModal();
 		translateRatingHelpModal();
@@ -12884,52 +18271,17 @@
 		translateTagSetsHeading();
 		translateFoundResultsHeading();
 		translateTOSPrompt();
-		translateHeadingTags();
-		// 统一寻找并重新格式化所有日期容器
-		const dateSelectors = [
-			'.header.module .meta span.published',
-			'li.collection .summary p:has(abbr.day)',
-			'.comment .posted.datetime',
-			'.comment .edited.datetime',
-			'dd.datetime',
-			'p:has(> span.datetime)',
-			'p.caution.notice > span:has(abbr.day)',
-			'p.notice > span:has(abbr.day)',
-			'div.flash.notice span.datetime',
-		];
-		rootElement.querySelectorAll(dateSelectors.join(', '))
-			.forEach(reformatDateInElement);
+
 		// 根据当前页面类型，调用页面专属的翻译和处理函数
 		const pageType = pageConfig.currentPageType;
 
-		if (pageType === 'about_page') {
-			translateAboutPage();
-		}
-
-		if (pageType === 'diversity_statement') {
-			translateDiversityStatement();
-		}
-
-		if (pageType === 'donate_page') {
-			translateDonatePage();
-		}
-
-		if (pageType === 'tag_sets_new' || pageType === 'collections_dashboard_common') {
-			reorderCategoryCheckboxes();
-		}
-
-		if (pageType === 'front_page') {
-			translateFrontPageIntro();
-		}
-
-		if (pageType === 'invite_requests_index') {
-			translateInvitationRequestsPage();
-		}
-
-		if (pageType === 'error_too_many_requests') {
-			translateTooManyRequestsPage();
-		}
-
+		if (pageType === 'about_page') translateAboutPage();
+		if (pageType === 'diversity_statement') translateDiversityStatement();
+		if (pageType === 'donate_page') translateDonatePage();
+		if (pageType === 'tag_sets_new' || pageType === 'collections_dashboard_common') reorderCategoryCheckboxes();
+		if (pageType === 'front_page') translateFrontPageIntro();
+		if (pageType === 'invite_requests_index') translateInvitationRequestsPage();
+		if (pageType === 'error_too_many_requests') translateTooManyRequestsPage();
 		if (pageType === 'works_search') {
 			translateWorkSearchDateTips();
 			translateWorkSearchCrossoverTips();
@@ -12937,11 +18289,7 @@
 			translateWorkSearchLanguageTips();
 			translateWorkSearchTagsTips();
 		}
-
-		if (pageType === 'people_search') {
-			translatePeopleSearchTips();
-		}
-
+		if (pageType === 'people_search') translatePeopleSearchTips();
 		if (pageType === 'bookmarks_search') {
 			translateBookmarkSearchWorkTagsTips();
 			translateBookmarkSearchTypeTips();
@@ -12951,14 +18299,8 @@
 			translateBookmarkSearchNotesTips();
 			translateBookmarkSearchDateBookmarkedTips();
 		}
-
-		if (pageType === 'tags_search') {
-			translateTagSearchTips();
-		}
-
-		if (pageType === 'users_stats') {
-			translateStatsChart();
-		}
+		if (pageType === 'tags_search') translateTagSearchTips();
+		if (pageType === 'users_stats') translateStatsChart();
 	}
 
 	/**
@@ -12972,6 +18314,8 @@
 			pageConfig = buildPageConfig(newType);
 		}
 	}
+
+	const TranslationMemory = new Map();
 
 	/**
 	 * 构建页面设置 pageConfig 对象
@@ -13035,13 +18379,29 @@
 
 		const mergedPageFlexible = { ...extraFlexible, ...pageFlexible };
 
+		const compileFlexibleRegex = (dict) => {
+			const keys = Object.keys(dict);
+			if (keys.length === 0) return null;
+			const regexParts = keys.map(key => {
+				const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				return /^[\w\s]+$/.test(key) ? `\\b${escapedKey}\\b` : escapedKey;
+			});
+			return new RegExp(`(${regexParts.join('|')})`, 'g');
+		};
+
+		if (typeof TranslationMemory !== 'undefined') {
+			TranslationMemory.clear();
+		}
+
 		return {
 			currentPageType: pageType,
 			staticDict: mergedStatic,
 			regexpRules: mergedRegexp,
 			innerHTMLRules: mergedInnerHTMLRegexp,
 			globalFlexibleDict: globalFlexible,
+			globalFlexibleRegex: compileFlexibleRegex(globalFlexible),
 			pageFlexibleDict: mergedPageFlexible,
+			pageFlexibleRegex: compileFlexibleRegex(mergedPageFlexible),
 			ignoreMutationSelectors: [
 				...(I18N.conf.ignoreMutationSelectorPage['*'] || []),
 				...(I18N.conf.ignoreMutationSelectorPage[pageType] || [])
@@ -13213,6 +18573,13 @@
 					if (p2 === 'new') {
 						return 'collections_new';
 					}
+					if (p3 === 'works' && p4 && /^\d+$/.test(p4)) {
+						if (p5 === 'chapters' && pathSegments[5] === 'new') return 'chapters_new';
+						if (p5 === 'chapters' && pathSegments[5] && /^\d+$/.test(pathSegments[5]) && pathSegments[6] === 'edit') return 'chapters_edit';
+						if (p5 === 'edit_tags') return 'works_edit_tags';
+						if (p5 === 'edit') return 'works_edit';
+						if (!p5 || p5 === 'navigate' || (p5 === 'chapters' && pathSegments[5])) return 'works_chapters_show';
+					}
 					return 'collections_dashboard_common';
 				case 'tags':
 					if (p2) {
@@ -13260,94 +18627,59 @@
 	 * @param {Node} rootNode - 需要遍历的节点。
 	 */
 	function traverseNode(rootNode) {
-
-		if (rootNode.nodeType === Node.TEXT_NODE) {
-			if (rootNode.nodeValue && rootNode.nodeValue.length <= 1000) {
-				if (rootNode.parentElement && rootNode.parentElement.closest(pageConfig.ignoreSelectors)) {
-					return;
-				}
-				transElement(rootNode, 'nodeValue');
-			}
+		if (rootNode.nodeType === Node.ELEMENT_NODE && rootNode.matches(pageConfig.ignoreSelectors)) {
 			return;
 		}
 
-		if (rootNode.nodeType === Node.ELEMENT_NODE && rootNode.closest(pageConfig.ignoreSelectors)) {
-			return;
-		}
-
-		const treeWalker = document.createTreeWalker(
-			rootNode,
-			NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
-			node => {
-				if (node.nodeType === Node.ELEMENT_NODE && node.closest(pageConfig.ignoreSelectors)) {
-					return NodeFilter.FILTER_REJECT;
+		const processNode = node => {
+			if (node.nodeType === Node.TEXT_NODE) {
+				if (node.nodeValue && node.nodeValue.length <= 1000) {
+					transElement(node, 'nodeValue');
 				}
-				if (node.nodeType === Node.TEXT_NODE && node.parentElement && node.parentElement.closest(pageConfig.ignoreSelectors)) {
-					return NodeFilter.FILTER_REJECT;
-				}
-				return NodeFilter.FILTER_ACCEPT;
-			}
-		);
+			} else if (node.nodeType === Node.ELEMENT_NODE) {
+				if (node.hasAttribute('title')) transElement(node, 'title');
+				if (node.hasAttribute('aria-label')) transElement(node, 'ariaLabel');
 
-		const handleElement = node => {
-			switch (node.tagName) {
-				case 'INPUT':
-				case 'TEXTAREA':
+				const tag = node.tagName;
+
+				if (tag === 'INPUT' || tag === 'TEXTAREA') {
 					if (['button', 'submit', 'reset'].includes(node.type)) {
-						transElement(node.dataset, 'confirm');
 						transElement(node, 'value');
+						transElement(node.dataset, 'confirm');
 					} else {
 						transElement(node, 'placeholder');
-						transElement(node, 'title');
 					}
-					break;
-				case 'OPTGROUP':
+				} else if (tag === 'BUTTON') {
+					['confirm', 'confirmText', 'confirmCancelText', 'disableWith']
+						.forEach(k => transElement(node.dataset, k));
+				} else if (tag === 'A') {
+					transElement(node.dataset, 'confirm');
+				} else if (tag === 'OPTGROUP') {
 					transElement(node, 'label');
-					break;
-				case 'BUTTON':
-					transElement(node, 'title');
-					transElement(node.dataset, 'confirm');
-					transElement(node.dataset, 'confirmText');
-					transElement(node.dataset, 'confirmCancelText');
-					transElement(node.dataset, 'disableWith');
-					break;
-				case 'A':
-					transElement(node, 'title');
-					transElement(node.dataset, 'confirm');
-					break;
-				case 'SPAN':
-				case 'DIV':
-				case 'P':
-				case 'LI':
-				case 'DD':
-				case 'DT':
-				case 'H1': case 'H2': case 'H3': case 'H4': case 'H5': case 'H6':
-					transElement(node, 'title');
-					break;
-				case 'IMG':
+				} else if (tag === 'IMG') {
 					transElement(node, 'alt');
-					break;
-				default:
-					if (node.hasAttribute('aria-label')) transElement(node, 'ariaLabel');
-					if (node.hasAttribute('title')) transElement(node, 'title');
-					break;
+				}
 			}
 		};
 
-		const handleTextNode = node => {
-			if (node.nodeValue && node.nodeValue.length <= 1000) {
-				transElement(node, 'nodeValue');
+		processNode(rootNode);
+
+		if (rootNode.nodeType === Node.ELEMENT_NODE) {
+			const treeWalker = document.createTreeWalker(
+				rootNode,
+				NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+				node => {
+					if (node.parentElement && node.parentElement.closest(pageConfig.ignoreSelectors)) {
+						return NodeFilter.FILTER_REJECT;
+					}
+					return NodeFilter.FILTER_ACCEPT;
+				}
+			);
+
+			let currentNode;
+			while ((currentNode = treeWalker.nextNode())) {
+				processNode(currentNode);
 			}
-		};
-
-		const handlers = {
-			[Node.ELEMENT_NODE]: handleElement,
-			[Node.TEXT_NODE]: handleTextNode
-		};
-
-		let currentNode;
-		while ((currentNode = treeWalker.nextNode())) {
-			handlers[currentNode.nodeType]?.(currentNode);
 		}
 	}
 
@@ -13397,23 +18729,15 @@
 	 */
 	function transText(text, el) {
 		if (!text || typeof text !== 'string') return false;
+		if (TranslationMemory.has(text)) {
+			return TranslationMemory.get(text);
+		}
+
 		const originalText = text;
 		let translatedText = text;
 
-		const applyFlexibleDict = (targetText, dict) => {
-			if (!dict) return targetText;
-			const keys = Object.keys(dict);
-			if (keys.length === 0) return targetText;
-
-			const regexParts = keys.map(key => {
-				const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-				if (/^[\w\s]+$/.test(key)) {
-					return `\\b${escapedKey}\\b`;
-				} else {
-					return escapedKey;
-				}
-			});
-			const flexibleRegex = new RegExp(`(${regexParts.join('|')})`, 'g');
+		const applyFlexibleDict = (targetText, dict, precompiledRegex) => {
+			if (!dict || !precompiledRegex) return targetText;
 
 			if (el && el.nodeType === Node.TEXT_NODE && el.parentElement && el.parentElement.matches('h2.heading a.tag')) {
 				const fullTagText = el.parentElement.textContent.trim();
@@ -13424,11 +18748,11 @@
 				}
 			}
 
-			return targetText.replace(flexibleRegex, (matched) => dict[matched] || matched);
+			return targetText.replace(precompiledRegex, (matched) => dict[matched] || matched);
 		};
 
-		translatedText = applyFlexibleDict(translatedText, pageConfig.pageFlexibleDict);
-		translatedText = applyFlexibleDict(translatedText, pageConfig.globalFlexibleDict);
+		translatedText = applyFlexibleDict(translatedText, pageConfig.pageFlexibleDict, pageConfig.pageFlexibleRegex);
+		translatedText = applyFlexibleDict(translatedText, pageConfig.globalFlexibleDict, pageConfig.globalFlexibleRegex);
 
 		const staticDict = pageConfig.staticDict || {};
 		const trimmedText = translatedText.trim();
@@ -13441,27 +18765,29 @@
 				if (!Array.isArray(rule) || rule.length !== 2) continue;
 				const [pattern, replacement] = rule;
 				if (pattern.test(translatedText)) {
-					if (typeof replacement === 'function') {
-						translatedText = translatedText.replace(pattern, replacement);
-					} else {
-						translatedText = translatedText.replace(pattern, replacement);
-					}
+					translatedText = translatedText.replace(pattern, replacement);
 				}
 			}
 		}
-		return translatedText !== originalText ? translatedText : false;
+
+		const finalResult = translatedText !== originalText ? translatedText : false;
+
+		if (TranslationMemory.size > 5000) TranslationMemory.clear();
+		TranslationMemory.set(originalText, finalResult);
+
+		return finalResult;
 	}
 
 	/**
 	 * transBySelector 函数：通过 CSS 选择器找到页面上的元素，并将其文本内容替换为预定义的翻译。
 	 */
-	function transBySelector() {
+	function transBySelector(rootNode = document) {
 		if (!pageConfig.tranSelectors) return;
 		pageConfig.tranSelectors.forEach(rule => {
 			if (!Array.isArray(rule) || rule.length !== 2) return;
 			const [selector, translatedText] = rule;
 			try {
-				const elements = document.querySelectorAll(selector);
+				const elements = rootNode.querySelectorAll(selector);
 				elements.forEach(element => {
 					if (element && element.textContent !== translatedText) {
 						element.textContent = translatedText;
@@ -13472,83 +18798,24 @@
 		});
 	}
 
-    /**
-	 * 主翻译入口函数
+	/**
+	 * 主翻译入口函数 (单元模式)
 	 */
-	function transDesc() {
+	function transDesc(rootNode = document) {
 		if (!FeatureSet.enable_transDesc) {
 			return;
 		}
 
-		const universalRules = [
-			{ selector: 'blockquote.userstuff.summary', text: '翻译简介' },
-			{ selector: '.summary > blockquote.userstuff', text: '翻译简介' },
-			{ selector: 'blockquote.userstuff.notes', text: '翻译注释' },
-			{ selector: '.notes > blockquote.userstuff', text: '翻译注释' },
-			{ selector: '.comment blockquote.userstuff', text: '翻译评论' },
-			{ selector: 'div.bio > div.userstuff', text: '翻译简介' },
-			{ selector: '.pseud blockquote.userstuff', text: '翻译简介' },
-			{ selector: '.latest.news .post.group > blockquote.userstuff', text: '翻译概述' },
-			{ selector: 'dl.work.meta.group', text: '翻译标签', above: false, isTags: true },
-			{ selector: 'ul.tags.commas', text: '翻译标签', above: false, isTags: true },
-            { selector: '#admin-banner blockquote.userstuff', text: '翻译公告', insertInside: true },
-		];
-
-		const pageSpecificRules = {
-			'works_show': [
-				{ selector: '#chapters > .userstuff', text: '翻译正文', above: true, isLazyLoad: true },
-				{ selector: '#chapters > .chapter > .userstuff[role="article"]', text: '翻译正文', above: true, isLazyLoad: true }
-			],
-			'works_chapters_show': [
-				{ selector: '#chapters > .userstuff', text: '翻译正文', above: true, isLazyLoad: true },
-				{ selector: '#chapters > .chapter > .userstuff[role="article"]', text: '翻译正文', above: true, isLazyLoad: true }
-			],
-			'collections_dashboard_common': [
-				{ selector: '.primary.header.module blockquote.userstuff', text: '翻译概述', above: false, isLazyLoad: false },
-				{ selector: '#intro blockquote.userstuff', text: '翻译简介', above: false, isLazyLoad: false }
-			],
-			'admin_posts_show': [
-				{ selector: 'div[role="article"] > .userstuff', text: '翻译动态', above: true, isLazyLoad: true }
-			],
-			'admin_posts_index': [
-				{ selector: '.admin_posts-index div[role="article"] > .userstuff', text: '翻译动态', above: true, isLazyLoad: true }
-			],
-			'tos_page': [
-				{ selector: '#tos.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
-			],
-			'content_policy_page': [
-				{ selector: '#content.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
-			],
-			'privacy_policy_page': [
-				{ selector: '#privacy.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
-			],
-			'dmca_policy_page': [
-				{ selector: '#DMCA.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
-			],
-			'tos_faq_page': [
-				{ selector: '.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
-			],
-			'wrangling_guidelines_page': [
-				{ selector: '.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
-			],
-			'faq_page': [
-				{ selector: '.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
-			],
-			'known_issues_page': [
-				{ selector: '.admin.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
-			],
-			'report_and_support_page': [
-				{ selector: '.userstuff', text: '翻译内容', above: true, isLazyLoad: true }
-			]
-		};
-
 		const applyRules = (rules) => {
 			rules.forEach(rule => {
+				if (rule.isTitle) return;
+                if (rule.fullPageOnly) return;
+
 				if (rule.selector === 'ul.tags.commas' && (pageConfig.currentPageType === 'admin_posts_show' || pageConfig.currentPageType === 'admin_posts_index' || pageConfig.currentPageType === 'collections_dashboard_common')) {
 					return;
 				}
 
-				document.querySelectorAll(rule.selector).forEach(element => {
+				rootNode.querySelectorAll(rule.selector).forEach(element => {
 					if (element.dataset.translationHandled) return;
 					if (element.textContent.trim() === '') return;
 					if (rule.isLazyLoad && element.closest('.summary, .notes, .comment')) return;
@@ -13566,20 +18833,22 @@
 						linkedTagsNode = blurbContainer.querySelector('ul.tags.commas');
 					}
 
+					element.dataset.translationRule = JSON.stringify(rule);
+
 					addTranslationButton(element, rule.text, rule.above || false, rule.isLazyLoad || false, rule.isTags || false, linkedTagsNode, rule.insertInside || false);
 				});
 			});
 		};
 
-		applyRules(universalRules);
+		applyRules(TRANSLATION_TARGET_RULES.universal);
 
-		const currentSpecificRules = pageSpecificRules[pageConfig.currentPageType];
+		const currentSpecificRules = TRANSLATION_TARGET_RULES.specific[pageConfig.currentPageType];
 		if (currentSpecificRules) {
 			applyRules(currentSpecificRules);
 		}
 	}
 
-    /**
+	/**
 	 * 为指定元素添加翻译按钮
 	 */
 	function addTranslationButton(element, originalButtonText, isAbove, isLazyLoad, isTags, linkedTagsNode = null, insertInside = false) {
@@ -13587,6 +18856,7 @@
 
 		const wrapper = document.createElement('div');
 		wrapper.className = 'translate-me-ao3-wrapper state-idle';
+		wrapper.dataset.translationState = 'skipped';
 
 		if (isTags) {
 			wrapper.classList.add('type-tags');

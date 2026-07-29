@@ -1,0 +1,78 @@
+版本号：1.0.1
+维护者：yaojy0205@163.com(补充请email)
+更新时间：2026-02-05
+
+// 编写时，请至少包含“词条”、“通用词条”、“禁翻词条”、“正则表达式”这 4 个部分中的 1 个
+// 正则表达式区域外，使用引号包裹带有标点符号的原文词条
+
+词条
+// 此区域区分大小写，用于翻译人名等专有名词
+ISA：以色列情报机构
+CIA：中央情报局
+NSA：国家安全局
+
+通用词条
+// 此区域不区分大小写，用于翻译通用概念
+Person of Interest：相关人员
+Relevant Number：相关号码
+Irrelevant Number：无关号码
+Northern Lights：北方灯塔
+Asset：资产
+Operative：行动人员
+Prediction：预测
+Correction：修正
+Constraint：限制
+Collateral Damage：附带伤亡
+False Positive：误判
+Extraction：撤离
+Neutralize：中和
+Neutralization：中和
+Kill Zone：击杀区
+Intervention：干预
+Facial Recognition：人脸识别
+Gait Analysis：步态分析
+Metadata：元数据
+Cell Tower Ping：基站定位
+Burner Phone：一次性手机
+Dead Drop：秘密交接点
+Black Site：黑站
+Decima Technologies：德西玛科技
+Vigilance：警戒组织
+Samaritan：撒玛利亚人
+
+禁翻词条
+// 此区域区分大小写，用于保持原文
+POI
+HR
+Harold
+Finch
+John
+Reese
+Harold Finch
+John Reese
+Root
+Sameen
+Shaw
+Sameen Shaw
+Fusco
+Lionel Fusco
+Carter
+Joss Carter
+Greer
+Control
+Alicia Corwin
+John Greer
+Zoe Morgan
+Zoe
+Logan Pierce
+Leon Tao
+Claire Mahoney
+Cal Beecher
+Harper Rose
+Jessica Arndt
+Kara Stanton
+Mark Snow
+Peter Arndt
+Collier
+Bear
+The Machine

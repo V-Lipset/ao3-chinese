@@ -1,0 +1,93 @@
+name: Sync Wiki to Glossary JSON
+
+on:
+  gollum
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Main Repo
+        uses: actions/checkout@v4
+        with:
+          path: main_repo
+
+      - name: Checkout Wiki Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: wiki_repo
+
+      - name: Parse Wiki to JSON
+        shell: python
+        run: |
+          import re
+          import json
+          import os
+
+          wiki_path = 'wiki_repo/在线术语库.md'
+          output_path = 'main_repo/glossaries/glossary-index.json'
+
+          if not os.path.exists(wiki_path):
+              print(f"Error: {wiki_path} not found.")
+              exit(0)
+
+          with open(wiki_path, 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          sections = re.split(r'\n(?=### )', content)
+          results =[]
+
+          for section in sections:
+              if not section.strip().startswith('###'):
+                  continue
+              
+              name_match = re.search(r'###\s+(.*)', section)
+              url_match = re.search(r'\*\s+链接[:：]\s*(?:\[.*?\]\()?(https?://[^\s\)]+)\)?', section)
+              maint_match = re.search(r'\*\s+维护者[:：]\s*\[(.*?)\]\((.*?)\)', section)
+              alias_match = re.search(r'\*\s+译名[:：]\s*(.*)', section)
+
+              if name_match and url_match and maint_match:
+                  main_name = name_match.group(1).strip()
+                  url = url_match.group(1).strip()
+                  maintainer = maint_match.group(1).strip()
+                  feedback = maint_match.group(2).strip()
+
+                  if feedback.startswith('mailto:'):
+                      feedback = feedback.replace('mailto:', '')
+
+                  tags =[]
+                  if alias_match:
+                      raw_aliases = alias_match.group(1).strip()
+                      tags = [t.strip() for t in re.split(r'[、，,/|]', raw_aliases) if t.strip()]
+
+                  results.append({
+                      "name": main_name,
+                      "tags": tags,
+                      "url": url,
+                      "maintainer": maintainer,
+                      "visibility": True,
+                      "feedback": feedback
+                  })
+
+          os.makedirs(os.path.dirname(output_path), exist_ok=True)
+          with open(output_path, 'w', encoding='utf-8') as f:
+              json.dump(results, f, ensure_ascii=False, indent=2)
+          
+          print(f"Processed {len(results)} items.")
+
+      - name: Commit and Push
+        run: |
+          cd main_repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add glossaries/glossary-index.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: auto-update glossary-index.json"
+            git push origin main
+          fi
