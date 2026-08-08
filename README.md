@@ -4,7 +4,7 @@
 
 为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
 
-简体中文 · [English](./README.md) · [文档](https://v-lipset.github.io) · [更新日志](https://github.com/V-Lipset/ao3-chinese/releases) · [QQ 频道](https://pd.qq.com/s/h5cf7c1sd?b=9)
+简体中文 · [English](./README.en.md) · [文档](https://v-lipset.github.io) · [更新日志](https://github.com/V-Lipset/ao3-chinese/releases) · [QQ 频道](https://pd.qq.com/s/h5cf7c1sd?b=9)
 
 <!-- SHIELD GROUP -->
 
