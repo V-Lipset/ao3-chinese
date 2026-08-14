@@ -1,0 +1,648 @@
+版本号：1.0.0
+维护者：spidey
+更新时间：2026-08-14
+
+// =============================================
+// 《蜘蛛侠》术语表（含部分MCU术语）
+// =============================================
+
+// ========== 词条（区分大小写） ==========
+词条
+
+// ----- 人名 -----
+“Spider-Man”：蜘蛛侠
+“Peter Parker”：彼得·帕克
+“Miles Morales”：迈尔斯·莫拉莱斯
+“Gwen Stacy”：格温·斯泰西
+“Mary Jane Watson”：玛丽·简·沃森
+“May Parker”：梅·帕克
+“Ben Parker”：本·帕克
+“Flash Thompson”：弗莱什·汤普森
+“Ned Leeds”：内德·利兹
+“Betty Brant”：贝蒂·布兰特
+“J. Jonah Jameson”：J·乔纳·詹姆森
+“Robbie Robertson”：罗比·罗伯逊
+“Glory Grant”：格洛丽·格兰特
+“Liz Allan”：莉兹·艾伦
+“Harry Osborn”：哈利·奥斯本
+“Norman Osborn”：诺曼·奥斯本
+“Otto Octavius”：奥托·奥克塔维斯
+“Curt Connors”：科特·康纳斯
+“Max Dillon”：麦克斯·狄伦
+“Flint Marko”：弗林特·马尔科
+“Adrian Toomes”：亚德里安·图姆斯
+“Quentin Beck”：昆汀·贝克
+“Eddie Brock”：埃迪·布洛克
+“Cletus Kasady”：克莱图斯·卡萨迪
+“Mac Gargan”：麦克·加根
+“Aleksei Sytsevich”：阿列克谢·西采维奇
+“Sergei Kravinoff”：谢尔盖·克拉维诺夫
+“Kraven the Hunter”：猎人克莱文
+“Michael Morbius”：迈克尔·莫比亚斯
+“Felicia Hardy”：菲莉西亚·哈迪
+“Silver Sablinova”：西尔弗·萨布利诺娃
+“Aaron Davis”：艾伦·戴维斯
+“Phineas Mason”：菲尼亚斯·梅森
+“Herman Schultz”：赫尔曼·舒尔茨
+“Lonnie Lincoln”：朗尼·林肯
+“Hammerhead”：锤头
+“Wilson Fisk”：威尔逊·菲斯克
+“Richard Parker”：理查德·帕克
+“Mary Parker”：玛丽·帕克
+“Ben Reilly”：本·赖利
+“Kaine Parker”：凯恩·帕克
+“Cindy Moon”：辛迪·穆恩
+“Jessica Drew”：杰西卡·德鲁
+“Peter Porker”：彼得·波克
+“Miguel O'Hara”：米格尔·奥哈拉
+“Peni Parker”：佩妮·帕克
+“Cassandra Webb”：卡桑德拉·韦伯
+“Julia Carpenter”：朱莉娅·卡彭特
+“Anna Watson”：安娜·沃森
+“Answer”：应答
+“Arcade”：游戏人
+“Beetle”：甲虫人
+“Big Wheel”：巨轮
+“Black Tarantula”：黑捕鸟蛛
+“Blob”：大块头
+“Bloodshed”：喋血
+“Boomerang”：回旋镖人
+“Calypso”：卡吕普索
+“Carrion”：腐肉
+“Clash”：冲击
+“Coldheart”：冷心
+“Cyclone”：气旋
+“Demogoblin”：魔妖
+“Doppelganger”：分身
+“Foreigner”：外国人
+“Gibbon”：长臂猿
+“Gog”：戈格
+“Grim Hunter”：严峻猎人
+“Grizzly”：灰熊
+“Hippo”：河马人
+“Human Fly”：苍蝇人
+“Hypno-Hustler”：催眠浪子
+“Jack O'Lantern”：杰克南瓜灯
+“Jigsaw”：拼图人
+“Kangaroo”：袋鼠人
+“Lady Octopus”：八爪夫人
+“Leap-Frog”：跳蛙
+“Living Brain”：活脑
+“Looter”：抢劫者
+“Man-Bull”：公牛人
+“Massacre”：杀戮
+“Menace”：威吓
+“Molten Man”：熔火狂
+“Morlun”：魔伦
+“Overdrive”：猛速
+“Owl”：猫头鹰
+“Ringer”：圈环人
+“Scarecrow”：稻草人
+“Scorcher”：烧焦人
+“Scorpia”：女蝎子人
+“Teresa Parker”：特蕾莎·帕克
+“Deadpool”：死侍
+“Pool”：侍
+“Wade Winston Wilson”：韦德·温斯顿·威尔逊
+“Merc with a Mouth”：嘴炮佣兵
+“Regenerating Degenerate”：再生退化
+“Jack”：杰克
+“Wade T. Wilson”：韦德·T·威尔逊
+“Mithras”：密特拉斯
+“Johnny Silvini”：约翰尼·西尔维尼
+“Thom Cruz”：汤姆·克鲁兹
+“Hulkpool”：浩克侍
+“Wildcard”：万能牌
+“Zenpool”：禅侍
+“Weapon XI”：第11号武器
+“Deady-Pool”：死侍（变体昵称）
+“Man Jack”：男人杰克
+“Crazypool”：疯侍
+“Merc”：佣兵
+“Swordsman”：剑客
+“ the Wolf of the Rice Wine”：米酒之狼
+“Chiyonosake”：千代酒
+“Rhodes”：罗兹
+“Corpus”：科珀斯
+“Lopez”：洛佩兹
+“Hobgoblin”：恶鬼
+“Tom Cruise”：汤姆·克鲁斯
+“Deadpool Corps”：死侍军团
+“Lady Deadpool”：死侍女士
+“Kidpool”：死侍小子
+“Dogpool”：死侍狗
+“Headpool”：死侍头
+“Pandapool”：熊猫侍
+“Evil Deadpool Corps”：邪恶死侍军团
+“Dreadpool”：恐惧死侍
+“Deadpool Family”：死侍家族
+“X-Force”：X特工队
+“X-Men”：X战警
+“Avengers”：复仇者联盟
+“Astonishing Avengers”：惊人复仇者
+“Thunderbolts”：雷霆特工队
+“Mercs for Money”：金钱佣兵团
+“Agency X”：X机构
+“Six Pack”：六人组
+“Weapon X”：X武器
+“Heroes for Hire”：雇佣英雄
+“Frightful Four”：恐怖四超人
+“Great Lakes Initiative”：大湖倡议
+“Secret Defenders”：秘密防卫者
+“Avengers Unity Squad”：复仇者联合小队
+“B.A.D. Girls Inc.”：坏女孩公司
+“Defenders”：防卫者
+“Outlaw”：法外者
+“Copycat”：模仿猫
+“Blind Al”：盲婆艾尔
+“Negasonic Teenage Warhead”：黑蜘
+
+// ----- 漫威电影宇宙补充 -----
+“Marvel Cinematic Universe”：漫威电影宇宙
+“Tony Stark”：托尼·斯塔克
+“Iron Man”：钢铁侠
+“Steve Rogers”：斯蒂夫·罗杰斯
+“Captain America”：美国队长
+“Thor”：托尔
+“Bruce Banner”：布鲁斯·班纳
+“Hulk”：浩克
+“Natasha Romanoff”：娜塔莎·罗曼诺夫
+“Black Widow”：黑寡妇
+“Clint Barton”：克林特·巴顿
+“Hawkeye”：鹰眼
+“James Rhodes”：詹姆斯·罗德斯
+“War Machine”：战争机器
+“Vision”：幻视
+“J.A.R.V.I.S.”：贾维斯
+“Wanda Maximoff”：旺达·马克西莫夫
+“Scarlet Witch”：猩红女巫
+“Pietro Maximoff”：皮特罗·马克西莫夫
+“Quicksilver”：快银
+“Sam Wilson”：萨姆·威尔逊
+“Falcon”：猎鹰
+“Scott Lang”：斯科特·朗
+“Ant-man”：蚁人
+“Maria Hill”：玛丽亚·希尔
+“Nick Fury”：尼克·弗瑞
+“Pepper Potts”：佩珀·波茨
+“Helen Cho”：海伦·赵
+“Odin”：奥丁
+“Frigga”：弗丽嘉
+“Heimdall”：海姆达尔
+“Loki”：洛基
+“Ultron”：奥创
+“Eir”：埃尔
+“Peggy Carter”：佩吉·卡特
+“Phil Coulson”：菲尔·科尔逊
+“Skye”：斯凯
+“Quake”：震波女
+“Daisy Johnson”：黛西·约翰逊
+“Leo Fitz”：里奥·菲茨
+“Melinda May”：梅琳达·梅
+“Jemma Simmons”：杰玛·西蒙斯
+“Grant Ward”：格兰特·沃德
+“Mike Peterson”：麦克·彼得森
+“Antoine Triplett”：安东万·崔普勒
+“Camilla Reyes”：卡梅拉·雷耶斯
+“Dr. Franklin Hall”：富兰克林·霍尔博士
+“Ian Quinn”：伊恩·奎因
+“Akela Amador”：阿基拉·阿玛多
+“Miles lydon”：迈尔斯·莱登
+“Chan Ho Yin”：陈浩然
+“Scorch”：燎原火
+“John Garrett”：约翰·盖瑞特
+“The Clairvoyant”：千里眼
+“Victoria Hand”：维多利亚·汉德
+“Eric Koenig”：艾瑞克·凯尼格
+“Jane Foster”：简·福斯特
+“Bor”：波尔
+“Malekith”：马勒基斯
+“Algrim”：阿尔戈林
+“Lorelei”：罗蕾莱
+“Whiplash”：爆裂鼓手
+“Fandral”：范达尔
+“Volstagg”：沃斯塔格
+“Hogun”：霍根
+“Sif”：希芙
+“Laufey”：劳菲
+“Hailstrum”：海尔斯特朗姆
+“Raze”：雷兹
+“Grundroth”：格朗德罗斯
+“Destroyer”：毁灭者
+“Korg”：科尔格
+“Wolfgang von Strucker”：沃尔夫冈·冯·斯特拉克
+“Arnim Zola”：阿尼姆·佐拉
+“Peter Quill”：彼得·奎尔
+“Gamora”：盖莫拉
+“Rocket Raccon”：火箭浣熊
+“Drax the Destroyer”：毁灭者德拉克斯
+“Groot”：格鲁特
+“Ronan the Accuser”：指控者罗南
+“Korath the Pursuer”：追捕者科拉斯
+“Yondu Udonta”：勇度·乌铎塔
+“Nebula”：星云
+“Taneleer Tivan”：坦利亚·蒂万
+“Collector”：收藏家
+“Howard the Duck”：霍华德鸭
+“Howard Stark”：霍华德·斯塔克
+“Maria Stark”：玛丽亚·斯塔克
+“Happy Hogan”：开心霍根
+“F.R.I.D.A.Y.”：星期五
+“Christine Everhart”：克里斯汀·埃弗哈特
+“Ho Yinsen”：何贤山
+“Jasper Sitwell”：贾斯珀·西特维尔
+“Maya Hansen”：玛雅·汉森
+“Erik Selvig”：艾瑞克·塞尔维格
+“Darcy Lewis”：达西·刘易斯
+“Ian Boothby”：伊恩·布思比
+“Matthew Ellis”：马修·埃利斯
+“Obadiah Stane”：俄巴底亚·史丹/钢铁贩子
+“Ivan Vanko”：伊凡·凡科
+“Anton Vanko”：安东·凡科
+“Justin Hammer”：贾斯汀·汉默
+“Eric Savin”：艾瑞科·萨文
+“Trevor Slattery”：特雷弗·斯拉特瑞
+“List”：李斯特
+“Ulysses Klaue”：尤利西斯·克劳
+“Mandarin”：满大人
+“Senator Stern”：斯特恩议员
+“Natalie Rushman”：娜塔莉·罗世曼
+“Thaddeus Ross”：撒迪厄斯·罗斯
+“Johann Schmidt”：约罕·施密特
+“Jiaying”：佳颖
+“Matthew Murdock”：马特·默多克
+“Daredevil”：夜魔侠
+“Andrew Garner”：安德鲁·加纳
+“Werner von Strucker”：沃纳·冯·斯特拉克
+“Kebo”：克博
+“Rosalind Price”：罗莎琳·普莱斯
+“Gideon Malick”：吉迪恩·马利克
+“Robert Gonzales”：罗伯特·冈萨雷斯
+“transitioner”：过渡人
+“Raina”：蕾娜
+“Gordon”：戈登
+“Koenig”：凯尼格
+“Kara Palamas”：卡拉·帕拉马斯
+“Agent 33”：33号特工
+“Daniel Whitehall”：丹尼尔·怀特豪尔
+“Werner Reinhardt”：维尔纳·莱因哈特
+“Sunil Bakshi”：苏尼尔·巴克希
+“Giyera”：吉耶拉
+“Elliot Randolph”：埃利奥特·兰道夫
+“Thanos”：灭霸
+“The Other”：异者
+“Carina”：卡丽娜
+“Irani Rael”：伊拉尼·雷尔
+“Dottie Underwood”：多蒂·安德伍德
+“Angie Martinelli”：安吉·马蒂内利
+“Ivchenko”：伊夫琴科
+“Nikola”：尼古拉
+“Jason Wilkes”：杰森·威尔克斯
+“Calvin Chadwick”：卡尔文·查德维克
+“Whitney Frost”：惠特妮·弗罗斯特
+“Violet”：维奥莱特
+“Cassandra "Cassie" Lang”：卡珊德拉（凯茜）·朗
+“Maggie Lang”：玛姬·朗
+“Jim Paxton”：吉姆·帕克斯顿
+“Darren Cross”：达伦·克罗斯
+“Yellowjacket”：黄衫
+“Death”：死亡
+“Entropy”：混乱
+“Infinity”：无限
+“Eternity”：永恒
+“Beth”：贝丝
+“Bucky Barnes”：巴基·巴恩斯
+“Winter Soldier”：冬日战士
+“Sharon Carter”：莎伦·卡特
+“Agent 13”：13号探员
+“T'Challa”：特查拉
+“Black Panther”：黑豹
+“Lincoln Campbell”：林肯·坎贝尔
+
+// ----- 人物外号 -----
+“Spider-Man”：蜘蛛侠
+“Friendly Neighborhood Spider-Man”：友好邻居蜘蛛侠
+“Spidey”：小蜘蛛
+“Web-Head”：蛛网头
+“Webslinger”：织网者
+“Wall-Crawler”：爬墙者
+“The Amazing Spider-Man”：神奇蜘蛛侠
+“The Spectacular Spider-Man”：卓越蜘蛛侠
+“Tiger”：老虎
+“Puny Parker”：弱鸡帕克
+“Petey”：小彼
+“Pete”：彼特
+“Kid”：小子
+“Underoos”：睡衣宝宝
+“Spiderling”：小蜘蛛崽
+“Spider-Boy”：蜘蛛男孩
+“Crime-Fighting Spider”：打击犯罪蜘蛛
+“Man of Spiders”：蜘蛛之王
+“Masked Marvel”：蒙面奇侠
+“Webspinner”：织网人
+“Webswinger”：荡网者
+“Iron Spider”：钢铁蜘蛛侠
+“Captain Universe”：宇宙队长
+“Bombastic Bag-Man”：浮夸袋人
+“Ricochet”：弹跳
+“Dusk”：黄昏
+“Prodigy”：奇才
+“Hornet”：大黄蜂
+“Scarlet Spider”：猩红蜘蛛
+“Ben Reilly”：本·莱利
+“Dude”：老兄
+“Arach-Nerd”：蜘蛛书呆子
+“Spider-Dork”：蜘蛛呆子
+“Bug Man”：虫人
+“Bug”：小虫
+“Arachno-Boy”：蜘蛛男孩
+“Spider-Creep”：蜘蛛怪胎
+“Web-Flinger”：甩网者
+“Spider-Monkey”：蜘蛛猴
+“Spider Supreme”：至尊蜘蛛
+“Webbed-Brained Dolt”：蜘蛛脑呆瓜
+“Pest”：害虫
+“Nerd”：书呆子
+“Circus Clown”：马戏团小丑
+“Wise Guy”：聪明鬼
+“Town Fool”：镇上的傻瓜
+“Green Hood”：绿兜帽
+“Spider-Hulk”：蜘蛛浩克
+“Spider-Lizard”：蜘蛛蜥蜴
+“Spider-Morphosis”：蜘蛛变形
+“Venom”：毒液
+
+// ----- 物品 -----
+“Infinity Stones”：无限宝石
+“Tesseract”：宇宙立方
+“Orb”：宇宙灵球
+“Casket of Ancient Winters”：上古严冬宝匣
+“Odinsleep”：奥丁之眠
+“Gravitonium”：重力鎓
+“Helicarrier”：浮空母舰
+“Quinjet”：昆式战机
+“Asgardian Skiff”：阿斯加德轻舟
+“Dark Elf Flagship”：黑暗精灵旗舰
+“Dark Elf Harrow”：黑暗精灵飞船
+“Aether”：以太
+“Yggdrasil”：世界之树
+“Bifrost Bridge”：彩虹桥
+“Widow's bite”：寡妇之咬
+“Mjølnir”：雷神之锤
+“Soul Forge”：灵魂熔炉
+“Sif's Sword and Shield”：希芙的剑与盾
+“Captain America's Shield”：美国队长之盾
+“Scepter”：权杖
+“Berserker Staff”：狂战士之棍
+“HYDRA Tanks”：九头蛇坦克
+“Hammer Drones”：汉默无人机
+“Monolith”：巨石
+“Terrigenesis”：泰瑞根水晶
+“Containment Module”：隔离舱
+“Suspension Gel”：冻结凝胶
+“Zephyr One”：和风一号
+“Phil Coulson's Prosthetic Hand”：菲尔·科尔逊的仿生假手
+“Lola”：萝拉
+“Toolbox”：工具箱
+“Star-Lord's Helmet”：星爵的头盔
+“Dark Aster”：暗星号
+“Infinity Gauntlet”：无限手套
+“Particle Accelerato”：粒子加速器
+“Arc Reactor”：方舟反应堆
+“Darkforce”：黑暗能量
+“Ant-Man Suit”：蚁人战衣
+“Yellowjacket Suit”：黄衫战衣
+“Eye of Agamotto”：阿加摩托之眼
+
+// ----- 组织 -----
+“the Avengers”：复仇者联盟
+“S.H.I.E.L.D.”：神盾局
+“Strategic Homeland Intervention Enforcement and Logistics Division”：国土战略防御攻击与后勤保障局
+“Hydra”：九头蛇
+“Rising Tide”：涨潮组织
+“Ten Rings”：十戒帮
+“United States Army”：美国陆军
+“United States Armed Forces”：美国武装部队
+“World Security Council”：世界安全理事会
+“Oracle Corporation”：甲骨文公司
+“Hammer Industries”：汉默工业
+“Coulson's Team”：科尔逊小组
+“Advanced Threat Containment Unit”：高级威胁控制小组
+“ATCU”：高级威胁控制小组
+“Strategic Scientific Reserve”：战略科学团
+“SSR”：战略科学团
+“Secret Warriors”：秘密勇士
+“New York City Police Department”：纽约市警察局
+“Red Room Academy”：红房学院
+“Leviathan”：利维坦
+“Oscorp”：奥斯本企业
+“Daily Bugle”：号角日报
+“F.E.A.S.T.”：F.E.A.S.T. 救助站
+“Horizon Labs”：地平线实验室
+“Alchemax”：炼金术公司
+“Spider-Society”：蜘蛛联盟
+“Avengers”：复仇者联盟
+“Empire State University”：帝国州立大学
+“Fantastic Four”：神奇四侠
+“Future Foundation”：未来基金会
+“Midtown High School”：中城高中
+“New Avengers”：新复仇者
+“Parker Industries”：派克工业
+“S.H.I.E.L.D.”：神盾局
+“Kingpin's Criminal Empire”：金并犯罪帝国
+“Fisk Industries”：菲斯克工业
+“Wilson Fisk's Organization”：威尔逊·菲斯克组织
+“The Maggia”：马吉亚
+“Tracksuit Mafia”：运动服黑手党
+“Union Allied”：联合联盟
+“Confederated Global Investments”：联合全球投资
+“Sloan Limited”：斯隆有限公司
+“Vancorp”：万氏企业
+“Fat Man Auto Repair”：胖子汽车修理厂
+“Red Lion National Bank”：红狮国家银行
+“Black Knife Cartel”：黑刃贩毒集团
+“Anti-Vigilante Task Force (AVTF)”：反义警特遣队
+“Rigoletto Crime Family”：里戈莱托犯罪家族
+“Power Elite”：权力精英
+“Hellfire Club”：地狱火俱乐部
+“Celestial Order of the Si-Fan”：西凡天命会
+“Emissaries of Evil”：邪恶使者
+“Damage Control”：灾害控制局
+“Hydra”：九头蛇
+“The Hand”：手合会
+“The Enforcers”：执法者
+“Assassins Guild”：刺客公会
+“Las Vegas Faction of Hydra”：九头蛇拉斯维加斯分支
+“The Triads”：三合会
+“Russian Mafia”：俄罗斯黑手党
+“Yashida Clan”：矢志田家族
+“La Cosa Nostra”：科萨·诺斯特拉
+“East Coast Non-Maggia Criminal Organizations”：东海岸非马吉亚犯罪组织
+“Fisk's Political Machine”：菲斯克政治机器
+“Fisk's Legal Front”：菲斯克合法门面
+“Fisk's Shadow Cabinet”：菲斯克影子内阁
+“Fisk's Bribery Network”：菲斯克贿赂网络
+“Fisk's Money Laundering Ring”：菲斯克洗钱集团
+“Fisk's Real Estate Holdings”：菲斯克房地产控股
+“Fisk's Dockworker Union”：菲斯克码头工人工会
+“Fisk's Trucking Cartel”：菲斯克货运卡特尔
+“Fisk's Waste Management Front”：菲斯克废物管理门面
+“Fisk's Construction Consortium”：菲斯克建筑联合体
+“Fisk's Import-Export Syndicate”：菲斯克进出口辛迪加
+“Fisk's Pharmaceutical Smuggling Ring”：菲斯克药品走私集团
+“Fisk's Weapons Trafficking Network”：菲斯克军火贩运网络
+“Fisk's Human Trafficking Pipeline”：菲斯克人口贩卖渠道
+“Fisk's Cybercrime Division”：菲斯克网络犯罪部门
+“Fisk's Counterfeit Goods Operation”：菲斯克假冒商品运营
+“Fisk's Gambling Empire”：菲斯克赌博帝国
+“Fisk's Loan Sharking Operation”：菲斯克高利贷运营
+“Fisk's Protection Racket”：菲斯克保护费勒索
+“Fisk's Insider Trading Ring”：菲斯克内幕交易集团
+“Fisk's Judicial Corruption Network”：菲斯克司法腐败网络
+“Fisk's Police Payoff System”：菲斯克警方贿赂系统
+“Fisk's Prison Gangs Alliance”：菲斯克监狱帮派联盟
+“Fisk's International Crime Syndicate”：菲斯克国际犯罪辛迪加
+“Howling Commandos”：嚎叫突击队
+“Ravagers”：掠夺者
+“Marauders”：劫掠者
+“Nova Corps”：新星军团
+“Iron Legion”：钢铁军团
+“Warriors Three”：三勇士
+“Cosmic Entities”：宇宙实体
+“Guardians of the Galaxy”：银河守护者
+
+// ----- 种族 -----
+“Chitauri”：奇塔瑞
+“Inhumans”：异人族
+“Dark Elves”：黑暗精灵
+“Dwarves”：矮人
+“Kree”：克里族
+“Xandarians”：山达尔人
+“Krylorians”：克瑞罗人
+“Celestials”：天神族
+“Zehoberei”：泽霍贝瑞
+“Luphomoids”：露佛墨伊德
+“Leviathans”：利维坦
+
+// ----- 地点 -----
+“Nine Realms”：九大国度
+“Asgard”：阿斯加德
+“Vanaheim”：华纳海姆
+“Alfheim”：艾尔夫海姆
+“Midgard”：米德加德
+“Jotenheim”：尤腾海姆
+“Svartalfheim”：斯瓦泰夫海姆
+“Nidavellir”：尼达维勒
+“Niflheim”：尼福尔海姆
+“Muspelheim”：穆斯贝尔海姆
+“Asgard Dungeons”：阿斯加德地牢
+“Water of Sights”：视觉之水
+“Odin's Vault”：奥丁的藏宝室
+“Tahiti”：塔希提
+“Death Valley”：死亡谷
+“The Slingshot”：弹弓基地
+“The Sandbox”：沙盒
+“The Hub”：中心
+“The Fridge”：冰箱
+“The Triskelion”：三飞饰
+“Sokovia”：索科维亚
+“Puente Antiguo”：古桥
+“Avengers Tower”：复仇者大厦
+“Stark Tower”：斯塔克大厦
+“Knowhere”：虚无知地
+“Tony Stark's Mansion”：托尼·斯塔克的大宅
+“Playground”：游乐场
+“Afterlife”：来世
+“Roxxon Oil Corporation”：罗克森石油公司
+“Roxxon Refinery”：罗克森精炼厂
+“Manhattan”：曼哈顿
+“New York City”：纽约市
+“Earth”：地球
+“Collector's Museum”：收藏家的博物馆
+“Xandar”：山达尔
+“Morag”：莫拉格
+“Kyln”：克林
+“Sanctuary”：圣殿
+“Cloud Tombs of Praxius”：普拉克西亚斯云墓
+“Daisy Clover”：优佳乳品
+“Daisy Clover Milk Factory”：优佳乳品牛奶工厂
+“Griffith Hotel”：格里菲斯酒店
+“Isodyne Energy”：艾瑟丹能源
+“Auerbach Theatrical Agency”：奥尔巴赫经纪公司
+“Arena Club”：竞技俱乐部
+“Stark Pictures”：斯塔克影业
+“VistaCorp”：维斯塔集团
+“Quantum Realm”：量子域
+“Temple Vault”：拱庙
+“Nornheim”：诺恩海姆
+
+// ----- 事件 -----
+“HYDRA Uprising”：九头蛇暴动
+“Chitauri Invasion”：奇塔瑞入侵
+“Battle of New York”：纽约之战
+“War against Ultron”：奥创战争
+“Avengers Initiative”：复仇者行动
+“Project Insight”：洞察计划
+“Stark Expo”：斯塔克博览会
+“Attack on the Helicarrier”：突袭浮空航母
+“Project T.A.H.I.T.I.”：塔希提计划
+“Caterpillars”：幼虫计划
+“Project Distant Star Return”：远星归来计划
+“Battle of Hong Kong”：香港之战
+“Battle of Xandar”：山达尔之战
+“Battle at the Triskelion”：三飞饰之战
+“First Dark Elf Conflict”：第一次黑暗精灵冲突
+“Second Dark Elf Conflict”：第二次黑暗精灵冲突
+
+// ========== 通用词条 ==========
+通用词条
+
+// ----- 亲戚关系 -----
+cousin：堂亲
+cousin brother：堂兄
+cousin sister：堂姐
+maternal cousin：表亲
+uncle：叔父
+aunt：姑母
+great-uncle：叔祖父
+great-aunt：姑祖母
+nephew：侄子/侄儿
+niece：侄女
+grandsire：祖父
+grandfather：祖父
+grandmother：祖母
+good-father：岳父/公公
+good-mother：岳母/婆婆
+good-brother：姐夫/大舅子
+good-sister：嫂子/小姨子
+elder brother：哥哥
+younger brother：弟弟
+elder sister：姐姐
+younger sister：妹妹
+big brother：大哥
+little brother：小弟
+big sister：大姐
+little sister：小妹
+half-brother：同父异母的哥哥
+half-sister：同父异母的姐姐
+bastard brother：私生子哥哥
+bastard sister：私生子姐姐
+trueborn brother：嫡出兄长
+trueborn sister：嫡出姐姐
+
+// ----- 人物语录 -----
+If you're nothing without that suit, then you shouldn't have it：如果你离开了这套战衣就一无是处的话，那你不应该拥有它
+With great power comes great responsibility：能力越大，责任越大。
+ This is my gift, my curse：这是恩赐，也是诅咒。
+Slander is spoken. In print, it's libel：谣言，嘴上的叫中伤，纸上的叫诽谤。
+No matter what I do, no matter how hard I try, the ones I love will always be the ones who pay：无论我做什么，无论我多努力，我爱的人最终都会为我付出代价。
+Don't just follow the path.Make your own trail：不要随波逐流，要找到自己的路。
+The world can not be changed without changing our thinking：只有改变思维方式，世界才会改变。
+You can destroy my house, my equipment, but you can't break a fact, I am iron man：你可以摧毁我的房子，我的装备，但是你摧毁不了一个事实，我是钢铁侠。
+I shouldn't be alive, unless it was for a reason：我不该活着，除非另有原因。
+ I know what I have to do, and I know what is right：我知道我该做什么，也知道什么是对的。
+Failure is the fog through which we glimpse triumph：失败是迷雾，穿过它，我们就可以瞥见光明。
+The early bird gets the worm, but it's the second mouse that gets the cheese：早起的鸟儿有虫吃，但吃到奶酪的往往是第二只老鼠。
+We create our own demons：恶由心生
+
+
