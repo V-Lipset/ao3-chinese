@@ -1,4 +1,4 @@
-版本号：1.0.0
+版本号：1.0.1
 维护者：spidey
 更新时间：2026-08-14
 
@@ -355,6 +355,8 @@
 “Spider-Dork”：蜘蛛呆子
 “Bug Man”：虫人
 “Bug”：小虫
+“Webs”：蛛网
+“baby boy”：小宝贝/宝贝男孩
 “Arachno-Boy”：蜘蛛男孩
 “Spider-Creep”：蜘蛛怪胎
 “Web-Flinger”：甩网者
@@ -363,6 +365,7 @@
 “Webbed-Brained Dolt”：蜘蛛脑呆瓜
 “Pest”：害虫
 “Nerd”：书呆子
+“nerd”：书呆子
 “Circus Clown”：马戏团小丑
 “Wise Guy”：聪明鬼
 “Town Fool”：镇上的傻瓜
@@ -373,6 +376,7 @@
 “Venom”：毒液
 
 // ----- 物品 -----
+“Suits”：战衣
 “Infinity Stones”：无限宝石
 “Tesseract”：宇宙立方
 “Orb”：宇宙灵球
@@ -413,6 +417,7 @@
 “Ant-Man Suit”：蚁人战衣
 “Yellowjacket Suit”：黄衫战衣
 “Eye of Agamotto”：阿加摩托之眼
+“spidey-sense”：蜘蛛感应
 
 // ----- 组织 -----
 “the Avengers”：复仇者联盟
@@ -644,5 +649,3 @@ I shouldn't be alive, unless it was for a reason：我不该活着，除非另�
 Failure is the fog through which we glimpse triumph：失败是迷雾，穿过它，我们就可以瞥见光明。
 The early bird gets the worm, but it's the second mouse that gets the cheese：早起的鸟儿有虫吃，但吃到奶酪的往往是第二只老鼠。
 We create our own demons：恶由心生
-
-
