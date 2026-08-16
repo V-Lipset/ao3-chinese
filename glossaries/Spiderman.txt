@@ -1,6 +1,6 @@
-版本号：1.0.1
+版本号：1.0.2
 维护者：spidey
-更新时间：2026-08-14
+更新时间：2026-08-16
 
 // =============================================
 // 《蜘蛛侠》术语表（含部分MCU术语）
@@ -11,54 +11,53 @@
 
 // ----- 人名 -----
 “Spider-Man”：蜘蛛侠
-“Peter Parker”：彼得·帕克
-“Miles Morales”：迈尔斯·莫拉莱斯
-“Gwen Stacy”：格温·斯泰西
-“Mary Jane Watson”：玛丽·简·沃森
-“May Parker”：梅·帕克
-“Ben Parker”：本·帕克
-“Flash Thompson”：弗莱什·汤普森
-“Ned Leeds”：内德·利兹
-“Betty Brant”：贝蒂·布兰特
-“J. Jonah Jameson”：J·乔纳·詹姆森
-“Robbie Robertson”：罗比·罗伯逊
-“Glory Grant”：格洛丽·格兰特
-“Liz Allan”：莉兹·艾伦
-“Harry Osborn”：哈利·奥斯本
-“Norman Osborn”：诺曼·奥斯本
-“Otto Octavius”：奥托·奥克塔维斯
-“Curt Connors”：科特·康纳斯
-“Max Dillon”：麦克斯·狄伦
-“Flint Marko”：弗林特·马尔科
-“Adrian Toomes”：亚德里安·图姆斯
-“Quentin Beck”：昆汀·贝克
-“Eddie Brock”：埃迪·布洛克
-“Cletus Kasady”：克莱图斯·卡萨迪
-“Mac Gargan”：麦克·加根
-“Aleksei Sytsevich”：阿列克谢·西采维奇
-“Sergei Kravinoff”：谢尔盖·克拉维诺夫
+Peter Parker = 彼得·帕克
+Miles Morales = 迈尔斯·莫拉莱斯
+Gwen Stacy = 格温·斯泰西
+Mary Jane Watson = 玛丽·简·沃森
+May Parker = 梅·帕克
+Ben Parker = 本·帕克
+Flash Thompson = 弗莱什·汤普森
+Ned Leeds = 内德·利兹
+Betty Brant = 贝蒂·布兰特
+J. Jonah Jameson = J·乔纳·詹姆森
+Robbie Robertson = 罗比·罗伯逊
+Glory Grant = 格洛丽·格兰特
+Liz Allan = 莉兹·艾伦
+Harry Osborn = 哈利·奥斯本
+Norman Osborn = 诺曼·奥斯本
+Otto Octavius = 奥托·奥克塔维斯
+Curt Connors = 科特·康纳斯
+Max Dillon = 麦克斯·狄伦
+Flint Marko = 弗林特·马尔科
+Adrian Toomes = 亚德里安·图姆斯
+Quentin Beck = 昆汀·贝克
+Eddie Brock = 埃迪·布洛克
+Cletus Kasady = 克莱图斯·卡萨迪
+Mac Gargan = 麦克·加根
+Aleksei Sytsevich = 阿列克谢·西采维奇
+Sergei Kravinoff = 谢尔盖·克拉维诺夫
 “Kraven the Hunter”：猎人克莱文
-“Michael Morbius”：迈克尔·莫比亚斯
-“Felicia Hardy”：菲莉西亚·哈迪
-“Silver Sablinova”：西尔弗·萨布利诺娃
-“Aaron Davis”：艾伦·戴维斯
-“Phineas Mason”：菲尼亚斯·梅森
-“Herman Schultz”：赫尔曼·舒尔茨
-“Lonnie Lincoln”：朗尼·林肯
+Michael Morbius = 迈克尔·莫比亚斯
+Felicia Hardy = 菲莉西亚·哈迪
+Silver Sablinova = 西尔弗·萨布利诺娃
+Aaron Davis = 艾伦·戴维斯
+Phineas Mason = 菲尼亚斯·梅森
+Herman Schultz = 赫尔曼·舒尔茨
+Lonnie Lincoln = 朗尼·林肯
 “Hammerhead”：锤头
-“Wilson Fisk”：威尔逊·菲斯克
-“Richard Parker”：理查德·帕克
-“Mary Parker”：玛丽·帕克
-“Ben Reilly”：本·赖利
-“Kaine Parker”：凯恩·帕克
-“Cindy Moon”：辛迪·穆恩
-“Jessica Drew”：杰西卡·德鲁
-“Peter Porker”：彼得·波克
+Wilson Fisk = 威尔逊·菲斯克
+Richard Parker = 理查德·帕克
+Mary Parker = 玛丽·帕克
+Kaine Parker = 凯恩·帕克
+Cindy Moon = 辛迪·穆恩
+Jessica Drew = 杰西卡·德鲁
+Peter Porker = 彼得·波克
 “Miguel O'Hara”：米格尔·奥哈拉
-“Peni Parker”：佩妮·帕克
-“Cassandra Webb”：卡桑德拉·韦伯
-“Julia Carpenter”：朱莉娅·卡彭特
-“Anna Watson”：安娜·沃森
+Peni Parker = 佩妮·帕克
+Cassandra Webb = 卡桑德拉·韦伯
+Julia Carpenter = 朱莉娅·卡彭特
+Anna Watson = 安娜·沃森
 “Answer”：应答
 “Arcade”：游戏人
 “Beetle”：甲虫人
@@ -100,33 +99,33 @@
 “Scarecrow”：稻草人
 “Scorcher”：烧焦人
 “Scorpia”：女蝎子人
-“Teresa Parker”：特蕾莎·帕克
+Teresa Parker = 特蕾莎·帕克
 “Deadpool”：死侍
 “Pool”：侍
-“Wade Winston Wilson”：韦德·温斯顿·威尔逊
+Wade Winston Wilson = 韦德·温斯顿·威尔逊
 “Merc with a Mouth”：嘴炮佣兵
 “Regenerating Degenerate”：再生退化
 “Jack”：杰克
-“Wade T. Wilson”：韦德·T·威尔逊
+Wade T. Wilson = 韦德·T·威尔逊
 “Mithras”：密特拉斯
-“Johnny Silvini”：约翰尼·西尔维尼
-“Thom Cruz”：汤姆·克鲁兹
+Johnny Silvini = 约翰尼·西尔维尼
+Thom Cruz = 汤姆·克鲁兹
 “Hulkpool”：浩克侍
 “Wildcard”：万能牌
 “Zenpool”：禅侍
 “Weapon XI”：第11号武器
-“Deady-Pool”：死侍（变体昵称）
+“Deady-Pool”：死侍
 “Man Jack”：男人杰克
 “Crazypool”：疯侍
 “Merc”：佣兵
 “Swordsman”：剑客
-“ the Wolf of the Rice Wine”：米酒之狼
+“the Wolf of the Rice Wine”：米酒之狼
 “Chiyonosake”：千代酒
 “Rhodes”：罗兹
 “Corpus”：科珀斯
 “Lopez”：洛佩兹
 “Hobgoblin”：恶鬼
-“Tom Cruise”：汤姆·克鲁斯
+Tom Cruise = 汤姆·克鲁斯
 “Deadpool Corps”：死侍军团
 “Lady Deadpool”：死侍女士
 “Kidpool”：死侍小子
@@ -138,7 +137,6 @@
 “Deadpool Family”：死侍家族
 “X-Force”：X特工队
 “X-Men”：X战警
-“Avengers”：复仇者联盟
 “Astonishing Avengers”：惊人复仇者
 “Thunderbolts”：雷霆特工队
 “Mercs for Money”：金钱佣兵团
@@ -159,62 +157,63 @@
 
 // ----- 漫威电影宇宙补充 -----
 “Marvel Cinematic Universe”：漫威电影宇宙
-“Tony Stark”：托尼·斯塔克
+Tony Stark = 托尼·斯塔克
 “Iron Man”：钢铁侠
-“Steve Rogers”：斯蒂夫·罗杰斯
+Steve Rogers = 斯蒂夫·罗杰斯
 “Captain America”：美国队长
 “Thor”：托尔
-“Bruce Banner”：布鲁斯·班纳
+Bruce Banner = 布鲁斯·班纳
 “Hulk”：浩克
-“Natasha Romanoff”：娜塔莎·罗曼诺夫
+Natasha Romanoff = 娜塔莎·罗曼诺夫
 “Black Widow”：黑寡妇
-“Clint Barton”：克林特·巴顿
+Clint Barton = 克林特·巴顿
 “Hawkeye”：鹰眼
-“James Rhodes”：詹姆斯·罗德斯
+James Rhodes = 詹姆斯·罗德斯
 “War Machine”：战争机器
 “Vision”：幻视
 “J.A.R.V.I.S.”：贾维斯
-“Wanda Maximoff”：旺达·马克西莫夫
+“JARVIS”：贾维斯
+Wanda Maximoff = 旺达·马克西莫夫
 “Scarlet Witch”：猩红女巫
-“Pietro Maximoff”：皮特罗·马克西莫夫
+Pietro Maximoff = 皮特罗·马克西莫夫
 “Quicksilver”：快银
-“Sam Wilson”：萨姆·威尔逊
+Sam Wilson = 萨姆·威尔逊
 “Falcon”：猎鹰
-“Scott Lang”：斯科特·朗
-“Ant-man”：蚁人
-“Maria Hill”：玛丽亚·希尔
-“Nick Fury”：尼克·弗瑞
-“Pepper Potts”：佩珀·波茨
-“Helen Cho”：海伦·赵
+Scott Lang = 斯科特·朗
+“Ant-Man”：蚁人
+Maria Hill = 玛丽亚·希尔
+Nick Fury = 尼克·弗瑞
+Pepper Potts = 佩珀·波茨
+Helen Cho = 海伦·赵
 “Odin”：奥丁
 “Frigga”：弗丽嘉
 “Heimdall”：海姆达尔
 “Loki”：洛基
 “Ultron”：奥创
 “Eir”：埃尔
-“Peggy Carter”：佩吉·卡特
-“Phil Coulson”：菲尔·科尔逊
+Peggy Carter = 佩吉·卡特
+Phil Coulson = 菲尔·科尔逊
 “Skye”：斯凯
 “Quake”：震波女
-“Daisy Johnson”：黛西·约翰逊
-“Leo Fitz”：里奥·菲茨
-“Melinda May”：梅琳达·梅
-“Jemma Simmons”：杰玛·西蒙斯
-“Grant Ward”：格兰特·沃德
-“Mike Peterson”：麦克·彼得森
-“Antoine Triplett”：安东万·崔普勒
-“Camilla Reyes”：卡梅拉·雷耶斯
+Daisy Johnson = 黛西·约翰逊
+Leo Fitz = 里奥·菲茨
+Melinda May = 梅琳达·梅
+Jemma Simmons = 杰玛·西蒙斯
+Grant Ward = 格兰特·沃德
+Mike Peterson = 麦克·彼得森
+Antoine Triplett = 安东万·崔普勒
+Camilla Reyes = 卡梅拉·雷耶斯
 “Dr. Franklin Hall”：富兰克林·霍尔博士
-“Ian Quinn”：伊恩·奎因
-“Akela Amador”：阿基拉·阿玛多
-“Miles lydon”：迈尔斯·莱登
+Ian Quinn = 伊恩·奎因
+Akela Amador = 阿基拉·阿玛多
+Miles Lydon = 迈尔斯·莱登
 “Chan Ho Yin”：陈浩然
 “Scorch”：燎原火
-“John Garrett”：约翰·盖瑞特
+John Garrett = 约翰·盖瑞特
 “The Clairvoyant”：千里眼
-“Victoria Hand”：维多利亚·汉德
-“Eric Koenig”：艾瑞克·凯尼格
-“Jane Foster”：简·福斯特
+Victoria Hand = 维多利亚·汉德
+Eric Koenig = 艾瑞克·凯尼格
+Jane Foster = 简·福斯特
 “Bor”：波尔
 “Malekith”：马勒基斯
 “Algrim”：阿尔戈林
@@ -230,97 +229,96 @@
 “Grundroth”：格朗德罗斯
 “Destroyer”：毁灭者
 “Korg”：科尔格
-“Wolfgang von Strucker”：沃尔夫冈·冯·斯特拉克
-“Arnim Zola”：阿尼姆·佐拉
-“Peter Quill”：彼得·奎尔
+Wolfgang von Strucker = 沃尔夫冈·冯·斯特拉克
+Arnim Zola = 阿尼姆·佐拉
+Peter Quill = 彼得·奎尔
 “Gamora”：盖莫拉
-“Rocket Raccon”：火箭浣熊
+“Rocket Raccoon”：火箭浣熊
 “Drax the Destroyer”：毁灭者德拉克斯
 “Groot”：格鲁特
 “Ronan the Accuser”：指控者罗南
 “Korath the Pursuer”：追捕者科拉斯
-“Yondu Udonta”：勇度·乌铎塔
+Yondu Udonta = 勇度·乌铎塔
 “Nebula”：星云
-“Taneleer Tivan”：坦利亚·蒂万
+Taneleer Tivan = 坦利亚·蒂万
 “Collector”：收藏家
 “Howard the Duck”：霍华德鸭
-“Howard Stark”：霍华德·斯塔克
-“Maria Stark”：玛丽亚·斯塔克
+Howard Stark = 霍华德·斯塔克
+Maria Stark = 玛丽亚·斯塔克
 “Happy Hogan”：开心霍根
 “F.R.I.D.A.Y.”：星期五
-“Christine Everhart”：克里斯汀·埃弗哈特
+“FRIDAY”：星期五
+Christine Everhart = 克里斯汀·埃弗哈特
 “Ho Yinsen”：何贤山
-“Jasper Sitwell”：贾斯珀·西特维尔
-“Maya Hansen”：玛雅·汉森
-“Erik Selvig”：艾瑞克·塞尔维格
-“Darcy Lewis”：达西·刘易斯
-“Ian Boothby”：伊恩·布思比
-“Matthew Ellis”：马修·埃利斯
-“Obadiah Stane”：俄巴底亚·史丹/钢铁贩子
-“Ivan Vanko”：伊凡·凡科
-“Anton Vanko”：安东·凡科
-“Justin Hammer”：贾斯汀·汉默
-“Eric Savin”：艾瑞科·萨文
-“Trevor Slattery”：特雷弗·斯拉特瑞
+Jasper Sitwell = 贾斯珀·西特维尔
+Maya Hansen = 玛雅·汉森
+Erik Selvig = 艾瑞克·塞尔维格
+Darcy Lewis = 达西·刘易斯
+Ian Boothby = 伊恩·布思比
+Matthew Ellis = 马修·埃利斯
+Obadiah Stane = 俄巴底亚·史丹
+Ivan Vanko = 伊凡·凡科
+Anton Vanko = 安东·凡科
+Justin Hammer = 贾斯汀·汉默
+Eric Savin = 艾瑞科·萨文
+Trevor Slattery = 特雷弗·斯拉特瑞
 “List”：李斯特
-“Ulysses Klaue”：尤利西斯·克劳
+Ulysses Klaue = 尤利西斯·克劳
 “Mandarin”：满大人
 “Senator Stern”：斯特恩议员
-“Natalie Rushman”：娜塔莉·罗世曼
-“Thaddeus Ross”：撒迪厄斯·罗斯
-“Johann Schmidt”：约罕·施密特
+Natalie Rushman = 娜塔莉·罗世曼
+Thaddeus Ross = 撒迪厄斯·罗斯
+Johann Schmidt = 约罕·施密特
 “Jiaying”：佳颖
-“Matthew Murdock”：马特·默多克
+Matthew Murdock = 马特·默多克
 “Daredevil”：夜魔侠
-“Andrew Garner”：安德鲁·加纳
-“Werner von Strucker”：沃纳·冯·斯特拉克
+Andrew Garner = 安德鲁·加纳
+Werner von Strucker = 沃纳·冯·斯特拉克
 “Kebo”：克博
-“Rosalind Price”：罗莎琳·普莱斯
-“Gideon Malick”：吉迪恩·马利克
-“Robert Gonzales”：罗伯特·冈萨雷斯
-“transitioner”：过渡人
+Rosalind Price = 罗莎琳·普莱斯
+Gideon Malick = 吉迪恩·马利克
+Robert Gonzales = 罗伯特·冈萨雷斯
 “Raina”：蕾娜
 “Gordon”：戈登
 “Koenig”：凯尼格
-“Kara Palamas”：卡拉·帕拉马斯
+Kara Palamas = 卡拉·帕拉马斯
 “Agent 33”：33号特工
-“Daniel Whitehall”：丹尼尔·怀特豪尔
-“Werner Reinhardt”：维尔纳·莱因哈特
-“Sunil Bakshi”：苏尼尔·巴克希
+Daniel Whitehall = 丹尼尔·怀特豪尔
+Werner Reinhardt = 维尔纳·莱因哈特
+Sunil Bakshi = 苏尼尔·巴克希
 “Giyera”：吉耶拉
-“Elliot Randolph”：埃利奥特·兰道夫
+Elliot Randolph = 埃利奥特·兰道夫
 “Thanos”：灭霸
 “The Other”：异者
 “Carina”：卡丽娜
-“Irani Rael”：伊拉尼·雷尔
-“Dottie Underwood”：多蒂·安德伍德
-“Angie Martinelli”：安吉·马蒂内利
+Irani Rael = 伊拉尼·雷尔
+Dottie Underwood = 多蒂·安德伍德
+Angie Martinelli = 安吉·马蒂内利
 “Ivchenko”：伊夫琴科
 “Nikola”：尼古拉
-“Jason Wilkes”：杰森·威尔克斯
-“Calvin Chadwick”：卡尔文·查德维克
-“Whitney Frost”：惠特妮·弗罗斯特
+Jason Wilkes = 杰森·威尔克斯
+Calvin Chadwick = 卡尔文·查德维克
+Whitney Frost = 惠特妮·弗罗斯特
 “Violet”：维奥莱特
 “Cassandra "Cassie" Lang”：卡珊德拉（凯茜）·朗
-“Maggie Lang”：玛姬·朗
-“Jim Paxton”：吉姆·帕克斯顿
-“Darren Cross”：达伦·克罗斯
+Maggie Lang = 玛姬·朗
+Jim Paxton = 吉姆·帕克斯顿
+Darren Cross = 达伦·克罗斯
 “Yellowjacket”：黄衫
 “Death”：死亡
 “Entropy”：混乱
 “Infinity”：无限
 “Eternity”：永恒
 “Beth”：贝丝
-“Bucky Barnes”：巴基·巴恩斯
+Bucky Barnes = 巴基·巴恩斯
 “Winter Soldier”：冬日战士
-“Sharon Carter”：莎伦·卡特
+Sharon Carter = 莎伦·卡特
 “Agent 13”：13号探员
 “T'Challa”：特查拉
 “Black Panther”：黑豹
-“Lincoln Campbell”：林肯·坎贝尔
+Lincoln Campbell = 林肯·坎贝尔
 
 // ----- 人物外号 -----
-“Spider-Man”：蜘蛛侠
 “Friendly Neighborhood Spider-Man”：友好邻居蜘蛛侠
 “Spidey”：小蜘蛛
 “Web-Head”：蛛网头
@@ -349,14 +347,13 @@
 “Prodigy”：奇才
 “Hornet”：大黄蜂
 “Scarlet Spider”：猩红蜘蛛
-“Ben Reilly”：本·莱利
+Ben Reilly = 本·莱利
 “Dude”：老兄
 “Arach-Nerd”：蜘蛛书呆子
 “Spider-Dork”：蜘蛛呆子
 “Bug Man”：虫人
 “Bug”：小虫
 “Webs”：蛛网
-“baby boy”：小宝贝/宝贝男孩
 “Arachno-Boy”：蜘蛛男孩
 “Spider-Creep”：蜘蛛怪胎
 “Web-Flinger”：甩网者
@@ -364,8 +361,6 @@
 “Spider Supreme”：至尊蜘蛛
 “Webbed-Brained Dolt”：蜘蛛脑呆瓜
 “Pest”：害虫
-“Nerd”：书呆子
-“nerd”：书呆子
 “Circus Clown”：马戏团小丑
 “Wise Guy”：聪明鬼
 “Town Fool”：镇上的傻瓜
@@ -392,7 +387,9 @@
 “Yggdrasil”：世界之树
 “Bifrost Bridge”：彩虹桥
 “Widow's bite”：寡妇之咬
+“Widow's Bite”：寡妇之咬
 “Mjølnir”：雷神之锤
+“Mjolnir”：雷神之锤
 “Soul Forge”：灵魂熔炉
 “Sif's Sword and Shield”：希芙的剑与盾
 “Captain America's Shield”：美国队长之盾
@@ -411,17 +408,17 @@
 “Star-Lord's Helmet”：星爵的头盔
 “Dark Aster”：暗星号
 “Infinity Gauntlet”：无限手套
-“Particle Accelerato”：粒子加速器
+“Particle Accelerator”：粒子加速器
 “Arc Reactor”：方舟反应堆
 “Darkforce”：黑暗能量
 “Ant-Man Suit”：蚁人战衣
 “Yellowjacket Suit”：黄衫战衣
 “Eye of Agamotto”：阿加摩托之眼
-“spidey-sense”：蜘蛛感应
 
 // ----- 组织 -----
-“the Avengers”：复仇者联盟
+“The Avengers”：复仇者联盟
 “S.H.I.E.L.D.”：神盾局
+“SHIELD”：神盾局
 “Strategic Homeland Intervention Enforcement and Logistics Division”：国土战略防御攻击与后勤保障局
 “Hydra”：九头蛇
 “Rising Tide”：涨潮组织
@@ -453,7 +450,6 @@
 “Midtown High School”：中城高中
 “New Avengers”：新复仇者
 “Parker Industries”：派克工业
-“S.H.I.E.L.D.”：神盾局
 “Kingpin's Criminal Empire”：金并犯罪帝国
 “Fisk Industries”：菲斯克工业
 “Wilson Fisk's Organization”：威尔逊·菲斯克组织
@@ -473,7 +469,6 @@
 “Celestial Order of the Si-Fan”：西凡天命会
 “Emissaries of Evil”：邪恶使者
 “Damage Control”：灾害控制局
-“Hydra”：九头蛇
 “The Hand”：手合会
 “The Enforcers”：执法者
 “Assassins Guild”：刺客公会
@@ -591,6 +586,7 @@
 “Stark Expo”：斯塔克博览会
 “Attack on the Helicarrier”：突袭浮空航母
 “Project T.A.H.I.T.I.”：塔希提计划
+“TAHITI”：塔希提
 “Caterpillars”：幼虫计划
 “Project Distant Star Return”：远星归来计划
 “Battle of Hong Kong”：香港之战
@@ -611,15 +607,15 @@ uncle：叔父
 aunt：姑母
 great-uncle：叔祖父
 great-aunt：姑祖母
-nephew：侄子/侄儿
+nephew：侄子
 niece：侄女
 grandsire：祖父
 grandfather：祖父
 grandmother：祖母
-good-father：岳父/公公
-good-mother：岳母/婆婆
-good-brother：姐夫/大舅子
-good-sister：嫂子/小姨子
+good-father：岳父
+good-mother：岳母
+good-brother：姐夫
+good-sister：嫂子
 elder brother：哥哥
 younger brother：弟弟
 elder sister：姐姐
@@ -634,18 +630,22 @@ bastard brother：私生子哥哥
 bastard sister：私生子姐姐
 trueborn brother：嫡出兄长
 trueborn sister：嫡出姐姐
+transitioner：过渡人
+baby boy：小宝贝
+nerd：书呆子
+spidey-sense：蜘蛛感应
 
 // ----- 人物语录 -----
-If you're nothing without that suit, then you shouldn't have it：如果你离开了这套战衣就一无是处的话，那你不应该拥有它
-With great power comes great responsibility：能力越大，责任越大。
- This is my gift, my curse：这是恩赐，也是诅咒。
-Slander is spoken. In print, it's libel：谣言，嘴上的叫中伤，纸上的叫诽谤。
-No matter what I do, no matter how hard I try, the ones I love will always be the ones who pay：无论我做什么，无论我多努力，我爱的人最终都会为我付出代价。
-Don't just follow the path.Make your own trail：不要随波逐流，要找到自己的路。
-The world can not be changed without changing our thinking：只有改变思维方式，世界才会改变。
-You can destroy my house, my equipment, but you can't break a fact, I am iron man：你可以摧毁我的房子，我的装备，但是你摧毁不了一个事实，我是钢铁侠。
-I shouldn't be alive, unless it was for a reason：我不该活着，除非另有原因。
- I know what I have to do, and I know what is right：我知道我该做什么，也知道什么是对的。
-Failure is the fog through which we glimpse triumph：失败是迷雾，穿过它，我们就可以瞥见光明。
-The early bird gets the worm, but it's the second mouse that gets the cheese：早起的鸟儿有虫吃，但吃到奶酪的往往是第二只老鼠。
-We create our own demons：恶由心生
+“If you're nothing without that suit, then you shouldn't have it”：如果你离开了这套战衣就一无是处的话，那你不应该拥有它
+“With great power comes great responsibility”：能力越大，责任越大。
+“This is my gift, my curse”：这是恩赐，也是诅咒。
+“Slander is spoken. In print, it's libel”：谣言，嘴上的叫中伤，纸上的叫诽谤。
+“No matter what I do, no matter how hard I try, the ones I love will always be the ones who pay”：无论我做什么，无论我多努力，我爱的人最终都会为我付出代价。
+“Don't just follow the path. Make your own trail”：不要随波逐流，要找到自己的路。
+“The world can not be changed without changing our thinking”：只有改变思维方式，世界才会改变。
+“You can destroy my house, my equipment, but you can't break a fact, I am iron man”：你可以摧毁我的房子，我的装备，但是你摧毁不了一个事实，我是钢铁侠。
+“I shouldn't be alive, unless it was for a reason”：我不该活着，除非另有原因。
+“I know what I have to do, and I know what is right”：我知道我该做什么，也知道什么是对的。
+“Failure is the fog through which we glimpse triumph”：失败是迷雾，穿过它，我们就可以瞥见光明。
+“The early bird gets the worm, but it's the second mouse that gets the cheese”：早起的鸟儿有虫吃，但吃到奶酪的往往是第二只老鼠。
+“We create our own demons”：恶由心生
