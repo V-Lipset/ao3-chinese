@@ -422,5 +422,15 @@
     "maintainer": "suiyuan",
     "visibility": true,
     "feedback": "https://github.com/suiyuan948"
+  },
+  {
+    "name": "Spider-Man",
+    "tags": [
+      "蜘蛛侠"
+    ],
+    "url": "https://raw.githubusercontent.com/diorverity/ao3-chinese/refs/heads/patch-1/glossaries/Spiderman.txt",
+    "maintainer": "spidey",
+    "visibility": true,
+    "feedback": "https://github.com/diorverity"
   }
 ]
