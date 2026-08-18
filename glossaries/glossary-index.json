@@ -432,5 +432,15 @@
     "maintainer": "spidey",
     "visibility": true,
     "feedback": "https://github.com/diorverity"
+  },
+  {
+    "name": "Disco Elysium",
+    "tags": [
+      "极乐迪斯科"
+    ],
+    "url": "https://raw.githubusercontent.com/dcc000/ao3-chinese/refs/heads/main/glossaries/Disco%20Elysium.txt",
+    "maintainer": "dcc000",
+    "visibility": true,
+    "feedback": "https://github.com/dcc000"
   }
 ]
