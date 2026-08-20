@@ -442,5 +442,15 @@
     "maintainer": "dcc000",
     "visibility": true,
     "feedback": "https://github.com/dcc000"
+  },
+  {
+    "name": "Genshin Impact",
+    "tags": [
+      "原神"
+    ],
+    "url": "https://raw.githubusercontent.com/BigRibosomal/ao3-chinese/refs/heads/main/glossaries/Genshin%20Impact.txt",
+    "maintainer": "喜欢记录的月灵",
+    "visibility": true,
+    "feedback": "https://github.com/BigRibosomal"
   }
 ]
