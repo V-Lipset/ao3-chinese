@@ -1,15 +1,15 @@
-版本号:1.0.0
+版本号:1.0.1
 维护者:BigRibosomal
-更新时间:2026‑08‑20
+更新时间:2026-08-20
 
 词条
 
 //可玩角色
 Sandrone:桑多涅
 Marionette:「木偶」
-Marionette Guillotin = 小玛丽安 吉约丹
+Marionette Guillotin = 小玛丽安·吉约丹
 Clockwork Princes:发条公主
-Anastasya Feodorovna Snezhnaya = 安娜丝塔夏 费奥多罗夫娜 雪奈茨娜娅
+Anastasya Feodorovna Snezhnaya = 安娜丝塔夏·费奥多罗夫娜·雪奈茨娜娅
 Vodyanitsa:沃雅妮莎
 Alyosha:阿罗夏
 Odette:奥黛塔
@@ -21,20 +21,20 @@ Mitya:米提亚
 Prune:布伦妮
 Flins:菲林斯
 Linnea:莉奈娅
-Diona Kätzlein = 迪奥娜 凯茨莱茵
+Diona Kätzlein = 迪奥娜·凯茨莱茵
 Lohen:洛恩
 Zibai:兹白
 White Horse Adeptus:白马仙人
-Columbina Hyposelenia = 哥伦比娅 希珀塞莱尼娅
+Columbina Hyposelenia = 哥伦比娅·希珀塞莱尼娅
 Illuga:叶洛亚
 "Moon Maiden":「月之少女」
 Kuutar:库塔尔
 Lauma:菈乌玛
 Nefer:奈芙尔
-Kyryll Chudomirovich Flins = 克里洛 楚德米洛维奇 菲林斯
+Kyryll Chudomirovich Flins = 克里洛·楚德米洛维奇·菲林斯
 Damselette:「少女」
 Alice:艾莉丝
-Nicole Reeyn = 尼可 莱恩
+Nicole Reeyn = 尼可·莱恩
 Aino:爱诺
 Jahoda:雅珂达
 Durin:杜林
@@ -54,7 +54,7 @@ Aether:空
 Lumine:荧
 Zhongli:钟离
 Xianyun:闲云
-Barbara Pegg = 芭芭拉 佩奇
+Barbara Pegg = 芭芭拉·佩奇
 Rosaria:罗莎莉亚
 Ifa:伊法
 Ineffa:伊涅芙
@@ -62,7 +62,7 @@ Kujou Sara = 九条 裟罗
 Xinyan:辛焱
 Xiao:魈
 Baizhu:白术
-Eula Lawrence = 优菈 劳伦斯
+Eula Lawrence = 优菈·劳伦斯
 Dahlia:塔利雅
 Wanderer:流浪者
 Charlotte:夏洛蒂
@@ -111,24 +111,24 @@ Yelan:夜兰
 Yaoyao:瑶瑶
 Gaming:嘉明
 Lan Yan:蓝砚
-Jean Gunnhildr = 琴 古恩希尔德
+Jean Gunnhildr = 琴·古恩希尔德
 Amber:安柏
-Kaeya Alberich = 凯亚 亚尔伯里奇
-Lisa Minci = 丽莎 敏兹
+Kaeya Alberich = 凯亚·亚尔伯里奇
+Lisa Minci = 丽莎·敏兹
 Venti:温迪
 Razor:雷泽
 Noelle:诺艾尔
-Fischl von Luftschloss Narfidort = 菲谢尔 冯 露弗施洛斯 那菲多特
-Diluc Ragnvindr = 迪卢克 莱艮芬德
+Fischl von Luftschloss Narfidort = 菲谢尔·冯·露弗施洛斯·那菲多特
+Diluc Ragnvindr = 迪卢克·莱艮芬德
 Klee:可莉
 Sucrose:砂糖
 Albedo:阿贝多
-Astrologist Mona Megistus = 阿斯托洛吉斯 莫娜 梅姬斯图斯
-Mika Schmidt = 米卡 施密特
+Astrologist Mona Megistus = 阿斯托洛吉斯·莫娜·梅姬斯图斯
+Mika Schmidt = 米卡·施密特
 Mualani:玛拉妮
 Kachina:卡齐娜
 Kinich:基尼奇
-K'uhul Ajaw = 库胡勒 阿乔
+K'uhul Ajaw = 库胡勒·阿乔
 Almighty Dragonlord:伟大圣龙
 Citlali:茜特菈莉
 Granny Itztli:黑曜石奶奶
@@ -141,7 +141,7 @@ Varesa:瓦雷莎
 Cyno:赛诺
 Tighnari:提纳里
 Collei:柯莱
-Dori Sangemah Bay = 多莉 桑歌玛哈 巴依
+Dori Sangemah Bay = 多莉·桑歌玛哈·巴依
 Alhaitham:艾尔海森
 Dehya:迪希雅
 Nilou:妮露
@@ -180,10 +180,10 @@ Balachko:「巴拉奇科」
 Priestess of Floral Candles and Skyborne Feathers:「花烛与风羽的司巫」
 The Fair Lady:「女士」
 La Signora:席诺拉
-Rosalyne Kruzchka Lohefalter = 罗莎琳 克鲁兹希卡 洛厄法特
+Rosalyne Kruzchka Lohefalter = 罗莎琳·克鲁兹希卡·洛厄法特
 Crimson Witch of Embers:焚尽的炽炎魔女
 Regrator:「富人」
-Feofan Sergeyevich Veksel = 费奥潘 谢尔盖耶维奇 维克塞
+Feofan Sergeyevich Veksel = 费奥潘·谢尔盖耶维奇·维克塞
 Il Dottore:多托雷
 Dottore:多托雷
 Pulcinella:普契涅拉
@@ -207,9 +207,9 @@ The Five Sinners of Khaenri'ah:坎瑞亚的「五大罪人」
 Rhinedottir:莱茵多特
 Sage-Lord of Fungi:蕈之贤主
 Zoya Snezhevna = 佐娅 雪奈茨芙娜
-Chlothar Alberich = 克洛达尔 亚尔伯里奇
+Chlothar Alberich = 克洛达尔·亚尔伯里奇
 Sinner:罪人
-Caribert Alberich = 卡利贝尔 亚尔伯里奇
+Caribert Alberich = 卡利贝尔·亚尔伯里奇
 Pantalone:潘塔罗涅
 Dainsleif:戴因斯雷布
 Vinster King:黑王
@@ -396,11 +396,11 @@ Brightcrown Mountains:明冠山地
 Brightcrown Canyon:明冠峡
 Dragonspine:龙脊雪山
 Snow-Covered Path:覆雪之路
-Entombed City - Ancient Palace:雪葬之都 旧宫
+Entombed City - Ancient Palace:雪葬之都·旧宫
 Skyfrost Nail:寒天之钉
 Starglow Cavern:星荧洞窟
 Wyrmrest Valley:眠龙谷
-Entombed City - Outskirts:雪葬之都 近郊
+Entombed City - Outskirts:雪葬之都·近郊
 Dornman Port:荆夫港
 Geyser Realm:泉之境
 Musk Reef:马斯克礁
@@ -710,7 +710,7 @@ Poisson Tunnel:白淞隧道
 Beryl Region:苍晶区
 Elynas:厄里那斯
 Merusea Village:海沫村
-Source of All Waters: The Great Fontaine Lake:万水之源 大枫丹湖
+"Source of All Waters: The Great Fontaine Lake":万水之源·大枫丹湖
 Elton Trench:埃尔顿海沟
 Salacia Plain:塞洛海原
 Chemin de L'Espoir:希望之路
