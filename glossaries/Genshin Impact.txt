@@ -1,0 +1,1283 @@
+版本号:1.0.0
+维护者:BigRibosomal
+更新时间:2026‑08‑20
+
+词条
+
+//可玩角色
+Sandrone:桑多涅
+Marionette:「木偶」
+Marionette Guillotin = 小玛丽安 吉约丹
+Clockwork Princes:发条公主
+Anastasya Feodorovna Snezhnaya = 安娜丝塔夏 费奥多罗夫娜 雪奈茨娜娅
+Vodyanitsa:沃雅妮莎
+Alyosha:阿罗夏
+Odette:奥黛塔
+Valeriy:瓦列里
+Vesna:薇斯纳
+Danica:达妮卡
+Noy:诺伊
+Mitya:米提亚
+Prune:布伦妮
+Flins:菲林斯
+Linnea:莉奈娅
+Diona Kätzlein = 迪奥娜 凯茨莱茵
+Lohen:洛恩
+Zibai:兹白
+White Horse Adeptus:白马仙人
+Columbina Hyposelenia = 哥伦比娅 希珀塞莱尼娅
+Illuga:叶洛亚
+"Moon Maiden":「月之少女」
+Kuutar:库塔尔
+Lauma:菈乌玛
+Nefer:奈芙尔
+Kyryll Chudomirovich Flins = 克里洛 楚德米洛维奇 菲林斯
+Damselette:「少女」
+Alice:艾莉丝
+Nicole Reeyn = 尼可 莱恩
+Aino:爱诺
+Jahoda:雅珂达
+Durin:杜林
+Varka:法尔伽
+Bennett:班尼特
+Skirk:丝柯克
+Tartaglia:达达利亚
+Childe:「公子」
+Ajax:阿贾克斯
+Scaramouche:斯卡拉姆齐
+Balladeer:散兵
+Kunikuzushi:国崩
+Arlecchino:阿蕾奇诺
+The Knave:「仆人」
+Peruere:佩露薇利
+Aether:空
+Lumine:荧
+Zhongli:钟离
+Xianyun:闲云
+Barbara Pegg = 芭芭拉 佩奇
+Rosaria:罗莎莉亚
+Ifa:伊法
+Ineffa:伊涅芙
+Kujou Sara = 九条 裟罗
+Xinyan:辛焱
+Xiao:魈
+Baizhu:白术
+Eula Lawrence = 优菈 劳伦斯
+Dahlia:塔利雅
+Wanderer:流浪者
+Charlotte:夏洛蒂
+Lyney:林尼
+Lynette:琳妮特
+Freminet:菲米尼
+Navia:娜维娅
+Wriothesley:莱欧斯利
+Sigewinne:希格雯
+Clorinde:克洛琳德
+Neuvillette:那维莱特
+Furina:芙宁娜
+Chevreuse:夏沃蕾
+Chiori:千织
+Emilie:艾梅莉埃
+Escofier:爱可菲
+Kaedehara Kazuha = 枫原 万叶
+Yoimiya:宵宫
+Kamisato Ayaka = 神里 绫华
+Kamisato Ayato = 神里 绫人
+Thoma:托马
+Sayu:早柚
+Yae Miko = 八重 神子
+Arataki Itto = 荒泷 一斗
+Kuki Shinobu = 久岐 忍
+Gorou:五郎
+Sangonomiya Kokomi = 珊瑚宫 心海
+Shikanoin Heizou = 鹿野院 平藏
+Kirara:绮良良
+Raiden Shogun:雷电将军
+Ei:影
+Yumemizuki Mizuki = 梦见月 瑞希
+Xiangling:香菱
+Keqing:刻晴
+Ningguang:凝光
+Qiqi:七七
+Xingqiu:行秋
+Chongyun:重云
+Beidou:北斗
+Ganyu:甘雨
+Hu Tao:胡桃
+Yanfei:烟绯
+Yun Jin:云堇
+Shenhe:申鹤
+Yelan:夜兰
+Yaoyao:瑶瑶
+Gaming:嘉明
+Lan Yan:蓝砚
+Jean Gunnhildr = 琴 古恩希尔德
+Amber:安柏
+Kaeya Alberich = 凯亚 亚尔伯里奇
+Lisa Minci = 丽莎 敏兹
+Venti:温迪
+Razor:雷泽
+Noelle:诺艾尔
+Fischl von Luftschloss Narfidort = 菲谢尔 冯 露弗施洛斯 那菲多特
+Diluc Ragnvindr = 迪卢克 莱艮芬德
+Klee:可莉
+Sucrose:砂糖
+Albedo:阿贝多
+Astrologist Mona Megistus = 阿斯托洛吉斯 莫娜 梅姬斯图斯
+Mika Schmidt = 米卡 施密特
+Mualani:玛拉妮
+Kachina:卡齐娜
+Kinich:基尼奇
+K'uhul Ajaw = 库胡勒 阿乔
+Almighty Dragonlord:伟大圣龙
+Citlali:茜特菈莉
+Granny Itztli:黑曜石奶奶
+Xilonen:希诺宁
+Iansan:伊安珊
+Chasca:恰斯卡
+Mavuika:玛薇卡
+Ororon:欧洛伦
+Varesa:瓦雷莎
+Cyno:赛诺
+Tighnari:提纳里
+Collei:柯莱
+Dori Sangemah Bay = 多莉 桑歌玛哈 巴依
+Alhaitham:艾尔海森
+Dehya:迪希雅
+Nilou:妮露
+Candace:坎蒂丝
+Layla:莱依拉
+Faruzan:珐露珊
+Kaveh:卡维
+Nahida:纳西妲
+Sethos:赛索斯
+
+//重要NPC
+Fagio:法洁欧
+Ninnin:宁宁
+Nin-Kiggia:宁希姬娅
+Eggie:黑蛋
+Maggie:玛歌
+Ibni-Belum:伊比尼伯龙
+Nibelung:尼伯龙根
+The Doctor:「博士」
+Read Miller = 雷德 米勒
+Avrelian:艾维雷勒安
+Eternal Moon Goddess:恒月女神
+Aria:艾莉亚
+Canon:卡侬
+Sonnet:桑娜妲
+Clink Clank Legion:叮铃哐啷军团
+Krum-Clank 70 percent Sweet:铛铛七分甜
+Zip-Zap Spy-Bot Number 1:㕲㕲㕲间谋1号
+Pulonia:普隆尼亚
+Rerir:雷利尔
+Rächer of Solnari:猎月人
+Little Tobot:小机器人
+Bobik:博比克
+Balachko:「巴拉奇科」
+"Sovereign ruler":「至高领主」
+Priestess of Floral Candles and Skyborne Feathers:「花烛与风羽的司巫」
+The Fair Lady:「女士」
+La Signora:席诺拉
+Rosalyne Kruzchka Lohefalter = 罗莎琳 克鲁兹希卡 洛厄法特
+Crimson Witch of Embers:焚尽的炽炎魔女
+Regrator:「富人」
+Feofan Sergeyevich Veksel = 费奥潘 谢尔盖耶维奇 维克塞
+Il Dottore:多托雷
+Dottore:多托雷
+Pulcinella:普契涅拉
+The Rooster:「公鸡」
+Il Capitano:卡皮塔诺
+Capitano:卡皮塔诺
+The Captain:「队长」
+Pierro:皮耶罗
+The Jester:「丑角」
+Crucabena:库嘉维娜
+Naberius:纳贝里士
+Nightmare-monsters:梦魔
+Hroptatyr:海洛塔帝
+Vedrfolnir:维瑟弗尼尔
+Surtalogi:苏尔特洛奇
+The Wise:贤者
+The Visionary:预言家
+Gold:黄金
+The Foul:极恶骑
+The Five Sinners of Khaenri'ah:坎瑞亚的「五大罪人」
+Rhinedottir:莱茵多特
+Sage-Lord of Fungi:蕈之贤主
+Zoya Snezhevna = 佐娅 雪奈茨芙娜
+Chlothar Alberich = 克洛达尔 亚尔伯里奇
+Sinner:罪人
+Caribert Alberich = 卡利贝尔 亚尔伯里奇
+Pantalone:潘塔罗涅
+Dainsleif:戴因斯雷布
+Vinster King:黑王
+Madame Ping:萍姥姥
+Streetward Rambler:歌尘浪市真君
+Rain Calmer:销虹霁雨真君
+Jade Seeker:寻瑰纳琦真君
+Ruler of Life:生之执政
+Dain:戴因
+Bough Keeper:拾枝者
+Twilight Sword:末光之剑
+Egeria:厄歌莉娅
+Remuria:雷穆利亚
+Orobashi:奥罗巴斯
+Guizhong:归终
+Decarabian:迭卡拉庇安
+Havria:哈夫里亚
+Rukkhadevata:大慈树王
+Greater Lord Rukkhadevata:大慈树王
+Lesser Lord Kusanali:小吉祥草王
+Makoto:真
+Barbatos:巴巴托斯
+Morax:摩拉克斯
+Apep:阿佩普
+King Deshret:赤王
+Deshret:赤王
+
+
+
+//全部地区及相关专有名词
+Misty Shoal:雾灵渚
+Dunanna Forward Station:杜南纳前进站
+Dark Side of the Moon:月之暗面
+Archaeolune Storm Research Center:古月风暴研究所
+Bubble Pool:浮沤泊
+Golden Hall:金屋
+Nuur Stone Circle:努尔寂石阵列
+The Eye of Ibni-Belum:伊比尼伯龙之眼
+Traveler's Crater:旅者环形山
+Ungien's Circle:乌吉恩圈
+Curtain-Form Blackbody Containment Lab:幕形态黑体物质笼实验室
+Moontide Sea:月荡海
+Moongazer:望月者号
+Spinning Special:转转特调
+Yae Publishing House:八重堂
+Eipekkusu:天顶屋
+Millhaven:风车镇
+Old Sanatorium Site:疗养院旧址
+Windrest Peak:风息山
+Temple of Space:空之神殿
+Path of the Forgotten World:遗世之路
+Pillar Haill Central Zone:柱殿中央区
+Mahavaipulya Chamber:大方广
+Desert Pavilion:沙上楼阁
+Luyang Academy:麓阳书院
+Curatorium of Secrets:秘闻馆
+Wanmin Restaurant:万民堂
+Bubu Pharmacy:不卜庐
+Wanwen Bookhouse:万文集舍
+Yanshang Teahouse:岩上茶室
+Liuli Pavilion:琉璃亭
+Xinyue Kiosk:新月轩
+Third-Round Knockout:三碗不过港
+Heyu Tea House:和裕茶馆
+Scent of Spring:春香窑
+The Jade Mystery:解翠行
+Mingxing Jewelry:明星斋
+Baiju Guesthouse:白驹逆旅
+Xigu Antiques:希古居
+Wanyou Boutique:万有铺子
+Wangshan Hall:王山厅
+Lang-Gan:琅玕
+Lantern Rite:海灯节
+Moonlit Mirage:皎月渺渺
+Voidsea Outlook:虚海望
+Piramida:皮拉米达城
+Dreadshade Mire:噩影泽地
+Wavechaser Plain:逐浪野
+Pillar of Embla:厄布拉神柱
+Wing of Keres:凯雷丝之翼
+Favonius Keep:西风戍垒
+Cliffwatch Camp:望崖营壁
+Armvartnir:安瓦蒂尼尔湖
+Ashveil Peak:烟硌山峰
+Kipumaki Cliff:苦壑崖
+Special Territory Research Institute:特辖地研究所
+Sal Vindagnyr:沙尔 芬德尼尔
+Hyperborea:亥珀波瑞亚
+Universitas Magistrorum:深秘院
+The Flagship:旗舰
+Speranza:斯偑兰扎
+Voynich Guild:伏尼契商会
+Northland Bank:北国银行
+Paha Isle:帕哈岛
+Final Night Cemetery:终夜长茔
+North Harbor:北港
+Maroon Basin:緋沙盐沼
+Kuuvahki Experimental Design Bureau:月矩力试验设计局
+South Harbor:南港
+Hiisi Island:希汐岛
+Sanctum of the Oathkeeper:守誓者的圣所
+Silvermoon Hall:银月之庭
+Light-Bathed Platform:沐光之台
+Crab Tsar's Palace:蟹之主的宫殿
+Thunderclap Reef:雷图礁
+Frostmoon Enclave:霜月之坊
+Lempo Isle:伦波岛
+Nothing Passage:空寂走廊
+Starsand Shoal:星砂滩
+Blue Amber Lake:蓝珀湖
+Eye of Kratti:刻拉蒂之眼
+Barrowmoss Barrens:苔骨荒原
+Clink-Clank Krumkake Craftshop:叮铃哐啷蛋卷工坊
+Nasha Town:那夏镇
+Silver Fir Wood:银冷杉木
+Alder Wood:桤木
+Easybreeze Holiday Resort:悠悠度假村
+Colorfall Cave:彩彩洞
+Easybreeze Market:悠悠集市
+Colorfall Cliffs:彩彩崖
+Huha Hill:呼呼丘
+Wavey Bay:浪浪湾
+Guiztli Rudge:刺梨岩
+Vlla Guiztli:刺梨镇
+Guiztli Path:刺梨小径
+The Mare Jivari:烬寂海
+"Windless Land":「无风之地」
+Cape Oath:誓言岬
+Chihu Rock:螭虎岩
+Pearl Galley:珠钿舫
+Minlin:珉林
+Luhua Pool:渌华池
+Cuijue Slope:翠玦坡
+Mt. Aocang:奥藏山
+Dihua Marsh:荻花洲
+Konda Village:绀田村
+Tatarasuna:踏鞴砂
+Nazuchi Beach:名椎滩
+Yashiori Island:八酝岛
+Fort Fujitou:藤兜砦
+Fort Mumei:无明砦
+Watatsumi Island:海祇岛
+Fort Hiraumi:平海砦
+Amakumo Peak:天云峠
+Mt. Kanna:菅名山
+Chatrakam Cave:茸蕈窟
+Yasna Monument:谒颂幽境
+Vanarana:桓那兰那
+Mahavanaranapna:玛哈桓那兰那薜那
+Old Vanarana:往昔的桓那兰那
+The Dune of Magma:铄石之丘
+The Sands of Al-Azif:啁哳之沙
+Dunes of Steel:镔铁沙丘
+Bayt Al-Sukr:酣乐之殿
+Girdle of the Sands:苍漠囿土
+Realm of Farakhkert:浮罗囿
+Hills of Barsom:跋松顶
+Tree of Dreams, Vanarana:桓那兰那的梦之树
+Vamadha:桓摩达
+Nod-Krai:挪德卡莱
+Stormterror's Lair:风龙废墟
+Teyvat:提瓦特
+Celestia:天空岛
+
+Mondstadt:蒙德
+Starfell Valley:坠星山谷
+Stormbearer Point:望风角
+Stormbearer Mountains:望风山地
+Starfell Lake:星落湖
+Whispering Woods:低语森林
+Cider Lake:果酒湖
+Starsnatch Cliff:摘星崖
+Thousand Winds Temple:千风神殿
+Galesong Hill:风啸山坡
+Windrise:风起地
+Falcon Coast:鹰翔海滩
+Dadaupa Gorge:达达乌帕谷
+Windwail Highland:苍风高地
+Springvale:清泉镇
+Dawn Winery:晨曦酒庄
+Wolvendom:奔狼岭
+Drunkard Gorge:醉汉峡
+Brightcrown Mountains:明冠山地
+Brightcrown Canyon:明冠峡
+Dragonspine:龙脊雪山
+Snow-Covered Path:覆雪之路
+Entombed City - Ancient Palace:雪葬之都 旧宫
+Skyfrost Nail:寒天之钉
+Starglow Cavern:星荧洞窟
+Wyrmrest Valley:眠龙谷
+Entombed City - Outskirts:雪葬之都 近郊
+Dornman Port:荆夫港
+Geyser Realm:泉之境
+Musk Reef:马斯克礁
+Windblume Festival:风花节
+The Mages' Tea Party:魔女的茶会
+Baron Bunny:兔兔伯爵
+Lupical:卢皮卡
+Jumpy Dumpty:蹦蹦炸弹
+Sparks 'n' Splash:轰轰火花
+Dodoco:嘟嘟可
+Holy Lyre der Himmel:天空之琴
+Ludi Harpastum:羽球节
+harpastum:羽球
+harpasta:羽球
+
+
+Liyue:璃月
+Liyue Harbor:璃月港
+Feiyun Slope:绯云坡
+Jade Chamber:群玉阁
+Blackcliff Forge:黑岩厂
+Golden House:黄金屋
+Lisha:璃沙郊
+Mt. Tianheng:天衡山
+Qingxu Pool:青墟浦
+Lingju Pass:灵矩关
+Dunyu Ruins:遁玉陵
+Qiongji Estuary:琼玑野
+Guili Plains:归离原
+Mingyun Village:明蕴镇
+Yaoguang Shoal:瑶光滩
+Sal Terrae:地中之盐
+Tianqiu Valley:天遒谷
+Jueyun Karst:绝云间
+Nantianmen:南天门
+Mt. Hulao:琥牢山
+Qingyun Peak:庆云顶
+Huaguang Stone Forest:华光林
+Bishui Plain:碧水原
+Wangshu Inn:望舒客栈
+Stone Gate:石门
+Wuwang Hill:无妄坡
+Qingce Village:轻策庄
+Sea of Clouds:云来海
+Guyun Stone Forest:孤云阁
+Qiaoying Village:翘英庄
+Chenyu Vale:沉玉谷
+The Chasm:层岩巨渊
+Fuao Vale:伏鳌谷
+The Surface:地面矿区
+The Chasm's Maw:巨渊之口
+Cinnabar Cliff:丹砂崖
+Glaze Peak:琉璃峰
+Tiangong Gorge:天工峡
+Lumberpick Valley:采樵谷
+The Chasm: Underground Mines:层岩巨渊 地下矿区
+Ad-Hoc Main Tunnel:临时主矿道
+The Serpent's Cave:巨蛇岩洞
+The Chasm: Main Mining Area:巨渊主矿区
+Underground Waterway:地下水泽
+Stony Halls:崎岖石厅
+Nameless Ruins:无名遗迹
+The Glowing Narrows:荧光狭道
+Yilong Wharf:遗珑埠
+Mt. Mingyuan:暝垣山
+Mt. Lingmeng:灵濛山
+Jademouth:宝玦口
+Chenlong Cleft:沉珑渊
+Lingshu Courtyard:灵枢庭
+Teatree Slope:古茶树坡
+Yaodie Valley:药蝶谷
+Chizhang Wall:赤璋城垣
+Chiwang Terrace:赤望台
+Carp's Rest:锦落庭
+Mt. Xuanlian:悬练山
+Adeptus:仙人
+Adepti:仙人
+Rite of Descension:请仙
+Rite of Parting:送仙典仪
+Exuvia:仙祖法蜕
+karma:业障
+Wrath of the Rock:食岩之罚
+Cocogoat:椰羊
+ascension ceremony:升空仪式
+The Divine Damsel of Devastation:神女劈观
+Plaustrite:浮生石
+Sunset Vermillionite:鸣霞浮生石
+Adeptal energy:仙力
+
+Inazuma:稻妻
+Narukami Island:鸣神岛
+Inazuma City:稻妻城
+Byakko Plain:白狐之野
+Amakane Island:甘金岛
+Chinju Forest:镇守之森
+Mt. Yougou:影向山
+Kamisato Estate:神里屋敷
+Ritou:离岛
+Araumi:荒海
+Jinren Island:刃连岛
+Kannazuka:神无冢
+Mikage Furnace:御影炉心
+Kujou Encampment:九条阵屋
+Musoujin Gorge:无想刃狭间
+Higi Village:绯木村
+Serpent's Head:蛇神之首
+Jakotsu Mine:蛇骨矿洞
+Sangonomiya Shrine:珊瑚宫
+Bourou Village:望泷村
+Mouun Shrine:矇云神社
+Suigetsu Pool:水月池
+Enkanomiya:渊下宫
+The Serpent's Bowels:蛇肠之道
+The Narrows:狭间之街
+Dainichi Mikoshi:大日御舆
+Evernight Temple:常夜灵庙
+The Serpent's Heart:蛇心之地
+Vishap Research Lab:龙蜥研究所
+Seirai Island:清籁岛
+Koseki Village:越石村
+Seiraimaru:「清籁丸」
+Asase Shrine:浅濑神社
+Tsurumi Island:鹤观
+Shirikoro Peak:知比山
+Oina Beach:笈名海滨
+Chirai Shrine:千来神祠
+Autake Plains:逢岳之野
+Moshiri Ceremonial Site:茂知祭场
+Wakukau Shoal:惑饲滩
+Plane of Euthymia:一心净土
+Musou Isshin:梦想一心
+Inazuman:稻妻人 / 稻妻的
+Vision Hunt Decree:眼狩令
+Sakoku Decree:锁国令
+Musou no Hitotachi:无想的一刀
+Raiden Gokaden:雷电五传
+Amenoma Art:天目流
+Electro Mitsudomoe:雷之三重巴
+perch:栖木
+Maushiro:木簧笛
+Sunchildren:太阳之子
+Phaethon:法厄同
+Youkai powers:妖力
+Balethunder:雷祸
+Whitenight:白夜
+Evernight:常夜
+
+Sumeru:须弥
+Sumeru City:须弥城
+Treasures Street:宝商街
+Grand Bazaar:大巴扎
+Sanctuary of Surasthana:净善宫
+Razan Garden:寂静园
+Avidya Forest:道成林
+Gandharva Ville:化城郭
+Gandha Hill:香醉坡
+Chinvat Ravine:离渡谷
+Yazadaha Pool:天臂池
+Ardravi Valley:阿陀河谷
+Port Ormos:奥摩斯港
+Vimara Village:维摩庄
+Devantaka Mountain:降诸魔山
+Dev's Cavern:迪弗旧窟
+Lokapala Jungle:护世森
+Mawtiyima Forest:无郁稠林
+The Palace of Alcazarzaray:卡萨扎莱宫
+Ashavan Realm:善见地
+Pardis Dhyai:禅那园
+Apam Woods:水天丛林
+Ruins of Dahri:荼诃之座
+Caravan Ribat:喀万驿
+Grove of Dreams:梦景林莽
+The Rain's End:雨的尽头
+Vissudha Field:二净甸
+Fane of Ashvattha:觉王之殿
+Lost Nursery:失落的苗圃
+Sand-Embraced Home:沙中故里
+Land of Grounded Dreams:失梦的国土
+Land of Lower Setekh:下风蚀地
+Aaru Village:阿如村
+Eye of the Sands:沙之眼
+Khaj-Nisut:圣显厅
+Abdju Road:舍身步道
+Abdju Pit:舍身陷坑
+Dar al-Shifa:活力之家
+Lamb-Devourer Rock:吞羊岩
+Land of Upper Setekh:上风蚀地
+Valley of Dahri:荼诃落谷
+Sobek Oasis:丰饶绿洲
+Hypostyle Desert:列柱沙原
+Khemenu Temple:秘仪圣殿
+The Dune of Carouses:饱饮之丘
+The Dune of Elusion:避让之丘
+The Mausoleum of King Deshret:赤王陵
+Opet Hall:祝祭厅
+Great Hall of Truths:衡准大厅
+Duat Hall:渡厄厅
+Sekhem Hall:权杖厅
+Aaru's Shut:阿如的倒影
+Great Red Sand:大赤沙海
+Desert of Hadramaveth:千壑沙地
+Tanit Camps:塔尼特露营地
+Wadi Al-Majuj:巨人峡谷
+The Temples Forsaken:神弃殿阁
+Safhe Shatranj:「神的棋盘」
+Passage of Ghouls:亡者狭廊
+Qusayr Al-Inkhida':愚妄行宫
+Mt. Damavand:达马山
+Wounded Shin Valley:折胫谷
+The Sands of Three Canals:「三运河之地」
+Debris of Panjvahe:「五绿洲」的孑遗
+Wenut Tunnels:沙虫隧道
+Gurabad's Ruin - Temple of Deshret:居尔城墟 赤王神殿
+Liloupar's Cell:镇灵监牢
+Bayt Al-Hayah:生命之殿
+Bayt Al-Muazzam:君王之殿
+Deshret's Glass Goblet:「赤王的水晶杯」
+The Orchard of Pairidaeza:永恒绿洲
+Eternal Oasis:永恒绿洲
+Gavireh Lajavard:荒石苍漠
+Temir Mountains:铁穆山
+Tunigi Hollow:荼泥黑渊
+Gate of Zulqarnain:阻勒隘
+Samudra Coast:聚香海岸
+Hangeh Afrasiyab:逾渊地墟
+Vourukasha Oasis:甘露花海
+Asipattravana Swamp:锋刃林泽
+Tulaytullah:图莱杜拉
+Madinat al-Nuhas:精石铜城
+Chemin Oublie:遗忘之路
+flowery sea:花海
+Sunyata Lake:净觉湖
+Bayda Harbor:拜达港
+Dahri:荼诃
+Dahrian:荼诃人
+Hermanubis:赫曼努比斯
+Eleazar:魔鳞病
+Shrine of Maya:摩耶之殿
+Nara:那菈
+Vana:桓那
+Cuilein-Anbar:柯里安巴
+Dance of Sabzeruz:花神之舞
+Mawtiyima:无郁夷摩
+clearance:权能
+Tighnarians:提纳勒人
+wisdom:智慧
+Darshan:学派
+six Darshans:六大学派
+Amurta:生论派
+Rtawahist:明论派
+Spantamad:素论派 
+Haravatat:知论派 
+Vahumana:因论派 
+Kshahrewar:妙论派 
+Akasha:虚空
+Akasha Terminal:虚空终端
+Spirit Borneol:灵酚香
+Satyavada Life:林居狂语期
+Paripurna Life:寂静圆满期
+Sabzeruz Festival:花神诞祭
+samsara cycle:轮回
+Jnagarbha Day:识藏日
+Knowledge Capsule:罐装知识
+Canned Knowledge:罐装知识
+Divine Knowledge Capsule:神明罐装知识
+Dev:迪弗
+Festival Utsava:无忧节
+Marana:无留陀
+Valuka:巴螺迦
+Ararakalari:兰迦拉梨
+Village Keeper:守村人
+Great Vayuvyastra:大风机关
+Gurabad:居尔城
+the Hive:蜂巢
+collective consciousness:集群意识
+The Wall of Hope:希望之壁
+Sign of Apaosha:焚真之天象
+Amrita:甘露 
+Azosite:阿索斯物质
+Rite of Chinvat:离渡之仪
+Rite of Ab-Zohr:祭水之仪
+The Withering:死域
+Withering Zone:死域
+Decay:凋零
+Decay Projectile:凋零弹
+
+Fontaine:枫丹
+Court of Fontaine Region:枫丹廷区
+Court of Fontaine:枫丹廷
+Palais Mermonia:沫芒宫
+Court Region Waterway Hub:廷区水道枢纽
+Vasari Passage:瓦萨里回廊
+Quartier Lyonnais:利奥奈区
+Quartier Narbonnais:纳博内区
+Fleuve Cendre:灰河
+Erinnyes:伊黎耶岛
+Marcotte Station:茉洁站
+Fountain of Lucine:露景泉
+Opera Epiclese:欧庇克莱歌剧院
+Opera House:歌剧院
+Belleau Region:白露区
+Romaritime Harbor:海露港
+Poisson:白淞镇
+West Slopes of Mont Automnequi:秋分山西侧
+Mont Automnequi:秋分山
+Poisson Tunnel:白淞隧道
+Beryl Region:苍晶区
+Elynas:厄里那斯
+Merusea Village:海沫村
+Source of All Waters: The Great Fontaine Lake:万水之源 大枫丹湖
+Elton Trench:埃尔顿海沟
+Salacia Plain:塞洛海原
+Chemin de L'Espoir:希望之路
+Thalatta Submarine Canyon:塔拉塔海谷
+Institute of Natural Philosophy:自然哲学学院
+Annapausis:安眠处
+Liffey Region:黎翡区
+Fortress of Meropide:梅洛彼得堡
+Fontaine Research Institute of Kinetic Energy Engineering Region:枫丹动能工程科学研究院区
+Petrichor:佩特莉可
+Morte Region:莫尔泰区
+Erinnyes Forest:伊黎耶林区
+Mont Esus East:芒索斯山东麓
+Central Laboratory Ruins:中央实验室遗址
+New Fontaine Research Institute:新枫丹科学院
+Loch Urania:优兰尼娅湖
+Weeping Willow of the Lake:湖中垂柳
+Foggy Forest Path:幽林雾道
+Lumidouce Harbor:柔灯港
+Fort Charybdis Ruins:卡布狄斯堡遗迹
+East Slopes of Mont Automnequi:秋分山东侧
+Tower of Ipsissimus:自体自身之塔
+Nostoi Region:诺思托伊区
+Faded Castle:褪色古堡
+Sea of Bygone Eras:旧日之海
+Initinum Iani:雅努斯之门
+Hortus Euergetis:优恩花园
+Alta Semita:崇高大道
+Clivus Capitolinus:卡皮托林山
+Collegium Phonascorum:谐律院
+The Wingalet:维恩歌莱号
+Armored Crab Shield:重甲护盾
+Fontemer Water Blade:原海水刃
+Welfare Meal:福利餐
+Pankration:拳力斗技
+Barnacle Bullet:藤壶子弹
+Fontainian:枫丹人
+Indemnitium:律偿混能
+serial disappearances of young women:少女连环失踪案
+Water from the Primordial Sea:原始胎海之水
+Primordial Water:原始胎海之水
+Sinthe:乐斯
+Book of Revealing:揭示之书
+Looking Glass:谜镜
+world-formula:世界式
+the Sponsian:斯彭西安号
+Remuria:雷穆利亚
+Pneuma:芒性 / 芒性态
+Ousia:荒性 / 荒性态
+Balanced:均衡态
+mutual annihilation:湮灭
+Arkhe:始基力
+Transoceanic Sourcewater:异海源水
+Bond of Life:生命之契
+
+Natlan:纳塔
+Night Kingdom:夜神之国
+Tequemecam Valley:坚岩隘谷
+"Children of Echoes":「回声之子」
+Sulfurous Veins:硫晶支脉
+Rift in the Mountains:山脉的横裂
+Waterlogged Ruins:漫水的古迹
+Land of Myriad Megaliths:众岩之里
+Tepeacac Rise:隆崛坡
+Basin of Unnumbered Flames:万火之瓯
+Huitztli Hill:柴薪之丘
+Stadium of the Sacred Flame:圣火竞技场
+Stadium of the Sacred Flame: Chuwen Fair:圣火竞技场 楚汶市集
+Stadium of the Sacred Flame: Temple of Pax:圣火竞技场 帕克斯神庙
+Tablet of Tona:煅石之轮
+Speaker's Chamber:话事处
+Coatepec Mountain:踞石山
+"Scions of the Canopy":「悬木人」
+Teticpac Peak:彩石顶
+Ancestral Temple:祖遗庙宇
+Abandoned Temple's Sanctuary of Offerings:遗留庙宇的祭奠所
+Phlogiston Extraction Research Center:燃素开采研究所
+Toyac Springs:涌流地
+"People of the Springs":「流泉之众」
+Ameyalco Waters:溶水域
+The Upper Sanctum:浮土静界
+Firethief's Secret Isle:窃火者密岛
+"Flower-Feather Clan":「花羽会」
+"Masters of the Night-Wind":「烟谜主」
+"Collective of Plenty":「沃陆之邦」
+Quahuacan Cliff:翘枝崖
+Malinalco Grotto:荧草窟
+Xalac Vale:漫曛谷
+Scorchwind Trial Grounds:焚风试炼处
+Sacrificial Altar of Enigmatic Land:谜土祭祀场
+Ochkanatlan:奥奇卡纳塔
+Furnace of Fiery Embers:烬火炽燃所
+Ashflow Street:流灰之街
+Vision Serpent's Sanctum:幻蛇之宫
+Vucub Caquix Tower:火鹦之塔
+Old Core of Chu'ulel:旧日的统律之心
+Core of Chu'ulel:统律之心
+Cradle of Fleeting Dreams:空梦的起始
+Nursery of Nightmares:噩梦的温床
+Isle of Tozoz:托佐兹之岛
+Legendary Tonatiuh:传说中的天蛇船
+Tecoloapan Bay:浮羽之湾
+Atocpan:安饶之野
+Resonating Arena:逐响擂台
+Fallingstart Fields:石火坠陨处
+Skyfire Circlet:天火之冠
+Remnants of Tetenanco:孑遗的留迹
+Ancient Mountain Path:觐山古道
+Ancient Sacred Mountain:远古圣山
+Summoning Hall:候召的厅堂
+Sea of Shifting Sentience:分流识海
+Flame-Melding Ritual Grounds:聚火祭验所
+Ruined Armament Workshop:支离武备所
+Heart of Force Inversion:方向逆心
+Pseudostar Pedestal:拟星的台座
+Esoteric Arrays:衍木阵列
+Chamber of Deliberation:审议之庭
+"Blood of Egungun":「沃贡贡之血」
+"Pilgrimage":归火圣夜巡礼
+"Night Warden Wars":巡夜者战争
+Night Wars:狩夜者战争
+Ode of Resurrection:还魂诗
+Phlogiston:燃素
+Saurian Infwelling:龙之魂附
+Nightsoul:夜魂
+TurnFire:回火
+Ancient Name:古名
+Abyssal Corrosion Syndrome:渊蚀综合征
+Draught of Lucidity:清幻剂
+
+
+Snezhnaya:至冬
+Zapolyarny Palace:至冬宫
+Tsaritsa:冰之女皇
+Belyi Tsar:白沙皇
+Fire-Water:火水
+
+Khaenri'ah:坎瑞亚
+Khaenri'ahn:坎瑞亚人 / 坎瑞亚的
+Crimson Moon:赤月
+Eclipse:黑日
+Simulanka:希穆兰卡
+Broken Sea:破碎之海
+curse of immortality:不死诅咒
+Magic Tonic:魔水
+Withering Branch:死域枝节
+Tumor of the Withering:死域瘤
+Seed Mirror:种子镜
+Candle of Life:生之烛
+Flames of Life:生之火光
+
+
+//常见组织势力
+Fatui:愚人众
+Harbringers:执行官
+LightKeepers:执灯人
+Frostmoon Scions:霜月之子
+Moon Godness:月神
+Moonchanter:咏月使
+Abyss Order:深渊教团
+Treasure Hoarders:盗宝团
+The Eremites:镀金旅团
+Adventurers' Guild:冒险家协会
+Knights of Favonius:西风骑士团
+Church of Favonius:西风教会
+Gunnhildr Clan:古恩希尔德家族
+Ragnvindr Clan:莱艮芬德家族
+Lawrence Clan:劳伦斯家族
+Benny's Adventure Team:班尼冒险团
+Hexenzirkel:魔女会
+Liyue Qixing:璃月七星
+Qixing of Liyue:璃月七星
+Millelith:千岩军
+Millelith Brigade:千岩团
+Ministry of Civil Affairs:总务司
+Huishan Hall:辉山厅
+Shenglu Hall:盛露厅
+Guhua Clan:古华派
+Feiyun Commerce Guild:飞云商会
+The Crux Fleet:南十字船队
+Alcor:死兆星号
+Yun-Han Opera Troupe:云翰社
+Grand Narukami Shrine:鸣神大社
+Tri-Commission:三奉行
+Kanjou Commission:勘定奉行
+Tenryou Commission:天领奉行
+Yashiro Commission:社奉行
+Shuumatsuban:终末番
+Kamisato Clan:神里家
+Shogunate:幕府
+resistance:反抗军
+Arataki Gang:荒泷派
+Gourmet Supremos:全能美食队
+Sumeru Akademiya:须弥教令院
+The Akademiya:教令院
+Forest Rangers:巡林小队
+Rebel:巡林小队
+Temple of Silence:缄默之殿
+Alliance of the Twenty-Nine Ocean Deys:二十九海洋代伊联盟
+Corps of Thirty:三十人团
+Ayn Al-Ahmar:阿赫玛尔之眼
+Gilded Journey:金砂之旅
+Blazing Beasts:炽光猎兽
+Deshret's Relics:神王之遗
+Dakan Al-Ahmar:阿赫玛尔之须
+Tanit tribe:塔尼特部族
+Order of Skeptics:矫论团
+Nagarjunites:那伽朱那团
+Valka Shuna:巴螺迦修那
+Fontaine Research Institute:枫丹科学院
+Fontaine Research Institute of Kinetic Energy Engineering:枫丹动能工程科学研究院
+The Steambird:蒸汽鸟报
+The Steambird publishing house:蒸汽鸟报社
+Spina di Rosula:刺玫会
+Daydream Club:空想俱乐部
+Maison Gardiennage:执律庭
+Maison Ordalie:检律庭
+Maison Gestion:复律庭
+Marechaussee Phantom:逐影庭
+Hotel Bouffes d'ete:布法蒂公馆
+Confrerie of Cabriere:卡布里埃商会
+The Narzissenkreuz Ordo:水仙十字结社
+Narzissenkreuz Institute:水仙十字院
+Liliacruces Forum:十字铃兰学会
+House of the Hearth:壁炉之家
+Saurian Relics Association:龙遗物研究协会
+
+
+
+//其它抽象世界观设定
+Irminsul Tree:银白古树
+Eternal Moon:恒月
+Iridescent Moon:虹月
+Frost Moon:霜月
+allogene:原神
+Ley Line:地脉
+Gnosis:神之心
+Delusion:邪眼
+Archon War:魔神战争
+gaze of the god:神明的视线
+Dark Calamity:黑灾
+the Calamity of Darkness:漆黑的灾难
+Phanes:法涅斯
+Primordial One:原初之人
+First Descender:第一降临者
+Second Who Came:第二降临者
+Second Descender:第二降临者
+Saarelainen:萨雷莱宁
+Third Descender:第三降临者
+Fourth Descender:第四降临者
+Descender:降临者
+Descenders:降临者
+Heavenly Principles:天理
+Sustainer of Heavenly Principles:天理的维系者
+Four Shades:四影
+Istaroth:伊斯塔露
+Kairos:卡伊洛斯
+Naberius:纳贝里士
+Ronova:若娜瓦
+Asmoday:阿斯莫代
+Cataclysm:大灾变
+Before Sun and Moon:日月前事
+Light Realm:光界
+Abyss Realm:深渊界
+Dark Sea:暗之外海
+Sea of Clouds:云海
+The Funerary Year:葬火之年
+Year of the Ark's Opening:方舟开启之年
+Dove‑Branch Year:鸽子衔枝之年
+
+
+通用词条
+
+//常见物品
+Mora:摩拉
+Original Resin:原粹树脂
+Wind Glider:风之翼
+Bing-Bang Finchball:哐哐当当雀雀球
+Kuuvahki:月矩力
+Relic:圣物
+Moon Marrow:月髓
+Statue of the New Moon:新月神像
+The Moon Mirror:盈月之镜
+Heart of Oasis:绿洲之心
+Seelie Court:仙灵之庭
+Statue of The Seven:七天神像
+Teleport Waypoint:传送锚点
+Crafting Bench:合成台
+Shrine of Depth:地灵龛
+Elemental Monument:元素方碑
+Anemogranum:风种子
+Anemograna:风种子
+Geogranum岩种子
+Geograna:岩种子
+Electrogranum:雷种子
+Electrograna:雷种子
+Dendrogranum:草种子
+Dendrograna:草种子
+Auspicious Branches:祥草杨枝
+Hydrogranum:水种子
+Hydrograna:水种子
+Hydro Core:水之核
+Thunder Sphere:雷极
+Defiled Statue:污秽逆位神像
+Frostbearing Tree:忍冬之树
+Scarlet Quartz:深赤之石
+Heat Source:热源
+Ruin Blazier:遗迹之烛
+Guizhong Ballista:归终机
+Bedrock Keys:磐键
+Lumenlamps:明石灯
+Fantastic Compass:太威仪盘
+Carefree Simulacrum:仙像
+Rattan Figure:藤人
+Sacred Sakura:神樱
+Statue of the Omnipresent God:千手百眼神像
+Discharge Stone:放电石
+Relay Stone:继电石
+Cumulation Stone:集电石
+Lightning Strike Probe:雷霆探针
+Sacred Stone Mound:御引磐座
+Thunderbearer Mirror:雷承之鉴
+Thunder Sakura Bough:雷樱之枝
+Thunder Barrier:若雷结界
+Thunderstone:若雷石
+Thunderwood:雳木
+Stormstones:雷石
+Dragonbone Flower:龙骨花
+Waverider:浪船
+Waverider Waypoint:浪船锚点
+Vasara Tree:莎兰树
+Varuna Contraption:法留纳神机
+Varunastra:法留纳法宝
+Divine Tree:圣树
+Tri-Lakshana Creature:三相众物
+Bouncy Mushroom:弹弹菇
+Tri-Yana Seed:三乘种子
+Four-Leaf Sigil:四叶印
+Clusterleaf of Cultivation:众叶觉蕊
+Primeval Rosin:原始松脂
+Phantasmal Gate:幻梦之门
+Phantasmal Seeds:幻梦之种
+Ashvattha's Concourse:觉树之堂
+Ashvattha Tree:觉王之树
+Claustroflora:幽闭花
+Jamikayomars:阎迦由玛
+Irminsul:世界树
+Wall of Samiel:防沙壁
+tumbleweed:风滚草
+Suda's Flow:须陀流心
+Ruin Golem:遗迹巨像
+Energy Extraction Device:能量提取装置
+Plinth of the Secret Rites:秘仪台座
+Primal Ember:元能火种
+Primal Torch:元能火炬
+Primal Beam:元能光束
+Primal Sandglass:元能沙钟
+Forged Primal Light:元能光锥
+Replicator Keystone:拟构基石
+Primal Obelisk:元能尖碑
+Sacred Seal:圣章石
+Verity Cell:本相元件
+Obscuring Cell:隐视元件
+Prism of Khaj-Nisut:圣显棱柱
+Rune Mechanism:符文机关
+Cascade Pool:蓄水阶池
+Cascade Spout:蓄水喷口
+Pipe Diverter Valve:管道转向阀
+Dual-Phase Neverlight Cell:二相噬光元件
+Dual-Phase Everlight Cell:二相恒光元件
+Jinn Branch:镇灵之枝
+Manifestation Mechanism:具现机关
+Gray Crystal:灰余晶
+Harvisptokhm:万种母树
+Gaokerena:伽乌迦那
+Nirodha Fruit:苦离果
+Fravashi Tree:灵谷木
+Burgeoning Spirit:蔓生灵心
+Sunyata Flower:净觉花
+Amrita Seal:甘露封印
+Udumbara:忧昙花
+Lightcall Path:浮光之路
+Floating Orb:浮光球
+Bright Flame Altar:光明火坛
+Khvarena Barrier:灵光壁障
+Ruin Cannon:遗迹重炮
+Flower of Sanctity:圣洁之花
+Spenta Heart:慈心
+Khvarena Monument:灵光碑
+BA Fragment:跋灵
+Oratrice Mecanique d'Analyse Cardinale:谕示裁定枢机
+Oratrice:谕示机
+aquabus:巡轨船
+Fontemer Seagrass:原海海草
+Pneumousia Block:芒荒能量块
+Pneuma Block:芒性能量块
+Ousia Block:荒性能量块
+Pneumousia Relay:芒荒中继桩
+Pneumousia Storage Box:芒荒储物箱
+Enhanced Pneumousia Amplifier:芒荒强效增幅器
+Water Volume Detection Crystal:水量侦测晶体
+Antoine Roger Aircraft:安东 罗杰飞行器
+Bubble Formation:水泡阵地
+Beastly Rift:兽境的裂隙
+Pufferfruit:胖胖果
+Obsidian Totem Pole:曜石图腾柱
+Spiritspeaker Stone:灵觉髄石
+Spiritway:游隙灵道
+Flamestrider:驰轮车
+Itzpapa:伊兹帕帕
+Secret Source Dragon Idol:秘源龙像
+Serenitea Pot:尘歌壶
+Neo Akasha Terminal:新型虚空终端
+Loom of Fate:命运的织机
+Inteyvat:因提瓦特
+Vision:神之眼
+
+
+
+//常见生物
+Kuuhenki:月灵
+Vila:风仙
+Domovoy:矮灵
+Leshy:树妖
+Volkodlak:兽怪
+Snegovik:雪精
+Jack Frost:霜精
+Lantern Fae:灯之妖精
+Sirens:海妖
+Augury Birds:谶鸟
+Monetoo:幻写灵
+Asha:阿夏
+Seelie:仙灵
+Crystalfly:晶蝶
+Weasel Thief:盗宝鼬
+Dusk Bird:暝彩鸟
+Jinni:镇灵
+Signal Spirit:风之厄灵
+Pari:花灵
+Melusine:美露莘
+
+
+//常见怪物
+Fungus:蕈兽
+Crimson Lotus Moth:红莲蛾
+Dvalin:特瓦林
+Stormterror:风魔龙
+Slime:史莱姆
+Specter:漂浮灵
+Hilichurl:丘丘人
+Samachurl:丘丘萨满
+Mitachurl:丘丘暴徒
+Ruin Guard:遗迹守卫
+Primal Construct:元能构装体
+Abyss Mage:深渊法师
+Abyss Herald:深渊使徒
+Abyss Lector:深渊咏者
+Iniquitous Baptist:深罪浸礼者
+Treasure Hoarders:盗宝团
+Cicin Mage:萤术士
+Cicin:飞萤
+Fatui Skirmisher:愚人众先遣队
+Snezhnayan Maiden:冬国仕女
+Mirror Maiden:藏镜仕女
+Eye of the Storm:狂风之核
+Whopperflower:骗骗花
+Pyro Regisvine:爆炎树
+Cryo Regisvine:急冻树
+Electro Regisvine:掣电树
+Anemo Hypostasis:无相之风
+Electro Hypostasis:无相之雷
+Geo Hypostasis:无相之岩
+Cryo Hypostasis:无相之冰
+Pyro Hypostasis:无相之火
+Hydro Hypostasis:无相之水
+Dendro Hypostasis:无相之草
+Geovishap:岩龙蜥
+Rhodeia:洛蒂娅
+Thunder Manifestation:雷音权现
+Kairag:海乱鬼
+Nobushi:野伏众
+Rifthound:兽境猎犬
+Golden Wolflord:黄金王兽
+Wolves of the Rift:兽境之狼
+Shadowy Husk:黯色空壳
+The Black Serpents:黑蛇众
+Consecrated Beast:圣骸兽
+Wenut:沙虫
+Setekh Wenut:风蚀沙虫
+Tainted Hydro Phantasm:浊水幻灵
+Breacher Primus:隙境原体
+Fontemer Aberrant:原海异种
+Armored Crab:重甲蟹
+Sternshield Crab:坚盾重甲蟹
+Hunter's Ray:猎刀鳐
+Blubberbeast:膨膨兽
+Ball Octopus:球球章鱼
+Hat Jellyfish:帽子水母
+Bubbler Seahorse:泡泡雄海马
+Angelic Sea Hare:天使海兔
+Cherubic Sea Hare:大天使海兔
+Leisurely Otter:悠悠海獭
+Hydro Tulpa:水形幻人
+All-Devouring Narwhal:吞星之鲸
+Tepetlisaurus:嵴锋龙
+Koholasaurus:鳍游龙
+Yumkasaurus:匿叶龙
+Qucusaurus:绒翼龙
+Iktomisaurus:暝视龙
+Tatankasaurus:突角龙
+Gosoythoth:古斯托特
+Fisher of Hidden Depths:深黯钓客
+The Wild Hunt:狂猎
+Azhdaha:若陀龙王
+Andrius:安德留斯
+Boreas:玻瑞亚斯
+Kongamato:康加玛托
+Mountain King:山王
+
+
+//食材
+Sunsettia:日落果
+Sweet Flower:甜甜花
+Snapdragon:金鱼草
+Lavender Melon:堇瓜
+Zaytun Peach:墩墩桃
+Sumeru Rose:须弥蔷薇
+Harra Fruit:香辛果
+Spice:香辛料
+Glabrous Beans:秃秃豆
+Ajilenakh Nut:枣椰
+Bulle Fruit:泡泡桔
+Marcotte:茉洁草
+Tidalga:汐藻
+
+
+//元素反应
+Pyro:火（元素）
+Hydro:水（元素）
+Dendro:草（元素）
+Electro:雷（元素）
+Anemo:风（元素）
+Cryo:冰（元素）
+Geo:岩（元素）
+Overloaded:超载
+Burning:燃烧
+Crystalize:结晶
+Electro-Charged:感电
+Frozen:冻结
+Melt:融化
+Superconduct:超导
+Swirl:扩散
+Vaporize:蒸发
+Bloom:绽放
+Sprawling Shot:蔓生弹
+Catalyze:激化
+Burgeon:烈绽放
+Hyperbloom:超绽放
+Quicken:原激化
+Aggravate:超激化
+Spread:蔓激化
+Lunar Charged:月感电
+Lunar Bloom:月绽放
+Verdant Dew:草露
+Lunar Crystallize:月结晶
+Moondrift:月笼
+Stellar Conduct:星超导
+Starlight Prism:星辉棱晶
+Polestar Field:极星辉域
+
