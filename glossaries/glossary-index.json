@@ -452,5 +452,15 @@
     "maintainer": "喜欢记录的月灵",
     "visibility": true,
     "feedback": "https://github.com/BigRibosomal"
+  },
+  {
+    "name": "Cyberpunk 2077",
+    "tags": [
+      "赛博朋克 2077"
+    ],
+    "url": "https://raw.githubusercontent.com/Sameenwoof/ao3-chinese/refs/heads/main/glossaries/Cyberpunk%202077.txt",
+    "maintainer": "riddikulusknowsnothing",
+    "visibility": true,
+    "feedback": "https://github.com/Sameenwoof"
   }
 ]
