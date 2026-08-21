@@ -1,0 +1,181 @@
+版本号：1.0.1
+维护者：riddikulusknowsnothing
+更新时间：2026-08-21
+
+// 编写时，请至少包含“词条”、“通用词条”、“禁翻词条”、“正则表达式”这 4 个部分中的 1 个
+// 正则表达式区域外，使用引号包裹带有标点符号的原文词条
+
+词条
+// 此区域区分大小写，用于翻译人名等专有名词
+Song So Mi = 宋昭美
+Misty = 米斯蒂
+Viktor Vector = 维克多
+Johnny Silverhand = 强尼·银手
+Jackie Welles = 杰克·威尔斯
+T-Bug = T-Bug
+Rogue Amendiares = 罗格
+Alt Cunningham = 奥特·坎宁安
+Kerry Eurodyne = 克里·欧罗戴恩
+Evelyn Parker = 伊芙琳·帕克
+Judy Alvarez = 朱迪·阿尔瓦雷斯
+Panam Palmer = 帕南·帕尔默
+River Ward = 瑞弗·沃德
+Goro Takemura = 竹村五郎
+Hanako Arasaka = 荒坂华子
+Saburo Arasaka = 荒坂三郎
+Yorinobu Arasaka = 荒坂赖宣
+Michiko Arasaka = 荒坂美智子
+Adam Smasher = 亚当·重锤
+Anders Hellman = 安德斯·赫尔曼
+Dexter DeShawn = 德克斯特·德肖恩
+Regina Jones = 瑞吉娜·琼斯
+Wakako Okada = 冈田和歌子
+Sebastian Ibarra = 塞巴斯蒂安·伊巴拉
+Muamar Reyes = 穆阿迈尔·雷耶斯
+Dakota Smith = 达科塔·史密斯
+Dino Dinovic = 迪诺·迪诺维奇
+Mr. Hands = 汉兹先生
+Placide = 普拉西德
+Maman Brigitte = 玛曼·布丽吉特
+Dum Dum = 杜姆杜姆
+Royce = 罗伊斯
+Nix = 尼克斯
+Sandra Dorsett = 桑德拉·多赛特
+Meredith Stout = 梅瑞德斯·斯托特
+Jefferson Peralez = 杰弗逊·佩拉雷斯
+Elizabeth Peralez = 伊丽莎白·佩拉雷斯
+Lucius Rhyne = 卢修斯·莱恩
+Weldon Holt = 韦尔登·霍尔特
+Nancy Hartley = 南希·哈特利
+Denny = 丹妮
+Henry = 亨利
+Thompson = 汤普森
+Rosalind Myers = 罗莎琳德·迈尔斯
+Solomon Reed = 所罗门·李德
+Alena “Alex” Xenakis = 艾利克斯·泽纳基斯
+Kurt Hansen = 库尔特·汉森
+Aurore Cassel = 奥罗尔·卡塞尔
+Aymeric Cassel = 埃默里克·卡塞尔
+Slider = 滑条
+Jackie Welles = 杰克·威尔斯
+V = V
+Robert John Linder = 罗伯特·约翰·林德
+Arasaka = 荒坂
+Rache Bartmoss = 拉奇·巴特莫斯
+Morgan Blackhand = 摩根·黑手
+Lucius Rhyne = 卢修斯·莱恩
+Adam Smasher = 亚当·重锤
+
+
+通用词条
+// 此区域不区分大小写，用于翻译通用概念
+NC：夜之城
+Night City：夜之城
+Pacifica：太平州
+Dogtown：狗镇
+Watson：沃森区
+Westbrook：威斯特布鲁克区
+Heywood：海伍德区
+Santo Domingo：圣多明戈区
+City Center：市中心
+Badlands：恶土
+North Oak：北橡区
+Japantown：日本街
+Kabuki：歌舞伎区
+Little China：小唐人街
+Northside：北区
+Rancho Coronado：科罗纳多农场
+Charter Hill：宪章山
+Wellsprings：美泉区
+The Glen：谷地区
+Coastview：海景区
+West Wind Estate：西风庄园
+Grand Imperial Mall：大帝国商场
+Black Sapphire：宝石青
+Militech：军用科技
+Arasaka：荒坂
+NetWatch：网络监察
+MaxTac：暴恐机动队
+NCPD：NCPD
+Trauma Team：创伤小组
+Night City Council：夜之城市政厅
+Barghest：幽冥犬
+6th Street：第六街帮
+Maelstrom：漩涡帮
+Tyger Claws：虎爪帮
+Moxes：莫克斯帮
+Animals：动物帮
+Voodoo Boys：巫毒帮
+Valentinos：瓦伦蒂诺帮
+Aldecaldos：阿德卡多
+Scavengers：清道夫
+Wraiths：夜游鬼
+Kang Tao：康陶
+Biotechnica：生物技术
+Petrochem：沛卓石化
+Zetatech：泽塔科技
+Kiroshi：歧路司
+Orbital Air：轨道航空
+Night Corp：夜氏集团
+NCART：夜之城捷运
+Delamain：德拉曼
+Afterlife：来生
+Blackwall：黑墙
+Cyberspace：网络空间
+Old Net：旧网
+Relic：Relic
+Soulkiller：灵魂杀手
+Engram：灵魂数据
+Shard：数据芯片
+Netrunner：网络黑客
+Runner：网络黑客
+'Runner:黑客
+Fixer：中间人
+Merc：雇佣兵
+Ripperdoc：义体医生
+Chrome：义体
+Cyberware：义体
+Quickhack：快速破解
+Daemon：魔偶
+Cyberdeck：网络接入仓
+Braindance：超梦
+BD：超梦
+Sandevistan：斯安威斯坦
+Cyberware：义体
+Cyberdeck：网络接入仓
+Kiroshi Optics：歧路司光学
+Mantis Blades：螳螂刀
+Gorilla Arms：大猩猩手臂
+Projectile Launch System：发射器系统
+Monowire：单分子线
+Syn-lungs：合成肺
+Reinforced Tendons：强化肌腱
+Fortified Ankles：强化踝关节
+Subdermal Armor：皮下护甲
+Optical Camo：光学迷彩
+Second Heart：第二颗心脏
+Biomonitor：生物监测器
+Blood Pump：血泵
+Adrenaline Converter：肾上腺素转换器
+Kerenzikov：克伦奇科夫
+Reflex Tuner：反射调节器
+Shock-N-Awe：震爆器
+Pain Editor：疼痛编辑器
+Eddies：欧元
+Eurodollar：欧元
+Eurobucks：欧元
+Choomba：朋友
+Choom：朋友
+Gonk：蠢货
+Preem：棒极了
+Nova：厉害
+Delta：撤
+Handler：联络人
+
+禁翻词条
+// 此区域区分大小写，用于保持原文
+FIA
+NUSA
+
+正则表达式
+// 匹配德语中 "Wachmann" 的单数和复数形式
