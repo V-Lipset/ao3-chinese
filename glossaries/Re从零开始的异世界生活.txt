@@ -51,7 +51,7 @@ contract:契约
 spirits:精灵
 spirit:精灵
 Sloth:怠惰
-great spirit:精灵
+great spirit:大精灵
 forbidden Library:禁书库
 
 禁翻词条
