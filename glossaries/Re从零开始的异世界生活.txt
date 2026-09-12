@@ -1,4 +1,4 @@
-版本号：1.0.1
+版本号：1.0.2
 维护者：innocentsnow
 更新时间：2026-09-13
 
@@ -30,6 +30,7 @@ Ram:拉姆
 Rem:蕾姆
 Betty:贝蒂
 Beatrice:碧翠丝
+beatrice:碧翠丝
 Beako:碧翠子
 Anastasia:安娜塔西亚
 Julius:尤里乌斯
@@ -48,7 +49,10 @@ witch:魔女
 Sin Archbishop:大罪司教
 contract:契约
 spirits:精灵
+spirit:精灵
 Sloth:怠惰
+great spirit:精灵
+forbidden Library:禁书库
 
 禁翻词条
 // 此区域区分大小写，用于保持原文
