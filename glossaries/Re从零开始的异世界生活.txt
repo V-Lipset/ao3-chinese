@@ -1,0 +1,54 @@
+版本号：1.0.1
+维护者：innocentsnow
+更新时间：2026-09-13
+
+词条
+// 此区域区分大小写，用于翻译人名等专有名词
+Reinhard:莱茵哈鲁特
+Van:范
+Crusch:库珥修
+Satella:莎缇拉
+Regulus:雷古勒斯
+Elsa:艾尔莎
+Echidna:艾姬多娜
+Al:阿尔
+Priscilla:普莉希拉
+Felt:菲鲁特
+Astrea:阿斯特雷亚
+Wilhelm:威尔海姆
+Felix:菲利斯
+Frederica:弗蕾德里卡
+Petra:佩特拉
+Garfiel:加菲尔
+Otto:奥托
+Roswaal:罗兹瓦尔
+Rosewall:罗兹瓦尔
+puck:帕克
+Puck:帕克
+Emilia:爱蜜莉雅
+Ram:拉姆
+Rem:蕾姆
+Betty:贝蒂
+Beatrice:碧翠丝
+Beako:碧翠子
+Anastasia:安娜塔西亚
+Julius:尤里乌斯
+Natsuki Subaru:菜月昴
+Natsuki subaru:菜月昴
+subaru:昴
+Subaru:昴
+Barasu:巴鲁斯
+Betelgeuse:培提尔其乌斯
+
+通用词条
+// 此区域不区分大小写，用于翻译通用概念
+Sanctuary:圣域
+contractor:契约者
+witch:魔女
+Sin Archbishop:大罪司教
+contract:契约
+spirits:精灵
+Sloth:怠惰
+
+禁翻词条
+// 此区域区分大小写，用于保持原文
