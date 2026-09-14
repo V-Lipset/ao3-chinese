@@ -472,5 +472,15 @@
     "maintainer": "Lemon",
     "visibility": true,
     "feedback": "https://github.com/lemonadening7-debug"
+  },
+  {
+    "name": "Re:Zero",
+    "tags": [
+      "Re:从零开始的异世界生活"
+    ],
+    "url": "https://raw.githubusercontent.com/alinayen-coder/ao3-chinese/refs/heads/main/glossaries/Re%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E7%9A%84%E5%BC%82%E4%B8%96%E7%95%8C%E7%94%9F%E6%B4%BB.txt",
+    "maintainer": "innocentsnow",
+    "visibility": true,
+    "feedback": "https://github.com/alinayen-coder"
   }
 ]
