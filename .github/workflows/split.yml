@@ -1,0 +1,93 @@
+name: 拆分
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'local.user.js'
+      - 'tools/**'
+      - '.github/workflows/split.yml'
+  pull_request:
+    paths:
+      - 'local.user.js'
+      - 'tools/**'
+      - '.github/workflows/split.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    name: 作用域校验 + 试拆分
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 作用域校验（region 不得依赖 main 侧 IIFE 内部声明）
+        run: node tools/scope-check.mjs
+
+      - name: 试拆分到临时目录（不写回源文件）
+        run: bash tools/split.sh --out "$RUNNER_TEMP/split" --no-bump
+
+      - name: 确认产物可以解析
+        run: |
+          for f in "$RUNNER_TEMP"/split/*.js; do
+            node --check "$f"
+            echo "OK $(basename "$f")"
+          done
+
+  split:
+    name: 生成 main.user.js + zh-cn.js 并提交
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 拆分到仓库根目录（不改动 local.user.js）
+        run: bash tools/split.sh --out . --no-bump
+
+      - name: 各自单独提交
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          committed=0
+
+          git add -- main.user.js
+          if git diff --cached --quiet; then
+            echo 'main.user.js 无变化'
+          else
+            git commit -m 'Update main.user.js'
+            committed=1
+          fi
+
+          git add -- zh-cn.js
+          if git diff --cached --quiet; then
+            echo 'zh-cn.js 无变化'
+          else
+            git commit -m 'Update zh-cn.js'
+            committed=1
+          fi
+
+          if [ "$committed" = "1" ]; then
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          else
+            echo '产物无变化，跳过提交'
+          fi
+
+      - name: 刷新 jsDelivr 缓存
+        continue-on-error: true
+        run: |
+          curl -sS -o /dev/null -w '%{http_code} main.user.js\n' \
+            'https://purge.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/main.user.js'
+          curl -sS -o /dev/null -w '%{http_code} zh-cn.js\n' \
+            'https://purge.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/zh-cn.js'
