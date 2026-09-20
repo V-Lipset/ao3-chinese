@@ -1,2 +1,6 @@
 # 统一换行符
 * text=auto eol=lf
+
+# 脚本必须是 LF：CRLF 会让 bash 报 "syntax error near unexpected token"
+*.sh  text eol=lf
+*.mjs text eol=lf
