@@ -4,3 +4,16 @@ Thumbs.db
 
 # 临时文件
 temp/
+
+# 拆分脚本
+*.bak-*
+*.tmp-*
+
+# 本地工具与缓存目录
+.firecrawl
+.wrangler
+
+# 独立项目与归档目录
+analytics-dashboard
+analytics-worker
+Update
