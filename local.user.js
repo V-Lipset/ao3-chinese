@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
-// @version      1.10.0-2026-09-20
+// @version      1.10.1-2026-09-21
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -201,20 +201,25 @@
 	const PlaceholderConfig = {
 		prefix: 'z',
 		suffix: '',
+		length: 4,
 		startAt: 1,
 
 		get exampleString() {
-			return this.prefix + this.startAt + this.suffix;
+			return this.placeholderFor(this.startAt);
 		},
 		get fuzzyRegex() {
 			return /(?<![a-zA-Z0-9])[zZｚＺ]\s*([0-9０-９]+)(?![a-zA-Z0-9])/g;
 		},
 		placeholderFor(digits) {
 			const asciiDigits = String(digits).replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
-			return this.prefix + asciiDigits + this.suffix;
+			return this.prefix + asciiDigits.padStart(this.length, '0') + this.suffix;
+		},
+		boundaryRegexFor(placeholder) {
+			const escaped = placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+			return new RegExp(escaped + '(?![0-9０-９])', 'g');
 		},
 		get instructionText() {
-			return '- **Placeholder Preservation:** If an item contains special indicators in the format `z1`, `z2`, `z3`, ... (a short lowercase letter immediately followed by a number), you MUST keep them EXACTLY as they are. They are opaque markers, not words. DO NOT translate, spell out, rewrite, change their case, renumber, or delete them.';
+			return '- **Placeholder Preservation:** If an item contains special indicators in the format `z0001`, `z0002`, `z0003`, ... (a short lowercase letter immediately followed by a number), you MUST keep them EXACTLY as they are. They are opaque markers, not words. DO NOT translate, spell out, rewrite, change their case, renumber, or delete them.';
 		}
 	};
 
@@ -22273,7 +22278,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (this.placeholderCache.has(finalValue)) {
 				return this.placeholderCache.get(finalValue);
 			}
-			const placeholder = `${PlaceholderConfig.prefix}${++this.counter}${PlaceholderConfig.suffix}`;
+			const placeholder = PlaceholderConfig.placeholderFor(++this.counter);
 
 			this.placeholderCache.set(finalValue, placeholder);
 			this.placeholders.set(placeholder, { value: finalValue, rule, originalHTML });
@@ -22336,7 +22341,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			// 校验丢失量
 			let totalLoss = 0;
 			for (const key of legalPlaceholders) {
-				const expected = preprocessedText.split(key).length - 1;
+				const expectedMatch = preprocessedText.match(PlaceholderConfig.boundaryRegexFor(key));
+				const expected = expectedMatch ? expectedMatch.length : 0;
 				const actual = actualCounts[key];
 				const loss = expected - actual;
 
@@ -22380,13 +22386,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			let loss = 0;
 
 			for (const [placeholder] of this.placeholders) {
-				const expected = preprocessedHtml.split(placeholder).length - 1;
+				const expectedMatch = preprocessedHtml.match(PlaceholderConfig.boundaryRegexFor(placeholder));
+				const expected = expectedMatch ? expectedMatch.length : 0;
 				if (expected === 0) continue;
-				const escaped = placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-				const re = new RegExp(escaped, 'g');
-				let actual = 0;
-				let m;
-				while ((m = re.exec(text)) !== null) actual++;
+				const actualMatch = text.match(PlaceholderConfig.boundaryRegexFor(placeholder));
+				const actual = actualMatch ? actualMatch.length : 0;
 				if (actual < expected) loss += (expected - actual);
 			}
 
@@ -22409,8 +22413,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			let processedText = normalizedTranslatedText;
 			for (const[placeholder, data] of this.placeholders.entries()) {
 				const { value: replacement, originalHTML, rule } = data;
-				const escapedPlaceholder = placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-				const regex = new RegExp(escapedPlaceholder, 'g');
+				const regex = PlaceholderConfig.boundaryRegexFor(placeholder);
 
 				if (rule.matchStrategy === 'dom' && originalHTML) {
 					const tempDiv = document.createElement('div');
@@ -26811,7 +26814,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 					const migratePlaceholderPrompt = (prompt) => {
 						if (typeof prompt !== 'string' || !prompt) return prompt;
 						return prompt
-							.replace(/`vtr_`/g, '`z1`')
+							.replace(/`vtr_`/g, '`' + PlaceholderConfig.exampleString + '`')
 							.replace(/vtr_[0-9]+/gi, PlaceholderConfig.exampleString)
 							.replace(/followed by (five|six) digits/gi, 'a short lowercase letter followed by a number')
 							.replace(/five digits|six digits|6 digits/gi, 'a number');
