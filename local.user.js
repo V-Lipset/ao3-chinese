@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
-// @version      1.10.0-2026-08-29
+// @version      1.10.0-2026-09-20
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -18,7 +18,7 @@
 // @match        https://xn--iao3-lw4b.ws/*
 // @match        https://ao3sg.hyf9588.tech/*
 // @match        https://ao3rc.hyf9588.tech/*
-// @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/assets/icon.png
+// @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/assets/AOT.png
 // @resource     vIcon https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/assets/icon.png
 // @resource     santaHat https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/assets/santa%20hat.png
 // @supportURL   https://github.com/V-Lipset/ao3-chinese/issues
@@ -102,10 +102,10 @@
 		STATUS_LIGHT_TOGGLED: 'ao3-status-light-toggled',
 		LOG_ADDED: 'ao3-log-added',
 		GLOSSARY_IMPORTED: 'ao3-glossary-imported',
-		GLOSSARY_IMPORT_FAILED: 'ao3-glossary-import-failed',   // M3：术语表导入失败（补 outcome 归因）
+		GLOSSARY_IMPORT_FAILED: 'ao3-glossary-import-failed',
 		LAZY_LOAD_MARGIN_CHANGED: 'ao3-lazy-load-margin-changed',
 		WEBDAV_SYNC_COMPLETED: 'ao3-webdav-sync-completed',
-		WEBDAV_SYNC_FAILED: 'ao3-webdav-sync-failed'   // 同步失败（detail: { category: auth|timeout|network|other }）
+		WEBDAV_SYNC_FAILED: 'ao3-webdav-sync-failed'
 	};
 
 	/**
@@ -192,35 +192,24 @@
 		toggleOff: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M280-240q-100 0-170-70T40-480q0-100 70-170t170-70h400q100 0 170 70t70 170q0 100-70 170t-170 70H280Zm0-80h400q66 0 113-47t47-113q0-66-47-113t-113-47H280q-66 0-113 47t-47 113q0 66 47 113t113 47Zm85-75q35-35 35-85t-35-85q-35-35-85-35t-85 35q-35 35-35 85t35 85q35 35 85 35t85-35Zm115-85Z"/></svg>',
 		retry: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-694v-106h80v240H560v-80h136q-34-45-84.5-72.5T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q88 0 151.5-54T713-440h82q-19 127-115 203.5T480-160Z"/></svg>',
 		visibilityOn: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>',
-		visibilityOff: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-3z"/></svg>',
-		expandContent: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-80 240-320l57-57 183 183 183-183 57 57L480-80ZM298-584l-58-56 240-240 240 240-58 56-182-182-182 182Z"/></svg>',
-		cornerTl: '<svg viewBox="0 0 24 24"><path d="M5 15 V4 H16" fill="none" stroke="currentColor" vector-effect="non-scaling-stroke"/></svg>',
-		cornerTr: '<svg viewBox="0 0 24 24"><path d="M19 15 V4 H8" fill="none" stroke="currentColor" vector-effect="non-scaling-stroke"/></svg>',
-		cornerBr: '<svg viewBox="0 0 24 24"><path d="M19 9 V20 H8" fill="none" stroke="currentColor" vector-effect="non-scaling-stroke"/></svg>',
-		cornerBl: '<svg viewBox="0 0 24 24"><path d="M5 9 V20 H16" fill="none" stroke="currentColor" vector-effect="non-scaling-stroke"/></svg>'
+		visibilityOff: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-3z"/></svg>'
 	};
 
 	/**
 	 * 占位符全局配置与管理模块
 	 */
 	const PlaceholderConfig = {
-		// 占位符形态：<前缀字母><序号>，如 z1 / z2 / z3 ……（前缀字母选择见设计文档：首选 z、亚军 x）
-		prefix: 'z',      // 前缀字母（小写）。用「字母+数字」替代「双花括号+数字」，避开模板语法、让 AI/MT 视作不透明代号
-		suffix: '',       // 无后缀（裸令牌）
-		startAt: 1,       // 批内起始序号：从 1 起（用户明确「不做数字偏移」）；字母前缀已天然规避与正文撞号
+		prefix: 'z',
+		suffix: '',
+		startAt: 1,
 
 		get exampleString() {
-			// 与 startAt 自洽：即 'z1'；调大 startAt 后示例同步跟随，避免提示词示例与真实占位符不一致
 			return this.prefix + this.startAt + this.suffix;
 		},
 		get fuzzyRegex() {
-			// 容忍模型/MT 改写：z1 / Z1 / ｚ1 / Ｚ1 / z 1 / z１ / Ｚ １ ……（\s 已含全角空格 U+3000，全角数字０-９ 一并覆盖）
-			// 用 lookbehind/lookahead 做边界而非 \b：全角数字不在 \w 内，\b 在 `z１` 后无法形成边界。
-			// 标准形态重建统一走 placeholderFor()；是否真占位符由调用方 placeholders.has() 定。
 			return /(?<![a-zA-Z0-9])[zZｚＺ]\s*([0-9０-９]+)(?![a-zA-Z0-9])/g;
 		},
 		placeholderFor(digits) {
-			// 模糊捕获的数字 → 标准占位符 z<n>：全角数字０-９ 归一为 0-9（前缀字母固定小写）
 			const asciiDigits = String(digits).replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
 			return this.prefix + asciiDigits + this.suffix;
 		},
@@ -241,9 +230,9 @@
 	const ACTIVE_MODEL_PREFIX_KEY = 'active_model_for_';
 	const ADD_NEW_CUSTOM_SERVICE_ID = 'add_new_custom';
 
-	// 手动导入导出的加密密钥（与云端 webdav_enc_key 独立；仅加密/解密手动备份文件，不进同步与导出清单）
+	// 手动导入导出的加密密钥
 	const AO3_EXPORT_ENC_KEY = 'ao3_export_enc_key';
-	// 本地自动备份的加密密钥（独立；随机生成，仅加密 IndexedDB 快照，与手动导出/云端同步密钥无关）
+	// 本地自动备份的加密密钥
 	const AO3_LOCAL_BACKUP_ENC_KEY = 'ao3_local_backup_enc_key';
 
 	// 存储已编译的术语表正则组
@@ -308,19 +297,13 @@
 	];
 
 	/**
-	 * 脚本支持的翻译语言码集合（来自 ALL_LANG_OPTIONS，另含 Bing 明确支持的粤语）。
-	 * 用于把语言检测结果收窄到"引擎可消费"的安全集合：检测返回的支持集外语言码
-	 * （如 franc 修正后映射出的 af/sq/ga 等真实码）在进入缓存键、翻译请求与 AI 提示词
-	 * 之前统一归一化为 'auto'，避免越界/错误语言码污染 from 参数与 AI 源语言语义。
+	 * 脚本支持的翻译语言码集合
 	 */
 	const SUPPORTED_LANG_CODES = new Set(ALL_LANG_OPTIONS.map(([code]) => code));
 	SUPPORTED_LANG_CODES.add('yue');
 
 	/**
-	 * 归一化源语言码：仅脚本支持的码或 'auto' 可进入下游（缓存键/请求 from/AI 提示词），
-	 * 其余一律回退 'auto'（让翻译引擎自动识别）。
-	 * @param {string} lang 检测或配置得到的源语言码
-	 * @returns {string} 'auto' 或受支持的码
+	 * 归一化源语言码
 	 */
 	function normalizeDetectFromLang(lang) {
 		if (!lang || lang === 'auto') return 'auto';
@@ -665,9 +648,21 @@
 	}
 
 	/**
-	 * 获取底层强制的系统指令
+	 * 获取底层强制的系统指令。paraMode 决定段落标记契约：'json'、'%%'
 	 */
-	function getSystemDirectives() {
+	function getSystemDirectives(paraMode) {
+		if (paraMode === '%%') {
+			return `### Output Format:
+- The input consists of multiple segments separated by a standalone line containing only %%.
+- Return ALL segments translated, in the same order, each translation separated by a standalone %% line. Output nothing else — no markdown, no headers, notes, or explanations.
+- **CRITICAL**: Treat %% as a separator only when it appears on its own line. Do not treat %% as a separator when it appears inside normal text, code, quotes, or punctuation.
+- Single-segment input → output the translation directly, with no %% at all.
+
+### Preserve Verbatim:
+- HTML tags in the source (e.g. <em>, <strong>) must appear unchanged in the translation.
+${PlaceholderConfig.instructionText}
+- Non-translatable separators (e.g. "---") must appear unchanged.`;
+		}
 		return `### Output Format:
 - The input is a JSON array of objects, each with an "id" and a "text".
 - Return exactly one JSON object: {"translations": [{"id": ..., "trans": ...}]}, one entry per input item, reusing the original "id" values.
@@ -721,7 +716,7 @@ For each input segment, translate in three internal steps:
 	};
 
 	/**
-	 * 腾讯翻译语言代码映射表（显式白名单；繁简不分，均发 zh）
+	 * 腾讯翻译语言代码映射表
 	 */
 	const TENCENT_LANG_CODE_MAP = {
 		'auto': 'auto',
@@ -734,8 +729,7 @@ For each input segment, translate in three internal steps:
 	};
 
 	/**
-	 * 免费简单翻译引擎集合：无需 API Key、走 contentArray 纯文本/HTML 路径（同谷歌/微软）。
-	 * 扩展为含腾讯批量服务。
+	 * 免费简单翻译引擎集合：无需 API Key、走 contentArray 纯文本/HTML 路径
 	 */
 	const SIMPLE_TRANSLATION_ENGINES = new Set([
 		'google_translate', 'bing_translator',
@@ -744,16 +738,7 @@ For each input segment, translate in three internal steps:
 	const isSimpleTranslationEngine = (engineId) => SIMPLE_TRANSLATION_ENGINES.has(engineId);
 
 	/**
-	 * 腾讯 TranSmart 免鉴权端点的 client_key 会话管理器。
-	 *
-	 * client_key 不是 API 密钥，而是"伪造的浏览器指纹"（格式：
-	 *   browser-chrome-{版本}-{OS}-{uuid}-{时间戳ms}），服务器按它建立会话——
-	 * 空/失效 key 返回 ret_code "Session-Out: Session was expired"（实测）。
-	 * 因此：
-	 *   - 不硬编码快照（旧 key 依赖过期会话，随时失效）；
-	 *   - 每次动态生成新 key = 每次新会话 = 永远有效；
-	 *   - 会话内复用（贴近真实客户端），失败(429/403/契约变更/Session-Out)时轮换自愈；
-	 *   - 保留 GM 覆盖逃生舱（腾讯改契约时用户/发布方可手动填当前可用 key）。
+	 * 腾讯 TranSmart 免鉴权端点的 client_key 会话管理器
 	 */
 	const TencentClientKey = {
 		current: null,
@@ -765,7 +750,6 @@ For each input segment, translate in three internal steps:
 					const r = Math.random() * 16 | 0;
 					return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
 				});
-			// 用真实浏览器 Chrome 版本（借鉴"网页中英双显互译" getChromeVersion 思路），避免写死过旧版本号
 			const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
 			const verMatch = ua.match(/Chrome\/(\d+\.\d+\.\d+)/);
 			const ver = verMatch ? verMatch[1] : '131.0.0';
@@ -774,7 +758,7 @@ For each input segment, translate in three internal steps:
 		},
 
 		/**
-		 * 获取当前 client_key：优先用户/发布方覆盖值；否则会话内复用动态生成值。
+		 * 获取当前 client_key：优先用户/发布方覆盖值；否则会话内复用动态生成值
 		 * @returns {string}
 		 */
 		get() {
@@ -785,7 +769,7 @@ For each input segment, translate in three internal steps:
 		},
 
 		/**
-		 * 轮换：会话失效/限流/契约变更时生成新 key，下次请求建立新会话。
+		 * 轮换：会话失效/限流/契约变更时生成新 key，下次请求建立新会话
 		 */
 		rotate() {
 			this.current = this._generate();
@@ -793,16 +777,10 @@ For each input segment, translate in three internal steps:
 	};
 
 	/**
-	 * 提取节点纯文本（用于纯文本免费翻译服务）：<br> 转 \n、&nbsp; 归一为普通空格，
-	 * 保留术语表占位符（z1 等字母序号令牌）供回填校验。
+	 * 提取节点纯文本（用于纯文本免费翻译服务）
 	 */
 	function nodeToPlainText(node) {
 		const clone = node.cloneNode(true);
-		// 折叠页面空白换行（镜像站常见 <p>\n  <span>text</span>\n</p>）为单个空格，
-		// 仅 <br> 保留为真实换行（→\n）。否则格式换行会被服务端原样返回，
-		// 再由响应侧 /\n/g → <br> 转成大量多余 <br>（谷歌走 HTML 路径天然无此问题）。
-		// 注意：只能折叠空白，不能按文本节点 trim——否则会吃掉词/占位符（z1）间的空格，
-		// 占位符与相邻词粘连成 token 会被服务端改写，导致「占位符大量缺失」校验失败。
 		const textNodes = [];
 		const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, null);
 		let tn;
@@ -813,8 +791,7 @@ For each input segment, translate in three internal steps:
 	}
 
 	/**
-	 * 翻译请求/输出格式版本：免费引擎（腾讯/Bing）纯文本路径的文本处理变更时 +1。
-	 * 并入缓存易变层指纹（entryCfg），使旧格式缓存的译文（如含多余 <br>）失效、下次翻译重取。
+	 * 翻译请求/输出格式版本：免费引擎（腾讯/Bing）纯文本路径的文本处理变更时 +1
 	 */
 	const TRANSLATION_OUTPUT_VERSION = 4;
 
@@ -939,41 +916,84 @@ For each input segment, translate in three internal steps:
 		lazy_load_margin: CONFIG.SERVICE_CONFIG.default.LAZY_LOAD_ROOT_MARGIN,
 		validation_thresholds: `${CONFIG.SERVICE_CONFIG.default.VALIDATION.absolute_loss}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.proportional_loss}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.proportional_trigger_count}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.catastrophic_loss}`,
 		reasoning_effort: 'none',
-		batch_mode: 'fixed' // 2.2 批次大小：fixed=固定段落数 / dynamic=动态（忽略 para_limit，只按 chunk_size，单批段数硬顶 24）
+		batch_mode: 'fixed',
+		para_mode: '%%'
 	};
 
-	// 2.2 动态批次：单批段数硬顶（防"全单字段"极端场景爆批）
 	const DYNAMIC_BATCH_PARA_CAP = 24;
 
 	/**
-	 * 推理深度控制（修订版）：
-	 * - 档位 7 级，默认 none（关闭思考）。
-	 * - 稳定维度 = 协议族/厂商，不做逐模型清单；未知模型靠运行时错误回退自愈。
-	 * - 档位语义：default = 跟随厂商默认（推理模型默认思考开，default 即会思考）；
-	 *   none = 显式关闭思考——OpenAI 兼容系一律发 reasoning_effort:'none' 或厂商 toggle，
-	 *   绝不"省略"（省略会退化为厂商默认，推理模型默认思考开 → "选 none 仍大量思考"）。
+	 * 推理深度控制
 	 */
 	const REASONING_LEVELS = ['default', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh'];
 	const REASONING_LEVEL_LABELS = {
 		default: 'Default', none: 'None', minimal: 'Minimal',
 		low: 'Low', medium: 'Medium', high: 'High', xhigh: 'Xhigh'
 	};
-	// 档位 → 思考 token 预算（Anthropic / Gemini 共用；none/default 不开启思考，minimal 为最小思考预算）
 	const THINKING_BUDGET_BY_LEVEL = {
 		none: 0, default: 0, minimal: 1024,
 		low: 2048, medium: 4096, high: 8192, xhigh: 16384
 	};
-
-	/** 归一化推理档位：缺失/非法值回退为 'default'（跟随厂商默认） */
 	function normalizeReasoningEffort(v) {
 		if (v === undefined || v === null || v === '') return 'default';
 		return REASONING_LEVELS.indexOf(v) !== -1 ? v : 'default';
 	}
 
+	const GENERIC_THINKING_OFF_FORMS = [
+		{ id: 'chat_template_kwargs', field: 'chat_template_kwargs', value: { enable_thinking: false } },
+		{ id: 'enable_thinking', field: 'enable_thinking', value: false },
+		{ id: 'thinking', field: 'thinking', value: { type: 'disabled' } },
+		{ id: 'reasoning_effort', field: 'reasoning_effort', value: 'none' }
+	];
+	const GENERIC_THINKING_OFF_OMIT = 'omit';
+	const REASONING_OFF_FORM_KEY = 'ao3_reasoning_off_form_v1';
+	const reasoningOffFormSessionCache = new Map();
+
+	function reasoningOffFormScopeKey(provider, model) {
+		return `${provider.id}|${provider.apiHost || ''}|${model || ''}`;
+	}
+
+	function reasoningOffFormById(id) {
+		if (id === GENERIC_THINKING_OFF_OMIT) return null;
+		return GENERIC_THINKING_OFF_FORMS.find(f => f.id === id) || GENERIC_THINKING_OFF_FORMS[0];
+	}
+
+	function nextReasoningOffFormId(id) {
+		const i = GENERIC_THINKING_OFF_FORMS.findIndex(f => f.id === id);
+		if (i < 0 || i + 1 >= GENERIC_THINKING_OFF_FORMS.length) return GENERIC_THINKING_OFF_OMIT;
+		return GENERIC_THINKING_OFF_FORMS[i + 1].id;
+	}
+
+	function readReasoningOffFormId(provider, model) {
+		const key = reasoningOffFormScopeKey(provider, model);
+		if (reasoningOffFormSessionCache.has(key)) return reasoningOffFormSessionCache.get(key);
+		const store = GM_getValue(REASONING_OFF_FORM_KEY, null);
+		if (!store || typeof store !== 'object') return undefined;
+		return store[key];
+	}
+
+	function writeReasoningOffFormId(provider, model, id, persist = true) {
+		const key = reasoningOffFormScopeKey(provider, model);
+		reasoningOffFormSessionCache.set(key, id);
+		if (!persist) return;
+		const prev = GM_getValue(REASONING_OFF_FORM_KEY, null);
+		const store = (prev && typeof prev === 'object') ? { ...prev } : {};
+		if (store[key] === id) return;
+		store[key] = id;
+		GM_setValue(REASONING_OFF_FORM_KEY, store);
+		Logger.debug('Network', `思考关闭形态更新: ${id}`, { provider: provider.id, model });
+	}
+
 	/**
-	 * 唯一保留的"模型族"知识：OpenAI 官方家族划分（稳定文档，非第三方模型清单）。
-	 *  - o1/o3/o4：无 none 档，必须删 temperature
-	 *  - gpt-5：支持 none 档（显式关闭思考），必须删 temperature
+	 * 段落标记方式控制：'json'、'%%'
+	 */
+	const PARA_MODES = ['json', '%%'];
+	function normalizeParaMode(v) {
+		return PARA_MODES.indexOf(v) !== -1 ? v : '%%';
+	}
+
+	/**
+	 * 模型族
 	 */
 	function classifyOpenAIReasoningFamily(model) {
 		if (/^o[134]/i.test(model)) return 'o';
@@ -982,13 +1002,7 @@ For each input segment, translate in three internal steps:
 	}
 
 	/**
-	 * OpenAI 兼容系内的厂商级推理覆盖（稳定维度 = 厂商 ID，非模型名）。
-	 * 仅收录"通用 OpenAI 兼容处理不适用"的厂商；未收录厂商走乐观发送 + 错误回退。
-	 *
-	 * DeepSeek（2026-08 官方「思考模式」文档核实）：
-	 *  - 思考模式默认打开、effort 默认 high —— `none` 必须显式发 {"thinking":{"type":"disabled"}} 才能关闭；
-	 *  - 强度档位仅 low/high/max（无 medium/minimal/none）；
-	 *  - 思考模式不支持 temperature（设置不报错但不生效）。
+	 * OpenAI 兼容系内的厂商级推理覆盖
 	 */
 	const OPENAI_COMPAT_REASONING_OVERRIDES = {
 		deepseek_ai: {
@@ -998,32 +1012,23 @@ For each input segment, translate in three internal steps:
 	};
 
 	/**
-	 * 模型品牌前缀 → 厂商覆盖键（稳定维度 = 厂商品牌前缀，非逐模型清单）。
-	 * 自定义服务/代理只暴露模型名、无法从 provider.id 识别厂商，按前缀命中后
-	 * 回落 OPENAI_COMPAT_REASONING_OVERRIDES；新增同型厂商在此加一行即可。
+	 * 模型前缀
 	 */
 	const REASONING_OVERRIDE_BY_MODEL_PREFIX = {
 		'deepseek': 'deepseek_ai'
 	};
 
 	/**
-	 * 精确模型 ID 的思考能力表（数据来源：models.opencode.ai/api.json 的 reasoning_options）。
-	 * 仅收录 opencode zen 免费模型集（集合稳定、不随模型命名轮转），键 = 模型 ID 本体
-	 * （兼容 OpenCode 配置里的 opencode/<id> 前缀写法）。
-	 *
-	 * 能力对象形状：
-	 *   effortByLevel: AO3 7 档 → 该模型支持的 effort 值（钳制）；含 none 键 = none 显式发送该值
-	 *   toggle:        { field, off, on } —— none 发 off，显式档位发 on
-	 *   uncontrollable: true —— 模型始终思考、API 无控制项，一律省略推理参数
+	 * 精确模型 ID 的思考能力表
 	 */
 	const OPENAI_COMPAT_MODEL_REASONING_CAPS = {
-		// —— effort 控制族 ——
+		// effort 控制族
 		'deepseek-v4-flash-free': {
 			effortByLevel: { minimal: 'low', low: 'low', medium: 'high', high: 'high', xhigh: 'max' },
 			toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } }
 		},
 		'hy3-free': {
-			// 腾讯 Hy3：默认即 no-think 模式，none 靠省略即可；档位 low/medium/high
+			// 默认即 no-think 模式
 			defaultThinking: 'off',
 			effortByLevel: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'high' }
 		},
@@ -1034,18 +1039,17 @@ For each input segment, translate in three internal steps:
 			effortByLevel: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'high' }
 		},
 		'north-mini-code-free': {
-			// effort 含 none/high：none 显式发 reasoning_effort:'none'
+			// effort 含 none/high
 			effortByLevel: { none: 'none', minimal: 'low', low: 'low', medium: 'high', high: 'high', xhigh: 'high' }
 		},
-		// —— 仅 toggle 控制族 ——
+		// 仅 toggle 控制族
 		'glm-4.7-free': { toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } } },
 		'glm-5-free': { toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } } },
 		'kimi-k2.5-free': { toggle: { field: 'enable_thinking', off: false, on: true } },
 		'qwen3.6-plus-free': { toggle: { field: 'enable_thinking', off: false, on: true } },
-		// TODO 实机验证：以下两个仅 toggle 模型的字段为最佳猜测，需按验证脚本确认后保留/修正
 		'minimax-m3-free': { toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } } },
 		'longcat-2.0-free': { toggle: { field: 'enable_thinking', off: false, on: true } },
-		// —— 不可控族：始终思考，一律省略推理参数 ——
+		// 不可控族：始终思考，一律省略推理参数
 		'mimo-v2.5-free': { uncontrollable: true },
 		'mimo-v2-pro-free': { uncontrollable: true },
 		'mimo-v2-flash-free': { uncontrollable: true },
@@ -1063,13 +1067,7 @@ For each input segment, translate in three internal steps:
 	};
 
 	/**
-	 * 品牌级推理控制规则（稳定维度 = 品牌前缀，非逐模型清单）。
-	 * 精确模型 ID 表只留"个别模型特有形态"特例，品牌表覆盖同厂同型的大多数模型，
-	 * 未收录品牌通过 resolveReasoningCaps 的品牌兜底命中。
-	 * 字段：
-	 *   defaultThinking  'on'|'off'  不带推理参数时厂商默认是否思考（none 档决策依据）
-	 *   toggle           {field, off, on}  关/开思考的 wire 形态（none→off，显式档位→on）
-	 *   effortByLevel    AO3 7 档 → 厂商支持值（钳制）
+	 * 厂商级推理控制规则
 	 */
 	const REASONING_BRAND_RULES = {
 		deepseek: {
@@ -1083,12 +1081,11 @@ For each input segment, translate in three internal steps:
 		minimax: { defaultThinking: 'on', toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } } },
 		longcat: { defaultThinking: 'on', toggle: { field: 'enable_thinking', off: false, on: true } },
 		hy3:     { defaultThinking: 'off', effortByLevel: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'high' } },
-		// 代理经 OpenAI 兼容端点服务的 Anthropic/Gemini 模型：按品牌默认思考状态处理
 		claude:  { defaultThinking: 'off' },
 		gemini:  { defaultThinking: 'on' }
 	};
 
-	/** 品牌前缀命中（大小写不敏感、去 opencode/ 命名空间前缀）。 */
+	// 前缀命中
 	function resolveBrandRule(model) {
 		if (!model) return undefined;
 		const bare = String(model).toLowerCase().replace(/^opencode\//i, '');
@@ -1099,10 +1096,7 @@ For each input segment, translate in three internal steps:
 	}
 
 	/**
-	 * 模型名是否带"推理特征"（思考/推理词、-rN 修订号、o1/o3/o4、gpt-5）——
-	 * unknown 模型 none 决策用：带特征按推理模型保守发关思考参数；不带特征按非推理
-	 * 模型省略（避免对严格网关发未知字段导致 400）。与 Cherry Studio 的
-	 * inferReasoningMembership（'thinking|reasoning|reasoner|-r\d+'）同思路。
+	 * 模型名是否带"推理特征"
 	 */
 	function looksLikeReasoningModel(model) {
 		if (!model) return false;
@@ -1111,12 +1105,7 @@ For each input segment, translate in three internal steps:
 	}
 
 	/**
-	 * 解析模型思考能力：
-	 * 1) 精确模型 ID 能力表（opencode zen 免费模型集）最先命中；
-	 * 2) 内置服务按 provider.id 命中厂商级覆盖（deepseek_ai 等）；
-	 * 3) 未命中时按模型品牌前缀推断厂商（自定义服务/代理场景）；
-	 * 4) 品牌级规则表（REASONING_BRAND_RULES）兜底：同品牌同型模型共享能力；
-	 * 5) 仍未知 → undefined，走乐观发送 + 错误回退（不预判）。
+	 * 解析模型思考能力
 	 */
 	function resolveReasoningCaps(providerId, model) {
 		if (model) {
@@ -1139,15 +1128,14 @@ For each input segment, translate in three internal steps:
 	}
 
 	/**
-	 * 判断 400 类错误是否由"推理参数不被支持"引起（用于一次性降级重试）。
-	 * 同时命中"推理关键词"与"被拒关键词"才判定，避免误伤普通参数错误。
+	 * 判断 400 类错误是否由"推理参数不被支持"引起
 	 */
 	function isReasoningParamRejected(err) {
 		if (!err) return false;
 		const msg = String(err.message || '');
 		if (!msg) return false;
-		return /(?:reasoning_effort|reasoningEffort|budget_tokens|thinkingConfig|includeThoughts|enableThinking|\breasoning\b|\bthinking\b)/i.test(msg)
-			&& /(?:unsupported|invalid|not (?:supported|recognized|allowed)|unknown (?:parameter|field)|400|422|not_found_error)/i.test(msg);
+		return /(?:reasoning_effort|reasoningEffort|budget_tokens|thinkingConfig|includeThoughts|enableThinking|enable_thinking|chat_template_kwargs|chatTemplateKwargs|\breasoning\b|\bthinking\b)/i.test(msg)
+			&& /(?:unsupported|invalid|not (?:supported|recognized|allowed|permitted)|unknown (?:parameter|field)|extra inputs|unexpected (?:keyword|argument|field)|unrecognized|400|422|not_found_error)/i.test(msg);
 	}
 
 	const ProfileManager = {
@@ -1165,7 +1153,7 @@ For each input segment, translate in three internal steps:
 					params: { ...BASE_AI_PARAMS }
 				};
 
-				// 初始化传统引擎专属配置（免费简单引擎：谷歌/微软/腾讯批量服务共享高效档位）
+				// 初始化传统引擎专属配置
 				const traditionalProfile = {
 					id: 'profile_traditional_init',
 					name: '谷歌、微软、腾讯',
@@ -1216,7 +1204,6 @@ For each input segment, translate in three internal steps:
 			if (index !== -1) {
 				profiles[index] = updatedProfile;
 				GM_setValue(AI_PROFILES_KEY, profiles);
-				// 改造 B：引擎/模型/提示词等配置变更 → configFingerprint 失效
 				if (_ConfigMemo) _ConfigMemo.invalidate();
 				return true;
 			}
@@ -1244,7 +1231,6 @@ For each input segment, translate in three internal steps:
 
 			profiles = profiles.filter(p => p.id !== id);
 			GM_setValue(AI_PROFILES_KEY, profiles);
-			// P1-3：删除 profile 可能改变当前引擎回退到的默认参数 → 易变层指纹失效
 			invalidateConfigFingerprint();
 			return true;
 		},
@@ -1263,7 +1249,6 @@ For each input segment, translate in three internal steps:
 			targetProfile.services = serviceIds;
 
 			GM_setValue(AI_PROFILES_KEY, profiles);
-			// P1-3：引擎与 profile 关联变化 → 当前引擎的提示词/参数可能变化 → 易变层指纹失效
 			invalidateConfigFingerprint();
 		},
 
@@ -1541,11 +1526,7 @@ For each input segment, translate in three internal steps:
 	const SHORT_TEXT_CONTEXT_LIMIT = 30;
 
 	/**
-	 * 是否应为该节点构建短文本上下文（P1-4 方案 1）：
-	 * - 长文本（>= 阈值）不需要上下文键；
-	 * - 标签节点（.ao3-tag-original / a.tag）豁免——标签译名与上下文无关，且
-	 *   上下文只进缓存键、不进翻译 prompt，跳过可消除"同标签不同邻居"的键分片膨胀。
-	 *   个别多义词标签（如 Inception）可能因此少一层消歧，但译名仍为有效译文，接受。
+	 * 是否应为该节点构建短文本上下文
 	 */
 	function shouldIncludeContext(node, textLength) {
 		if (!node || textLength >= SHORT_TEXT_CONTEXT_THRESHOLD) return false;
@@ -1632,7 +1613,6 @@ For each input segment, translate in three internal steps:
 
 	/**
 	 * djb2 哈希 → base36 字符串
-	 * 用于逐段命中指纹：集合很小（几十项），碰撞可忽略，速度远快于 SHA-256
 	 */
 	function djb2(str) {
 		let h = 5381;
@@ -1643,30 +1623,9 @@ For each input segment, translate in three internal steps:
 		return h.toString(36);
 	}
 
-	/* ── 逐段命中指纹（失效粒度核心，改造 A + P1-5 对称化）─────────────────
-	 *
-	 * 缓存 key 的失效粒度 = 本段实际命中的术语规则集，而非全局术语表版本号。
-	 * 规则集表达为 rule 命中键（id+strategy+type+replacement）排序拼接后的 djb2 指纹：
-	 *   - 增删改与本段无关的词条 → 指纹不变 → 缓存命中，不重翻
-	 *   - 修改本段确实出现的词条（含 target/匹配方式/类型变化）→ 指纹变 → 仅该段重翻
-	 *
-	 * P1-5 对称化（修复 B3 under-invalidation）：
-	 *   - regex 策略改为与 _applyRegexRules 同粒度——逐文本节点全局扫描 executionPlan。
-	 *     旧实现对整个 textContent 匹配，对带 ^/$/\b/lookbehind 锚定的正则会在
-	 *     "DOM 按节点生效但整段串不匹配" 时漏记 → 改词条后缓存不失效 → 陈旧译文被服务。
-	 *   - 逐节点扫描覆盖 DOM 预处理实际生效集（over-invalidate 方向安全）。已知残余缺口：
-	 *     仅当某规则命中"预处理过程中产生的文本"时才会漏记——(a) 前一规则占位符
-	 *     垫空格创造了新词边界（如 "Xfoo" 中 X 占位符右垫后 \bfoo\b 命中片段）、
-	 *     (b) 规则正则会命中占位符格式（z1 / Z1 / 字母+数字）。均需相邻词重叠/占位符形状词条，
-	 *     属既有残余（旧整段匹配同样漏记），非本轮回归。
-	 *   - dom 策略保持整段超集匹配（跨节点本就是安全的 over-invalidate 方向）。
-	 *
-	 * computePerTextHits 是【指纹的唯一来源】，miss 段的 DOM 预处理不参与指纹：
-	 *   - 命中段：computePerTextHits(文本节点值数组) → 指纹 → key → 命中
-	 *   - miss 段：computePerTextHits(文本节点值数组) → 指纹（定死）→ DOM 预处理
-	 * ──────────────────────────────────────────────────────────────────── */
-
-	/** 收集根节点下所有文本节点的值（与 _applyRegexRules 同过滤：跳过已应用词表的子树） */
+	/**
+	 * 收集根节点下所有文本节点的值
+	 */
 	function collectTextNodeValues(root) {
 		if (!root) return [''];
 		if (!document || !document.createTreeWalker) return [root.textContent || ''];
@@ -1685,26 +1644,19 @@ For each input segment, translate in three internal steps:
 	}
 
 	/**
-	 * 对文本节点值数组运行轻量术语匹配，返回 { hitRuleIds, fingerprint }。
-	 * 入参兼容：传数组（生产，逐文本节点）或单字符串（测试/无 DOM 场景，整段当一个节点）。
+	 * 对文本节点值数组运行轻量术语匹配
 	 */
 	function computePerTextHits(textNodeValues, preparedRules) {
 		const hitRuleIds = [];
 		const addHit = (rule) => {
-			// P1-5：命中键纳入 type（term/forbidden，不在 id 中，必须显式）与
-			// matchStrategy（id 前缀 r:/t:/d: 已含策略，此处为显式防御，防 id 方案演进）。
-			// id 已含词表命名空间与词条本体；replacement 已含 target。
 			const key = `${rule.id}:${rule.matchStrategy || ''}:${rule.type || ''}:${rule.replacement}`;
 			if (hitRuleIds.indexOf(key) === -1) hitRuleIds.push(key);
 		};
 		if (!textNodeValues || !preparedRules) return { hitRuleIds, fingerprint: djb2('0') };
 		const nodes = typeof textNodeValues === 'string' ? [textNodeValues] : textNodeValues;
-		// dom 策略用整段 textContent（= nodes 拼接，无分隔）：_applyDomRules 对相邻文本节点
-		// 之间不加分隔，故 textContent 是它的匹配超集（安全 over-invalidate 方向）；
-		// 若在节点间插分隔符，会漏记"连续文本节点跨边界"命中的词条 → under-invalidation。
 		const fullText = nodes.join('');
 
-		// 1. regex 策略：与 _applyRegexRules 同粒度——逐文本节点全局扫描（P1-5）
+		// 1. regex 策略
 		const plan = preparedRules.executionPlan;
 		if (plan && plan.length) {
 			for (const nodeText of nodes) {
@@ -1717,7 +1669,7 @@ For each input segment, translate in three internal steps:
 						while ((m = re.exec(nodeText)) !== null) {
 							const gi = m.slice(1).findIndex(v => v !== undefined);
 							if (gi >= 0 && planItem.rules[gi]) addHit(planItem.rules[gi]);
-							if (m[0].length === 0) re.lastIndex++;   // 防死循环（理论不可达，防御）
+							if (m[0].length === 0) re.lastIndex++;
 						}
 					} else {
 						const re = planItem.rule.regex;
@@ -1728,10 +1680,9 @@ For each input segment, translate in three internal steps:
 			}
 		}
 
-		// 2. dom 策略：整段超集匹配（跨节点文本是超集，只会 over-invalidate）
+		// 2. dom 策略
 		const domRules = preparedRules.domRules;
 		if (domRules && domRules.length) {
-			// 大小写归一化只需一次（不敏感规则共用），避免 O(n×规则) 重复 lowerCase
 			const lowerText = fullText.toLowerCase();
 			for (const rule of domRules) {
 				const searchText = rule.isGeneral ? lowerText : fullText;
@@ -1751,43 +1702,31 @@ For each input segment, translate in three internal steps:
 		return { hitRuleIds, fingerprint: djb2(hitRuleIds.length ? hitRuleIds.sort().join('|') : '0') };
 	}
 
-	/* ── 配置指纹双层 memo（改造 B / P1-2 / P1-3）─────────────────────────
-	 * key 中与引擎/模型/地址/温度/后处理相关的字段逐段相同，会话内只算一次。
-	 *
-	 * P1-2 把单一 configFingerprint 拆成两层：
-	 *   - semantic（稳定层）= engine+model+apiHost+temperature+reasoningEffort
-	 *     进入缓存查找键 —— 只有真正改变译文语义的才动，整体平移可接受。
-	 *   - entryCfg（易变层）= sysPrompt+usrPrompt+GLOSSARY_ENGINE_VERSION+CLEANER_VERSION+TRANSLATION_OUTPUT_VERSION+postReplace签名
-	 *     存入条目，读路径命中后校验 —— 提示词/后处理改动不整体平移 DB，
-	 *     只让"下次读到的条目"原位覆盖，DB 不膨胀。
-	 *
-	 * P1-3 去掉"每次 get 重建 signers"的自愈：改纯显式失效（invalidate 调用点补齐），
-	 * get 变 O(1)。保留周期审计（_maybeAudit）兜底任何漏掉的失效路径，≤5 分钟自愈。 */
-
+	// 配置指纹双层 memo
 	const _ConfigMemo = {
-		semantic: null,      // 已解析的稳定层指纹串（查键用）
-		entryCfg: null,      // 已解析的易变层指纹串（条目校验用）
-		signers: null,       // 最近一次采集的 signers 对象（审计比较用）
+		semantic: null,
+		entryCfg: null,
+		signers: null,
 		_computePromise: null,
-		_gen: 0,             // 代数计数器：invalidate/审计发现变更时 +1，用于丢弃计算期间的过期结果
+		_gen: 0,
 		_lastAuditAt: 0,
 		_AUDIT_INTERVAL_MS: 5 * 60 * 1000,
 
-		/** 稳定层指纹：进入缓存查找键（引擎/模型/地址/温度/推理深度） */
+		// 稳定层指纹：进入缓存查找键（引擎/模型/地址/温度/推理深度）
 		async getSemantic() {
 			this._maybeAudit();
 			while (this.semantic === null) await this._compute();
 			return this.semantic;
 		},
 
-		/** 易变层指纹：读路径校验用（提示词/词表引擎版本/后处理签名） */
+		// 易变层指纹：读路径校验用（提示词/词表引擎版本/后处理签名）
 		async getEntryCfg() {
 			this._maybeAudit();
 			while (this.entryCfg === null) await this._compute();
 			return this.entryCfg;
 		},
 
-		/** 显式失效（配置变更路径调用；P1-3 补齐全部触点） */
+		// 显式失效（配置变更路径调用）
 		invalidate() {
 			this.semantic = null;
 			this.entryCfg = null;
@@ -1796,8 +1735,7 @@ For each input segment, translate in three internal steps:
 		},
 
 		/**
-		 * P1-3 安全网：周期性重采集 signers 并与缓存比较，捕获漏掉的失效路径。
-		 * 仅在实际调用 getSemantic/getEntryCfg 时按间隔触发一次 GM 读，成本摊销。
+		 * 周期性重采集 signers 并与缓存比较，捕获漏掉的失效路径
 		 */
 		_maybeAudit() {
 			const now = Date.now();
@@ -1807,11 +1745,10 @@ For each input segment, translate in three internal steps:
 				current = this._collect();
 			} catch (e) {
 				Logger.warn('Config', '配置指纹审计采集失败', e.message);
-				return; // 不更新时间戳，下次调用重试
+				return;
 			}
 			this._lastAuditAt = now;
 			if (this.signers !== null && JSON.stringify(this.signers) !== JSON.stringify(current)) {
-				// 漏网变更 → 重算两层指纹并作废计算期间的过期结果
 				this.semantic = null;
 				this.entryCfg = null;
 				this._gen++;
@@ -1831,12 +1768,11 @@ For each input segment, translate in three internal steps:
 					])),
 					sha256(JSON.stringify([
 						'entryCfg', s.sysPrompt, s.usrPrompt, GLOSSARY_ENGINE_VERSION,
-						AdvancedTranslationCleaner.CLEANER_VERSION,   // P3：清洗逻辑版本（裸引用，删除属性时测试/运行时可见）
-						TRANSLATION_OUTPUT_VERSION,   // 翻译输出格式版本：handler 文本处理变更时 +1，作废旧格式缓存
+						AdvancedTranslationCleaner.CLEANER_VERSION,
+						TRANSLATION_OUTPUT_VERSION,
 						s.postReplaceSignature
 					]))
 				]);
-				// 计算期间配置被 invalidate / 审计判变 → 丢弃本次结果，由调用方循环重算
 				if (this._gen !== genAtStart) return;
 				this.semantic = semantic;
 				this.entryCfg = entryCfg;
@@ -1858,9 +1794,6 @@ For each input segment, translate in three internal steps:
 			const usrPrompt = params.user_prompt || '';
 			const temperature = params.temperature !== undefined ? params.temperature : 'default';
 			const reasoningEffort = normalizeReasoningEffort(params.reasoning_effort);
-			// 后处理签名与 applyPostTranslationReplacements 保持一致：仅启用规则的
-			// id+content（启用集在签名内 → 改名不在签名内、不失效；禁用会改变启用集
-			// → 签名变化，toggle 处已补 invalidate）
 			const rawRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
 			const postReplaceSignature = rawRules
 				.filter(r => r && r.enabled)
@@ -1874,26 +1807,21 @@ For each input segment, translate in three internal steps:
 		}
 	};
 
-	/** 配置指纹失效辅助：统一触达所有需要重算的路径 */
+	/**
+	 * 配置指纹失效辅助：统一触达所有需要重算的路径
+	 */
 	function invalidateConfigFingerprint() {
 		if (_ConfigMemo) _ConfigMemo.invalidate();
 	}
 
 	/**
-	 * 文本→sha256 会话级 memo（修复 P5）：重复段落文本复用哈希，避免逐段重复 crypto.subtle.digest。
-	 * 带长度上限，超出即清空（自愈，最多多算一次）。
+	 * 文本→sha256 会话级 memo
 	 */
 	const _TextHashMemo = new Map();
 	const _TEXT_HASH_MEMO_LIMIT = 5000;
 
 	/**
-	 * 缓存键文本归一化（修复：翻译缓存受文章格式项影响 —— 首行缩进等）。
-	 * cleanManualIndents 只在缩进接管（indent !== 'original'）时把段落开头的
-	 * 手动缩进（全角空格 / NBSP / 换行 / 普通空格）从源文本中清掉，导致同一个段落
-	 * 在 'original' 与 '非 original' 两种缩进配置下 innerHTML 不同 → 缓存 key 不同 → 命中失败。
-	 * 这里对参与哈希的文本做与 cleanManualIndents 相同字符集的"开头手动缩进"归一化，
-	 * 使 key 只反映语义内容、不随缩进配置漂移；翻译请求载荷本身不变。
-	 * 注意：innerHTML 把 NBSP 序列化为 &nbsp;（及 &#160;），需一并匹配实体。
+	 * 缓存键文本归一化
 	 */
 	function stripLeadingManualIndent(text) {
 		if (!text) return text;
@@ -1901,26 +1829,11 @@ For each input segment, translate in three internal steps:
 	}
 
 	/**
-	 * 构建缓存 Key：长文本使用稳定 Key，短文本额外纳入轻量上下文。
-	 *
-	 * 设计（改造 A + P1-2）：
-	 *   paragraphKey = sha256(['stable_v3', fromLang, toLang, scopeId, contextHash,
-	 *                          textHash, perTextHitHash, SEMANTIC_FINGERPRINT])
-	 *   - SEMANTIC_FINGERPRINT（稳定层）：engine+model+apiHost+temperature+reasoningEffort，
-	 *     仅语义级变更（换引擎/模型/地址/温度/推理深度）才整体平移。
-	 *   - 提示词/后处理等易变配置走 entryCfg（写条目的校验指纹），读路径命中后校验，
-	 *     改动只影响"下次读到的条目"，不整体平移 DB（P1-2）。
-	 *   - fromLang/toLang 逐调用传入（from_lang=script_auto 时实际是检测后的语言）
-	 *   - perTextHitHash（逐段命中指纹）取代旧的全局 glossaryVer 字段
-	 *   - 仅短文本（<50 字符）纳入 prev/next 轻量上下文
-	 *
-	 * 后手回退（决策点 4）：LEGACY_KEY_MODE=on 时读路径回退旧 key
-	 * （含 glossaryVer，默认 off）。
+	 * 构建缓存 Key：长文本使用稳定 Key，短文本额外纳入轻量上下文
 	 */
 	async function buildStableCacheKey(text, fromLang, toLang, scopeId = "global", context = null, perTextHitHash = '0') {
 		const semanticFingerprint = await _ConfigMemo.getSemantic();
 		const normalizedText = stripLeadingManualIndent(text);
-		// 修复 P5：复用会话级文本哈希 memo
 		let textHash = _TextHashMemo.get(normalizedText);
 		if (textHash === undefined) {
 			textHash = await sha256(normalizedText);
@@ -1945,8 +1858,7 @@ For each input segment, translate in three internal steps:
 	}
 
 	/**
-	 * 旧版缓存 key（改造 A 后手回退用，默认不启用）。
-	 * 保留 2 个版本后删除。结构与原实现一致（含 glossaryVer）。
+	 * 旧版缓存 key
 	 */
 	async function buildLegacyCacheKey(text, fromLang, toLang, scopeId = "global", context = null) {
 		const normalizedText = stripLeadingManualIndent(text);
@@ -1986,46 +1898,32 @@ For each input segment, translate in three internal steps:
 	}
 
 	/**
-	 * 热点钉住阈值（改造 D）：短文本（<50 字符近似）且命中次数 >= 此值，
-	 * 在清理时豁免淘汰。只计命中，用于保护 AO3 标签等高频短串。
+	 * 热点钉住阈值
 	 */
 	const HOT_THRESHOLD = 20;
 
 	/**
-	 * 钉住上限（P1-4 方案 3）：单次清理中豁免淘汰的"短文本热点"条目数上限。
-	 * 超出后不再豁免（交 LFU 淘汰）——配合 P1-4 方案 1（标签豁免上下文分片），
-	 * 防止极端场景下"高频短串条目"无限累积且永不淘汰（钉住 × 分片的双重膨胀）。
-	 * 已知取舍：collect 游标按主键(sha256)顺序扫描，被保护的"前 20k 热点"是随机子集
-	 * 而非 hitCount 最高者；溢出部分仍按 LFU(低 hitCount 先删)淘汰，故为次优选择、
-	 * 非正确性缺陷。标签已由方案 1 去分片，实际很难触顶。
+	 * 钉住上限：单次清理中豁免淘汰的"短文本热点"条目数上限
 	 */
 	const PINNED_CAP = 20000;
 
 	/**
-	 * 增量字节淘汰节流（改造 D）：pruneBySize 全量扫描 IndexedDB 较昂贵，
-	 * 最多每 30s 触发一次（字节上限是安全阀，非每次写入都需全量核对）。
+	 * 增量字节淘汰节流
 	 */
 	const PRUNE_THROTTLE_MS = 30 * 1000;
 
-/**
- * 陈旧代数条目宽限（P1-1 / 2026-08-15 定夺）：换引擎/词表导致 cfgGen 变更后，
- * 旧代数条目对当前查键必然不可达（键含语义指纹），是纯死重。回收与"新鲜度"无关，
- * 故硬编码为常量，不复用 ao3_cache_max_days/2（长 TTL 用户不再因此滞留死条目）。
- * 7 天覆盖"临时切走又切回"场景。
- */
-const STALE_GEN_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
-
-/**
- * 每条目记账开销（F4 / 2026-08-15）：sizeBytes 原仅记译文字节；键(hashKey 64) +
- * textHash + cfgGen + entryCfg 各 64 字符哈希 + 数值/布尔 + IndexedDB 记录帧，
- * 实测约 250~350B/条，常量近似计入，避免字节上限/配额钳制系统性低估
- * （500k 条规模约 125~175MB 未记账）。不做逐条 JSON 序列化（写路径开销不可接受）。
- */
-const ENTRY_OVERHEAD_BYTES = 320;
+	/**
+	 * 陈旧代数条目宽限
+	 */
+	const STALE_GEN_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
 	/**
-	 * 节流派发 CACHE_UPDATED（改造 D）：翻译量大的批次会频繁 put/update，
-	 * 事件合并到 ≤1 次/秒，避免 UI 无谓刷新。
+	 * 每条目记账开销
+	 */
+	const ENTRY_OVERHEAD_BYTES = 320;
+
+	/**
+	 * 节流派发
 	 */
 	let _cacheEventLastDispatch = 0;
 	let _cacheEventTimer = null;
@@ -2048,10 +1946,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 	}
 
 	/**
-	 * 缓存清理有效参数解析（2026-08-15）：autoCleanup 与 pruneBySize 共用单一默认值
-	 * 来源（500000 条 / 30 天 / 512MB），避免两处字面量漂移。
-	 * 配额钳制：实际字节上限 = min(配置值, quota × 10%)，小配额环境自动收敛，
-	 * 避免触发浏览器整库驱逐。仅用于淘汰执行路径，不用于面板展示（用户只看配置值）。
+	 * 缓存清理有效参数解析
 	 */
 	async function getEffectiveCacheLimits() {
 		let maxItems = parseInt(GM_getValue('ao3_cache_max_items', 500000), 10);
@@ -2100,12 +1995,6 @@ const ENTRY_OVERHEAD_BYTES = 320;
 				request.onsuccess = (event) => {
 					this.db = event.target.result;
 					// 业务数据版本号：用于在 Key 算法改变时强制清空旧的无效缓存
-					// P1-2 后 key 算法改为 stable_v3（稳定层指纹进查键）。旧 stable_v2 条目在
-					// 前缀变化瞬间已全部不可达（LEGACY_KEY_MODE 只回退更旧的 stable_v1，救不了
-					// stable_v2）——无论是否清库，升级后首次重读都会全量重翻，token 成本相同。
-					// 因此本次直接升版本号 + 一次性 clear()：立即回收存储，避免 30 天死重与
-					// 过渡期容量挤压（死条目占 maxItems/maxSizeBytes 预算导致新条目被 LFU 挤出、
-					// 反复重翻）。用户 2026-08-09 定夺采用"升 schema + 立即清库"。
 					const CURRENT_SCHEMA_VERSION = 2;
 					const savedSchema = GM_getValue('ao3_cache_schema_version', 0);
 					if (savedSchema < CURRENT_SCHEMA_VERSION) {
@@ -2196,9 +2085,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 		},
 
 		/**
-		 * 更新命中条目的 timestamp 与 hitCount（改造 D）。
-		 * 改造 D 前为 fire-and-forget；现返回 Promise 可 await，
-		 * 调用方在 visibilitychange/pagehide 时可 flush。hitCount 用于 LFU 混合淘汰。
+		 * 更新命中条目的 timestamp 与 hitCount
 		 */
 		async updateTimestamps(keys) {
 			if (!this.db || keys.length === 0) return;
@@ -2328,17 +2215,10 @@ const ENTRY_OVERHEAD_BYTES = 320;
 		},
 
 		/**
-		 * 缓存清理（改造 D）：
-		 *  1. 删除过期（timestamp < expireTime）
-		 *  2. 超量（> maxItems）或超字节（> maxSizeBytes）时执行 LFU+LRU 混合淘汰：
-		 *     - 热点钉住：短文本（<50 字符）且 hitCount >= HOT_THRESHOLD 的条目跳过
-		 *     - 冷门优先：hitCount 低者先删；同频度按 timestamp 旧者先删
-		 *     - 字节超限兜底：全部可删项删完仍超限时，再删"最大的热条目"
-		 * 返回删除条数。
+		 * 缓存清理
 		 */
 		async cleanup(maxItems, expireTime, maxSizeBytes = Infinity) {
 			if (!this.db) return 0;
-			// P1-1：代数级回收所需 —— 稳定层指纹（当前代数）+ 固定宽限窗口
 			let currentCfgGen = null;
 			try { currentCfgGen = await _ConfigMemo.getSemantic(); } catch (e) { currentCfgGen = null; }
 			const genNow = Date.now();
@@ -2351,7 +2231,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 
 					let deletedCount = 0;
 					let totalBytes = 0;
-					let pinnedCount = 0;   // P1-4 方案 3：本轮豁免淘汰的短文本热点数，超 PINNED_CAP 不再豁免
+					let pinnedCount = 0;
 
 					// 事务级兜底，由 oncomplete 统一 resolve
 					transaction.oncomplete = () => resolve(deletedCount);
@@ -2366,7 +2246,6 @@ const ENTRY_OVERHEAD_BYTES = 320;
 					req.onsuccess = (e) => {
 						const cursor = e.target.result;
 						if (cursor) {
-							// 注意：过期条目将被删除，其字节不计入 totalBytes（totalBytes 只由存活条目累计）
 							cursor.delete();
 							deletedCount++;
 							cursor.continue();
@@ -2376,9 +2255,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 							countReq.onsuccess = () => {
 								const total = countReq.result;
 								const overCount = Math.max(0, total - maxItems);
-								// 仅在“无需字节淘汰”时提前返回：totalBytes 此刻为 0（过期条目不计入），
-								// 字节是否超限必须等 collectReq 扫描存活条目后才能判定，不能在此短路。
-								if (overCount === 0 && maxSizeBytes === Infinity) return; // 无字节上限，无需清理
+								if (overCount === 0 && maxSizeBytes === Infinity) return;
 
 								// 收集候选：按 (hitCount 升序, timestamp 升序) 排序
 								const candidates = [];
@@ -2387,8 +2264,6 @@ const ENTRY_OVERHEAD_BYTES = 320;
 									const cur = ev.target.result;
 									if (cur) {
 										const value = cur.value;
-										// P1-1：陈旧代数条目（稳定层语义指纹已变，查键已不可能命中）半 TTL 即回收。
-										// 仅处理带 cfgGen 的 v3 条目；旧 v1/v2 条目无 cfgGen，交常规 TTL/LFU 自然清理。
 										if (currentCfgGen && value && value.cfgGen !== undefined && value.cfgGen !== currentCfgGen
 											&& (value.timestamp || 0) < genExpireTime) {
 											store.delete(cur.primaryKey);
@@ -2396,9 +2271,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 											cur.continue();
 											return;
 										}
-										// 对存活条目累计字节（过期条目已在 pass 1 删除）
 										if (value && value.sizeBytes) totalBytes += value.sizeBytes;
-										// 短文本热点钉住（优先用写入时标记的 shortText，兜底按体积近似）
 										const isShort = value && value.shortText !== undefined
 											? value.shortText
 											: (value.sizeBytes || 0) <= 512;
@@ -2482,7 +2355,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 				const lastCheck = GM_getValue('ao3_cache_last_check_time', 0);
 				if (now - lastCheck < 24 * 60 * 60 * 1000) return;
 
-				// 有效参数统一经解析器（2026-08-15）：默认 500000 / 30d / 512MB + 配额钳制
+				// 有效参数统一经解析器：默认 500000 / 30d / 512MB + 配额钳制
 				const { maxItems, maxDays, maxSizeBytes } = await getEffectiveCacheLimits();
 
 				const expireTime = now - (maxDays * 24 * 60 * 60 * 1000);
@@ -2523,21 +2396,13 @@ const ENTRY_OVERHEAD_BYTES = 320;
 		},
 
 		/**
-		 * 增量字节淘汰（改造 D / F1-2026-08-15）：写合并批次后调用，按内存累计的
-		 * sizeBytes 判断，超限即时触发淘汰（不等 24h 一次的 autoCleanup），保证两次
-		 * 清理之间膨胀有界。F1：与 autoCleanup 统一 TTL 语义（expireTime 传 maxDays），
-		 * 过期条目写后 ≤30s 内回收，且字节/条数淘汰只作用于 TTL 幸存者。
-		 * 节流：全量扫描 IndexedDB 较昂贵，最多每 PRUNE_THROTTLE_MS 一次，避免长文翻译卡顿。
+		 * 增量字节淘汰
 		 */
 		async pruneBySize() {
 			if (!this.db) return 0;
-			// 节流：最多每 30s 一次（字节上限是安全阀，非每次写入都需全量核对）
 			const now = Date.now();
 			if (this._lastPruneAt && now - this._lastPruneAt < PRUNE_THROTTLE_MS) return 0;
 			this._lastPruneAt = now;
-			// 2026-08-15：禁用时停止一切自动淘汰；唯一例外是配额安全阀——
-			// 仅在占用逼近配额（usage > quota×90%）时兜底清理一次，剪到悬崖线下（×0.8），
-			// 防止"禁用想留缓存"反而被浏览器整库清除（Safari 尤甚）。
 			const isEnabled = GM_getValue('ao3_cache_auto_cleanup_enabled', true);
 			let safetyValveSize = null;
 			if (!isEnabled) {
@@ -2547,13 +2412,11 @@ const ENTRY_OVERHEAD_BYTES = 320;
 						if (est.quota && est.usage && est.usage > est.quota * 0.9) {
 							safetyValveSize = Math.floor(est.quota * 0.8);
 						}
-					} catch (e) { /* 无法获取配额则放行（交给浏览器自身策略） */ }
+					} catch (e) { /* 无法获取配额则放行 */ }
 				}
 				if (safetyValveSize === null) return 0;
 			}
-			// 有效参数统一经解析器（2026-08-15）：默认 500000 / 30d / 512MB + 配额钳制
 			const { maxItems, maxDays, maxSizeBytes } = await getEffectiveCacheLimits();
-			// F1：增量淘汰同样先删 TTL 过期，字节/条数只作用于幸存者
 			const expireTime = now - (maxDays * 24 * 60 * 60 * 1000);
 			const sizeCap = safetyValveSize !== null ? safetyValveSize : maxSizeBytes;
 			return await this.cleanup(maxItems, expireTime, sizeCap);
@@ -2577,8 +2440,6 @@ const ENTRY_OVERHEAD_BYTES = 320;
 				});
 				return clone.textContent.trim().substring(0, 400);
 			}
-			// 标签容器：检测样本 = 实际翻译对象（extractTagsToTranslate 提取子集，已排除
-			// UI 语言警告/分级/类别标签与术语表命中项），而非整容器混杂文本。
 			if (rule && rule.isTags) {
 				return extractTagsToTranslate(container)
 					.map(el => (el.querySelector('.ao3-tag-original') || el).textContent.trim())
@@ -2696,9 +2557,6 @@ const ENTRY_OVERHEAD_BYTES = 320;
 	/**
 	 * 日志管理系统
 	 */
-	/**
-	 * 日志级别权重(唯一权威定义,供 Logger 过滤/裁剪与日志模态框阈值筛选使用)
-	 */
 	const LOG_LEVEL_WEIGHTS = { 'DEBUG': 0, 'ALL': 0, 'INFO': 1, 'WARN': 2, 'ERROR': 3, 'OFF': 99 };
 
 	const Logger = {
@@ -2709,9 +2567,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 			maxPersist: 500
 		},
 		levels: LOG_LEVEL_WEIGHTS,
-		// P2: 同 module+message 的 WARN/ERROR 在此窗口内折叠(只累计计数,不新增条目)
 		_collapseWindowMs: 10000,
-		// P1: 持久化日志字节硬上限(防御超大 data 撑爆 GM 存储,1MB)
 		_maxPersistBytes: 1024 * 1024,
 		history:[],
 		saveTimer: null,
@@ -2719,18 +2575,17 @@ const ENTRY_OVERHEAD_BYTES = 320;
 		init() {
 			this.history = GM_getValue('ao3_log_history',[]);
 			this.cleanOldLogs();
-			// P1: 页面隐藏/关闭前立即落盘,避免防抖尾部日志丢失(pagehide 在 BFCache 冻结前也会触发)
 			window.addEventListener('pagehide', () => this.flush());
 		},
 
-		// 按保留天数过滤(时间过期清理),内存与落盘共用同一规则
+		// 按保留天数过滤
 		_filterByAge(list) {
 			const now = Date.now();
 			const cutoff = now - (this.config.autoClearDays * 24 * 60 * 60 * 1000);
 			return list.filter(entry => entry.timestampMs >= cutoff);
 		},
 
-		// P1: 字节硬上限兜底 —— 从最旧条目开始裁,直到序列化体积 ≤ _maxPersistBytes
+		// 字节硬上限兜底
 		_pruneByBytes(list) {
 			const maxBytes = this._maxPersistBytes;
 			let total = 0;
@@ -2761,7 +2616,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 			return this._pruneByBytes(countCapped);
 		},
 
-		// P1: 立即落盘(页面隐藏/关闭时调用)
+		// 立即落盘
 		flush() {
 			if (this.saveTimer) {
 				clearTimeout(this.saveTimer);
@@ -2773,23 +2628,22 @@ const ENTRY_OVERHEAD_BYTES = 320;
 
 		cleanOldLogs() {
 			const initialLength = this.history.length;
-			// 1. 先按时间过期清理(与落盘同一规则)
+			// 1. 先按时间过期清理
 			this.history = this._filterByAge(this.history);
 			// 2. 如果剩余日志依然超过持久化上限，执行优先级清理
 			if (this.history.length > this.config.maxPersist) {
 				this.history = this._prune(this.history, this.config.maxPersist);
 			}
-			// 3. P1: 字节硬上限兜底(防御旧版本遗留的超大日志)
+			// 3. 字节硬上限兜底
 			this.history = this._pruneByBytes(this.history);
 
 			if (this.history.length !== initialLength) {
-				// 与 _scheduleSave 一致:剔除 reasoning 后写回
 				GM_setValue('ao3_log_history', this._buildPersistData());
 			}
 		},
 
 		setLevel(level) {
-			if (level === 'ALL') level = 'DEBUG';  // 兼容旧值，ALL 已并入 DEBUG
+			if (level === 'ALL') level = 'DEBUG';
 			this.config.level = level;
 			GM_setValue('ao3_log_level', level);
 		},
@@ -2857,7 +2711,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 			if (list.length <= targetSize) return list;
 			
 			let toRemoveCount = list.length - targetSize;
-			const warnWeight = this.levels['WARN']; // 权重为 2
+			const warnWeight = this.levels['WARN'];
 
 			// 1. 找出所有权重低于 WARN 的日志索引 (INFO=1, ALL=0)
 			const lowPriorityIndices = [];
@@ -2870,7 +2724,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 			// 2. 决定要删除的索引集合
 			const indicesToDelete = new Set();
 			
-			// 优先从低级别日志中按时间顺序（最早的）取
+			// 优先从低级别日志中按时间顺序取
 			const removeFromLow = Math.min(toRemoveCount, lowPriorityIndices.length);
 			for (let i = 0; i < removeFromLow; i++) {
 				indicesToDelete.add(lowPriorityIndices[i]);
@@ -2878,7 +2732,7 @@ const ENTRY_OVERHEAD_BYTES = 320;
 			
 			toRemoveCount -= removeFromLow;
 
-			// 3. 如果低级别日志删光了还没达到目标，则按时间顺序删除剩余的最早日志（无论级别）
+			// 3. 如果低级别日志删光了还没达到目标，则按时间顺序删除剩余的最早日志
 			if (toRemoveCount > 0) {
 				for (let i = 0; i < list.length && toRemoveCount > 0; i++) {
 					if (!indicesToDelete.has(i)) {
@@ -2906,8 +2760,6 @@ const ENTRY_OVERHEAD_BYTES = 320;
 
 			const now = Date.now();
 
-			// P2: WARN/ERROR 短窗口重复折叠 —— 同 module+message 连续重复时只累计计数、更新到最后一次
-			// 发生时间,不新增条目、不重复打印控制台,减少错误密集场景的刷屏。窗口见 _collapseWindowMs。
 			if ((level === 'WARN' || level === 'ERROR') && this.history.length > 0) {
 				const last = this.history[this.history.length - 1];
 				if (last && last.level === level && last.module === module && last.message === message
@@ -2947,10 +2799,10 @@ const ENTRY_OVERHEAD_BYTES = 320;
 				const traceStr = traceId ? `[${traceId}] ` : '';
 				const prefix = `[${timestamp}] %c[${module}] ${traceStr}`;
 				let style = 'font-weight: bold;';
-				if (level === 'DEBUG') style += 'color: #9E9E9E;';  // 灰色(辅助/旁注)
-				else if (level === 'INFO') style += 'color: #2196F3;';  // 蓝色
-				else if (level === 'WARN') style += 'color: #FF9800;';  // 橙色
-				else if (level === 'ERROR') style += 'color: #F44336;';  // 红色
+				if (level === 'DEBUG') style += 'color: #9E9E9E;';
+				else if (level === 'INFO') style += 'color: #2196F3;';
+				else if (level === 'WARN') style += 'color: #FF9800;';
+				else if (level === 'ERROR') style += 'color: #F44336;';
 
 				if (data) console.log(prefix, style, message, logEntry.data);
 				else console.log(prefix, style, message);
@@ -2962,7 +2814,6 @@ const ENTRY_OVERHEAD_BYTES = 320;
 		_scheduleSave() {
 			if (this.saveTimer) clearTimeout(this.saveTimer);
 			this.saveTimer = setTimeout(() => {
-				// P0/P1: 落盘前按保留天数同步清理内存(时间设置对模态框实时生效),再做条数/字节兜底
 				this.history = this._filterByAge(this.history);
 				if (this.history.length > this.config.maxHistory) {
 					this.history = this._prune(this.history, this.config.maxHistory);
@@ -3060,592 +2911,657 @@ const ENTRY_OVERHEAD_BYTES = 320;
 		return GM_xmlhttpRequest(options);
 	}
 
-/**************************************************************************
- * 埋点系统（用户体验改善计划）
- * 匿名功能级统计，默认开启（opt-out），可在设置面板「用户体验改善项」中退出。
- * 红线：不采集翻译内容 / 作品标题 / 页面 URL / API key；事件字段走白名单；
- *      上报异步、可丢弃、有背压，绝不阻塞翻译主流程；无完整 GM 能力的引擎自动不采集。
- * M1（2026-08-18）：上报通道契约对齐 —— payload 带 v:1 + 事件级 ts；flush 按 HTTP
- *      状态码分支（2xx 成功 / 429 当日停发 / 4xx 永弃 / 5xx+超时+网络 退避重试 ≤2 次）；
- *      install_id 回退改产合法 UUID v4（服务端 UUID_RE 严格校验，早前 ao3- 前缀会整包 400）；
- *      能力探针 isSupported 兑现「无 GM 自动不采集」；pagehide + visibilitychange 双兜底。
- **************************************************************************/
+	/**************************************************************************
+	 * 埋点系统
+	 **************************************************************************/
 
-// 上报端点（占位域名：上线前替换为真实 CF Worker 域名，并同步改 @connect 与 reports/06 文档）
-const ANALYTICS_ENDPOINT = 'https://aot-analytics.tracifrit.workers.dev/track';
+	// 上报端点
+	const ANALYTICS_ENDPOINT = 'https://aot-analytics.tracifrit.workers.dev/track';
+	// 验证密钥端点
+	const ANALYTICS_SECRET_ENDPOINT = ANALYTICS_ENDPOINT.replace(/\/track$/, '/v2/secret');
 
-// 存储 key
-const ANALYTICS_KEY_ENABLED = 'ao3_analytics_enabled';        // 'joined' | 'left'
-const ANALYTICS_KEY_INSTALL_ID = 'ao3_analytics_install_id';
-const ANALYTICS_KEY_INSTALL_REPORTED = 'ao3_analytics_install_reported';
-const ANALYTICS_KEY_HEARTBEAT_DAY = 'ao3_analytics_last_heartbeat_day';
-const ANALYTICS_KEY_RATE_LIMITED_DAY = 'ao3_analytics_rate_limited_day';   // 服务端 429 后当日停发
-const ANALYTICS_KEY_PENDING_QUEUE = 'ao3_analytics_pending_queue';   // 待发/在飞事件持久化，防止刷新丢失
-const ANALYTICS_FEATURE_DAY_PREFIX = 'ao3_analytics_feature_last_day:';
-const ANALYTICS_COOLDOWN_PREFIX = 'ao3_analytics_cooldown:';
-const ANALYTICS_SCHEMA_VERSION = 1;   // 上报 payload 协议版本（与 Worker 对齐）
-// 合并上报（usage）累计键：本地把本会话的翻译真值求和，会话末 1 条 usage 事件上报，规避冷却采样失真
-const ANALYTICS_KEY_USAGE_CHARS = 'ao3_usage_chars';            // 累计翻译字符（真值）
-const ANALYTICS_KEY_USAGE_BATCHES = 'ao3_usage_batches';        // 累计翻译批次数
-const ANALYTICS_KEY_USAGE_CACHE_CHARS = 'ao3_usage_cache_chars'; // 缓存复用字符
-const ANALYTICS_KEY_USAGE_CACHE_HITS = 'ao3_usage_cache_hits';   // 缓存复用段数
-const ANALYTICS_KEY_USAGE_CACHE_TOTAL = 'ao3_usage_cache_total'; // 缓存评估总段数
-const ANALYTICS_KEY_USAGE_LATENCY_HIST = 'ao3_usage_latency_hist'; // 全批次延迟固定 8 桶
-const ANALYTICS_KEY_ERROR_FULL = 'ao3_errors_full_count'; // 会话内真实错误发生次数(去重前计数)
-const ANALYTICS_LAT_HIST_EDGES = [200, 400, 700, 1000, 1500, 2500, 5000];
-// 规则组件命中（真实触发次数）：会话内累计，随 usage 上报（B5 规则组件命中）
-const ANALYTICS_KEY_USAGE_GLOSSARY_HITS = 'ao3_usage_glossary_hits';         // 术语表词条命中次数（本地+在线，词条被应用）
-const ANALYTICS_KEY_USAGE_POST_REPLACE_HITS = 'ao3_usage_post_replace_hits'; // 译文后处理替换命中次数
-const ANALYTICS_KEY_USAGE_BLOCK_HITS = 'ao3_usage_block_hits';               // 作品屏蔽命中次数
+	// 存储 key
+	const ANALYTICS_KEY_ENABLED = 'ao3_analytics_enabled';
+	const ANALYTICS_KEY_INSTALL_ID = 'ao3_analytics_install_id';
+	const ANALYTICS_KEY_SECRET = 'ao3_analytics_secret';
+	const ANALYTICS_KEY_INSTALL_REPORTED = 'ao3_analytics_install_reported';
+	const ANALYTICS_KEY_HEARTBEAT_DAY = 'ao3_analytics_last_heartbeat_day';
+	const ANALYTICS_KEY_HOURS_DAY = 'ao3_analytics_hours_day';
+	const ANALYTICS_KEY_HOURS_MASK = 'ao3_analytics_hours_mask';
+	const ANALYTICS_KEY_RATE_LIMITED_DAY = 'ao3_analytics_rate_limited_day';
+	const ANALYTICS_KEY_PENDING_QUEUE = 'ao3_analytics_pending_queue';
+	const ANALYTICS_FEATURE_DAY_PREFIX = 'ao3_analytics_feature_last_day:';
+	const ANALYTICS_COOLDOWN_PREFIX = 'ao3_analytics_cooldown:';
+	const ANALYTICS_SCHEMA_VERSION = 1;
+	const ANALYTICS_KEY_USAGE_CHARS = 'ao3_usage_chars';
+	const ANALYTICS_KEY_USAGE_BATCHES = 'ao3_usage_batches';
+	const ANALYTICS_KEY_USAGE_CACHE_CHARS = 'ao3_usage_cache_chars';
+	const ANALYTICS_KEY_USAGE_CACHE_HITS = 'ao3_usage_cache_hits';
+	const ANALYTICS_KEY_USAGE_CACHE_TOTAL = 'ao3_usage_cache_total';
+	const ANALYTICS_KEY_USAGE_LATENCY_HIST = 'ao3_usage_latency_hist';
+	const ANALYTICS_KEY_ERROR_FULL = 'ao3_errors_full_count';
+	const ANALYTICS_LAT_HIST_EDGES = [
+		100, 125, 156, 195, 244, 305, 381, 477, 596, 745, 931, 1164, 1455, 1819,
+		2274, 2842, 3553, 4441, 5551, 6939, 8674, 10842, 13553, 16941, 21176,
+		26470, 33087, 41359, 51699, 64623, 80779
+	];
+	const ANALYTICS_KEY_USAGE_GLOSSARY_HITS = 'ao3_usage_glossary_hits';
+	const ANALYTICS_KEY_USAGE_POST_REPLACE_HITS = 'ao3_usage_post_replace_hits';
+	const ANALYTICS_KEY_USAGE_BLOCK_HITS = 'ao3_usage_block_hits';
 
-// 配置修改统计（真实修改次数）：以 JSON 快照 { item: count } 记录每项修改次数，随 usage 上报后清零
-const ANALYTICS_KEY_USAGE_FORMAT_MODS = 'ao3_usage_format_mods';             // 文章格式调整项（indent/fontSize/…）
-const ANALYTICS_KEY_USAGE_PARAM_MODS = 'ao3_usage_param_mods';               // 翻译参数自定义项（temperature/…）
+	// 配置修改统计
+	const ANALYTICS_KEY_USAGE_FORMAT_MODS = 'ao3_usage_format_mods';
+	const ANALYTICS_KEY_USAGE_PARAM_MODS = 'ao3_usage_param_mods';
 
-// 事件属性白名单：未在此列的键一律不上报（CF Worker 端有同名白名单兜底）
-// engine 分类不再用硬编码集（ANALYTICS_AI_ENGINES 已删，改由 engineMenuConfig.requiresApiKey 单一事实源推导，
-// 修复 siliconflow_ai 硬编码漂移——真实 key 是 siliconflow，旧集名称全量误判 traditional）
-const ANALYTICS_ALLOWED_PROPS = new Set([
-	// 通用
-	'feature', 'outcome', 'page_type', 'mirror',
-	// 翻译健康（translation_health）
-	'provider', 'engine', 'latency_ms', 'model_name', 'error_type',
-	// 功能/导出（feature_used / export_created）
-	'layout_mode', 'export_format', 'webdav_provider', 'detected_source_lang',
-	// 错误诊断（error）：不采集原始错误文本，避免意外携带内容或密钥
-	'http_status',
-	// usage 会话精确总量
-	'chars_count', 'batch_size', 'error_count', 'cache_saved_chars', 'cache_hit_count', 'cache_total_count',
-	// 规则组件命中（真实触发次数）
-	'glossary_hits', 'post_replace_hits', 'block_hits',
-	// 配置修改统计（来自 usage 的 JSON 快照 {item: count}）
-	'format_mods', 'param_mods', 'latency_hist'
-]);
+	// 事件属性白名单
+	const ANALYTICS_ALLOWED_PROPS = new Set([
+		// 通用
+		'feature', 'outcome', 'page_type', 'mirror',
+		// 翻译健康
+		'provider', 'engine', 'latency_ms', 'model_name', 'error_type',
+		// 功能/导出
+		'layout_mode', 'export_format', 'webdav_provider', 'detected_source_lang',
+		// 错误诊断
+		'http_status',
+		// usage 会话精确总量
+		'chars_count', 'batch_size', 'error_count', 'cache_saved_chars', 'cache_hit_count', 'cache_total_count',
+		// 规则组件命中
+		'glossary_hits', 'post_replace_hits', 'block_hits',
+		// 配置修改统计
+		'format_mods', 'param_mods', 'latency_hist',
+		// 活跃小时位图
+		'active_hours'
+	]);
 
-// 值级校验规则（M2/v3）：字符串按长度上限截断，数值按范围校验，布尔严格判定；
-// 违规字段丢弃并 Logger.debug 留痕——杜绝超长/越界/类型错乱污染服务端口径
-const ANALYTICS_STRING_LIMITS = {
-	feature: 64, outcome: 32, error_type: 64,
-	provider: 32, engine: 16, page_type: 32,
-	layout_mode: 32, export_format: 16, webdav_provider: 32,
-	detected_source_lang: 16, model_name: 64,
-	format_mods: 512, param_mods: 512, latency_hist: 128   // JSON 快照/直方图，给宽松上限防超长
-};
-const ANALYTICS_NUMERIC_RULES = {
-	latency_ms: [0, 3600000],        // 0 ~ 1h
-	chars_count: [0, 10000000],
-	cache_hit_count: [0, 1000000],
-	cache_total_count: [0, 1000000],
-	cache_saved_chars: [0, 10000000],
-	batch_size: [0, 1000000],        // usage 里是会话累计批次数，需放宽容差
-	error_count: [0, 1000000], http_status: [0, 999],
-	glossary_hits: [0, 10000000], post_replace_hits: [0, 10000000], block_hits: [0, 1000000]
-};
-const ANALYTICS_BOOL_PROPS = new Set([]);   // 布尔：true/false 严格判定（当前已无布尔字段，保留分支以防将来加）
+	// 值级校验规则
+	const ANALYTICS_STRING_LIMITS = {
+		feature: 64, outcome: 32, error_type: 64,
+		provider: 32, engine: 16, page_type: 32,
+		layout_mode: 32, export_format: 16, webdav_provider: 32,
+		detected_source_lang: 16, model_name: 64,
+		format_mods: 512, param_mods: 512, latency_hist: 256
+	};
+	const ANALYTICS_NUMERIC_RULES = {
+		latency_ms: [0, 3600000],
+		chars_count: [0, 10000000],
+		cache_hit_count: [0, 1000000],
+		cache_total_count: [0, 1000000],
+		cache_saved_chars: [0, 10000000],
+		batch_size: [0, 1000000],
+		error_count: [0, 1000000], http_status: [0, 999],
+		glossary_hits: [0, 10000000], post_replace_hits: [0, 10000000], block_hits: [0, 1000000],
+		active_hours: [0, 16777215]
+	};
+	const ANALYTICS_BOOL_PROPS = new Set([]);
 
-// 规则组件命中辅助：给会话内的命中计数键自增（B5，随 usage 上报后清零）
-function bumpUsageCounter(key, delta = 1) {
-	GM_setValue(key, (Number(GM_getValue(key, 0)) || 0) + delta);
-}
-
-// 配置修改统计辅助：给 JSON 快照 { item: count } 中某项自增（文章格式/翻译参数自定义）
-function bumpConfigCounter(category, item) {
-	if (typeof Analytics === 'undefined' || !Analytics.enabled()) return;
-	const key = category === 'format' ? ANALYTICS_KEY_USAGE_FORMAT_MODS : ANALYTICS_KEY_USAGE_PARAM_MODS;
-	let obj = {};
-	try { obj = JSON.parse(GM_getValue(key, '{}')) || {}; } catch { obj = {}; }
-	if (!obj || typeof obj !== 'object') obj = {};
-	obj[item] = (Number(obj[item]) || 0) + 1;
-	GM_setValue(key, JSON.stringify(obj));
-}
-
-const Analytics = {
-	queue: [],
-	inFlightBatches: new Set(),          // 在飞批次（ack 前不能从持久化队列剔除）
-	pendingDedupeKeys: new Set(),        // 待 ack 的每日去重占位（功能采用/错误归类）
-	queueCap: 100,                       // 待发队列上限，超限丢弃（有背压）
-	flushTimer: null,
-	flushIntervalMs: 5000,               // 批量发送窗口
-	batchSize: 20,                       // 单包事件数
-	maxRetries: 2,                       // 每批最多重试次数（首发之外的附加尝试）
-	trackTranslationCooldownMs: 5 * 60 * 1000, // 翻译健康：每 provider 冷却窗口一条
-	// 能力探针：无完整 GM 能力（如 Via/部分轻量壳）自动静默降级，兑现「自动不采集」
-	isSupported() {
-		return typeof GM_xmlhttpRequest === 'function'
-			&& typeof GM_getValue === 'function'
-			&& typeof GM_setValue === 'function';
-	},
-
-	enabled() { return this.isSupported() && GM_getValue(ANALYTICS_KEY_ENABLED, 'joined') === 'joined'; },
-
-	setEnabled(on) {
-		GM_setValue(ANALYTICS_KEY_ENABLED, on ? 'joined' : 'left');
-		if (!on) {
-			this.queue = [];
-			this.inFlightBatches.clear();
-			this.pendingDedupeKeys.clear();
-			this._persistQueue();
-		}
-	},
-
-	// 恢复上次加载未发/在飞的事件（刷新/重开后自愈重发）
-	_restoreQueue() {
-		try {
-			const saved = GM_getValue(ANALYTICS_KEY_PENDING_QUEUE, []);
-			if (!Array.isArray(saved)) return;
-			this.queue = saved.filter((event) => event && typeof event.event_id === 'string'
-				&& typeof event.name === 'string' && event.properties && typeof event.properties === 'object'
-				&& typeof event.ts === 'number').slice(-this.queueCap);
-			for (const event of this.queue) if (event._dedupeKey) this.pendingDedupeKeys.add(event._dedupeKey);
-			if (this.queue.length > 0) this.scheduleFlush(250);
-		} catch (e) {
-			Logger.debug('Analytics', `恢复待发队列失败: ${e.message}`);
-		}
-	},
-
-	// 持久化待发 + 在飞事件（刷新前尽可能保留，避免遥测丢失）
-	_persistQueue() {
-		try {
-			const inFlight = [...this.inFlightBatches].flat();
-			const events = [...this.queue, ...inFlight].slice(-this.queueCap * 2);
-			GM_setValue(ANALYTICS_KEY_PENDING_QUEUE, events);
-		} catch (e) {
-			Logger.debug('Analytics', `持久化待发队列失败: ${e.message}`);
-		}
-	},
-
-	installId() {
-		let id = GM_getValue(ANALYTICS_KEY_INSTALL_ID, '');
-		if (!id) {
-			id = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
-				? crypto.randomUUID()
-				: this._uuidV4();
-			GM_setValue(ANALYTICS_KEY_INSTALL_ID, id);
-		}
-		return id;
-	},
-
-	// 无 crypto.randomUUID 时的兜底：产合法 UUID v4（服务端 UUID_RE 严格校验；早前 ao3- 前缀会被整包 400）
-	_uuidV4() {
-		try {
-			if (crypto && typeof crypto.getRandomValues === 'function') {
-				const b = crypto.getRandomValues(new Uint8Array(16));
-				b[6] = (b[6] & 0x0f) | 0x40;   // version 4
-				b[8] = (b[8] & 0x3f) | 0x80;   // variant 10
-				const hex = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
-				return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-			}
-		} catch (e) { /* fall through */ }
-		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-			const r = Math.random() * 16 | 0;
-			const v = c === 'x' ? r : (r & 0x3 | 0x8);
-			return v.toString(16);
-		});
-	},
-
-	// 轮换匿名 ID：退出「用户体验改善计划」时调用，令旧 ID 作废（旧 ID 此后不再有新事件，也无法在面板鉴权）。
-	rotateInstallId() {
-		GM_setValue(ANALYTICS_KEY_INSTALL_ID, this._uuidV4());
-	},
-
-	// 退出改善计划前上报一条 opt_out 信号（绕过 paused 门禁，确保送达），服务端据此把当前 ID 标记为已退出、立即无法鉴权。
-	reportOptOut() {
-		const id = this.installId();
-		if (!id) return;
-		const payload = JSON.stringify({
-			v: ANALYTICS_SCHEMA_VERSION,
-			install_id: id,
-			version: (typeof GM_info !== 'undefined' && GM_info && GM_info.script) ? GM_info.script.version : 'unknown',
-			script_handler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) ? GM_info.scriptHandler : 'unknown',
-			handler_version: (typeof GM_info !== 'undefined' && GM_info && GM_info.version) ? GM_info.version : 'unknown',
-			ts: Date.now(),
-			events: [{ event_id: this._uuidV4(), event_type: 'opt_out', name: 'opt_out', ts: Date.now(), properties: { page_type: this.pageType() } }]
-		});
-		try {
-			if (this._canBeacon()) navigator.sendBeacon(ANALYTICS_ENDPOINT, new Blob([payload], { type: 'text/plain' }));
-			else if (typeof GM_xmlhttpRequest === 'function') {
-				GM_xmlhttpRequest({ method: 'POST', url: ANALYTICS_ENDPOINT, headers: { 'Content-Type': 'application/json' }, data: payload, timeout: 8000, onload: () => {}, onerror: () => {} });
-			}
-		} catch (e) {
-			Logger.debug('Analytics', `opt_out 上报失败: ${e.message}`);
-		}
-	},
-
-	// Asia/Shanghai 自然日（与日志时区一致）
-	day() {
-		return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).slice(0, 10);
-	},
-
-	pageType() {
-		return (typeof pageConfig !== 'undefined' && pageConfig && pageConfig.currentPageType)
-			? pageConfig.currentPageType : 'unknown';
-	},
-
-	// 镜像站判断：官方域名（含镜像 archiveofourown.gay 及子域）记 0，其余（自托管镜像）记 1
-	isMirror() {
-		try {
-			const host = (typeof location !== 'undefined' && location && location.host) ? location.host : '';
-			return /^([a-z0-9-]+\.)*(archiveofourown\.org|archiveofourown\.gay)$/i.test(host) ? 0 : 1;
-		} catch (e) { return 1; }
-	},
-
-	engineInfo() {
-		// M2：engine 分类改单一事实源——engineMenuConfig.requiresApiKey 或 custom_ 前缀；
-		// 不再依赖 ANALYTICS_AI_ENGINES 硬编码集（siliconflow_ai 旧名已漂移，真实 key 为 siliconflow →
-		// 旧逻辑全量误判 traditional）。custom_* 引擎名是时间戳 ID，统一归并为 custom_ai 上报（防基数爆炸）
-		const provider = getValidEngineName();
-		const isAi = (engineMenuConfig[provider] && engineMenuConfig[provider].requiresApiKey === true)
-			|| provider.startsWith('custom_');
-		return {
-			provider: provider.startsWith('custom_') ? 'custom_ai' : provider,
-			engine: isAi ? 'ai' : 'traditional'
-		};
-	},
-
-	// 字段白名单过滤 + 值级校验（客户端红线兜底，与 Worker 端白名单一致）
-	sanitizeProps(props) {
-		const out = {};
-		for (const k of Object.keys(props || {})) {
-			if (!ANALYTICS_ALLOWED_PROPS.has(k)) {
-				Logger.debug('Analytics', `埋点字段 ${k} 不在白名单，已剔除`);
-				continue;
-			}
-			const v = props[k];
-			if (ANALYTICS_STRING_LIMITS[k]) {
-				if (typeof v === 'string') out[k] = v.length > ANALYTICS_STRING_LIMITS[k] ? v.slice(0, ANALYTICS_STRING_LIMITS[k]) : v;
-				else if (typeof v === 'number' || typeof v === 'boolean') out[k] = String(v).slice(0, ANALYTICS_STRING_LIMITS[k]);
-				else Logger.debug('Analytics', `埋点字符串字段 ${k} 类型非法(${typeof v})，已丢弃`);
-			} else if (ANALYTICS_NUMERIC_RULES[k]) {
-				const [min, max] = ANALYTICS_NUMERIC_RULES[k];
-				if (typeof v === 'number' && isFinite(v) && v >= min && v <= max) out[k] = Math.round(v);
-				else Logger.debug('Analytics', `埋点数值字段 ${k} 超范围(${v})，已丢弃`);
-			} else if (ANALYTICS_BOOL_PROPS.has(k)) {
-				// 布尔严格判定：不再过 toInt，杜绝服务端收到 null
-				if (v === true || v === 1) out[k] = true;
-				else if (v === false || v === 0) out[k] = false;
-				else Logger.debug('Analytics', `埋点布尔字段 ${k} 非法(${v})，已丢弃`);
-			} else if (k === 'mirror') {
-				if (v === 0 || v === 1) out[k] = v;
-				else Logger.debug('Analytics', `埋点 mirror 非法(${v})，已丢弃`);
-			} else {
-				out[k] = v;
-			}
-		}
-		return out;
-	},
-
-	init() {
-		if (!this.enabled()) return;
-		this._restoreQueue();
-		this.installId();
-		const today = this.day();
-		this._pendingInstall = !GM_getValue(ANALYTICS_KEY_INSTALL_REPORTED, false);
-		this._pendingHeartbeat = GM_getValue(ANALYTICS_KEY_HEARTBEAT_DAY, '') !== today ? today : null;
-		if (this._pendingInstall) this.push('adoption', 'install', { page_type: this.pageType(), mirror: this.isMirror() });
-
-		if (this._pendingHeartbeat) {
-			this.push('adoption', 'daily_heartbeat', { page_type: this.pageType(), mirror: this.isMirror() });
-		}
-	},
-
-	// 功能使用（每日每 feature 一次，adoption 去重；ack/4xx 后才落当日标记）
-	featureUsed(feature, surface, extra = {}) {
-		if (!this.enabled()) return;
-		const today = this.day();
-		const outcome = extra.outcome || 'success';
-		const key = ANALYTICS_FEATURE_DAY_PREFIX + feature + ':' + outcome;
-		if (GM_getValue(key, '') === today || this.pendingDedupeKeys.has(key)) return;
-		this.pendingDedupeKeys.add(key);
-		const displayMode = GM_getValue('translation_display_mode', 'bilingual');
-		this.push('adoption', 'feature_used', this.sanitizeProps({
-			feature, outcome,
-			page_type: this.pageType(),
-			layout_mode: extra.layout_mode || displayMode,
-			...extra
-		}), { dedupeKey: key, dedupeDay: today });
-	},
-
-	// 导出是实际动作事件：每次导出一条，供格式分布统计，不混入每日功能采用口径（P2-3 恢复）
-	exportCreated(format, outcome = 'success', extra = {}) {
-		if (!this.enabled()) return;
-		this.push('adoption', 'export_created', this.sanitizeProps({
-			feature: 'export_created', outcome,
-			export_format: format, page_type: this.pageType(), ...extra
-		}));
-	},
-
-	// 翻译健康（每 provider 冷却窗口一条，保留成功/失败/延迟信号）
-	trackTranslation(feature, extra = {}) {
-		if (!this.enabled()) return;
-		const { provider, engine } = this.engineInfo();
-		const now = Date.now();
-		const cooldownKey = ANALYTICS_COOLDOWN_PREFIX + provider;
-		const last = parseInt(GM_getValue(cooldownKey, 0), 10) || 0;
-		if (now - last < this.trackTranslationCooldownMs) return;
-		GM_setValue(cooldownKey, now);
-		const displayMode = GM_getValue('translation_display_mode', 'bilingual');
-		const model_name = (getProviderById(getValidEngineName()) || {}).selectedModel;
-
-		this.push('metric', 'translation_health', this.sanitizeProps({
-			feature, provider, engine, mirror: this.isMirror(),
-			page_type: this.pageType(),
-			layout_mode: extra.layout_mode || displayMode,
-			model_name,
-			...extra
-		}));
-	},
-
-	// 错误归类（每类每天一次；ack/4xx 后才落当日标记）
-	error(errorType, feature, extra = {}) {
-		if (!this.enabled()) return;
-		// 真实错误发生次数：每次调用都计（不受日去重影响），随 usage 的 error_count 上报
-		GM_setValue(ANALYTICS_KEY_ERROR_FULL, (Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) || 0) + 1);
-		if (Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) >= 100000) this.flushUsage();
-		const today = this.day();
-		const key = ANALYTICS_FEATURE_DAY_PREFIX + 'error:' + errorType;
-		if (GM_getValue(key, '') === today || this.pendingDedupeKeys.has(key)) return;
-		this.pendingDedupeKeys.add(key);
-		this.push('error', 'error', this.sanitizeProps({
-			error_type: errorType, feature, page_type: this.pageType(), ...extra
-		}), { dedupeKey: key, dedupeDay: today });
-	},
-
-	push(eventType, name, properties, options = {}) {
-		if (this.paused()) {                    // 当日 429 限流：停发，次日自动恢复
-			this._releaseDedupe(options.dedupeKey);
-			return;
-		}
-		const ev = {
-			event_id: this._uuidV4(), event_type: eventType, name, properties, ts: Date.now(),
-			_dedupeKey: options.dedupeKey || null, _dedupeDay: options.dedupeDay || null
-		};
-		// 标记 install/heartbeat：ack/4xx 确认后由 _onAcked/_onRejected 落 INSTALL_REPORTED/HEARTBEAT_DAY（自愈）
-		if (name === 'install') ev._isInstall = true;
-		if (name === 'daily_heartbeat') ev._isHeartbeat = true;
-		this.queue.push(ev);
-		if (this.queue.length > this.queueCap) this._releaseDedupe(this.queue.shift());   // 背压：超限丢最旧，但释放去重占位
-		this._persistQueue();
-		if (this.queue.length >= this.batchSize) this.flush();
-		else this.scheduleFlush();
-	},
-
-	// 当日被服务端 429 限流后停发（次日自动恢复）
-	paused() {
-		return GM_getValue(ANALYTICS_KEY_RATE_LIMITED_DAY, '') === this.day();
-	},
-
-	scheduleFlush(delay = this.flushIntervalMs) {
-		if (this.flushTimer) return;
-		this.flushTimer = setTimeout(() => {
-			this.flushTimer = null;
-			this.flush();
-		}, delay);
-	},
-
-	flush() {
-		if (!this.enabled() || this.queue.length === 0) return;
-		const events = this.queue.splice(0, this.batchSize);
-		this.inFlightBatches.add(events);
-		this._persistQueue();
-		const payload = JSON.stringify({
-			v: ANALYTICS_SCHEMA_VERSION,
-			install_id: this.installId(),
-			version: (typeof GM_info !== 'undefined' && GM_info && GM_info.script) ? GM_info.script.version : 'unknown',
-			script_handler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) ? GM_info.scriptHandler : 'unknown',
-			handler_version: (typeof GM_info !== 'undefined' && GM_info && GM_info.version) ? GM_info.version : 'unknown',
-			ts: Date.now(),
-			events: events.map(e => ({ event_id: e.event_id, event_type: e.event_type, name: e.name, ts: e.ts, properties: e.properties }))
-		});
-		try {
-			GM_xmlhttpRequest({
-				method: 'POST',
-				url: ANALYTICS_ENDPOINT,
-				headers: { 'Content-Type': 'application/json' },
-				timeout: 8000,
-				data: payload,
-				onload: (res) => {
-					const status = res.status;
-					if (status >= 200 && status < 300) { this._onAcked(events); return; }   // 成功 → 落标记
-					if (status === 429) {                                        // 当日配额用尽 → 停发，不重试、不落标记
-						GM_setValue(ANALYTICS_KEY_RATE_LIMITED_DAY, this.day());
-						this._finishBatch(events);
-						this._releaseDedupe(events);
-						return;
-					}
-					if (status >= 400 && status < 500) { this._onRejected(events); return; } // 4xx 永弃（格式拒收）→ 落标记防无限重发
-					this._retryOrDrop(events);                                   // 5xx → 退避重试
-				},
-				onerror: () => this._retryOrDrop(events),                            // 网络错误
-				ontimeout: () => this._retryOrDrop(events)                           // 超时
-			});
-		} catch (e) {
-			Logger.warn('Analytics', `埋点上报失败: ${e.message}`);
-			this._finishBatch(events);
-			this._releaseDedupe(events);
-		}
-	},
-
-	// ack/拒绝后落 install & heartbeat 标记：2xx 或 4xx 都视为「服务端已经接过或永不接受」，
-	// 落标记避免下次加载重复补发；5xx/超时/预算耗尽不落标记 → 下次加载自动补发（自愈）
-	_onAcked(events) {
-		if (events.some(e => e._isInstall)) GM_setValue(ANALYTICS_KEY_INSTALL_REPORTED, true);
-		if (events.some(e => e._isHeartbeat)) GM_setValue(ANALYTICS_KEY_HEARTBEAT_DAY, this.day());
-		for (const e of events) {
-			if (e._dedupeKey) {
-				GM_setValue(e._dedupeKey, e._dedupeDay || this.day());
-				this.pendingDedupeKeys.delete(e._dedupeKey);
-			}
-		}
-		this._finishBatch(events);
-	},
-	_onRejected(events) {
-		this._onAcked(events);
-	},
-	_finishBatch(events) {
-		this.inFlightBatches.delete(events);
-		this._persistQueue();
-	},
-	_releaseDedupe(events) {
-		const list = Array.isArray(events) ? events : [{ _dedupeKey: events }];
-		for (const e of list) if (e && e._dedupeKey) this.pendingDedupeKeys.delete(e._dedupeKey);
-	},
-
-
-	// 重试：计数挂在每个事件对象上（批次数组每次 splice 都会新建，不能挂数组），
-	// 每事件最多 maxRetries 次附加尝试，指数退避（5s→15s 封顶），队列满则丢弃（有背压）
-	_retryOrDrop(events) {
-		this.inFlightBatches.delete(events);
-		const attempt = events.reduce((m, e) => Math.max(m, e._attempt || 0), 0);
-		if (attempt >= this.maxRetries) {                    // 预算耗尽 → 丢弃（释放去重占位）
-			this._releaseDedupe(events);
-			this._persistQueue();
-			return;
-		}
-		for (const e of events) e._attempt = attempt + 1;
-		if (this.queue.length < this.queueCap) this.queue.unshift(...events);
-		else this._releaseDedupe(events);                    // 背压丢弃时不能遗留去重占位
-		this._persistQueue();
-		this.scheduleFlush(this.flushIntervalMs * Math.pow(3, attempt));
-	},
-
-	// 合并上报（usage）累计：本地累计，会话末带 sendBeacon 或队列上报。
-	// 给总览提供真实全量口径（字符/缓存复用/批数/真实错误数），而非 translation_health 冷却采样的下限。
-	// 配额开销：每会话约 1 条 usage 事件（pagehide/visibilitychange 各一次，另有阈值兜底）。
-	accumulateUsage(metrics) {
-		if (!this.enabled()) return;
-		const m = metrics || {};
-		const add = (key, v) => { const n = (Number(v) || 0); if (n > 0) GM_setValue(key, (Number(GM_getValue(key, 0)) || 0) + n); };
-		add(ANALYTICS_KEY_USAGE_CHARS, m.chars);
-		add(ANALYTICS_KEY_USAGE_BATCHES, 1);   // 每次调用 = 一个翻译批次
-		add(ANALYTICS_KEY_USAGE_CACHE_CHARS, m.cacheSavedChars);
-		add(ANALYTICS_KEY_USAGE_CACHE_HITS, m.cacheHits);
-		add(ANALYTICS_KEY_USAGE_CACHE_TOTAL, m.cacheTotal);
-		const latencyMs = Number(m.latencyMs);
-		if (Number.isFinite(latencyMs) && latencyMs >= 0) {
-			let histogram = GM_getValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, Array(8).fill(0));
-			if (!Array.isArray(histogram) || histogram.length !== 8) histogram = Array(8).fill(0);
-			const bucket = ANALYTICS_LAT_HIST_EDGES.findIndex((edge) => latencyMs < edge);
-			const index = bucket === -1 ? 7 : bucket;
-			histogram[index] = Math.min(1000000, (Number(histogram[index]) || 0) + 1);
-			GM_setValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, histogram);
-		}
-		// 上限兜底：任一累计逼近白名单数值上限就提前上报，避免被 sanitize 丢弃（页面存活→走队列路径可靠）
-		if (Number(GM_getValue(ANALYTICS_KEY_USAGE_CHARS, 0)) >= 9000000
-			|| Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_CHARS, 0)) >= 5000000
-			|| Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_HITS, 0)) >= 900000) {
-			this.flushUsage();
-		}
-	},
-
-	// 会话末精确总量：优先级「sendBeacon（卸载/切后台可靠投递）> GM 队列（页面存活，靠自愈重发）」
-	flushUsage(useBeacon = false) {
-		if (!this.enabled() || this.paused()) return;
-		const chars = Number(GM_getValue(ANALYTICS_KEY_USAGE_CHARS, 0)) || 0;
-		const batches = Number(GM_getValue(ANALYTICS_KEY_USAGE_BATCHES, 0)) || 0;
-		const cacheChars = Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_CHARS, 0)) || 0;
-		const cacheHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_HITS, 0)) || 0;
-		const cacheTotal = Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_TOTAL, 0)) || 0;
-		let latencyHist = GM_getValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, Array(8).fill(0));
-		if (!Array.isArray(latencyHist) || latencyHist.length !== 8) latencyHist = Array(8).fill(0);
-		latencyHist = latencyHist.map((value) => Math.max(0, Math.min(1000000, Math.round(Number(value) || 0))));
-		const errorFull = Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) || 0;
-		const glossaryHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_GLOSSARY_HITS, 0)) || 0;
-		const postReplaceHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_POST_REPLACE_HITS, 0)) || 0;
-		const blockHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_BLOCK_HITS, 0)) || 0;
-		// 配置修改统计：JSON 快照 { item: count }，仅在非空时随 usage 上报
-		let formatMods = null, paramMods = null;
-		try { const o = JSON.parse(GM_getValue(ANALYTICS_KEY_USAGE_FORMAT_MODS, '{}') || '{}'); formatMods = o && typeof o === 'object' ? o : null; } catch { formatMods = null; }
-		try { const o = JSON.parse(GM_getValue(ANALYTICS_KEY_USAGE_PARAM_MODS, '{}') || '{}'); paramMods = o && typeof o === 'object' ? o : null; } catch { paramMods = null; }
-		const hasConfigMods = (formatMods && Object.keys(formatMods).length > 0) || (paramMods && Object.keys(paramMods).length > 0);
-		if (!(chars || batches || cacheChars || cacheHits || cacheTotal || latencyHist.some(Boolean) || errorFull || glossaryHits || postReplaceHits || blockHits || hasConfigMods)) return;
-		const props = this.sanitizeProps({
-			feature: 'usage',
-			chars_count: chars,
-			batch_size: batches,
-			cache_saved_chars: cacheChars,
-			cache_hit_count: cacheHits,
-			cache_total_count: cacheTotal,
-			latency_hist: latencyHist.join(','),
-			error_count: errorFull,
-			glossary_hits: glossaryHits,
-			post_replace_hits: postReplaceHits,
-			block_hits: blockHits,
-			...((formatMods && Object.keys(formatMods).length) ? { format_mods: JSON.stringify(formatMods) } : {}),
-			...((paramMods && Object.keys(paramMods).length) ? { param_mods: JSON.stringify(paramMods) } : {})
-		});
-		const reset = () => {
-			GM_setValue(ANALYTICS_KEY_USAGE_CHARS, 0);
-			GM_setValue(ANALYTICS_KEY_USAGE_BATCHES, 0);
-			GM_setValue(ANALYTICS_KEY_USAGE_CACHE_CHARS, 0);
-			GM_setValue(ANALYTICS_KEY_USAGE_CACHE_HITS, 0);
-			GM_setValue(ANALYTICS_KEY_USAGE_CACHE_TOTAL, 0);
-			GM_setValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, Array(8).fill(0));
-			GM_setValue(ANALYTICS_KEY_ERROR_FULL, 0);
-			GM_setValue(ANALYTICS_KEY_USAGE_GLOSSARY_HITS, 0);
-			GM_setValue(ANALYTICS_KEY_USAGE_POST_REPLACE_HITS, 0);
-			GM_setValue(ANALYTICS_KEY_USAGE_BLOCK_HITS, 0);
-			GM_setValue(ANALYTICS_KEY_USAGE_FORMAT_MODS, '{}');
-			GM_setValue(ANALYTICS_KEY_USAGE_PARAM_MODS, '{}');
-		};
-		if (useBeacon && this._canBeacon()) {
-			if (this._beaconEvent('metric', 'usage', props)) { reset(); return; }
-			// sendBeacon 失败（返回 false 或抛错）→ 回退到持久化队列路径，仍有机会送出
-		}
-		this.push('metric', 'usage', props, { dedupeKey: null });
-		reset();
-	},
-
-	// 以 navigator.sendBeacon 直接投递一条事件（卸载/切后台瞬间仍可靠），绕过会被取消的异步 GM 请求。
-	_canBeacon() {
-		return typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function';
-	},
-
-	_beaconEvent(eventType, name, props) {
-		const payload = JSON.stringify({
-			v: ANALYTICS_SCHEMA_VERSION,
-			install_id: this.installId(),
-			version: (typeof GM_info !== 'undefined' && GM_info && GM_info.script) ? GM_info.script.version : 'unknown',
-			script_handler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) ? GM_info.scriptHandler : 'unknown',
-			handler_version: (typeof GM_info !== 'undefined' && GM_info && GM_info.version) ? GM_info.version : 'unknown',
-			ts: Date.now(),
-			events: [{ event_id: this._uuidV4(), event_type: eventType, name, ts: Date.now(), properties: props }]
-		});
-		try {
-			return navigator.sendBeacon(ANALYTICS_ENDPOINT, new Blob([payload], { type: 'text/plain' }));
-		} catch (e) {
-			Logger.warn('Analytics', `usage 直投失败: ${e.message}`);
-			return false;
-		}
-	},
-
-	// 卸载/切后台前兜底：usage 用 sendBeacon 保证送达；其余队列事件仍走 GM 请求。
-	bindLifecycle() {
-		window.addEventListener('pagehide', () => { this.flushUsage(true); this.flush(); });
-		document.addEventListener('visibilitychange', () => {
-			if (document.visibilityState === 'hidden') { this.flushUsage(true); this.flush(); }
-		});
+	// 规则组件命中辅助：给会话内的命中计数键自增
+	function bumpUsageCounter(key, delta = 1) {
+		GM_setValue(key, (Number(GM_getValue(key, 0)) || 0) + delta);
 	}
-};
+
+	// 配置修改统计辅助：给 JSON 快照 { item: count } 中某项自增（文章格式/翻译参数自定义）
+	function bumpConfigCounter(category, item) {
+		if (typeof Analytics === 'undefined' || !Analytics.enabled()) return;
+		const key = category === 'format' ? ANALYTICS_KEY_USAGE_FORMAT_MODS : ANALYTICS_KEY_USAGE_PARAM_MODS;
+		let obj = {};
+		try { obj = JSON.parse(GM_getValue(key, '{}')) || {}; } catch { obj = {}; }
+		if (!obj || typeof obj !== 'object') obj = {};
+		obj[item] = (Number(obj[item]) || 0) + 1;
+		GM_setValue(key, JSON.stringify(obj));
+	}
+
+	const Analytics = {
+		queue: [],
+		inFlightBatches: new Set(),
+		pendingDedupeKeys: new Set(),
+		queueCap: 100,
+		flushTimer: null,
+		flushIntervalMs: 5000, 
+		batchSize: 20,
+		maxRetries: 2,
+		trackTranslationCooldownMs: 5 * 60 * 1000,
+		isSupported() {
+			return typeof GM_xmlhttpRequest === 'function'
+				&& typeof GM_getValue === 'function'
+				&& typeof GM_setValue === 'function';
+		},
+
+		enabled() { return this.isSupported() && GM_getValue(ANALYTICS_KEY_ENABLED, 'joined') === 'joined'; },
+
+		setEnabled(on) {
+			GM_setValue(ANALYTICS_KEY_ENABLED, on ? 'joined' : 'left');
+			if (!on) {
+				this.queue = [];
+				this.inFlightBatches.clear();
+				this.pendingDedupeKeys.clear();
+				this._persistQueue();
+			}
+		},
+
+		_restoreQueue() {
+			try {
+				const saved = GM_getValue(ANALYTICS_KEY_PENDING_QUEUE, []);
+				if (!Array.isArray(saved)) return;
+				this.queue = saved.filter((event) => event && typeof event.event_id === 'string'
+					&& typeof event.name === 'string' && event.properties && typeof event.properties === 'object'
+					&& typeof event.ts === 'number').slice(-this.queueCap);
+				for (const event of this.queue) if (event._dedupeKey) this.pendingDedupeKeys.add(event._dedupeKey);
+				if (this.queue.length > 0) this.scheduleFlush(250);
+			} catch (e) {
+				Logger.debug('Analytics', `恢复待发队列失败: ${e.message}`);
+			}
+		},
+
+		_persistQueue() {
+			try {
+				const inFlight = [...this.inFlightBatches].flat();
+				const events = [...this.queue, ...inFlight].slice(-this.queueCap * 2);
+				GM_setValue(ANALYTICS_KEY_PENDING_QUEUE, events);
+			} catch (e) {
+				Logger.debug('Analytics', `持久化待发队列失败: ${e.message}`);
+			}
+		},
+
+		installId() {
+			let id = GM_getValue(ANALYTICS_KEY_INSTALL_ID, '');
+			if (!id) {
+				id = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+					? crypto.randomUUID()
+					: this._uuidV4();
+				GM_setValue(ANALYTICS_KEY_INSTALL_ID, id);
+			}
+			return id;
+		},
+
+		// 当前脚本版本指纹
+		scriptVersion() {
+			return (typeof GM_info !== 'undefined' && GM_info && GM_info.script)
+				? String(GM_info.script.version || 'unknown')
+				: 'unknown';
+		},
+
+		_uuidV4() {
+			try {
+				if (crypto && typeof crypto.getRandomValues === 'function') {
+					const b = crypto.getRandomValues(new Uint8Array(16));
+					b[6] = (b[6] & 0x0f) | 0x40;
+					b[8] = (b[8] & 0x3f) | 0x80;
+					const hex = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+					return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+				}
+			} catch (e) { /* fall through */ }
+			return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+				const r = Math.random() * 16 | 0;
+				const v = c === 'x' ? r : (r & 0x3 | 0x8);
+				return v.toString(16);
+			});
+		},
+
+		// 轮换匿名 ID
+		rotateInstallId() {
+			GM_setValue(ANALYTICS_KEY_INSTALL_ID, this._uuidV4());
+		},
+
+		// 验证密钥
+		authSecret() { return GM_getValue(ANALYTICS_KEY_SECRET, ''); },
+
+		setAuthSecret(value) { GM_setValue(ANALYTICS_KEY_SECRET, String(value || '')); },
+
+		async pushAuthSecret(nextSecret) {
+			const secret = String(nextSecret || '');
+			const headers = {
+				'X-Analytics-Install': this.installId(),
+				'X-Analytics-Secret': secret,
+				'X-Analytics-Current-Secret': this.authSecret(),
+			};
+			const attempt = () => new Promise((resolve, reject) => {
+				if (typeof GM_xmlhttpRequest !== 'function') return reject(new Error('GM_xmlhttpRequest unavailable'));
+				GM_xmlhttpRequest({
+					method: 'POST',
+					url: ANALYTICS_SECRET_ENDPOINT,
+					headers,
+					timeout: 8000,
+					onload: (res) => resolve(res),
+					onerror: () => reject(new Error('network')),
+					ontimeout: () => reject(new Error('timeout')),
+				});
+			});
+			try {
+				const res = await attempt();
+				if (res.status === 200) {
+					this.setAuthSecret(secret);
+					return { ok: true };
+				}
+				let error = 'http_' + res.status;
+				try { error = (JSON.parse(res.responseText) || {}).error || error; } catch (e) { /* 保留状态码错误 */ }
+				return { ok: false, error };
+			} catch (e) {
+				return { ok: false, error: e.message === 'network' || e.message === 'timeout' ? e.message : 'request_failed' };
+			}
+		},
+
+		reportOptOut() {
+			const id = this.installId();
+			if (!id) return;
+			const payload = JSON.stringify({
+				v: ANALYTICS_SCHEMA_VERSION,
+				install_id: id,
+				version: (typeof GM_info !== 'undefined' && GM_info && GM_info.script) ? GM_info.script.version : 'unknown',
+				script_handler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) ? GM_info.scriptHandler : 'unknown',
+				handler_version: (typeof GM_info !== 'undefined' && GM_info && GM_info.version) ? GM_info.version : 'unknown',
+				ts: Date.now(),
+				events: [{ event_id: this._uuidV4(), event_type: 'opt_out', name: 'opt_out', ts: Date.now(), properties: { page_type: this.pageType() } }]
+			});
+			try {
+				if (this._canBeacon()) navigator.sendBeacon(ANALYTICS_ENDPOINT, new Blob([payload], { type: 'text/plain' }));
+				else if (typeof GM_xmlhttpRequest === 'function') {
+					GM_xmlhttpRequest({ method: 'POST', url: ANALYTICS_ENDPOINT, headers: { 'Content-Type': 'application/json' }, data: payload, timeout: 8000, onload: () => {}, onerror: () => {} });
+				}
+			} catch (e) {
+				Logger.debug('Analytics', `opt_out 上报失败: ${e.message}`);
+			}
+		},
+
+		// Asia/Shanghai 自然日
+		day() {
+			return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).slice(0, 10);
+		},
+
+		// Asia/Shanghai 小时（0-23）
+		hour() {
+			return Math.floor(((Date.now() + 8 * 3600e3) % 86400e3) / 3600e3);
+		},
+
+		// 活跃打点：当日任意埋点即标记该小时
+		_markActiveHour() {
+			try {
+				const day = this.day();
+				const hour = this.hour();
+				if (hour < 0 || hour > 23) return;
+				if (GM_getValue(ANALYTICS_KEY_HOURS_DAY, '') !== day) {
+					GM_setValue(ANALYTICS_KEY_HOURS_DAY, day);
+					GM_setValue(ANALYTICS_KEY_HOURS_MASK, (1 << hour) >>> 0);
+				} else {
+					GM_setValue(ANALYTICS_KEY_HOURS_MASK, (GM_getValue(ANALYTICS_KEY_HOURS_MASK, 0) | (1 << hour)) >>> 0);
+				}
+			} catch (e) {
+				Logger.debug('Analytics', `活跃小时打点失败: ${e.message}`);
+			}
+		},
+
+		// 昨日（上海日）完整活跃位图：随次日心跳上报；无数据返回 0
+		_yesterdayHoursMask() {
+			try {
+				const yesterday = new Date(Date.now() - 86400e3).toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).slice(0, 10);
+				if (GM_getValue(ANALYTICS_KEY_HOURS_DAY, '') !== yesterday) return 0;
+				const mask = Number(GM_getValue(ANALYTICS_KEY_HOURS_MASK, 0)) | 0;
+				return (mask > 0 && mask <= 0xffffff) ? mask : 0;
+			} catch (e) {
+				return 0;
+			}
+		},
+
+		pageType() {
+			return (typeof pageConfig !== 'undefined' && pageConfig && pageConfig.currentPageType)
+				? pageConfig.currentPageType : 'unknown';
+		},
+
+		// 镜像站判断：官方域名记 0，其余（镜像）记 1
+		isMirror() {
+			try {
+				const host = (typeof location !== 'undefined' && location && location.host) ? location.host : '';
+				return /^([a-z0-9-]+\.)*(archiveofourown\.org|archiveofourown\.gay)$/i.test(host) ? 0 : 1;
+			} catch (e) { return 1; }
+		},
+
+		engineInfo() {
+			const provider = getValidEngineName();
+			const isAi = (engineMenuConfig[provider] && engineMenuConfig[provider].requiresApiKey === true)
+				|| provider.startsWith('custom_');
+			return {
+				provider: provider.startsWith('custom_') ? 'custom_ai' : provider,
+				engine: isAi ? 'ai' : 'traditional'
+			};
+		},
+
+		// 字段白名单过滤 + 值级校验
+		sanitizeProps(props) {
+			const out = {};
+			for (const k of Object.keys(props || {})) {
+				if (!ANALYTICS_ALLOWED_PROPS.has(k)) {
+					Logger.debug('Analytics', `埋点字段 ${k} 不在白名单，已剔除`);
+					continue;
+				}
+				const v = props[k];
+				if (ANALYTICS_STRING_LIMITS[k]) {
+					if (typeof v === 'string') out[k] = v.length > ANALYTICS_STRING_LIMITS[k] ? v.slice(0, ANALYTICS_STRING_LIMITS[k]) : v;
+					else if (typeof v === 'number' || typeof v === 'boolean') out[k] = String(v).slice(0, ANALYTICS_STRING_LIMITS[k]);
+					else Logger.debug('Analytics', `埋点字符串字段 ${k} 类型非法(${typeof v})，已丢弃`);
+				} else if (ANALYTICS_NUMERIC_RULES[k]) {
+					const [min, max] = ANALYTICS_NUMERIC_RULES[k];
+					if (typeof v === 'number' && isFinite(v) && v >= min && v <= max) out[k] = Math.round(v);
+					else Logger.debug('Analytics', `埋点数值字段 ${k} 超范围(${v})，已丢弃`);
+				} else if (ANALYTICS_BOOL_PROPS.has(k)) {
+					if (v === true || v === 1) out[k] = true;
+					else if (v === false || v === 0) out[k] = false;
+					else Logger.debug('Analytics', `埋点布尔字段 ${k} 非法(${v})，已丢弃`);
+				} else if (k === 'mirror') {
+					if (v === 0 || v === 1) out[k] = v;
+					else Logger.debug('Analytics', `埋点 mirror 非法(${v})，已丢弃`);
+				} else {
+					out[k] = v;
+				}
+			}
+			return out;
+		},
+
+		init() {
+			if (!this.enabled()) return;
+			this._restoreQueue();
+			this.installId();
+			const today = this.day();
+			const reportedVersion = GM_getValue(ANALYTICS_KEY_INSTALL_REPORTED, '');
+			this._pendingInstall = reportedVersion !== this.scriptVersion();
+			this._pendingHeartbeat = GM_getValue(ANALYTICS_KEY_HEARTBEAT_DAY, '') !== today ? today : null;
+			const hoursMask = this._yesterdayHoursMask();
+			if (this._pendingInstall) this.push('adoption', 'install', { page_type: this.pageType(), mirror: this.isMirror() });
+
+			if (this._pendingHeartbeat) {
+				const props = { page_type: this.pageType(), mirror: this.isMirror() };
+				if (hoursMask > 0) props.active_hours = hoursMask;
+				this.push('adoption', 'daily_heartbeat', this.sanitizeProps(props));
+			}
+		},
+
+		// 功能使用（每日每 feature 一次，adoption 去重；ack/4xx 后才落当日标记）
+		featureUsed(feature, surface, extra = {}) {
+			if (!this.enabled()) return;
+			const today = this.day();
+			const outcome = extra.outcome || 'success';
+			const key = ANALYTICS_FEATURE_DAY_PREFIX + feature + ':' + outcome;
+			if (GM_getValue(key, '') === today || this.pendingDedupeKeys.has(key)) return;
+			this.pendingDedupeKeys.add(key);
+			const displayMode = GM_getValue('translation_display_mode', 'bilingual');
+			this.push('adoption', 'feature_used', this.sanitizeProps({
+				feature, outcome,
+				page_type: this.pageType(),
+				layout_mode: extra.layout_mode || displayMode,
+				...extra
+			}), { dedupeKey: key, dedupeDay: today });
+		},
+
+		// 导出是实际动作事件：每次导出一条，供格式分布统计，不混入每日功能采用口径
+		exportCreated(format, outcome = 'success', extra = {}) {
+			if (!this.enabled()) return;
+			this.push('adoption', 'export_created', this.sanitizeProps({
+				feature: 'export_created', outcome,
+				export_format: format, page_type: this.pageType(), ...extra
+			}));
+		},
+
+		// 翻译健康（每 provider 冷却窗口一条，保留成功/失败/延迟信号）
+		trackTranslation(feature, extra = {}) {
+			if (!this.enabled()) return;
+			const { provider, engine } = this.engineInfo();
+			const now = Date.now();
+			const cooldownKey = ANALYTICS_COOLDOWN_PREFIX + provider;
+			const last = parseInt(GM_getValue(cooldownKey, 0), 10) || 0;
+			if (now - last < this.trackTranslationCooldownMs) return;
+			GM_setValue(cooldownKey, now);
+			const displayMode = GM_getValue('translation_display_mode', 'bilingual');
+			const model_name = (getProviderById(getValidEngineName()) || {}).selectedModel;
+
+			this.push('metric', 'translation_health', this.sanitizeProps({
+				feature, provider, engine, mirror: this.isMirror(),
+				page_type: this.pageType(),
+				layout_mode: extra.layout_mode || displayMode,
+				model_name,
+				...extra
+			}));
+		},
+
+		// 错误归类（每类每天一次；ack/4xx 后才落当日标记）
+		error(errorType, feature, extra = {}) {
+			if (!this.enabled()) return;
+			GM_setValue(ANALYTICS_KEY_ERROR_FULL, (Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) || 0) + 1);
+			if (Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) >= 100000) this.flushUsage();
+			const today = this.day();
+			const key = ANALYTICS_FEATURE_DAY_PREFIX + 'error:' + errorType;
+			if (GM_getValue(key, '') === today || this.pendingDedupeKeys.has(key)) return;
+			this.pendingDedupeKeys.add(key);
+			this.push('error', 'error', this.sanitizeProps({
+				error_type: errorType, feature, page_type: this.pageType(), ...extra
+			}), { dedupeKey: key, dedupeDay: today });
+		},
+
+		push(eventType, name, properties, options = {}) {
+			if (this.paused()) {
+				this._releaseDedupe(options.dedupeKey);
+				return;
+			}
+			const ev = {
+				event_id: this._uuidV4(), event_type: eventType, name, properties, ts: Date.now(),
+				_dedupeKey: options.dedupeKey || null, _dedupeDay: options.dedupeDay || null
+			};
+			// 活跃打点
+			if (name !== 'opt_out') this._markActiveHour();
+			// 标记 install/heartbeat
+			if (name === 'install') ev._isInstall = true;
+			if (name === 'daily_heartbeat') ev._isHeartbeat = true;
+			this.queue.push(ev);
+			if (this.queue.length > this.queueCap) this._releaseDedupe(this.queue.shift());
+			this._persistQueue();
+			if (this.queue.length >= this.batchSize) this.flush();
+			else this.scheduleFlush();
+		},
+
+		paused() {
+			return GM_getValue(ANALYTICS_KEY_RATE_LIMITED_DAY, '') === this.day();
+		},
+
+		scheduleFlush(delay = this.flushIntervalMs) {
+			if (this.flushTimer) return;
+			this.flushTimer = setTimeout(() => {
+				this.flushTimer = null;
+				this.flush();
+			}, delay);
+		},
+
+		flush() {
+			if (!this.enabled() || this.queue.length === 0) return;
+			const events = this.queue.splice(0, this.batchSize);
+			this.inFlightBatches.add(events);
+			this._persistQueue();
+			const payload = JSON.stringify({
+				v: ANALYTICS_SCHEMA_VERSION,
+				install_id: this.installId(),
+				version: (typeof GM_info !== 'undefined' && GM_info && GM_info.script) ? GM_info.script.version : 'unknown',
+				script_handler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) ? GM_info.scriptHandler : 'unknown',
+				handler_version: (typeof GM_info !== 'undefined' && GM_info && GM_info.version) ? GM_info.version : 'unknown',
+				ts: Date.now(),
+				events: events.map(e => ({ event_id: e.event_id, event_type: e.event_type, name: e.name, ts: e.ts, properties: e.properties }))
+			});
+			try {
+				GM_xmlhttpRequest({
+					method: 'POST',
+					url: ANALYTICS_ENDPOINT,
+					headers: { 'Content-Type': 'application/json' },
+					timeout: 8000,
+					data: payload,
+					onload: (res) => {
+						const status = res.status;
+						if (status >= 200 && status < 300) { this._onAcked(events); return; }
+						if (status === 429) {
+							GM_setValue(ANALYTICS_KEY_RATE_LIMITED_DAY, this.day());
+							this._finishBatch(events);
+							this._releaseDedupe(events);
+							return;
+						}
+						if (status >= 400 && status < 500) { this._onRejected(events); return; }
+						this._retryOrDrop(events);
+					},
+					onerror: () => this._retryOrDrop(events),
+					ontimeout: () => this._retryOrDrop(events)
+				});
+			} catch (e) {
+				Logger.warn('Analytics', `埋点上报失败: ${e.message}`);
+				this._finishBatch(events);
+				this._releaseDedupe(events);
+			}
+		},
+
+		_onAcked(events) {
+			if (events.some(e => e._isInstall)) GM_setValue(ANALYTICS_KEY_INSTALL_REPORTED, this.scriptVersion());
+			if (events.some(e => e._isHeartbeat)) GM_setValue(ANALYTICS_KEY_HEARTBEAT_DAY, this.day());
+			for (const e of events) {
+				if (e._dedupeKey) {
+					GM_setValue(e._dedupeKey, e._dedupeDay || this.day());
+					this.pendingDedupeKeys.delete(e._dedupeKey);
+				}
+			}
+			this._finishBatch(events);
+		},
+		_onRejected(events) {
+			this._onAcked(events);
+		},
+		_finishBatch(events) {
+			this.inFlightBatches.delete(events);
+			this._persistQueue();
+		},
+		_releaseDedupe(events) {
+			const list = Array.isArray(events) ? events : [{ _dedupeKey: events }];
+			for (const e of list) if (e && e._dedupeKey) this.pendingDedupeKeys.delete(e._dedupeKey);
+		},
+
+		_retryOrDrop(events) {
+			this.inFlightBatches.delete(events);
+			const attempt = events.reduce((m, e) => Math.max(m, e._attempt || 0), 0);
+			if (attempt >= this.maxRetries) {
+				this._releaseDedupe(events);
+				this._persistQueue();
+				return;
+			}
+			for (const e of events) e._attempt = attempt + 1;
+			if (this.queue.length < this.queueCap) this.queue.unshift(...events);
+			else this._releaseDedupe(events);
+			this._persistQueue();
+			this.scheduleFlush(this.flushIntervalMs * Math.pow(3, attempt));
+		},
+
+		// 合并上报（usage）累计
+		accumulateUsage(metrics) {
+			if (!this.enabled()) return;
+			const m = metrics || {};
+			const add = (key, v) => { const n = (Number(v) || 0); if (n > 0) GM_setValue(key, (Number(GM_getValue(key, 0)) || 0) + n); };
+			add(ANALYTICS_KEY_USAGE_CHARS, m.chars);
+			add(ANALYTICS_KEY_USAGE_BATCHES, 1);
+			add(ANALYTICS_KEY_USAGE_CACHE_CHARS, m.cacheSavedChars);
+			add(ANALYTICS_KEY_USAGE_CACHE_HITS, m.cacheHits);
+			add(ANALYTICS_KEY_USAGE_CACHE_TOTAL, m.cacheTotal);
+			// 纯缓存批次（全部段落命中本地缓存，无引擎调用）不计入延迟直方图
+			const latencyMs = Number(m.latencyMs);
+			const pureCacheBatch = Number(m.cacheTotal) > 0 && Number(m.cacheHits) >= Number(m.cacheTotal);
+			if (Number.isFinite(latencyMs) && latencyMs >= 0 && !pureCacheBatch) {
+				let histogram = GM_getValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, Array(32).fill(0));
+				if (!Array.isArray(histogram) || histogram.length !== ANALYTICS_LAT_HIST_EDGES.length + 1) histogram = Array(ANALYTICS_LAT_HIST_EDGES.length + 1).fill(0);
+				const bucket = ANALYTICS_LAT_HIST_EDGES.findIndex((edge) => latencyMs < edge);
+				const index = bucket === -1 ? ANALYTICS_LAT_HIST_EDGES.length : bucket;
+				histogram[index] = Math.min(1000000, (Number(histogram[index]) || 0) + 1);
+				GM_setValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, histogram);
+			}
+			if (Number(GM_getValue(ANALYTICS_KEY_USAGE_CHARS, 0)) >= 9000000
+				|| Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_CHARS, 0)) >= 5000000
+				|| Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_HITS, 0)) >= 900000) {
+				this.flushUsage();
+			}
+		},
+
+		// 会话末精确总量
+		flushUsage(useBeacon = false) {
+			if (!this.enabled() || this.paused()) return;
+			const chars = Number(GM_getValue(ANALYTICS_KEY_USAGE_CHARS, 0)) || 0;
+			const batches = Number(GM_getValue(ANALYTICS_KEY_USAGE_BATCHES, 0)) || 0;
+			const cacheChars = Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_CHARS, 0)) || 0;
+			const cacheHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_HITS, 0)) || 0;
+			const cacheTotal = Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_TOTAL, 0)) || 0;
+			let latencyHist = GM_getValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, Array(ANALYTICS_LAT_HIST_EDGES.length + 1).fill(0));
+			if (!Array.isArray(latencyHist) || latencyHist.length !== ANALYTICS_LAT_HIST_EDGES.length + 1) latencyHist = Array(ANALYTICS_LAT_HIST_EDGES.length + 1).fill(0);
+			latencyHist = latencyHist.map((value) => Math.max(0, Math.min(1000000, Math.round(Number(value) || 0))));
+			const errorFull = Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) || 0;
+			const glossaryHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_GLOSSARY_HITS, 0)) || 0;
+			const postReplaceHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_POST_REPLACE_HITS, 0)) || 0;
+			const blockHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_BLOCK_HITS, 0)) || 0;
+			// 配置修改统计
+			let formatMods = null, paramMods = null;
+			try { const o = JSON.parse(GM_getValue(ANALYTICS_KEY_USAGE_FORMAT_MODS, '{}') || '{}'); formatMods = o && typeof o === 'object' ? o : null; } catch { formatMods = null; }
+			try { const o = JSON.parse(GM_getValue(ANALYTICS_KEY_USAGE_PARAM_MODS, '{}') || '{}'); paramMods = o && typeof o === 'object' ? o : null; } catch { paramMods = null; }
+			const hasConfigMods = (formatMods && Object.keys(formatMods).length > 0) || (paramMods && Object.keys(paramMods).length > 0);
+			if (!(chars || batches || cacheChars || cacheHits || cacheTotal || latencyHist.some(Boolean) || errorFull || glossaryHits || postReplaceHits || blockHits || hasConfigMods)) return;
+			const props = this.sanitizeProps({
+				feature: 'usage',
+				chars_count: chars,
+				batch_size: batches,
+				cache_saved_chars: cacheChars,
+				cache_hit_count: cacheHits,
+				cache_total_count: cacheTotal,
+				latency_hist: latencyHist.join(','),
+				error_count: errorFull,
+				glossary_hits: glossaryHits,
+				post_replace_hits: postReplaceHits,
+				block_hits: blockHits,
+				...((formatMods && Object.keys(formatMods).length) ? { format_mods: JSON.stringify(formatMods) } : {}),
+				...((paramMods && Object.keys(paramMods).length) ? { param_mods: JSON.stringify(paramMods) } : {})
+			});
+			const reset = () => {
+				GM_setValue(ANALYTICS_KEY_USAGE_CHARS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_BATCHES, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_CACHE_CHARS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_CACHE_HITS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_CACHE_TOTAL, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, Array(ANALYTICS_LAT_HIST_EDGES.length + 1).fill(0));
+				GM_setValue(ANALYTICS_KEY_ERROR_FULL, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_GLOSSARY_HITS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_POST_REPLACE_HITS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_BLOCK_HITS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_FORMAT_MODS, '{}');
+				GM_setValue(ANALYTICS_KEY_USAGE_PARAM_MODS, '{}');
+			};
+			if (useBeacon && this._canBeacon()) {
+				if (this._beaconEvent('metric', 'usage', props)) { reset(); return; }
+			}
+			this.push('metric', 'usage', props, { dedupeKey: null });
+			reset();
+		},
+
+		_canBeacon() {
+			return typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function';
+		},
+
+		_beaconEvent(eventType, name, props) {
+			const payload = JSON.stringify({
+				v: ANALYTICS_SCHEMA_VERSION,
+				install_id: this.installId(),
+				version: (typeof GM_info !== 'undefined' && GM_info && GM_info.script) ? GM_info.script.version : 'unknown',
+				script_handler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) ? GM_info.scriptHandler : 'unknown',
+				handler_version: (typeof GM_info !== 'undefined' && GM_info && GM_info.version) ? GM_info.version : 'unknown',
+				ts: Date.now(),
+				events: [{ event_id: this._uuidV4(), event_type: eventType, name, ts: Date.now(), properties: props }]
+			});
+			try {
+				return navigator.sendBeacon(ANALYTICS_ENDPOINT, new Blob([payload], { type: 'text/plain' }));
+			} catch (e) {
+				Logger.warn('Analytics', `usage 直投失败: ${e.message}`);
+				return false;
+			}
+		},
+
+		bindLifecycle() {
+			window.addEventListener('pagehide', () => { this.flushUsage(true); this.flush(); });
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'hidden') { this.flushUsage(true); this.flush(); }
+			});
+		}
+	};
 
 /**************************************************************************
  * 特殊翻译函数与 DOM 操作
@@ -3946,6 +3862,7 @@ function translateInvitationRequestsPage() {
 		}
 
 		const errorMessages = {
+			"Email is already part of our queue.": "该邮箱已在我们的队列中。",
 			"Email can't be blank": "电子邮箱 不能为空。",
 			"Email should look like an email address.": "电子邮箱 格式不正确。",
 			"Email is already being used by an account holder.": "该电子邮箱地址已被其她账户使用。",
@@ -4772,78 +4689,6 @@ function translateTagsetAboutModal() {
 	if (closeButton) {
 		closeButton.textContent = '关闭';
 	}
-}
-
-/**
- * 专门翻译“标签提名”页面的提名规则说明。
- * @param {string} originalText - 匹配到的原始英文句子。
- * @returns {string} - 动态构建的中文翻译。
- */
-function translateNominationRule(originalText) {
-	const componentRules = {
-		fandoms: {
-			regex: /([\d,]+) fandoms/,
-			template: "$1 个同人圈"
-		},
-		characters: {
-			regex: /([\d,]+) characters/,
-			template: "$1 个角色"
-		},
-		relationships: {
-			regex: /([\d,]+) relationships/,
-			template: "$1 对关系"
-		},
-		additionalTags: {
-			regex: /([\d,]+) additional tags/,
-			template: "$1 个附加标签"
-		}
-	};
-	const parts = {};
-	for (const key in componentRules) {
-		const match = originalText.match(componentRules[key].regex);
-		if (match) {
-			parts[key] = match[1];
-		}
-	}
-	if (Object.keys(parts).length === 0) {
-		return originalText;
-	}
-	const mainClauses = [];
-	const perFandomClauses = [];
-	let additionalTagClause = '';
-	const hasFandomContext = !!parts.fandoms || originalText.includes('for each one');
-	if (parts.fandoms) {
-		mainClauses.push(componentRules.fandoms.template.replace('$1', parts.fandoms));
-	}
-	if (!hasFandomContext) {
-		if (parts.characters) mainClauses.push(componentRules.characters.template.replace('$1', parts.characters));
-		if (parts.relationships) mainClauses.push(componentRules.relationships.template.replace('$1', parts.relationships));
-		if (parts.additionalTags && !originalText.includes('You can also nominate')) {
-			mainClauses.push(componentRules.additionalTags.template.replace('$1', parts.additionalTags));
-		}
-	}
-	if (hasFandomContext) {
-		if (parts.characters) perFandomClauses.push(componentRules.characters.template.replace('$1', parts.characters));
-		if (parts.relationships) perFandomClauses.push(componentRules.relationships.template.replace('$1', parts.relationships));
-	}
-	if (parts.additionalTags && originalText.includes('You can also nominate')) {
-		additionalTagClause = ` 您也可以最多提名 ${componentRules.additionalTags.template.replace('$1', parts.additionalTags)}。`;
-	}
-	let finalTranslation = '';
-	if (mainClauses.length > 0) {
-		finalTranslation = `您最多可提名 ${mainClauses.join('和 ')}`;
-	}
-	if (perFandomClauses.length > 0) {
-		if (finalTranslation === '') {
-			finalTranslation = `您最多可为每个同人圈提名 ${perFandomClauses.join('和 ')}。`;
-		} else {
-			finalTranslation += `，最多可为每个同人圈提名 ${perFandomClauses.join('和 ')}。`;
-		}
-	} else if (finalTranslation !== '') {
-		finalTranslation += '。';
-	}
-	finalTranslation += additionalTagClause;
-	return finalTranslation.trim() || originalText;
 }
 
 /**
@@ -7087,7 +6932,6 @@ function translateStatsChart() {
 			);
 		},
 
-		// C13 修复：分段拼装，避免超大 buffer 触发参数数量上限
 		bytesToBase64(bytes) {
 			let binary = '';
 			const CHUNK = 0x8000;
@@ -7114,17 +6958,48 @@ function translateStatsChart() {
 			};
 		},
 
+		/**
+		 * 解密：密钥/数据类失败抛带 code 的 Error，供调用方区分提示
+		 */
 		async decrypt(encryptedData, password) {
-			const base64ToBuffer = (str) => Uint8Array.from(atob(str), c => c.charCodeAt(0));
-			const salt = base64ToBuffer(encryptedData.s);
-			const iv = base64ToBuffer(encryptedData.iv);
-			const data = base64ToBuffer(encryptedData.ct);
+			if (!password) {
+				const e = new Error('该数据已加密，但未提供加密密钥');
+				e.code = 'ENC_MISSING_KEY';
+				throw e;
+			}
+			const toBuffer = (str) => {
+				try {
+					return Uint8Array.from(atob(str), c => c.charCodeAt(0));
+				} catch (e) {
+					const err = new Error('文件已损坏或不是有效的加密备份文件');
+					err.code = 'ENC_BAD_DATA';
+					throw err;
+				}
+			};
+			let salt, iv, data;
+			try {
+				salt = toBuffer(encryptedData.s);
+				iv = toBuffer(encryptedData.iv);
+				data = toBuffer(encryptedData.ct);
+			} catch (e) {
+				if (e.code === 'ENC_BAD_DATA') throw e;
+				const err = new Error('文件已损坏或不是有效的加密备份文件');
+				err.code = 'ENC_BAD_DATA';
+				throw err;
+			}
+
 			const key = await this.deriveKey(password, salt);
-			
-			const decrypted = await window.crypto.subtle.decrypt(
-				{ name: "AES-GCM", iv: iv }, key, data
-			);
-			return new TextDecoder().decode(decrypted);
+
+			try {
+				const decrypted = await window.crypto.subtle.decrypt(
+					{ name: "AES-GCM", iv: iv }, key, data
+				);
+				return new TextDecoder().decode(decrypted);
+			} catch (e) {
+				const err = new Error('密钥不正确，或文件已损坏');
+				err.code = 'ENC_WRONG_KEY';
+				throw err;
+			}
 		}
 	};
 
@@ -7152,8 +7027,6 @@ function translateStatsChart() {
 
 		async decompress(base64String) {
 			if (!base64String) return '';
-			// C12 修复：不再用 Base64 正则预判（URL-safe 字符会被误判为明文），
-			// 直接尝试 gzip 解压，失败再回退为明文处理。
 			try {
 				const binaryString = atob(base64String);
 				const bytes = new Uint8Array(binaryString.length);
@@ -7172,18 +7045,14 @@ function translateStatsChart() {
 	};
 
 	/**
-	 * 共享配置序列化模块（压缩 + 可选加密 + 封包/解包）。
-	 * 供 WebDAV 云端同步与手动导入导出共用，保证算法/信封格式/版本号统一（单一事实来源）。
-	 * 说明：手动导出的加密密钥与云端 webdav_enc_key 完全独立，仅作为 pack/unpack 的 key 参数不同即可。
+	 * 共享配置序列化模块（压缩 + 可选加密 + 封包/解包）
 	 */
 	const ConfigSerializer = {
 		async compress(text) { return SyncCompressionHelper.compress(text); },
 		async decompress(b64) { return SyncCompressionHelper.decompress(b64); },
 
 		/**
-		 * 封包：可序列化数据 → 传输/落盘字符串。
-		 * @param {*} data 要封包的数据
-		 * @param {string} [key] 加密密钥；为空则仅压缩（v2 信封），不加密。
+		 * 封包：可序列化数据 → 传输/落盘字符串
 		 */
 		async pack(data, key) {
 			const jsonString = JSON.stringify(data);
@@ -7196,38 +7065,43 @@ function translateStatsChart() {
 		},
 
 		/**
-		 * 解包：封包字符串 → 数据。自动识别 加密(v1)/压缩明文(v2)/纯文本 JSON。
-		 * @param {string} payloadText 原始字符串
-		 * @param {string} [key] 解密密钥；封包为加密但未提供 key 时抛错，交由调用方提示。
+		 * 解包：封包字符串 → 数据
 		 */
 		async unpack(payloadText, key) {
 			let parsed = null;
 			try { parsed = JSON.parse(payloadText); } catch (_) { /* 非 JSON，走纯文本分支 */ }
+			const badFileError = () => {
+				const err = new Error('文件不是有效的配置文件');
+				err.code = 'ENC_BAD_FILE';
+				return err;
+			};
 
 			if (parsed && typeof parsed === 'object') {
 				if (parsed.v === 1 || parsed.ct) {
-					if (!key) throw new Error('该数据已加密，请填写加密密钥');
+					if (!key) {
+						const err = new Error('该数据已加密，但未提供加密密钥');
+						err.code = 'ENC_MISSING_KEY';
+						throw err;
+					}
 					const decryptedStr = await SyncCryptoHelper.decrypt(parsed, key);
-					return JSON.parse(parsed.cmp ? await SyncCompressionHelper.decompress(decryptedStr) : decryptedStr);
+					const jsonStr = parsed.cmp ? await SyncCompressionHelper.decompress(decryptedStr) : decryptedStr;
+					try { return JSON.parse(jsonStr); } catch (e) { throw badFileError(); }
 				}
 				if (parsed.v === 2 && parsed.compressed) {
-					return JSON.parse(await SyncCompressionHelper.decompress(parsed.data));
+					const jsonStr = await SyncCompressionHelper.decompress(parsed.data);
+					try { return JSON.parse(jsonStr); } catch (e) { throw badFileError(); }
 				}
 			}
-			// 纯文本 JSON（明文导出）
-			return JSON.parse(payloadText);
+			try { return JSON.parse(payloadText); } catch (e) { throw badFileError(); }
 		}
 	};
 
-	// ===================== 本地数据自动备份 (D5) =====================
-	// 备份保存上限与自动备份间隔（暂不提供设置项，硬编码）
-	// LOCAL_BACKUP_INTERVAL_MS 兼作「强制写间隔」：距上次备份 ≥ 该值时，即使配置未变也新写一份
-	const LOCAL_BACKUP_MAX = 24;  // 开启「距上次≥1小时即强制写」后，8 份仅够半天；调大到 24 可保留约一天的小时级时间轴
+	// 本地数据自动备份
+	const LOCAL_BACKUP_MAX = 24;
 	const LOCAL_BACKUP_INTERVAL_MS = 60 * 60 * 1000;
 
 	/**
-	 * 本地备份 IndexedDB：与翻译缓存库（AO3TranslatorCacheDB）完全隔离，
-	 * 避免快照被缓存淘汰逻辑（pruneBySize/clear/LFU/maxItems）误删或互相干扰。
+	 * 本地备份 IndexedDB：与翻译缓存库（AO3TranslatorCacheDB）完全隔离
 	 */
 	const LocalBackupDB = {
 		dbName: 'AO3TranslatorBackupDB',
@@ -7306,18 +7180,16 @@ function translateStatsChart() {
 		return `${d.getUTCFullYear()}/${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
 	}
 
-	// 读取当前全部 14 类配置（含 webdavConfig，本地备份无凭据上云顾虑）
+	// 读取当前全部 14 类配置
 	async function getLocalBackupSnapshotData() {
 		const ids = DATA_CATEGORIES.map(c => c.id);
 		return exportAllData(ids);
 	}
-	// 内容指纹：只对 data（不含易变 metadata.exportDate）哈希，保证同配置指纹稳定
+	// 内容指纹
 	async function computeLocalBackupHash(allData) {
 		return sha256(JSON.stringify(allData.data));
 	}
-	// 获取本地备份加密密钥：首次生成一个随机 256-bit 密钥（base64 ASCII）并持久化到 GM 存储。
-	// 密钥只存于用户脚本侧（GM 存储），页面 JS 无法读取，从而封堵「页面脚本读 IndexedDB 拿到明文」这层风险。
-	// 用随机 ASCII 密钥，规避手动输入密钥的 Unicode 归一化/转义问题。
+	// 获取本地备份加密密钥
 	async function getOrCreateLocalBackupKey() {
 		let key = GM_getValue(AO3_LOCAL_BACKUP_ENC_KEY, '');
 		if (!key) {
@@ -7330,20 +7202,22 @@ function translateStatsChart() {
 	}
 	async function saveLocalBackup(currentAll = null) {
 		const all = currentAll || await getLocalBackupSnapshotData();
+		const backupKey = await getOrCreateLocalBackupKey();
 		const record = {
 			ts: Date.now(),
 			createdAt: formatBackupTime(Date.now()),
 			hash: await computeLocalBackupHash(all),
-			data: await ConfigSerializer.pack(all, await getOrCreateLocalBackupKey())
+			// 密钥指纹
+			kfp: (await sha256(backupKey)).slice(0, 12),
+			data: await ConfigSerializer.pack(all, backupKey)
 		};
 		await LocalBackupDB.put(record);
 		await LocalBackupDB.prune(LOCAL_BACKUP_MAX);
+		GM_deleteValue('ao3_local_backup_fail_notify');
 		Logger.info('Backup', '本地配置已自动备份', { ts: record.ts });
 		return record;
 	}
-	// 组合备份策略：
-	//  - 距上次备份 ≥ LOCAL_BACKUP_INTERVAL_MS（1 小时）→ 强制写（即使配置未变，保证小时级时间轴）
-	//  - 否则仍按「差异才写」——当前配置与最新备份不同（或显式 force）才写入
+	// 组合备份策略
 	async function maybeLocalBackup(force = false) {
 		if (!LocalBackupDB.db) return null;
 		const currentAll = await getLocalBackupSnapshotData();
@@ -7355,35 +7229,53 @@ function translateStatsChart() {
 		}
 		return null;
 	}
-	// 恢复某次备份：先按「当前≠最新备份则备份当前」规则保护当前态，再应用所选快照
+	// 恢复某次备份
 	async function restoreLocalBackup(ts) {
 		const rec = await LocalBackupDB.get(ts);
-		if (!rec) return { success: false, message: '找不到该备份项' };
+		if (!rec) return { success: false, message: '恢复失败：找不到该备份项' };
 		try {
-			// 兼容新旧两种落盘格式：
-			//  - 新格式：pack 信封（{v:1..,cmp:1} 加密 或 {v:2,compressed:true} 压缩），以 '{' 开头 → unpack
-			//  - 旧格式：raw gzip base64（compress 直接输出，未加信封/未加密），非 '{' 开头 → 走旧解压路径
-			// 密钥缺失(已清 GM 存储)且快照为加密时，unpack 会抛「已加密」错误，交由外层提示。
 			let data;
 			const raw = rec.data || '';
 			const key = GM_getValue(AO3_LOCAL_BACKUP_ENC_KEY, '');
+			const keyMissing = !key;
+			const currentKfp = keyMissing ? null : (await sha256(key)).slice(0, 12);
 			if (raw.trim().startsWith('{')) {
-				data = await ConfigSerializer.unpack(raw, key);
+				let envelope = null;
+				try { envelope = JSON.parse(raw); } catch (_) { /* 非法信封 → 走损坏分支 */ }
+				const isEncEnvelope = !!(envelope && typeof envelope === 'object' && (envelope.v === 1 || envelope.ct));
+				try {
+					data = await ConfigSerializer.unpack(raw, key);
+				} catch (e) {
+					if (isEncEnvelope) {
+						const recKfp = rec.kfp || null;
+						if (recKfp) {
+							if (!keyMissing && recKfp === currentKfp) {
+								return { success: false, message: '恢复失败：备份数据无法解密，快照可能已损坏。' };
+							}
+							return { success: false, message: '恢复失败：本地备份密钥已更换或丢失（多见于清除脚本数据、重装脚本或更换脚本管理器），该快照无法解密。' };
+						}
+						return { success: false, message: '恢复失败：无法解密该快照——它可能由已丢失的旧密钥创建（旧版本未记录密钥指纹），或数据已损坏。' };
+					}
+					return { success: false, message: `恢复失败：${e && e.message || String(e)}` };
+				}
 			} else {
 				data = JSON.parse(await ConfigSerializer.decompress(raw));
 			}
-			if (!data || !data.data || typeof data.data !== 'object') return { success: false, message: '备份数据损坏' };
-			await maybeLocalBackup(false); // 保护当前态（可在列表里恢复回它）
+			if (!data || !data.data || typeof data.data !== 'object') return { success: false, message: '恢复失败：备份数据损坏' };
+			try {
+				await maybeLocalBackup(false);
+			} catch (e) {
+				Logger.warn('Backup', '恢复前的保护性备份失败，继续恢复', e);
+			}
 			const res = await importAllData(data, DATA_CATEGORIES.map(c => c.id), 'overwrite', false);
 			Logger.info('Backup', `已从本地备份恢复（ts=${ts}）`);
 			return { success: true, message: (res && res.message) || '' };
 		} catch (e) {
 			Logger.error('Backup', '恢复本地备份失败', e);
-			return { success: false, message: e && e.message || String(e) };
+			return { success: false, message: `恢复失败：${e && e.message || String(e)}` };
 		}
 	}
 
-	// 打开「本地数据备份」模态框（复刻在线术语库模态框大小/样式；顶栏为标题栏，底部为 关闭/备份）
 	function openLocalBackupModal() {
 		if (shadowWrapper.querySelector('#ao3-local-backup-modal-overlay')) return;
 		const overlay = document.createElement('div');
@@ -7420,13 +7312,13 @@ function translateStatsChart() {
 
 		const renderList = async () => {
 			container.innerHTML = '';
-			if (!LocalBackupDB.db) await LocalBackupDB.init(); // 兜底：确保库已打开
+			if (!LocalBackupDB.db) await LocalBackupDB.init();
 			const list = await LocalBackupDB.getAll();
 			if (!list || list.length === 0) {
 				container.innerHTML = `<div class="lbp-empty">暂无本地备份</div>`;
 				return;
 			}
-			list.sort((a, b) => b.ts - a.ts); // 时间越近越靠上
+			list.sort((a, b) => b.ts - a.ts);
 			for (const item of list) {
 				const div = document.createElement('div');
 				div.className = 'lbp-item';
@@ -7442,12 +7334,11 @@ function translateStatsChart() {
 				div.querySelector('.btn-restore').addEventListener('click', async () => {
 					try {
 						await showCustomConfirm('您确定要从该项配置恢复吗？', '提示', { textAlign: 'center' });
-					} catch (e) { return; } // 用户取消
+					} catch (e) { return; }
 					const res = await restoreLocalBackup(item.ts);
 					if (res && res.success === false) {
-						notifyAndLog(`恢复失败: ${res.message}`, '恢复失败', 'error');
+						notifyAndLog(res.message, '恢复失败', 'error');
 					}
-					// 恢复成功无用户可见提示（仅日志）；重新渲染（可能新增了“当前态”备份）
 					renderList();
 				});
 				container.appendChild(div);
@@ -7456,14 +7347,19 @@ function translateStatsChart() {
 
 		overlay.querySelector('#lbp-btn-close').addEventListener('click', () => overlay.remove());
 		overlay.querySelector('#lbp-btn-backup').addEventListener('click', async () => {
-			await saveLocalBackup();
+			try {
+				await saveLocalBackup();
+			} catch (e) {
+				Logger.error('Backup', '手动备份失败', e);
+				notifyAndLog(`备份失败：${e && e.message || String(e)}`, '备份失败', 'error');
+			}
 			renderList();
 		});
 		overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
 		renderList();
 	}
 
-	// 自动备份调度：页面加载后检查一次 + 每小时检查（距上次≥1小时强制写，否则差异才写）+ 关键配置变更去重触发
+	// 自动备份调度
 	const LocalBackupScheduler = {
 		enabled: false,
 		init() {
@@ -7471,14 +7367,28 @@ function translateStatsChart() {
 			LocalBackupDB.init().then((ok) => {
 				if (!ok) { Logger.warn('Backup', '本地备份数据库初始化失败，已禁用'); return; }
 				this.enabled = true;
-				setTimeout(() => { maybeLocalBackup(false); }, 8000);
-				setInterval(() => { maybeLocalBackup(false); }, LOCAL_BACKUP_INTERVAL_MS);
+				setTimeout(() => { this._tryBackup(); }, 8000);
+				setInterval(() => { this._tryBackup(); }, LOCAL_BACKUP_INTERVAL_MS);
 				this.bindConfigChangeListeners();
 			});
 		},
+		// 自动备份兜底捕获
+		async _tryBackup() {
+			try {
+				await maybeLocalBackup(false);
+			} catch (e) {
+				Logger.error('Backup', '本地自动备份失败', e);
+				const errMsg = e && e.message || String(e);
+				const lastNotified = GM_getValue('ao3_local_backup_fail_notify', null);
+				if (!lastNotified || lastNotified.message !== errMsg || Date.now() - lastNotified.at >= 86400000) {
+					notifyAndLog(`本地自动备份失败：${errMsg}`, '本地备份', 'error');
+					GM_setValue('ao3_local_backup_fail_notify', { message: errMsg, at: Date.now() });
+				}
+			}
+		},
 		bindConfigChangeListeners() {
 			if (typeof GM_addValueChangeListener !== 'function') return;
-			// 监听核心配置键：变化即标记，防抖 5s 后仅当与最新备份不同才写
+			// 监听核心配置键
 			const keys = [
 				CUSTOM_GLOSSARIES_KEY, POST_REPLACE_RULES_KEY, CUSTOM_SERVICES_LIST_KEY,
 				AI_PROFILES_KEY, FORMATTING_PROFILES_KEY, 'ao3_export_templates', 'ao3_fab_actions'
@@ -7490,7 +7400,7 @@ function translateStatsChart() {
 				timer = setTimeout(() => {
 					if (!dirty) return;
 					dirty = false;
-					maybeLocalBackup(false);
+					this._tryBackup();
 				}, 5000);
 			};
 			keys.forEach(key => { try { GM_addValueChangeListener(key, () => schedule()); } catch (_) { /* 忽略 */ } });
@@ -7499,7 +7409,6 @@ function translateStatsChart() {
 
 	/**************************************************************************
 	 * WebDAV 通用客户端 - 完整 RFC 4918 核心协议支持
-	 * 参考: legado-master (Android 原生实现) + NextChat-main (代理模式安全设计)
 	 **************************************************************************/
 
 	/**
@@ -7517,9 +7426,6 @@ function translateStatsChart() {
 
 	/**
 	 * 认证处理器 - 仅支持 Basic 认证
-	 *
-	 * 需 Bearer 的服务商（OneDrive/Box）需 OAuth2 Token、无 WebDAV 应用密码，配置门槛高且面板无 Token 入口，故不提供；
-	 * Digest 依赖 crypto.subtle.digest('MD5')，标准环境不可用，故仅实现 Basic。
 	 */
 	class AuthHandler {
 		constructor(credentials) {
@@ -7542,7 +7448,6 @@ function translateStatsChart() {
 
 	/**
 	 * WebDAV 服务商能力定义
-	 * 参考: NextChat-main internalAllowedWebDavEndpoints 白名单机制
 	 */
 	const PROVIDER_CAPABILITIES = {
 		'jianguoyun': {
@@ -7552,15 +7457,10 @@ function translateStatsChart() {
 			supportsChunkedUpload: false,
 			supportsLock: false,
 			supportsVersioning: false,
-			// 坚果云 WebDAV 服务端不遵循 RFC 9110 的 If-Match 语义：对已存在的文件做条件 PUT
-			// 时，即使 ETag 与远端当前值一致也恒返回 412 Precondition Failed。导致上传同步
-			// 无限触发「412 → 重读 ETag → 再条件上传 → 仍 412」的死循环，最终同步失败。
-			// 故对坚果云关闭条件上传（supportsConditionalPut=false），改用无条件 PUT；
-			// 并发冲突保护交由三向合并引擎（base 快照 + 时间戳）承担，不受影响。
 			supportsConditionalPut: false,
-			supportsCors: false, // 坚果云不支持 CORS，无法在页面上下文直接访问
+			supportsCors: false,
 			pathEncoding: 'utf8',
-			specialHeaders: {}, // 移除 X-Request-Id，使坚果云请求头与 Koofr 完全对齐（A/B 定位 Via 引擎 onerror 触发源）
+			specialHeaders: {},
 			detectPatterns: ['jianguoyun.com', 'dav.jianguoyun.com']
 		},
 		'nextcloud': {
@@ -7570,82 +7470,81 @@ function translateStatsChart() {
 			supportsChunkedUpload: true,
 			supportsLock: true,
 			supportsVersioning: true,
-			supportsCors: true, // Nextcloud 通常配置了 CORS
+			supportsCors: true,
 			pathEncoding: 'utf8',
 			specialHeaders: { 'OCS-APIRequest': 'true' },
 			detectPatterns: ['nextcloud', 'owncloud']
 		},
-'yandex': {
-		name: 'Yandex Disk',
-		supportsPropfind: true,
-		supportsRange: true,
-		supportsChunkedUpload: false,
-		supportsLock: false,
-		supportsVersioning: false,
-		supportsCors: false, // Yandex WebDAV 不支持 CORS
-		pathEncoding: 'utf8',
-		specialHeaders: {},
-		detectPatterns: ['webdav.yandex.com', 'yandex.com']
-	},
-	'teracloud': {
-		name: 'Teracloud / InfiniCloud',
-		supportsPropfind: true,
-		supportsRange: true,
-		supportsChunkedUpload: false,
-		supportsLock: false,
-		supportsVersioning: false,
-		supportsCors: false, // Teracloud 不支持 CORS
-		pathEncoding: 'utf8',
-		specialHeaders: {},
-		detectPatterns: ['teracloud.jp', 'infini-cloud.net']
-	},
-	'koofr': {
-		name: 'Koofr',
-		supportsPropfind: true,
-		supportsRange: true,
-		supportsChunkedUpload: true,
-		supportsLock: false,
-		supportsVersioning: true,
-		supportsCors: true, // Koofr 支持 CORS
-		pathEncoding: 'utf8',
-		specialHeaders: {},
-		detectPatterns: ['koofr.net', 'app.koofr.net']
-	},
-	'pcloud': {
-		name: 'pCloud',
-		supportsPropfind: true,
-		supportsRange: true,
-		supportsChunkedUpload: true,
-		supportsLock: false,
-		supportsVersioning: true,
-		supportsCors: true, // pCloud WebDAV 走 GM_xmlhttpRequest（绕过 CORS），按支持处理
-		pathEncoding: 'utf8',
-		specialHeaders: {}, // pCloud 仅 Basic 认证，无特殊头
-		detectPatterns: ['webdav.pcloud.com', 'ewebdav.pcloud.com', 'pcloud.com']
-	},
-	'generic': {
-		name: '通用 WebDAV (RFC 4918)',
-		supportsPropfind: true,
-		supportsRange: false,
-		supportsChunkedUpload: false,
-		supportsLock: false,
-		supportsVersioning: false,
-		supportsCors: false, // 未知服务商默认不支持 CORS
-		pathEncoding: 'utf8',
-		specialHeaders: {},
-		detectPatterns: []
-	}
-};
+		'yandex': {
+			name: 'Yandex Disk',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: false,
+			supportsLock: false,
+			supportsVersioning: false,
+			supportsCors: false,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: ['webdav.yandex.com', 'yandex.com']
+		},
+		'teracloud': {
+			name: 'Teracloud / InfiniCloud',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: false,
+			supportsLock: false,
+			supportsVersioning: false,
+			supportsCors: false,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: ['teracloud.jp', 'infini-cloud.net']
+		},
+		'koofr': {
+			name: 'Koofr',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: true,
+			supportsLock: false,
+			supportsVersioning: true,
+			supportsCors: true,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: ['koofr.net', 'app.koofr.net']
+		},
+		'pcloud': {
+			name: 'pCloud',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: true,
+			supportsLock: false,
+			supportsVersioning: true,
+			supportsCors: true,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: ['webdav.pcloud.com', 'ewebdav.pcloud.com', 'pcloud.com']
+		},
+		'generic': {
+			name: '通用 WebDAV (RFC 4918)',
+			supportsPropfind: true,
+			supportsRange: false,
+			supportsChunkedUpload: false,
+			supportsLock: false,
+			supportsVersioning: false,
+			supportsCors: false,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: []
+		}
+	};
 
-// 统一的 WebDAV 服务商识别：客户端实例与自动检测器共用同一份检测逻辑。
-function detectWebDavProvider(url) {
-	const lowerUrl = String(url || '').toLowerCase();
-	for (const [id, caps] of Object.entries(PROVIDER_CAPABILITIES)) {
-		if (caps.detectPatterns.some(pattern => lowerUrl.includes(pattern))) return id;
+	// WebDAV 服务商识别
+	function detectWebDavProvider(url) {
+		const lowerUrl = String(url || '').toLowerCase();
+		for (const [id, caps] of Object.entries(PROVIDER_CAPABILITIES)) {
+			if (caps.detectPatterns.some(pattern => lowerUrl.includes(pattern))) return id;
+		}
+		return 'generic';
 	}
-	return 'generic';
-}
-
 
 	/**
 	 * 服务商适配器接口
@@ -7679,8 +7578,6 @@ function detectWebDavProvider(url) {
 	// 坚果云适配器
 	class JianGuoYunAdapter extends ProviderAdapter {
 		prepareRequest(method, path, options) {
-			// 不再注入任何自定义请求头（User-Agent、X-Request-Id 均已移除），
-			// 使坚果云请求头与 Koofr 完全对齐，作为 A/B 定位 Via 脚本引擎 onerror 的触发源。
 			return options;
 		}
 
@@ -7702,7 +7599,7 @@ function detectWebDavProvider(url) {
 		}
 
 		transformPath(path) {
-			return path; // 坚果云区分大小写
+			return path;
 		}
 	}
 
@@ -7744,7 +7641,6 @@ function detectWebDavProvider(url) {
 
 	/**
 	 * 通用 WebDAV 客户端 - 完整 RFC 4918 核心协议
-	 * 参考: legado-master WebDav.kt 完整实现 + NextChat-main 安全代理模式
 	 */
 	class UniversalWebDAVClient {
 		constructor(url, credentials, options = {}) {
@@ -7754,42 +7650,34 @@ function detectWebDavProvider(url) {
 			this.options = {
 				timeout: 30000,
 				maxRetries: 3,
-				retryPolicy: 'exponential', // exponential, linear, fixed
-				chunkSize: 10 * 1024 * 1024, // 10MB 默认分块
+				retryPolicy: 'exponential',
+				chunkSize: 10 * 1024 * 1024,
 				maxConcurrency: 3,
 				...options
 			};
 
 			// 自动检测服务商
 			this.providerId = this.detectProvider(url);
-			
-			// Generic Provider 优化：降低超时和重试，快速失败
+
 			if (this.providerId === 'generic') {
-				this.options.timeout = Math.min(this.options.timeout, 15000); // 最大 15 秒
-				this.options.maxRetries = Math.min(this.options.maxRetries, 1); // 最多重试 1 次
+				this.options.timeout = Math.min(this.options.timeout, 15000);
+				this.options.maxRetries = Math.min(this.options.maxRetries, 1);
 			}
 			
 			this.capabilities = this.resolveCapabilities(options.overrideCapabilities);
 			this.adapter = this.createAdapter();
 
-			// 运行环境（scriptHandler/hasGM_xmlhttpRequest/userAgent）为页面级静态信息，
-			// 已统一在插件启动时以 System 日志打印一次（见初始化块），此处仅保留客户端实例相关字段，
-			// 避免每次创建客户端重复输出环境信息。
 			Logger.debug('Sync', `WebDAV Client initialized: provider=${this.providerId}`, {
 				supportsCors: this.capabilities.supportsCors
 			});
 
-			// 对无 CORS 的服务商（坚果云/Yandex/Teracloud/generic）自动做传输探针，
-			// 用最小请求头（仅 Authorization）探测连通性，区分"某请求头触发引擎 onerror"
-			// 与"Via 网络层到该服务商整体不通"。只记日志，不阻断、不重试。
 			if (!this.capabilities.supportsCors) {
 				this.probeTransport();
 			}
 		}
 
 		/**
-		 * 创建目录（MKCOL）。所有请求都走 GM_xmlhttpRequest，无 CORS 预检限制，
-		 * 因此统一使用标准 MKCOL，不再用「PUT 空文件模拟目录」的兼容分支。
+		 * 创建目录（MKCOL）。所有请求都走 GM_xmlhttpRequest，无 CORS 预检限制
 		 */
 		async createDirectoryCorsSafe(path) {
 			const dirPath = path.endsWith('/') ? path : path + '/';
@@ -7797,7 +7685,7 @@ function detectWebDavProvider(url) {
 				await this.request('MKCOL', dirPath, { ignoreErrors: [405] });
 				return true;
 			} catch (e) {
-				if (e.status === 405) return true; // 已存在
+				if (e.status === 405) return true;
 				throw e;
 			}
 		}
@@ -7830,9 +7718,7 @@ function detectWebDavProvider(url) {
 		}
 
 		/**
-		 * 传输探针：用最小请求头（仅 Authorization）向服务商 base URL 发一次 GET，
-		 * 只记日志、不阻断、不重试。用于区分"某请求头触发引擎 onerror"（探针成功但真实请求失败）
-		 * 与"Via 网络层到该服务商整体不通"（探针同样 onerror）。仅 supportsCors=false 服务商自动执行。
+		 * 传输探针：用最小请求头（仅 Authorization）向服务商 base URL 发一次 GET
 		 */
 		probeTransport() {
 			if (this._probeStarted) return this._probePromise;
@@ -7874,7 +7760,7 @@ function detectWebDavProvider(url) {
 			return this._probePromise;
 		}
 
-		// ============ 核心 HTTP 请求 ============
+		// 核心 HTTP 请求
 		async request(method, path, requestOptions = {}) {
 			let { headers = {}, body = null, retryPolicy, timeout, ignoreErrors = [] } = requestOptions;
 			const cleanPath = path.startsWith('/') ? path.substring(1) : path;
@@ -7888,11 +7774,6 @@ function detectWebDavProvider(url) {
 			};
 
 			// 处理特殊方法
-			// MKCOL 必须显式携带长度 0 的空 body，而非 null：
-			//   - 塞 Content-Length:'0' 头（旧版）→ 浏览器 forbidden header，Tampermonkey 原生层直接拒绝（onerror → Network Error: Unknown）；
-			//   - body 为 null→ Chrome 对无体自定义方法以 Transfer-Encoding: chunked 发送，
-			//     严格服务端（Koofr/sabre-dav 等）视作 RFC 5689 extended-MKCOL → 415 Unsupported Media Type。
-			// 空 Uint8Array 让 fetch 自动设 Content-Length: 0 且不加 Content-Type，符合 RFC 4918 无体 MKCOL。
 			if (method === 'MKCOL' && body == null) {
 				body = new Uint8Array(0);
 			}
@@ -7932,7 +7813,6 @@ function detectWebDavProvider(url) {
 				try {
 					return await fn();
 				} catch (error) {
-					// C5 修复：命中 ignoreErrors 的状态码视为成功（如 MKCOL 405 表示已存在）
 					if (error.status && ignoreErrors.includes(error.status)) {
 						return { status: error.status, ignored: true };
 					}
@@ -7944,19 +7824,18 @@ function detectWebDavProvider(url) {
 					throw lastError;
 				}
 
-				// 处理 401/403 认证失败（脚本仅支持 Basic 认证，无认证方案可切换，直接失败）
+				// 处理 401/403 认证失败
 				if ((error.status === 401 || error.status === 403) && error.response?.status) {
 					throw lastError;
 				}
 
 				if (attempt === maxRetries) {
-					// 修复：重试耗尽后必须抛出错误，而不是静默返回 undefined
 					throw lastError || new Error('网络请求失败，重试次数耗尽');
 				}
 
 				// 处理 412 Precondition Failed (ETag 冲突)
 				if (error.status === 412) {
-					throw lastError; // 让上层处理重试逻辑
+					throw lastError;
 				}
 
 				// 计算退避时间
@@ -8016,9 +7895,6 @@ function detectWebDavProvider(url) {
 					},
 					onerror: (err) => {
 						clearTimeout(timeoutId);
-						// 附加 method/url，便于区分 MKCOL/PUT/GET 哪个请求失败
-						// Via 等环境的 onerror 的 err 常缺 message（日志里只显示 Unknown），
-						// 原样保留 code/result/name，避免真实错误码（如 net::ERR_*）被丢弃。
 						const rawMsg = (err && (err.message || err.code || err.result)) || 'Unknown';
 						const error = new Error(`Network Error: ${init.method} ${url}: ${rawMsg}`);
 						error.status = 0;
@@ -8026,9 +7902,7 @@ function detectWebDavProvider(url) {
 						error.url = url;
 						error.code = err?.code;
 						error.rawErrorType = err?.type || err?.name;
-						error.response = { status: 0 };  // 修复：避免 error.response 为 undefined
-						// Logger.error 只序列化 message/stack/type，自定义字段会丢，
-						// 这里把 err 关键字段结构化单记一条 WARN，便于回传日志定位 Via 侧原因。
+						error.response = { status: 0 };
 						try {
 							if (err && typeof err === 'object') {
 								Logger.warn('Sync', `[Transport] GM_xmlhttpRequest onerror (${init.method} ${url})`, {
@@ -8049,7 +7923,7 @@ function detectWebDavProvider(url) {
 						clearTimeout(timeoutId);
 						const error = new Error('Request Timeout');
 						error.status = 408;
-						error.response = { status: 408 };  // 修复：避免 error.response 为 undefined
+						error.response = { status: 408 };
 						reject(error);
 					}
 				});
@@ -8071,15 +7945,12 @@ function detectWebDavProvider(url) {
 		}
 
 		/**
-		 * 错误响应体摘要（换行压缩，截取前 120 字符），便于日志定位服务端真实拒绝原因
-		 * （如 sabre-dav 的 "extended-mkcol not supported"）。
-		 * 对 WebDAV 错误 XML（含坚果云自定义 s: 命名空间）优先提取 <s:message>/<s:exception>
-		 * 或 <message> 的文本，避免整段 XML 刷屏且能拿到真实错误码。
+		 * 错误响应体摘要，便于日志定位服务端真实拒绝原因
 		 */
 		bodySnippet(text) {
 			if (!text) return '';
 			const raw = String(text);
-			// 优先取 WebDAV 错误体里的可读 message（坚果云 <s:message>、sabre-dav <s:message>/<message>）
+			// 优先取 WebDAV 错误体里的可读 message
 			const msgMatch = raw.match(/<s:message[^>]*>([\s\S]*?)<\/s:message>/i)
 				|| raw.match(/<[^:>]*:message[^>]*>([\s\S]*?)<\/[^:>]*:message>/i);
 			if (msgMatch && msgMatch[1]) {
@@ -8097,7 +7968,7 @@ function detectWebDavProvider(url) {
 			return this.createDirectoryCorsSafe(path);
 		}
 
-		// ============ 文件操作 ============
+		// 文件操作
 		async getFile(path, options = {}) {
 			const { range, etag } = options;
 			const headers = {};
@@ -8106,8 +7977,6 @@ function detectWebDavProvider(url) {
 				headers['Range'] = `bytes=${range.start}-${range.end || ''}`;
 			}
 			if (etag) {
-				// 与 If-Match 一致：If-None-Match 需带引号的 entity-tag（RFC 9110 §8.8.4）。
-				// 内部存储的 etag 已在读取侧剥离引号，这里补回；弱比较保留 W/ 前缀。
 				const rawEtag = String(etag).trim();
 				const isWeak = /^W\//i.test(rawEtag);
 				const opaqueEtag = rawEtag.replace(/^W\//i, '').replace(/^["']|["']$/g, '');
@@ -8116,7 +7985,7 @@ function detectWebDavProvider(url) {
 
 			try {
 				const response = await this.request('GET', path, { headers });
-				if (!response) return null; // 防御：request 不应返回 undefined
+				if (!response) return null;
 				
 				if (response.status === 304) return { content: null, etag, notModified: true };
 				
@@ -8133,23 +8002,11 @@ function detectWebDavProvider(url) {
 		}
 
 		async putFile(path, data, options = {}) {
-			// 处理 null 传参情况（默认参数只对 undefined 生效）
 			const opts = options || {};
 			const { etag, contentType = 'application/octet-stream' } = opts;
 			const headers = { 'Content-Type': contentType };
-
-			// 条件上传仅对支持 If-Match 的服务商启用。部分服务商（典型如坚果云 dav.jianguoyun.com）
-			// 不遵循 RFC 9110 §8.8.3 语义：对已存在文件即使 ETag 匹配也恒返回 412，导致
-			// 「412 → 重读 ETag → 再条件上传 → 仍 412」无法收敛。对这类服务商改用无条件 PUT，
-			// 并发合并已由上传前执行的三向 merge 引擎在下载侧承担，不会因此丢失并发写入。
-			// 对支持 If-Match 的服务商（Nextcloud/Koofr 等）仍保留条件上传，交由调用方的
-			// "重读 ETag + 重新 merge" 路径安全处理真实并发冲突。
 			const supportsConditionalPut = this.capabilities.supportsConditionalPut !== false;
 			if (etag && supportsConditionalPut) {
-				// If-Match 必须携带带引号的 entity-tag（RFC 9110 §8.8.3）。
-				// 内部存储的 etag 已在读取侧剥离引号，这里重新加引号，并剥离弱比较前缀 W/
-				//（If-Match 只做强比较，弱 ETag 恒不匹配）。此前发送未加引号的 If-Match，
-				// Apache mod_dav 等严格服务端直接 412 Precondition Failed，导致整个同步链路失败。
 				const strongTag = String(etag).replace(/^W\//i, '').replace(/^["']|["']$/g, '');
 				headers['If-Match'] = `"${strongTag}"`;
 			}
@@ -8159,7 +8016,7 @@ function detectWebDavProvider(url) {
 				headers
 			});
 
-			if (!response) throw new Error('PUT 请求未返回响应'); // 防御：request 不应返回 undefined
+			if (!response) throw new Error('PUT 请求未返回响应');
 
 			return {
 				etag: response.headers?.etag?.replace(/^["']|["']$/g, ''),
@@ -8182,13 +8039,12 @@ function detectWebDavProvider(url) {
 		KEY: 'ao3_sync_timestamps',
 		_timestamps: {},
 		_listening: false,
-		_paused: false, // 新增：暂停追踪标志
-		_pendingFlush: null, // 记录 pause 前待刷新的 debounce 定时器，便于 resume 时清理
-		_dynamicListeners: null, // F2：记录 _listenDynamicKeys 注册的 key→listenerId 映射，重注册前按 ID 注销，防监听器泄漏
+		_paused: false,
+		_pendingFlush: null,
+		_dynamicListeners: null,
 
 		pause() {
 			this._paused = true;
-			// C11 修复：暂停时清除待刷新的 debounce，避免同步期间把过期时间戳写回存储
 			if (this._pendingFlush) {
 				clearTimeout(this._pendingFlush);
 				this._pendingFlush = null;
@@ -8196,7 +8052,6 @@ function detectWebDavProvider(url) {
 		},
 		resume() {
 			this._paused = false;
-			// 恢复后重新读取存储，确保 getTimestamps 拿到最新值
 			this._timestamps = GM_getValue(this.KEY, { local: {} });
 		},
 
@@ -8213,22 +8068,19 @@ function detectWebDavProvider(url) {
 				'ao3_log_level': 'staticKeys', 'ao3_log_auto_clear': 'staticKeys', 'ao3_translation_mode': 'staticKeys',
 				'ao3_auto_translate': 'staticKeys', 'hide_whitelist_prompt': 'staticKeys', 'show_status_light': 'uiState',
 				[CUSTOM_GLOSSARIES_KEY]: 'glossaries',
-				// URL-only：IMPORTED_GLOSSARY_KEY（词条缓存）不再同步，也从监听中移除——否则重拉写词条会触发 data-change 同步形成环路
 				[GLOSSARY_METADATA_KEY]: 'glossaries', [ONLINE_GLOSSARY_ORDER_KEY]: 'glossaries',
-				[LAST_SELECTED_GLOSSARY_KEY]: 'glossaries',  // 修复 G1：在线词表"上次选中"已导出，补监听以即时触发同步
+				[LAST_SELECTED_GLOSSARY_KEY]: 'glossaries',
 				[POST_REPLACE_RULES_KEY]: 'postReplace',
 				[CUSTOM_SERVICES_LIST_KEY]: 'customServices',
 				[AI_PROFILES_KEY]: 'aiParameters',
 				[FORMATTING_PROFILES_KEY]: 'formatting',
 				'ao3_fab_actions': 'fabActions',
 				'ao3_export_templates': 'exportTemplates',
-				'ao3_cache_auto_cleanup_enabled': 'cacheSettings', 'ao3_cache_max_items': 'cacheSettings', 'ao3_cache_max_days': 'cacheSettings', 'ao3_cache_max_size_bytes': 'cacheSettings',  // G3 转正：面板已暴露
-				// 仅监听需同步的逻辑偏好键；设备相关（悬浮球/面板位置）与瞬态键（编辑模式/已打开过/日志筛选/缓存模式/上次操作）不再触发同步
+				'ao3_cache_auto_cleanup_enabled': 'cacheSettings', 'ao3_cache_max_items': 'cacheSettings', 'ao3_cache_max_days': 'cacheSettings', 'ao3_cache_max_size_bytes': 'cacheSettings',
 				'ao3_export_selection_memory': 'uiState', 'ao3_local_glossary_selected_id': 'uiState', 'ao3_post_replace_selected_id': 'uiState',
 				'ao3_fab_manage_mode': 'uiState', 'ao3_fab_manage_gesture': 'uiState', 'ao3_export_last_format': 'uiState',
-				'ao3_export_last_action': 'uiState', 'ao3_export_selected_formats': 'uiState',  // 改动 4(G4)：作品导出格式选择，导出后需即时触发同步
-				'ao3_update_check_interval': 'staticKeys',  // 归位微调：检查间隔为行为设置，随 staticKeys 同步
-				// 补齐变更追踪缺口（导出含但原未监听的键）
+				'ao3_export_last_action': 'uiState', 'ao3_export_selected_formats': 'uiState',
+				'ao3_update_check_interval': 'staticKeys',
 				'custom_url_first_save_done': 'staticKeys',
 				[FORMATTING_SELECTED_ID_KEY]: 'formatting',
 				'ao3_export_selected_templates': 'exportTemplates'
@@ -8254,7 +8106,7 @@ function detectWebDavProvider(url) {
 
 			keysToWatch.forEach(key => {
 				GM_addValueChangeListener(key, (name, oldVal, newVal, remote) => {
-					if (this._paused) return; // 核心修复：同步期间完全忽略更改
+					if (this._paused) return;
 					if (remote) return;
 					if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
 
@@ -8271,9 +8123,7 @@ function detectWebDavProvider(url) {
 		},
 
 		/**
-		 * 监听动态键名（自定义服务 / 引擎配置）。
-		 * GM_addValueChangeListener 必须指定具体 key，而自定义服务可在运行时增删，
-		 * 因此提供此方法在自定义服务列表变化后重新注册监听。
+		 * 监听动态键名（自定义服务 / 引擎配置）
 		 */
 		_listenDynamicKeys(getCategory) {
 			const listener = (name, oldVal, newVal, remote) => {
@@ -8299,11 +8149,6 @@ function detectWebDavProvider(url) {
 
 			// 去重：同一 key 重复注册会触发多次回调
 			const uniqueKeys = [...new Set(dynamicKeys)];
-
-			// F2：先注销上次注册的动态监听，避免同一 key 重复注册导致回调堆积（旧监听泄漏）。
-			// refreshDynamicListeners 在自定义服务增删后调用，会携带同一批动态键重新注册，
-			// 若不注销，N 次操作后每个键有 N 个监听回调（重复 JSON.stringify 比对 + _saveDebounced 重置）。
-			// 注意：GM_removeValueChangeListener 按 GM_addValueChangeListener 返回的 listenerId 注销（非 key+fn 签名）。
 			if (this._dynamicListeners) {
 				for (const listenerId of this._dynamicListeners.values()) {
 					try { GM_removeValueChangeListener(listenerId); } catch (e) { /* 环境不支持注销时忽略，仅个别重复回调 */ }
@@ -8317,7 +8162,7 @@ function detectWebDavProvider(url) {
 		},
 
 		/**
-		 * C9 修复：自定义服务列表变化后重新注册动态键监听
+		 * 自定义服务列表变化后重新注册动态键监听
 		 */
 		refreshDynamicListeners() {
 			if (!this._listening) return;
@@ -8333,7 +8178,6 @@ function detectWebDavProvider(url) {
 		},
 
 		_saveDebounced() {
-			// C11 修复：记录定时器句柄供 pause() 清理，避免同步期间把过期时间戳写回存储
 			clearTimeout(this._pendingFlush);
 			this._pendingFlush = setTimeout(() => {
 				this._pendingFlush = null;
@@ -8343,10 +8187,6 @@ function detectWebDavProvider(url) {
 
 		getTimestamps() {
 			const stored = GM_getValue(this.KEY, { local: {} }).local || {};
-			// F6：合并内存态。data-change 触发同步可能早于 _saveDebounced 的 1s 防抖落盘，
-			// 监听回调已同步更新 _timestamps.local，若只读存储会读到陈旧（缺失）时间戳，
-			// 导致"两端都改"的 LWW 冲突分支判 lTime=0 → 云端胜出 → 本地刚做的修改被丢弃。
-			// 内存态恒为"存储 + 未落盘的最新变更"，追加式合并安全（resume() 会重读存储校准）。
 			if (this._timestamps && this._timestamps.local) {
 				return { ...stored, ...this._timestamps.local };
 			}
@@ -8358,7 +8198,7 @@ function detectWebDavProvider(url) {
 	 * 三向合并引擎 (3-Way Merge)
 	 */
 	const SyncMergeEngine = {
-		// 可条目级合并的类目：冲突时走 merge（并集去重），而非整类目 LWW 覆盖
+		// 可条目级合并的类目：冲突时走 merge（并集去重）
 		MERGABLE_CATEGORIES: new Set([
 			'glossaries', 'customServices', 'postReplace', 'formatting',
 			'aiParameters', 'exportTemplates', 'apiKeys', 'blockerSettings'
@@ -8368,8 +8208,8 @@ function detectWebDavProvider(url) {
 			const merged = { metadata: local.metadata, data: {} };
 			let hasChangesToLocal = false;
 			let hasChangesToRemote = false;
-			const plan = {};          // category -> 'same' | 'local' | 'remote' | 'merge'
-			const changedCategoriesToLocal = [];   // 云端胜出且本地确需应用的分类
+			const plan = {};
+			const changedCategoriesToLocal = [];
 
 			const allCategories = new Set([
 				...Object.keys(local.data || {}),
@@ -8399,10 +8239,8 @@ function detectWebDavProvider(url) {
 				} else {
 					// 冲突：两端都修改了。可合并类目 → merge；其余按时间戳 LWW
 					if (this.MERGABLE_CATEGORIES.has(category)) {
-						merged.data[category] = remote.data[category]; // 合并动作由执行层用 merge 模式导入
+						merged.data[category] = remote.data[category];
 						hasChangesToLocal = true;
-						// 合并会改变本地且 canonical 需回传云端，
-						// 否则下次同步再次判冲突 → 永不收敛。
 						hasChangesToRemote = true;
 						changedCategoriesToLocal.push(category);
 						plan[category] = 'merge';
@@ -8413,16 +8251,10 @@ function detectWebDavProvider(url) {
 					const lTime = timestamps[category] || 0;
 					const rTime = (remote.metadata && remote.metadata.timestamps && remote.metadata.timestamps[category]) || 0;
 
-					// 核心修复：如果时间戳都缺失（0），默认保留本地数据（防止 uiState 等设备相关状态被远端无限覆盖导致死循环）
 					if (lTime === 0 && rTime === 0) {
 						merged.data[category] = local.data[category];
 						hasChangesToRemote = true;
 						plan[category] = 'local';
-						// 双方时间戳都缺失且保留本地：立即补记本地时间戳并持久化，
-						// 避免「每次同步都判冲突→强制上传」的循环；timestamps 会随 merged.metadata 上传，
-						// 使云端文件也带上该分类时间戳，后续走正常 LWW。
-						// 用同步 GM_setValue 而非 _saveDebounced：merge 在 pause() 之前执行，
-						// debounce 定时器可能在 pause 时被 clearTimeout 丢弃，导致补记值丢失。
 						timestamps[category] = Date.now();
 						if (typeof SyncTimestampTracker !== 'undefined' && SyncTimestampTracker._timestamps) {
 							SyncTimestampTracker._timestamps.local = SyncTimestampTracker._timestamps.local || {};
@@ -8458,11 +8290,6 @@ function detectWebDavProvider(url) {
 
 	/**************************************************************************
 	 * WebDAV 服务商自动检测与最优配置模块
-	 * 核心职责：
-	 * 1. 从 URL 检测服务商
-	 * 2. 返回该服务商的最优配置
-	 * 3. 智能合并：保留用户显式设置的值，仅填充未设置的项
-	 * 4. 记录检测过程到日志
 	 **************************************************************************/
 	const ProviderAutoDetector = {
 		// 存储键名
@@ -8481,16 +8308,14 @@ function detectWebDavProvider(url) {
 
 		/**
 		 * 服务商最优配置映射表
-		 * 基于 PROVIDER_CAPABILITIES 和实际使用经验定义
-		 * chunkSize 存储为 MB 字符串 (如 '4' 表示 4MB)
 		 */
 		OPTIMAL_CONFIGS: {
-			// ===== Basic Auth + 无 CORS + 严格限流 (坚果云、Yandex、Teracloud) =====
+			// Basic Auth + 无 CORS + 严格限流 (坚果云、Yandex、Teracloud)
 			'jianguoyun': {
 				name: '坚果云',
 				pathEncoding: 'utf8',
-				chunkSize: '4',        // 4MB (坚果云限制较小，单文件 500MB)
-				concurrency: 2,        // 低并发避免触发 30min/600req 限流
+				chunkSize: '4',
+				concurrency: 2,
 				timeout: 30,
 				retryPolicy: 'exponential',
 				supportsCors: false,
@@ -8500,8 +8325,8 @@ function detectWebDavProvider(url) {
 			'yandex': {
 				name: 'Yandex Disk',
 				pathEncoding: 'utf8',
-				chunkSize: '10',       // 10MB
-				concurrency: 2,        // Yandex 限流较严
+				chunkSize: '10',
+				concurrency: 2,
 				timeout: 30,
 				retryPolicy: 'exponential',
 				supportsCors: false,
@@ -8511,7 +8336,7 @@ function detectWebDavProvider(url) {
 			'teracloud': {
 				name: 'Teracloud / InfiniCloud',
 				pathEncoding: 'utf8',
-				chunkSize: '4',        // 4MB
+				chunkSize: '4',
 				concurrency: 2,
 				timeout: 30,
 				retryPolicy: 'exponential',
@@ -8520,11 +8345,11 @@ function detectWebDavProvider(url) {
 				validateChecksums: true
 			},
 
-			// ===== Basic Auth + 无 CORS + 无限流 (Koofr) =====
+			// Basic Auth + 无 CORS + 无限流 (Koofr)
 			'koofr': {
 				name: 'Koofr',
 				pathEncoding: 'utf8',
-				chunkSize: '10',       // 10MB
+				chunkSize: '10',
 				concurrency: 3,
 				timeout: 30,
 				retryPolicy: 'exponential',
@@ -8533,11 +8358,11 @@ function detectWebDavProvider(url) {
 				validateChecksums: true
 			},
 
-			// ===== Basic + 有 CORS + 支持分块 (Nextcloud) =====
+			// Basic + 有 CORS + 支持分块 (Nextcloud)
 			'nextcloud': {
 				name: 'Nextcloud / ownCloud',
 				pathEncoding: 'utf8',
-				chunkSize: '10',       // 10MB (可配置更大)
+				chunkSize: '10',
 				concurrency: 4,
 				timeout: 30,
 				retryPolicy: 'exponential',
@@ -8546,11 +8371,11 @@ function detectWebDavProvider(url) {
 				validateChecksums: true
 			},
 
-			// ===== Basic Auth + CORS + 无限流 (pCloud) =====
+			// Basic Auth + CORS + 无限流 (pCloud)
 			'pcloud': {
 				name: 'pCloud',
 				pathEncoding: 'utf8',
-				chunkSize: '10',       // 10MB
+				chunkSize: '10',
 				concurrency: 3,
 				timeout: 30,
 				retryPolicy: 'exponential',
@@ -8559,14 +8384,14 @@ function detectWebDavProvider(url) {
 				validateChecksums: true
 			},
 
-			// ===== 兜底配置 =====
+			// 兜底配置
 			'generic': {
 				name: '通用 WebDAV (RFC 4918)',
 				pathEncoding: 'utf8',
-				chunkSize: '10',       // 10MB
+				chunkSize: '10',
 				concurrency: 3,
-				timeout: 15,  // 降低超时：15秒快速失败，避免长时间卡死
-				maxRetries: 1,  // 仅重试 1 次，快速失败
+				timeout: 15,
+				maxRetries: 1,
 				retryPolicy: 'exponential',
 				supportsCors: false,
 				conflictResolution: 'lww',
@@ -8584,8 +8409,6 @@ function detectWebDavProvider(url) {
 
 		/**
 		 * 判断是否需要重新检测
-		 * URL 变更、或首次检测时返回 true
-		 * 优先使用内存缓存，避免每次同步都读取存储
 		 */
 		shouldReDetect(currentUrl) {
 			// 内存缓存命中：URL 未变且已应用过配置
@@ -8606,33 +8429,26 @@ function detectWebDavProvider(url) {
 
 		/**
 		 * 智能合并配置
-		 * 规则：用户显式设置的值优先，未设置的项应用最优配置
 		 */
 		applyConfig(currentConfig, optimalConfig) {
 			const appliedFields = [];
 
-			// 检测服务商是否变化。变化时对未被用户覆盖的字段重新应用新服务商最优值，
-			// 修复"先配 A 服务商后切到 B，B 的最优配置不生效"（原逻辑字段已非 null 即跳过）。
 			const prevProvider = GM_getValue(this.STORAGE_KEYS.DETECTED_PROVIDER, '');
 			const providerChanged = !!prevProvider && prevProvider !== optimalConfig.providerId;
 
-			// 配置字段映射：configKey -> optimalConfigKey -> storageKey
-			// 仅 Basic 认证，故无 authScheme 字段。
-			// 移除 pathEncoding——webdav_path_encoding 只写不读（getConfig/客户端从不消费，适配器硬编码 utf8），死存储键。
 			const fieldMap = {
-				chunkSize:      { optimal: 'chunkSize',      storage: 'webdav_chunk_size' },
-				concurrency:    { optimal: 'concurrency',    storage: 'webdav_concurrency' },
-				timeout:        { optimal: 'timeout',        storage: 'webdav_timeout' },
-				retryPolicy:    { optimal: 'retryPolicy',    storage: 'webdav_retry_policy' },
+				chunkSize: { optimal: 'chunkSize', storage: 'webdav_chunk_size' },
+				concurrency: { optimal: 'concurrency', storage: 'webdav_concurrency' },
+				timeout: { optimal: 'timeout', storage: 'webdav_timeout' },
+				retryPolicy: { optimal: 'retryPolicy', storage: 'webdav_retry_policy' },
 				conflictResolution: { optimal: 'conflictResolution', storage: 'webdav_conflict_resolution' },
 				validateChecksums: { optimal: 'validateChecksums', storage: 'webdav_validate_checksums' }
 			};
 
 			for (const [configKey, { optimal, storage }] of Object.entries(fieldMap)) {
 				const userValue = GM_getValue(storage, null);
-				const isDefault = userValue === null;  // 未设置过（传输参数无面板入口，正常由自动检测首次写入）
+				const isDefault = userValue === null;
 
-				// 未设置过，或服务商已变更（重应用新服务商最优值）时应用。
 				if ((isDefault || providerChanged) && optimalConfig[optimal] !== undefined) {
 					GM_setValue(storage, optimalConfig[optimal]);
 					appliedFields.push(`${configKey}=${optimalConfig[optimal]}`);
@@ -8664,7 +8480,6 @@ function detectWebDavProvider(url) {
 
 		/**
 		 * 主入口：执行自动检测并应用配置
-		 * 在 executeSync 开始时调用
 		 */
 		async runAutoDetection(config) {
 			const url = config.url;
@@ -8672,7 +8487,6 @@ function detectWebDavProvider(url) {
 
 			const needDetect = this.shouldReDetect(url);
 			if (!needDetect) {
-				// URL 未变更时静默跳过，不再每次同步打 DEBUG 日志。
 				config.provider = GM_getValue(this.STORAGE_KEYS.DETECTED_PROVIDER, 'generic');
 				return config;
 			}
@@ -8732,9 +8546,7 @@ function detectWebDavProvider(url) {
 		isApplyingRemoteChanges: false,
 		syncLock: 0,
 
-		// ---- 同步文件路径与目录自愈 ----
-		// 根模式：服务商不支持建目录（Koofr 等对 chunked MKCOL 回 415）时，
-		// 把同步文件直接存到 WebDAV 根路径，彻底绕开 MKCOL，保证任何服务商都能同步。
+		// 同步文件路径与目录自愈
 		isRootMode() {
 			return GM_getValue(this.ROOT_MODE_KEY, false) === true;
 		},
@@ -8742,11 +8554,10 @@ function detectWebDavProvider(url) {
 			return this.isRootMode() ? this.SYNC_FILENAME : this.SYNC_DIR + '/' + this.SYNC_FILENAME;
 		},
 		/**
-		 * 确保同步目录可用。返回 true = 使用子目录路径，false = 已降级到根路径。
-		 * 幂等：目录已存在（MKCOL 405）视为成功；建目录失败（415/501/网络等）置根模式并告警。
+		 * 确保同步目录可用
 		 */
 		async ensureSyncDirectory(client, traceId) {
-			if (this.isRootMode()) return false; // 已降级，不再尝试
+			if (this.isRootMode()) return false;
 			try {
 				await client.createDirectory(this.SYNC_DIR);
 				return true;
@@ -8766,15 +8577,12 @@ function detectWebDavProvider(url) {
 				user: GM_getValue('webdav_user', ''),
 				pass: GM_getValue('webdav_pass', ''),
 				encKey: GM_getValue('webdav_enc_key', ''),
-				// 仅 Basic 认证，无 scheme/token
-				provider: 'auto',  // 自动检测开关：runAutoDetection 后写入真实服务商
+				provider: 'auto',
 				chunkSize: parseInt(GM_getValue('webdav_chunk_size', '10'), 10) * 1024 * 1024,
 				concurrency: parseInt(GM_getValue('webdav_concurrency', '3'), 10),
 				timeout: parseInt(GM_getValue('webdav_timeout', '30'), 10) * 1000,
 				retryPolicy: GM_getValue('webdav_retry_policy', 'exponential'),
 				conflictResolution: GM_getValue('webdav_conflict_resolution', 'lww'),
-				// 类型归一化——applyConfig 写入 boolean true，而缺省值是字符串 'true'，
-				// 原 `=== 'true'` 比较在自动检测写入过 boolean 后恒为 false（true === 'true'）。
 				validateChecksums: (() => {
 					const v = GM_getValue('webdav_validate_checksums', 'true');
 					return v === true || v === 'true';
@@ -8782,7 +8590,7 @@ function detectWebDavProvider(url) {
 			};
 		},
 
-		// 新增：获取客户端实例
+		// 获取客户端实例
 		async getClient(config) {
 			const credentials = {
 				username: config.user,
@@ -8791,46 +8599,33 @@ function detectWebDavProvider(url) {
 
 			const clientOptions = {
 				timeout: config.timeout,
-				// 使用配置的重试次数而非硬编码 3。
-				// executeSync 里已对 auto/generic 应用 Math.min(maxRetries, 1)，
-				// 这里若硬编码 3 会让该快速失败优化失效，每次失败请求内部重复 3 次。
-				// 注意：options spread 会用 undefined 覆盖构造器默认值 3，
-				// 导致 executeWithRetry 的循环一次都不执行，因此需显式回退 3。
 				maxRetries: config.maxRetries ?? 3,
 				retryPolicy: config.retryPolicy,
 				chunkSize: config.chunkSize,
 				maxConcurrency: config.concurrency
-				// 服务商由 UniversalWebDAVClient 内部自动检测
 			};
 
 			return new UniversalWebDAVClient(config.url, credentials, clientOptions);
 		},
 
 		/**
-		 * 统一解析远端同步文件内容：兼容多种历史格式，返回解压/解密后的完整对象。
-		 * 格式约定：
-		 *   { v: 1, cmp: 1, s, iv, ct }        —— 加密，ct 解出的是 gzip base64 字符串
-		 *   { v: 2, compressed: true, data }    —— 未加密的 gzip base64
-		 *   其它                             —— 视为明文 JSON
+		 * 统一解析远端同步文件内容
 		 */
 		async readRemoteData(parsed, rawContent, encKey) {
 			try {
 				if (!parsed || typeof parsed !== 'object') return JSON.parse(rawContent);
-				// v1 加密但本地未提供同步密钥 → 抛错（与旧行为一致，明确归因）
 				if ((parsed.v === 1 || parsed.ct) && !encKey) {
-					const e = new Error('云端数据已加密，但本地未提供同步密钥');
+					const e = new Error('云端数据已加密，但本地未配置同步密钥，无法解密');
 					e.syncKind = 'missingKey';
 					throw e;
 				}
 				return await ConfigSerializer.unpack(rawContent, encKey);
 			} catch (e) {
-				// 本地解析/解密类错误（缺密钥、密钥错误、JSON/解压/格式错误）属永久性：重试无用，
-				// 且不应被当作「网络瞬时错误」反复重试。统一打上永久标记，交由 classifySyncError 优先判定。
 				if (e && typeof e === 'object') {
 					if (!e.syncKind && parsed && (parsed.v === 1 || parsed.ct) && encKey) {
-						e.syncKind = 'wrongKey';   // 已提供密钥但解密失败（AES-GCM 认证失败/数据损坏）
+						e.syncKind = 'wrongKey';
 					} else if (!e.syncKind) {
-						e.syncKind = 'format';     // 其它：JSON/解压/格式错误
+						e.syncKind = 'format';
 					}
 					e.syncPermanent = true;
 				}
@@ -8839,14 +8634,7 @@ function detectWebDavProvider(url) {
 		},
 
 		/**
-		 * 单文件合并同步核心。
-		 *
-		 * 全量/增量策略已合并为一个：云端只维护一个 `ao3_sync_data.enc`，
-		 * 内部为 `{ data: {...categories}, files: {category: {hash, timestamp}} }`。
-		 * 流程：
-		 *   1. 拉取单个远端文件（加密/压缩/明文统一解析）；
-		 *   2. 基于 base 快照做三向合并（SyncMergeEngine），得出待应用/待上传分类；
-		 *   3. 返回 { shouldApplyToLocal, categoriesToApply, shouldUploadToRemote, merged }。
+		 * 单文件合并同步核心
 		 */
 		async executeMergeSync(client, localData, baseData, config, traceId) {
 			Logger.debug('Sync', '开始单文件合并同步...', null, traceId);
@@ -8856,11 +8644,9 @@ function detectWebDavProvider(url) {
 			const localTimestamps = SyncTimestampTracker.getTimestamps();
 			const noBase = !baseData || Object.keys(baseData.data || {}).length === 0;
 
-			// ---- 云端无数据 ----
+			// 云端无数据
 			if (!remoteResponse || !remoteResponse.content) {
 				localData.metadata.timestamps = localTimestamps;
-				// 有 base 但云端文件丢失/被清空 → #3：自动重传 + 通知；
-				// 无 base → #1：全新开始，静默自动上传。
 				return {
 					shouldApplyToLocal: false,
 					categoriesToApply: [],
@@ -8869,7 +8655,7 @@ function detectWebDavProvider(url) {
 					merged: localData,
 					remoteEtag: null,
 					remoteExists: false,
-					remoteMissing: !noBase,   // #3 标记：触发重传通知
+					remoteMissing: !noBase,
 					plan: {}
 				};
 			}
@@ -8884,7 +8670,7 @@ function detectWebDavProvider(url) {
 				throw e;
 			}
 
-			// ---- 本地无 base 快照 + 云端已有数据 → 权威不可知，需用户选择方向 ----
+			// 本地无 base 快照 + 云端已有数据：用户选择方向
 			if (noBase) {
 				return {
 					needsDirection: true,
@@ -8896,7 +8682,7 @@ function detectWebDavProvider(url) {
 				};
 			}
 
-			// ---- 正常三向合并 ----
+			// 正常三向合并
 			const mergeResult = SyncMergeEngine.merge(baseData, localData, remoteData, localTimestamps);
 			return {
 				shouldApplyToLocal: mergeResult.hasChangesToLocal,
@@ -8913,26 +8699,22 @@ function detectWebDavProvider(url) {
 
 		/**
 		 * 错误分级：区分永久性错误（无需重试）与瞬时错误（可重试）
-		 * 永久错误重试毫无意义，且每次重试都在拖慢失败反馈。
 		 */
 		classifySyncError(err, config) {
 			const status = err?.status || 0;
-			// 本地解析/解密/配置类错误（缺密钥、密钥错误、JSON/解压/格式错误）属永久：重试无用。
-			// 这类错误不带 HTTP status，若只按 status 判断会落入 status===0 被误判为瞬时而反复重试。
+			// 本地解析/解密/配置类错误（缺密钥、密钥错误、JSON/解压/格式错误）属永久
 			if (err && err.syncPermanent) return { permanent: true, status, kind: err.syncKind };
-			// 永久性错误：配置/认证/格式错误，重试无用（401/403 已覆盖认证失败，无需 AUTH_EXHAUSTED 特判）
+			// 永久性错误：配置/认证/格式错误
 			if ([400, 401, 403, 423, 507].includes(status)) return { permanent: true, status };
 			if (status === 404) {
-				// 404 特殊：路径不存在 → 目录可能被删，自动重建后重试一次
+				// 404：路径不存在 → 目录可能被删，自动重建后重试一次
 				return { permanent: false, status, recreateDir: true };
 			}
-			if (status === 0) return { permanent: false, status }; // 网络错误 → 瞬时
-			if (status >= 500 && status < 600) return { permanent: false, status }; // 5xx → 瞬时
-			// 408 超时 / 412 并发 / 其它 → 瞬时
+			if (status === 0) return { permanent: false, status };
+			if (status >= 500 && status < 600) return { permanent: false, status };
 			return { permanent: false, status };
 		},
 
-		// 失败归因（埋点 M3）：auth/timeout/network/other——供 WEBDAV_SYNC_FAILED 事件上报
 		_failureCategory(err) {
 			const status = err && err.status ? err.status : 0;
 			// 本地加密/密钥/格式类错误：归因 other（配置类），而非 network
@@ -8945,8 +8727,7 @@ function detectWebDavProvider(url) {
 		},
 
 		/**
-		 * 读取 Base 快照（带 URL 标签）。
-		 * 兼容旧格式：旧 base 为纯 {data}，无 url 字段 → 视为当前 URL 有效（避免存量用户被误弹窗）。
+		 * 读取 Base 快照
 		 */
 		async getBaseData() {
 			let baseData = { data: {}, url: null };
@@ -8957,7 +8738,7 @@ function detectWebDavProvider(url) {
 				if (parsed && parsed.data) {
 					baseData = parsed;
 				} else if (parsed) {
-					baseData = { data: parsed, url: null }; // 极旧格式：data 即整个对象
+					baseData = { data: parsed, url: null };
 				}
 			} catch (e) {
 				Logger.warn('Sync', 'Base 快照解析失败，视为不存在', e);
@@ -8966,7 +8747,7 @@ function detectWebDavProvider(url) {
 		},
 
 		/**
-		 * 写入 Base 快照（携带规范化 URL 标签）
+		 * 写入 Base 快照
 		 */
 		async saveBaseSnapshot(data, url) {
 			const normalizedUrl = this.normalizeSyncUrl(url);
@@ -8976,7 +8757,7 @@ function detectWebDavProvider(url) {
 		},
 
 		/**
-		 * 规范化 URL 用于 base 标签比对：origin + pathname（忽略 query/hash）
+		 * 规范化 URL 用于 base 标签比对：origin + pathname
 		 */
 		normalizeSyncUrl(url) {
 			try {
@@ -8988,16 +8769,14 @@ function detectWebDavProvider(url) {
 		},
 
 		/**
-		 * 首次同步方向执行（#2）。
-		 * 三种方向以同一规范动作收尾：应用方向 → 重导出 canonical → 上传 → base = canonical。
-		 * 收敛性：导入后 routineCleanup 会剥离默认值键，若 base 设为原始云端文件而不回传，
-		 * 下次三向合并会判定"仅云端修改" → 反复重下载循环。因此必须回传 canonical。
+		 * 首次同步方向执行
 		 */
 		async performFirstSyncDirection(client, direction, ctx, config, traceId) {
 			const { remoteData, remoteEtag } = ctx;
-			const allCategories = SYNC_CATEGORIES;  // 首次同步不携带 webdavConfig（仅手动链路）
+			const allCategories = SYNC_CATEGORIES;
+			let firstSyncConflicts = [];
 
-			// 1. 按方向应用到本地（upload 方向不应用，本地即数据源）
+			// 1. 按方向应用到本地
 			if (direction === 'download') {
 				this.isApplyingRemoteChanges = true;
 				SyncTimestampTracker.pause();
@@ -9016,17 +8795,17 @@ function detectWebDavProvider(url) {
 				}
 				Logger.debug('Sync', '首次同步：采用云端覆盖本地 (download)', { categories: allCategories }, traceId);
 			} else if (direction === 'merge') {
-				// uiState 已只含逻辑偏好（导出格式/选中项/折叠/FAB 操作），不再排除，纳入首次同步合并与常规同步一致。
 				const mergeCategories = allCategories;
 				this.isApplyingRemoteChanges = true;
 				SyncTimestampTracker.pause();
 				try {
-					await importAllData(
+					const firstSyncRes = await importAllData(
 						{ metadata: remoteData.metadata, data: remoteData.data },
 						mergeCategories,
 						'merge',
 						true
 					);
+					if (firstSyncRes && Array.isArray(firstSyncRes.aiProfileConflicts)) firstSyncConflicts = firstSyncRes.aiProfileConflicts;
 				} finally {
 					setTimeout(() => {
 						SyncTimestampTracker.resume();
@@ -9035,32 +8814,35 @@ function detectWebDavProvider(url) {
 				}
 				Logger.debug('Sync', '首次同步：云端与本地合并去重 (merge)', { categories: mergeCategories }, traceId);
 			} else {
-				// 'upload'：本地覆盖云端，不导入任何数据
 				Logger.debug('Sync', '首次同步：本地覆盖云端 (upload)', null, traceId);
 			}
+			if (firstSyncConflicts.length > 0) {
+				Logger.info('Sync', `同名翻译参数配置内容不一致，已各自留存：${firstSyncConflicts.map(c => `${c.name} → ${c.kept}`).join('、')}`, {
+					category: 'aiParameters',
+					categoryLabel: '翻译参数配置',
+					conflicts: firstSyncConflicts
+				});
+			}
 
-			// 2. 重导出 canonical（导入后可能触发 routineCleanup 剥离默认值）
-			const canonical = await exportAllData(SYNC_CATEGORIES);  // canonical 不含 webdavConfig
+			// 2. 重导出 canonical
+			const canonical = await exportAllData(SYNC_CATEGORIES);
 			canonical.metadata.timestamps = SyncTimestampTracker.getTimestamps();
 
-			// 3. 上传 canonical（携 ETag，412 并发重试一次）
+			// 3. 上传 canonical
 			await this.uploadCanonical(client, canonical, config, remoteEtag, traceId);
 
-			// 4. 写入 Base 快照（带 URL 标签）
+			// 4. 写入 Base 快照
 			await this.saveBaseSnapshot(canonical.data, config.url);
 
 			// 5. 记录同步时间
 			const nowStr = getShanghaiTimeString();
 			GM_setValue('webdav_last_sync_time', nowStr);
 
-			return { success: true, time: nowStr, applied: direction !== 'upload', uploaded: true };
+			return { success: true, time: nowStr, applied: direction !== 'upload', uploaded: true, aiProfileConflicts: firstSyncConflicts };
 		},
 
 		/**
-		 * 构建上传载荷（F8：供 uploadCanonical 与 executeSync 步骤 5 共用，消除重复）。
-		 * 格式约定：
-		 *   加密 → { s, iv, ct, cmp: 1 }（ct 为 gzip base64 字符串）
-		 *   明文 → { v: 2, compressed: true, data }（data 为 gzip base64）
+		 * 构建上传载荷
 		 */
 		async buildUploadPayload(data, encKey) {
 			return ConfigSerializer.pack(data, encKey);
@@ -9079,8 +8861,6 @@ function detectWebDavProvider(url) {
 					return;
 				} catch (putErr) {
 					if (putErr.status === 412 && attempt === 0) {
-						// 412 并发冲突：不再盲覆盖。
-						// 重新读取远端最新 ETag，用新 ETag 条件上传重试一次，避免无条件覆盖丢失并发写入。
 						Logger.warn('Sync', '上传并发冲突 (412)，重新读取远端 ETag 后重试一次', null, traceId);
 						try {
 							const fresh = await client.getFile(remoteFilePath);
@@ -9116,19 +8896,14 @@ function detectWebDavProvider(url) {
 			}
 			this.isSyncing = true;
 			this.syncLock = lockId;
-			let traceId; // 提升到外层作用域，供外层 catch 日志使用
-			// config 必须提升到外层作用域：
-			// JS 中 let 声明在 try 块内则其作用域仅限 try，外层 catch 无法访问，
-			// 直接引用会抛 ReferenceError（原潜伏 bug，403 分支曾触发；本次新增的分级逻辑无条件触发）。
+			let traceId;
 			let config = null;
 
 			try {
 				// 1. 获取基础配置
 				config = await this.getConfig();
 
-				// 2. 必填项校验（提前到自动检测之前）
-				// 未配置 WebDAV 时快速短路，避免每次自动同步都跑 ProviderAutoDetector + getClient，
-				// 且不弹错误（isAuto 静默，手动同步由 handleManualSync 先行校验并提示）
+				// 2. 必填项校验
 				if (!config.url || !config.user || !config.pass) {
 					return { success: false, reason: isAuto ? '' : '未配置完整的服务器地址、账号或密码' };
 				}
@@ -9137,7 +8912,7 @@ function detectWebDavProvider(url) {
 				// 3. 自动检测服务商并应用最优配置
 				config = await ProviderAutoDetector.runAutoDetection(config);
 
-				// 5. 创建客户端
+				// 4. 创建客户端
 				const client = await this.getClient(config);
 				traceId = Logger.generateTraceId();
 
@@ -9147,18 +8922,16 @@ function detectWebDavProvider(url) {
 
 				let retryCount = 0;
 				let lastError = null;
-				let remoteEtag = null; // 提升到循环外：上传 412 重试时需携带最新 ETag
-				let chosenDirection = null; // 同一逻辑同步内记住已选方向，重试时不重复弹窗
+				let remoteEtag = null;
+				let chosenDirection = null;
 				while (retryCount < 3) {
 					try {
 						// 1. 获取本地全量数据
-						const localData = await exportAllData(SYNC_CATEGORIES);  // 本地数据不含 webdavConfig
+						const localData = await exportAllData(SYNC_CATEGORIES);
 
-						// 2. 获取 Base 快照（带 URL 标签）
+						// 2. 获取 Base 快照
 						let baseData = await this.getBaseData();
 						const compressedBase = GM_getValue(this.BASE_SNAPSHOT_KEY);
-
-						// 2b. base 存在但 URL 与当前不符 → 服务商已变更，作废 base 重走首次同步（#4）
 						const currentUrl = this.normalizeSyncUrl(config.url);
 						if (baseData && baseData.url && currentUrl && baseData.url !== currentUrl) {
 							Logger.debug('Sync', '检测到 WebDAV 服务商变更，作废本地 Base 快照，按首次同步处理', {
@@ -9166,16 +8939,13 @@ function detectWebDavProvider(url) {
 								current: currentUrl
 							}, traceId);
 							GM_deleteValue(this.BASE_SNAPSHOT_KEY);
-							// 新服务商可能支持建目录，重置根模式降级标记，重新尝试子目录布局
 							GM_deleteValue(this.ROOT_MODE_KEY);
-							// 置空 baseData，使其落入首次同步分支
 							baseData.data = {};
 						}
 
-						// 3. 单文件合并同步（全量/增量策略已合并）
+						// 3. 单文件合并同步
 						const mergeResult = await this.executeMergeSync(client, localData, baseData, config, traceId);
 
-						// 3b. 首次同步需用户选择方向：自动触发静默跳过 + 提示一次；手动同步弹对话框
 						if (mergeResult.needsDirection) {
 							if (isAuto) {
 								if (!GM_getValue('webdav_first_sync_prompted', false)) {
@@ -9189,8 +8959,6 @@ function detectWebDavProvider(url) {
 								return { success: false, reason: '', _silent: true };
 							}
 
-							// 手动同步 → 首次弹窗选择方向，重试复用已选方向
-							//（避免 412 等瞬时失败重试时重复打断用户、覆盖此前选择）
 							if (chosenDirection === null) {
 								try {
 									chosenDirection = await showSyncDirectionDialog();
@@ -9205,7 +8973,6 @@ function detectWebDavProvider(url) {
 							return result;
 						}
 
-						// 3c. #3 云端文件丢失（有 base 但无云端文件）→ 自动重传 + 通知
 						if (mergeResult.remoteMissing) {
 							GM_notification({
 								title: 'AO3 Translator 同步',
@@ -9219,89 +8986,89 @@ function detectWebDavProvider(url) {
 						let shouldUploadToRemote = mergeResult.shouldUploadToRemote;
 						const categoriesToApply = mergeResult.categoriesToApply || [];
 						const categoriesToMerge = mergeResult.categoriesToMerge || [];
-						// 云端文件是否已存在：存在时目录必然存在，无需再发 MKCOL
+						let aiProfileConflicts = [];
+						let aiProfileRemoteApplied = [];
+						const syncContext = {
+							baseProfiles: (baseData && baseData.data && baseData.data.aiParameters && baseData.data.aiParameters[AI_PROFILES_KEY]) || null,
+							baseServices: (baseData && baseData.data && baseData.data.customServices) || null
+						};
 						const remoteExists = mergeResult.remoteExists === true;
 						if (mergeResult.remoteEtag) remoteEtag = mergeResult.remoteEtag;
 
-						// 4. 应用到本地：'remote' 类目 overwrite 导入；'merge' 类目 merge 导入（条目级并集去重）
+						// 4. 应用到本地
 						const totalToApply = categoriesToApply.length + categoriesToMerge.length;
 						if (shouldApplyToLocal && totalToApply > 0) {
-							const originalNotification = GM_notification;
-							window.GM_notification = () => {};
-
 							this.isApplyingRemoteChanges = true;
 							SyncTimestampTracker.pause();
 							try {
-								// 4a. 云端胜出类目：overwrite（与现状一致）
 								if (categoriesToApply.length > 0) {
 									const applyRes = await importAllData(
 										{ metadata: localData.metadata, data: mergeResult.remoteData.data },
 										categoriesToApply,
 										'overwrite',
-										true
+										true,
+										syncContext
 									);
-									// 导入失败（如格式版本不兼容被取消）→ 中止本轮同步，
-									// 避免继续以未导入的本地数据重导出并覆盖云端。
 									if (applyRes && applyRes.success === false) {
 										throw new Error(applyRes.message || '云端数据导入失败');
 									}
 								}
-								// 4b. 冲突可合并类目：merge（并集去重，不丢任何一方）
 								if (categoriesToMerge.length > 0) {
 									const mergeRes = await importAllData(
 										{ metadata: localData.metadata, data: mergeResult.remoteData.data },
 										categoriesToMerge,
 										'merge',
-										true
+										true,
+										syncContext
 									);
 									if (mergeRes && mergeRes.success === false) {
 										throw new Error(mergeRes.message || '冲突合并导入失败');
 									}
-									// E8：合并摘要日志（浏览器通知移到 finally 还原后，避免被静默屏蔽吞掉）
+									if (mergeRes && Array.isArray(mergeRes.aiProfileConflicts)) aiProfileConflicts = mergeRes.aiProfileConflicts;
+									if (mergeRes && Array.isArray(mergeRes.aiProfileRemoteApplied)) aiProfileRemoteApplied = mergeRes.aiProfileRemoteApplied;
 									Logger.debug('Sync', '冲突自动合并: ' + categoriesToMerge.join(','), null, traceId);
 								}
 							} finally {
-								// 无论成功/异常都恢复 GM_notification（防止异常路径下永久变 no-op）
-								window.GM_notification = originalNotification;
 								setTimeout(() => {
 									SyncTimestampTracker.resume();
 									this.isApplyingRemoteChanges = false;
 								}, 3000);
 							}
 
-							// E8：合并摘要浏览器通知（静默屏蔽已还原）
 							if (categoriesToMerge.length > 0) {
-								GM_notification({
-									title: 'AO3 Translator 同步',
-									text: `${categoriesToMerge.length} 个冲突分类已自动合并`
+								Logger.info('Sync', `${categoriesToMerge.length} 个冲突分类已自动合并：${categoriesToMerge.join('、')}`);
+							}
+							if (aiProfileRemoteApplied.length > 0) {
+								Logger.info('Sync', `已应用云端参数更新：${aiProfileRemoteApplied.join('、')}`);
+							}
+							if (aiProfileConflicts.length > 0) {
+								Logger.info('Sync', `同名翻译参数配置内容不一致，已各自留存：${aiProfileConflicts.map(c => `${c.name} → ${c.kept}`).join('、')}`, {
+									category: 'aiParameters',
+									categoryLabel: '翻译参数配置',
+									conflicts: aiProfileConflicts
 								});
 							}
 
-							// 4c. 合并可能改变本地数据 → 重导出 canonical 作为新基准
 							if (categoriesToMerge.length > 0) {
-								finalDataToUpload = await exportAllData(SYNC_CATEGORIES);  // 回传 canonical 不含 webdavConfig
+								finalDataToUpload = await exportAllData(SYNC_CATEGORIES);
 								finalDataToUpload.metadata.timestamps = SyncTimestampTracker.getTimestamps();
 							}
 
 							Logger.debug('Sync', '已将云端更新合并到本地', { remote: categoriesToApply, merged: categoriesToMerge }, traceId);
 							if (isAuto) {
-								GM_notification({ title: 'AO3 Translator 同步', text: '检测到云端配置更新，已自动在后台合并。' });
+								const autoConflictText = describeAiProfileConflicts(aiProfileConflicts);
+								GM_notification({ title: 'AO3 Translator 同步', text: `检测到云端配置更新，已自动在后台合并${categoriesToMerge.length > 0 ? `（含 ${categoriesToMerge.length} 个冲突分类自动合并）` : ''}${autoConflictText ? `；${autoConflictText}。参数差异详情请查阅日志` : '。'}` });
 							}
 						}
 
 						// 5. 上传到云端
 						if (shouldUploadToRemote) {
-							// F8：复用 buildUploadPayload，与 uploadCanonical 保持同一压缩/加密格式
 							const uploadContent = await this.buildUploadPayload(finalDataToUpload, config.encKey);
 							try {
-								// 云端文件已存在（目录必然已存在）时跳过 MKCOL。
-								// 目录不存在才尝试创建；建不了则降级到根路径（ensureSyncDirectory 置根模式），
-								// 同步文件改存 WebDAV 根，彻底自愈——不因目录创建失败而中断上传。
 								if (!remoteExists) {
 									await this.ensureSyncDirectory(client, traceId);
 								}
 								const remoteFilePath = this.getSyncFilePath();
-								// C1 修复：条件上传携带 ETag，与下面的 412 重试逻辑配合实现并发保护
 								await client.putFile(remoteFilePath, uploadContent, remoteEtag ? { etag: remoteEtag } : {});
 								Logger.debug('Sync', '已将本地更新上传至云端', null, traceId);
 							} catch (putErr) {
@@ -9314,7 +9081,7 @@ function detectWebDavProvider(url) {
 							}
 						}
 
-						// 6. 更新 Base 快照（带 URL 标签）
+						// 6. 更新 Base 快照
 						if (shouldApplyToLocal || shouldUploadToRemote || !compressedBase) {
 							await this.saveBaseSnapshot(finalDataToUpload.data, config.url);
 						}
@@ -9322,10 +9089,8 @@ function detectWebDavProvider(url) {
 						const nowStr = getShanghaiTimeString();
 
 						if (!shouldApplyToLocal && !shouldUploadToRemote) {
-							// 移除 !isAuto 门槛，自动同步无变更时也有完成回执
 							Logger.debug('Sync', '本地与云端数据一致，无需同步', null, traceId);
 						} else {
-							// 仅在存在实际数据变更时更新"最后同步时间"（语义=最后一次实际同步数据）
 							GM_setValue('webdav_last_sync_time', nowStr);
 						}
 
@@ -9333,24 +9098,22 @@ function detectWebDavProvider(url) {
 							success: true,
 							time: nowStr,
 							applied: shouldApplyToLocal,
-							uploaded: shouldUploadToRemote
+							uploaded: shouldUploadToRemote,
+							mergedCategories: shouldApplyToLocal ? categoriesToMerge : [],
+							aiProfileConflicts: aiProfileConflicts
 						};
 					} catch (err) {
 						lastError = err;
-						// 错误分级：永久性错误直接失败（不再进入重试循环）；
-						// 瞬时错误才重试。让 generic 的 fast-fail 真正生效。
 						const cls = this.classifySyncError(err, config);
 						if (cls.permanent) {
 							throw err;
 						}
-						// 404（路径/目录丢失）→ 先重建同步目录再重试；建不了则降级根路径，重试自然走根
 						if (cls.recreateDir) {
 							await this.ensureSyncDirectory(client, traceId);
 						}
 						Logger.warn('Sync', '同步尝试失败 (' + (retryCount + 1) + '/3): ' + err.message, { traceId });
 						retryCount++;
 						if (retryCount >= 3) break;
-						// 指数退避 + 抖动 + 30s 上限（2s / 4s），替代原线性 1s / 2s
 						await new Promise(r => setTimeout(r, Math.min(1000 * Math.pow(2, retryCount), 30000) + Math.random() * 500));
 						continue;
 					}
@@ -9363,20 +9126,22 @@ function detectWebDavProvider(url) {
 				const normalizedError = error.status ? error : new Error(error.message || '网络或认证错误');
 				if (!normalizedError.status) normalizedError.status = 0;
 				if (!normalizedError.response) normalizedError.response = { status: normalizedError.status };
-				// 保留本地加密/密钥/格式错误的标记，供友好提示与归因（status===0 但非网络错误）
 				if (error && error.syncPermanent) normalizedError.syncPermanent = true;
 				if (error && error.syncKind) normalizedError.syncKind = error.syncKind;
-				
-				// 提供更友好的错误信息
+
 				let reason = normalizedError.message || '网络或认证错误';
+				let notifyCategory = null;
 				if (normalizedError.syncKind === 'missingKey') {
+					notifyCategory = 'missingKey';
 					reason = '云端数据已加密，但本地未配置同步密钥：请到 设置→云端同步→同步密钥 填入加密云端数据时使用的密钥；若不再需要该份云端数据，可清空/删除云端 ao3_sync_data.enc 后重新同步。';
 				} else if (normalizedError.syncKind === 'wrongKey') {
+					notifyCategory = 'wrongKey';
 					reason = '同步密钥错误，无法解密云端数据：请核对使用的同步密钥（坚果云需用第三方应用密码、非登录密码），确认与当初加密云端数据时的密钥一致。';
 				} else if (normalizedError.status === 401) {
+					notifyCategory = 'auth401';
 					reason = '认证失败 (401)：请检查账号/密码是否正确（应用密码而非登录密码）';
 				} else if (normalizedError.status === 403) {
-					// 根据提供商类型给出更具体建议
+					notifyCategory = 'auth403';
 					if (config && (config.provider === 'generic' || config.provider === 'auto')) {
 						reason = '权限不足 (403)：\n建议：\n1. 确认 WebDAV 路径以 / 结尾（如 /dav/）\n2. 检查账号是否有该路径读写权限\n3. 确认 @connect 已声明该域名';
 					} else if (config && config.provider === 'jianguoyun') {
@@ -9394,22 +9159,21 @@ function detectWebDavProvider(url) {
 					reason = '文件被锁定 (423)：请稍后重试';
 				} else if (normalizedError.status === 507) {
 					reason = '存储空间不足 (507)：请清理云端空间';
-				} else if (normalizedError.status === 0) {
+				} else if (normalizedError.status === 0 && !normalizedError.syncKind) {
+					notifyCategory = 'network';
 					reason = '网络连接失败：请检查网络，或确认 WebDAV 地址正确，且已在 @connect 中声明该域名';
 				}
 
-				// 附带错误分级信息，供调度器决定是否触发永久失败升级冷却
 				const cls = this.classifySyncError(error, config);
-				// 同步失败埋点（归因 auth/timeout/network/other，随 feature_used.webdav_sync 每日一次）
 				try {
 					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.WEBDAV_SYNC_FAILED, {
 						detail: { category: this._failureCategory(normalizedError), reason }
 					}));
 				} catch (e) { /* 埋点失败不影响同步主流程 */ }
-				return { success: false, reason, permanent: cls.permanent };
+				return { success: false, reason, permanent: cls.permanent, notifyCategory };
 			} finally {
 				this.isSyncing = false;
-				this.syncLock = 0;  // 释放锁
+				this.syncLock = 0;
 			}
 		}
 	};
@@ -9419,18 +9183,16 @@ function detectWebDavProvider(url) {
 	 */
 	const AutoSyncScheduler = {
 		syncTimer: null,
-		_triggerQueue: Promise.resolve(),  // 串行执行队列
+		_triggerQueue: Promise.resolve(),
 		_lastTriggerTime: 0,
-		_minInterval: 30000,  // 最小触发间隔 30 秒，防止过度频繁
-		// 失败冷却：自动同步失败后，冷却期内跳过非高优先级触发，避免网络故障时反复重试
-		_cooldownMs: 5 * 60 * 1000,  // 5 分钟冷却
+		_minInterval: 30000,
+		_cooldownMs: 5 * 60 * 1000,
 		_lastFailTime: 0,
-		_lastFailTimeKey: 'webdav_last_fail_time',  // 持久化冷却时间，跨刷新/跨标签页生效
-		_cooldownTriggeredKey: 'webdav_cooldown_notified', // 冷却通知去重
+		_lastFailTimeKey: 'webdav_last_fail_time',
+		_cooldownTriggeredKey: 'webdav_cooldown_notified',
 		_permanentFailCountKey: 'webdav_permanent_fail_count',
-		_permanentFailThreshold: 2,  // 连续 N 次永久失败 → 升级 30 分钟冷却
-		_escalatedCooldownMs: 30 * 60 * 1000,  // 升级冷却时长
-		// 自动同步是否关闭：webdav_auto_sync_enabled=false 显式关闭；interval=0 或负值也视为关闭。
+		_permanentFailThreshold: 2,
+		_escalatedCooldownMs: 30 * 60 * 1000,
 		_isAutoDisabled() {
 			const enabled = GM_getValue('webdav_auto_sync_enabled', true);
 			if (String(enabled) === 'false') return true;
@@ -9480,11 +9242,11 @@ function detectWebDavProvider(url) {
 			GM_deleteValue(this._lastFailTimeKey);
 			GM_deleteValue(this._permanentFailCountKey);
 			GM_deleteValue(this._cooldownTriggeredKey);
+			GM_deleteValue('webdav_fail_notify_last_at');
+			GM_deleteValue('webdav_fail_notify_category');
 		},
 
 		init() {
-			// 幂等守卫：多标签页/iframe 下 init 可能被多次调用，
-			// 防止重复叠加 _saveDebounced 包装、重复注册监听器、重复创建 startup 定时器
 			if (this._initialized) return;
 			this._initialized = true;
 
@@ -9493,16 +9255,14 @@ function detectWebDavProvider(url) {
 			// 恢复持久化冷却状态
 			this._lastFailTime = this._getPersistedFailTime();
 
-			// 1. 监听本地数据变更，统一进入触发队列（值变更防抖 1 秒后触发）
+			// 1. 监听本地数据变更，统一进入触发队列
 			const originalSaveDebounced = SyncTimestampTracker._saveDebounced;
 			SyncTimestampTracker._saveDebounced = () => {
 				originalSaveDebounced.call(SyncTimestampTracker);
 				this.enqueueTrigger('data-change');
 			};
 
-			// 2. 监听页面隐藏 (离开页面时兜底同步)
-			// 改为非高优先级：visibilitychange 不再无限跳过最小间隔，页面快速隐藏/显示不会刷屏同步。
-			// 数据写入本身会触发 data-change，页面隐藏只是兜底，30s 最小间隔足够。
+			// 2. 监听页面隐藏 
 			document.addEventListener('visibilitychange', () => {
 				if (document.visibilityState === 'hidden') {
 					this.enqueueTrigger('visibility-change');
@@ -9512,7 +9272,7 @@ function detectWebDavProvider(url) {
 			// 3. 初始化定时器
 			this.updateInterval();
 
-			// 4. 初始启动时尝试同步一次 (延迟 5 秒，避免启动竞争)
+			// 4. 初始启动时尝试同步一次
 			setTimeout(() => this.enqueueTrigger('startup'), 5000);
 		},
 
@@ -9525,7 +9285,7 @@ function detectWebDavProvider(url) {
 			const interval = parseInt(intervalStr, 10);
 			const enabled = !this._isAutoDisabled();
 
-			// 自动同步关闭：清定时器、清冷却（不再被冷却卡住，等待重新启用）
+			// 自动同步关闭：清定时器、清冷却
 			if (!enabled) {
 				this._clearFailure();
 				this.syncTimer = null;
@@ -9537,12 +9297,11 @@ function detectWebDavProvider(url) {
 					this.enqueueTrigger('periodic');
 				}, interval * 60 * 1000);
 
-				// 用户显式保存有效间隔时立即同步一次（highPriority 覆盖最小间隔，加快生效）
+				// 用户显式保存有效间隔时立即同步一次
 				if (triggerImmediate) {
 					this.enqueueTrigger('interval-update', true);
 				}
 			}
-			// interval <= 0：关闭定时器即关闭周期同步；data-change/visibility 由 enqueueTrigger 统一拦截
 		},
 
 		/**
@@ -9553,26 +9312,23 @@ function detectWebDavProvider(url) {
 		enqueueTrigger(source, highPriority = false) {
 			const now = Date.now();
 
-			// 自动同步总开关：非高优先级触发（data-change/visibility/startup/periodic）
-			// 在用户关闭自动同步时直接静默跳过（不再逐条刷日志）；手动同步不走此入口，不受影响
+			// 自动同步总开关
 			if (!highPriority && this._isAutoDisabled()) {
 				return;
 			}
 
-			// 失败冷却：冷却期内跳过非高优先级触发（静默，不再逐条刷日志）
-			// 升级冷却（永久失败）时长更长，由 _isEscalatedCooldown 决定
+			// 失败冷却
 			if (!highPriority && this._lastFailTime > 0 && now - this._lastFailTime < this._effectiveCooldownMs()) {
 				return;
 			}
 
-			// 最小间隔限制（非高优先级）——纯节流，静默
+			// 最小间隔限制
 			if (!highPriority && now - this._lastTriggerTime < this._minInterval) {
 				return;
 			}
 
 			// 串行执行：追加到队列尾部
 			this._triggerQueue = this._triggerQueue.then(async () => {
-				// 再次检查间隔（队列中可能已过期）——静默
 				if (!highPriority && Date.now() - this._lastTriggerTime < this._minInterval) {
 					return;
 				}
@@ -9582,16 +9338,42 @@ function detectWebDavProvider(url) {
 
 				try {
 					const result = await WebDAVSyncManager.executeSync(true);
-					// 自动同步完成后，若实际发生了数据变更，通知设置面板即时刷新"最后同步时间"。
-					// 此前仅手动同步会内联刷新 statusText；自动同步只写 GM 值，面板保持打开时需切换/重开才能看到新时间。
-					// 语义与 handleManualSync 一致：无实际数据变更时不刷新（保持旧时间=最后一次实际同步数据）。
 					if (result && result.success === true && (result.applied || result.uploaded)) {
 						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.WEBDAV_SYNC_COMPLETED));
 					}
-					// 失败冷却：同步失败（非静默）时记录失败时间；成功则清除冷却
 					if (result && result.success === false && !result._silent) {
 						const isPermanent = result.permanent === true;
 						this._recordFailure(isPermanent);
+						if (result.reason) {
+							let notifyText;
+							switch (result.notifyCategory) {
+								case 'missingKey':
+									notifyText = '自动同步失败：云端数据已加密，但本地未配置同步密钥。';
+									break;
+								case 'wrongKey':
+									notifyText = '自动同步失败：同步密钥错误，无法解密云端数据。';
+									break;
+								case 'auth401':
+									notifyText = '自动同步失败：WebDAV 认证失败 (401)。';
+									break;
+								case 'auth403':
+									notifyText = '自动同步失败：权限不足 (403)。';
+									break;
+								case 'network':
+									notifyText = '自动同步失败：网络连接失败。';
+									break;
+								default:
+									notifyText = `自动同步失败：${result.reason}`;
+							}
+							const lastNotifiedAt = parseInt(GM_getValue('webdav_fail_notify_last_at', '0'), 10) || 0;
+							const lastNotifiedCategory = GM_getValue('webdav_fail_notify_category', null);
+							if (Date.now() - lastNotifiedAt >= 21600000 || lastNotifiedCategory !== (result.notifyCategory || 'default')) {
+								GM_notification(notifyText, 'AO3 Translator 同步');
+								GM_setValue('webdav_fail_notify_last_at', Date.now());
+								GM_setValue('webdav_fail_notify_category', result.notifyCategory || 'default');
+							}
+							Logger.warn('Sync', `[Scheduler] ${source} 自动同步失败: ${notifyText}`);
+						}
 					} else if (result && result.success === true) {
 						this._clearFailure();
 					}
@@ -9605,7 +9387,6 @@ function detectWebDavProvider(url) {
 		},
 
 		async triggerImmediateAutoSync() {
-			// 兼容旧调用，转为高优先级入队
 			this.enqueueTrigger('legacy', true);
 		}
 	};
@@ -10345,7 +10126,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		static async generatePDF(meta, chapters, css, fileNameBase) {
-			Logger.info('Export', '正在准备 PDF 打印视图，请在弹出的系统对话框中选择“另存为 PDF”...');
+			notifyAndLog('正在准备 PDF 打印视图，请在弹出的系统对话框中选择“另存为 PDF”...', '导出', 'info');
 
 			const htmlContent = `
 				<!DOCTYPE html>
@@ -10418,7 +10199,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 								clearTimeout(Logger.saveTimer);
 								Logger.saveTimer = null;
 								try {
-									// P0/P1: 与 _scheduleSave 同一落盘流水线(时间/条数/字节/reasoning)
 									GM_setValue('ao3_log_history', Logger._buildPersistData());
 								} catch (e) {}
 							}
@@ -10460,9 +10240,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		static async executeExport() {
 			const formats = GM_getValue('ao3_export_selected_formats', ['html']);
 			if (formats.length === 0) return;
-			
-			Logger.info('Export', '正在提取网页内容，请稍候...');
-			
+
 			const meta = AO3DOMParser.extractMetadata();
 			const chapters = AO3DOMParser.extractChapters();
 			
@@ -10494,12 +10272,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (format === 'epub') await this.generateEPUB(meta, chapters, css, fileNameBase);
 					else if (format === 'pdf') await this.generatePDF(meta, chapters, css, fileNameBase);
 					else if (format === 'html') this.generateHTML(meta, chapters, css, fileNameBase);
-					// 埋点：作品导出（每次动作一条；带 export_format）
 					Analytics.exportCreated(format, 'success');
 				} catch (e) {
 					Logger.error('Export', `导出 ${format.toUpperCase()} 失败`, e);
 					notifyAndLog(`导出 ${format.toUpperCase()} 失败: ${e.message}`, '错误', 'error');
-					// 埋点：作品导出失败（每次动作一条）
 					Analytics.exportCreated(format, 'failure');
 				}
 			}
@@ -10787,10 +10563,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		{ id: 'fabActions', label: '悬浮按钮操作' },
 		{ id: 'exportTemplates', label: '作品导出模板' },
 		{ id: 'cacheSettings', label: '缓存清理策略' },
-		{ id: 'webdavConfig', label: '云端同步配置' }  // 改动 8：仅进手动导入导出，不参与 WebDAV 自动同步
+		{ id: 'webdavConfig', label: '云端同步配置' }
 	];
 
-	// 改动 8b：自动同步使用的分类 = DATA_CATEGORIES 剔除 webdavConfig（仅手动链路携带，避免凭据进入云端同步文件）
 	const SYNC_CATEGORIES = DATA_CATEGORIES.filter(c => c.id !== 'webdavConfig').map(c => c.id);
 
 	// 页面配置缓存
@@ -10934,9 +10709,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const RETRACT_MARGIN = 10;
 		const SNAP_THRESHOLD = 40;
 		const LONG_PRESS_DURATION = 500;
-		// 底部遮挡 ≥ 该值才视为键盘（地址栏等小遮挡不位移，避免滚动抖动）
 		const KEYBOARD_MIN_HEIGHT = 120;
-		// 键盘收起动画收敛后再归位的等待时长
 		const KEYBOARD_CLOSE_SETTLE_MS = 250;
 
 		let isPointerDown = false;
@@ -10947,41 +10720,27 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let fabSize = { width: 0, height: 0 };
 		let longPressTimer = null;
 		let hasLongPressed = false;
-
-		// 用于触控设备的 2 秒自动贴边倒计时
 		let autoSnapTimer = null;
-		// 记录最后一次交互的设备类型 ('touch' 或 'mouse')
 		let lastPointerType = 'mouse';
-
-		// 用于双击检测的变量
 		let clickTimer = null;
 		let clickCount = 0;
-
-		// ===== 键盘感知（P0-1 / P1-1 / P1-3 / P2-2）=====
 		let lastWinWidth = document.documentElement.clientWidth;
 		let maxWinHeight = window.innerHeight;
-		// 键盘状态机: 'closed' | 'opening' | 'open' | 'closing'
 		let keyboardState = 'closed';
 		let keyboardTimer = null;
-		// 最近一次宽度显著变化的时刻（用于把旋转后的残余 resize 归入真·resize）
 		let lastWidthChangeAt = 0;
-		// 键盘弹起时临时位移前的原始位置（全高坐标系，仅临时、不持久化）
 		let preKeyboardPos = null;
 
 		const getVisualViewport = () => (typeof window.visualViewport !== 'undefined') ? window.visualViewport : null;
-		// 是否触屏设备：决定"高度缩水"是底部遮挡还是真实 resize
 		const isTouchCapable = () =>
 			(window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
 			(typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
-		// 收敛 maxWinHeight 更新的单一写点（P1-3）
 		const noteViewportHeight = (h) => { if (typeof h === 'number' && h > maxWinHeight) maxWinHeight = h; };
-		// 底部是否有遮挡（键盘/地址栏）：布局视口比历史最大高度小，或视觉视口被压缩
 		const isBottomObstructed = () => {
 			if (window.innerHeight < maxWinHeight - 2) return true;
 			const vv = getVisualViewport();
 			return !!(vv && vv.height > 0 && vv.height < window.innerHeight - 2);
 		};
-		// 底部遮挡高度（px）
 		const getBottomObstructionHeight = () => {
 			const vv = getVisualViewport();
 			const currentH = window.innerHeight;
@@ -10990,19 +10749,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 			return Math.max(0, maxWinHeight - currentH);
 		};
-		// 键盘级遮挡（≥ KEYBOARD_MIN_HEIGHT）——与地址栏等小遮挡区分（P2-2）
 		const isKeyboardObstructed = () => isMobileKeyboardState() && getBottomObstructionHeight() >= KEYBOARD_MIN_HEIGHT;
-		// 加载时是否有输入框聚焦（键盘很可能已弹起）
 		const isEditableFocused = () => {
 			const el = getDeepActiveElement();
 			if (!el || !el.tagName) return false;
 			return el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT';
 		};
-		// 动态检测移动端键盘弹起状态（已去掉指针类型 / lastWinWidth 门控，见根因 A/C）
 		const isMobileKeyboardState = () => isTouchCapable() && isBottomObstructed();
 
 		const limitNumber = (num, min, max) => Math.max(min, Math.min(num, max));
-		// 位置持久化（P1-2）：统一存"相对全高视口"的比例，兼容旧 px 数据
 		const getPositionFromStorage = () => {
 			const raw = GM_getValue(FAB_POSITION_KEY);
 			if (!raw || typeof raw !== 'object') return null;
@@ -11012,7 +10767,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				return { x: raw.xRatio * winW, y: raw.yRatio * baseH };
 			}
 			if (typeof raw.x === 'number' && typeof raw.y === 'number') {
-				return { x: raw.x, y: raw.y };   // 旧版 px：本就基于全高坐标，原样使用
+				return { x: raw.x, y: raw.y };
 			}
 			return null;
 		};
@@ -11022,7 +10777,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			GM_setValue(FAB_POSITION_KEY, {
 				xRatio: winW > 0 ? pos.x / winW : 0,
 				yRatio: baseH > 0 ? pos.y / baseH : 0,
-				x: pos.x, y: pos.y   // 保留 px 字段，便于调试与旧版回读
+				x: pos.x, y: pos.y
 			});
 		}, 500);
 
@@ -11081,7 +10836,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		// 核心位置判定逻辑
 		const snapDecision = (forceRetract = false, useTransition = true) => {
 			if (isDragging) return;
-			// 键盘级遮挡期间不贴边（P1-1）：避免贴到键盘下方；地址栏等小遮挡不受影响
+			// 键盘级遮挡期间不贴边：避免贴到键盘下方；地址栏等小遮挡不受影响
 			if (isKeyboardObstructed()) return;
 			window.removeEventListener('mousemove', checkMouseLeave);
 
@@ -11094,7 +10849,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const winW = document.documentElement.clientWidth;
 			noteViewportHeight(window.innerHeight);
 
-			// 统一全高坐标系：贴边计算始终基于历史最大高度（键盘/地址栏的缩水不影响）
+			// 统一全高坐标系：贴边计算始终基于历史最大高度
 			const effectiveH = maxWinHeight;
 			const currentPos = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
 
@@ -11155,7 +10910,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			fabContainer.classList.remove('snapped');
 
 			const winW = document.documentElement.clientWidth;
-			const winH = maxWinHeight;   // 统一全高坐标系（P0-3）
+			const winH = maxWinHeight;
 			const currentPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
 			let newPos = { ...currentPos };
 
@@ -11167,23 +10922,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			else if (currentPos.y > winH - fabSize.height) newPos.y = winH - fabSize.height - RETRACT_MARGIN;
 
 			setPosition(newPos, true);
-			// 键盘弹起时，激活后仍保持可见（P0-4）
+			// 键盘弹起时，激活后仍保持可见
 			if (isMobileKeyboardState()) repositionForKeyboard();
 		};
 
-		// 键盘弹起时的临时位移：只改样式、不持久化，避免被键盘盖住（P0-4 / P2-1）
+		// 键盘弹起时的临时位移
 		const repositionForKeyboard = () => {
 			if (isDragging) return;
 			const obstruction = getBottomObstructionHeight();
-			// 仅当遮挡高度足够大（键盘）才位移；地址栏等小遮挡不动作（P2-2）
 			if (obstruction < KEYBOARD_MIN_HEIGHT) return;
 			const vv = getVisualViewport();
 			const currentH = window.innerHeight;
-			// 可见底边：优先视觉视口，退化用当前布局高度
 			const visibleBottom = (vv && vv.height > 0) ? (vv.offsetTop + vv.height) : currentH;
 			const pos = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
 			if (pos.y + fabSize.height <= visibleBottom) return;
-			// 记录键盘收起前的位置（全高坐标系），用于收起后归位
 			if (!preKeyboardPos) preKeyboardPos = { ...pos };
 			const newY = Math.max(RETRACT_MARGIN, visibleBottom - fabSize.height - RETRACT_MARGIN);
 			if (Math.abs(newY - pos.y) > 1) setPosition({ x: pos.x, y: newY }, true);
@@ -11316,14 +11068,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				fabContainer.classList.remove('dragging');
 
 				const winW = document.documentElement.clientWidth;
-				const winH = maxWinHeight;   // 统一全高坐标系（P0-3）
+				const winH = maxWinHeight;
 				let finalPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
 				finalPos.x = limitNumber(finalPos.x, 0, winW - fabSize.width);
 				finalPos.y = limitNumber(finalPos.y, 0, winH - fabSize.height);
 				setPosition(finalPos);
 				savePosition(finalPos);
-				preKeyboardPos = null;   // 用户已接管位置，收起后不再回原位置
-				snapDecision(false, false);   // 拖拽结束用无过渡贴边，避免"松手后漂移"（P1-4）
+				preKeyboardPos = null;
+				snapDecision(false, false);
 				if (isMobileKeyboardState()) repositionForKeyboard();
 			}
 		};
@@ -11394,7 +11146,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			handleFabAction(action);
 		});
 
-		// 键盘状态机入口：区分"真·resize"（旋转/窗口缩放）与"底部遮挡"（键盘/地址栏）（P1-1 / P2-2）
+		// 键盘状态机入口
 		const handleViewportChange = () => {
 			const currentH = window.innerHeight;
 			const winW = document.documentElement.clientWidth;
@@ -11403,25 +11155,22 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (widthChanged) lastWidthChangeAt = Date.now();
 
 			noteViewportHeight(currentH);
-			lastWinWidth = winW;   // 修复：宽度基线每次更新（根因 C）
+			lastWinWidth = winW;
 
-			// 真·resize：旋转 / 窗口放大 / 非触屏设备窗口缩放 / 旋转后残余 resize
 			if (widthChanged || grew || !isTouchCapable() || (Date.now() - lastWidthChangeAt < 300)) {
 				maxWinHeight = currentH;
 				if (keyboardTimer) { clearTimeout(keyboardTimer); keyboardTimer = null; }
 				keyboardState = 'closed';
-				preKeyboardPos = null;   // 真·resize 丢弃临时位移记忆
+				preKeyboardPos = null;
 				updateFabSize();
 				snapDecision(true);
 				if (statusLightController) statusLightController.updateDirection();
 				return;
 			}
 
-			// 触屏设备的其余高度变化均为"底部遮挡"
 			const obstructed = isBottomObstructed();
 			let nextState = keyboardState;
 			if (keyboardState === 'closing') {
-				// 收起等待中：不打断，交给收敛定时器
 			} else if (obstructed) {
 				nextState = (keyboardState === 'open' || keyboardState === 'opening') ? 'open' : 'opening';
 			} else {
@@ -11441,7 +11190,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				keyboardTimer = setTimeout(() => {
 					keyboardTimer = null;
 					if (isBottomObstructed()) {
-						// 收起过程中键盘又被唤起
 						keyboardState = 'open';
 						repositionForKeyboard();
 					} else {
@@ -11455,7 +11203,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const onResize = debounce(handleViewportChange, 200);
 		window.addEventListener('resize', onResize);
 
-		// visualViewport 是键盘弹起/收起的可靠信号（覆盖新版 Android resizes-content）
 		const vvForListen = getVisualViewport();
 		if (vvForListen && typeof vvForListen.addEventListener === 'function') {
 			vvForListen.addEventListener('resize', debounce(handleViewportChange, 120), { passive: true });
@@ -11464,7 +11211,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const initializePosition = () => {
 			updateFabSize();
 			const winW = document.documentElement.clientWidth;
-			// P0-5：初始化时若键盘已弹起（maxWinHeight 被压缩），用当前可见高度兜底
 			const winH = Math.max(maxWinHeight, window.innerHeight);
 			let initialPosition = getPositionFromStorage();
 			if (!initialPosition) {
@@ -11474,7 +11220,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				};
 			}
 			setPosition(initialPosition);
-			// 初始处理：键盘已弹起 → 只做临时位移；输入框聚焦时不做初始贴边，避免"载入即跳"
 			setTimeout(() => {
 				if (isMobileKeyboardState()) {
 					keyboardState = 'open';
@@ -11661,9 +11406,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	];
 
 	/**
-	 * F9：WebDAV 同步配置的手动导入/导出键清单（exportAllData 与 importAllData 共用，防漂移）。
-	 * 已按 F7 移除 webdav_path_encoding：该键只被 applyConfig 写入、从无读取方（适配器硬编码 utf8），
-	 * 属死存储键，不再进导出/导入行李。
+	 * WebDAV 同步配置的手动导入/导出键清单
 	 */
 	const WEBDAV_CONFIG_KEYS = ['webdav_url','webdav_user','webdav_pass','webdav_enc_key',
 		'webdav_auto_sync_enabled','webdav_sync_interval','webdav_chunk_size',
@@ -11674,14 +11417,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 * 聚合用户配置数据，支持按需导出
 	 */
 	async function exportAllData(selectedCategories = null) {
-		// 无参默认 = SYNC_CATEGORIES（不含 webdavConfig），防同步链路漏传时把凭据带进同步文件；
-		// 手动导出总是显式传 selectionResult.ids（含 webdavConfig，勾选时）。
 		const categories = selectedCategories || SYNC_CATEGORIES;
 		const isSelected = (id) => categories.includes(id);
 
 		const allData = {
 			metadata: {
-				exportFormatVersion: "1.4",  // URL-only：glossaries 移除 importedGlossaries、metadata 仅 enabled（破坏性格式变更，版本未发布无需兼容）
+				exportFormatVersion: "1.4",
 				scriptVersion: GM_info.script.version,
 				exportDate: getShanghaiTimeString(),
 				selectedCategories: categories
@@ -11693,12 +11434,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			allData.data.staticKeys = {};
 			const keys =[
 				'enable_RegExp', 'enable_transDesc', 'show_fab', 'transEngine',
-				// 移除瞬态 'ao3_glossary_last_action'（上次操作记录，不同步）
 				'translation_display_mode',
 				'from_lang', 'to_lang', 'lang_detector', 'lang_detector_fallback', 'enable_ui_trans',
 				'ao3_log_level', 'ao3_log_auto_clear', 'custom_url_first_save_done',
 				'ao3_translation_mode', 'ao3_auto_translate', 'hide_whitelist_prompt',
-				// 归位微调：插件更新检测间隔与行为设置同属 staticKeys
 				'ao3_update_check_interval'
 			];
 			for (const key of keys) {
@@ -11764,8 +11503,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		if (isSelected('glossaries')) {
 			allData.data.glossaries = {
 				customGlossaries: GM_getValue(CUSTOM_GLOSSARIES_KEY),
-				// URL-only：在线词表只同步订阅列表（metadata 仅 enabled + 排序 + 上次选中），
-				// 词条由接收端按 URL 重拉，不同步（源 URL 是唯一事实来源）。
 				metadata: (() => {
 					const meta = GM_getValue(GLOSSARY_METADATA_KEY, {});
 					const enabledOnly = {};
@@ -11789,7 +11526,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		if (isSelected('aiParameters')) {
 			allData.data.aiParameters = {};
 
-			// P1(8.7)：移除瞬态 'ao3_ai_param_last_action'（上次操作记录，不同步），仅保留翻译参数配置
 			const profiles = GM_getValue(AI_PROFILES_KEY);
 			if (profiles && Array.isArray(profiles) && profiles.length > 0) {
 				allData.data.aiParameters[AI_PROFILES_KEY] = profiles;
@@ -11808,7 +11544,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			allData.data.uiState = {
-				// P1(8.7)：仅同步逻辑偏好（跨设备一致），设备相关（悬浮球/面板位置）与瞬态交互（编辑模式/已打开过/日志筛选等）不同步
 				exportSelection: GM_getValue('ao3_export_selection_memory'),
 				localGlossarySelectedId: GM_getValue('ao3_local_glossary_selected_id'),
 				postReplaceSelectedId: GM_getValue('ao3_post_replace_selected_id'),
@@ -11816,8 +11551,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				fabManageGesture: GM_getValue('ao3_fab_manage_gesture'),
 				exportLastFormat: GM_getValue('ao3_export_last_format'),
 				exportLastAction: GM_getValue('ao3_export_last_action'),
-				exportFormats: GM_getValue('ao3_export_selected_formats'),  // 改动 4(G4)：作品导出格式选择，与 exportLastFormat/Action 对齐同步
-				// 归位微调：状态灯显隐为视觉开关 → uiState；更新检查间隔已移入 staticKeys
+				exportFormats: GM_getValue('ao3_export_selected_formats'),
 				show_status_light: GM_getValue('show_status_light'),
 				serviceCollapsedStates: collapsedStates
 			};
@@ -11856,15 +11590,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				autoCleanupEnabled: GM_getValue('ao3_cache_auto_cleanup_enabled', true),
 				maxItems: GM_getValue('ao3_cache_max_items'),
 				maxDays: GM_getValue('ao3_cache_max_days'),
-				maxSizeBytes: GM_getValue('ao3_cache_max_size_bytes')  // G3 转正：面板已暴露，纳入同步
+				maxSizeBytes: GM_getValue('ao3_cache_max_size_bytes')
 			};
 		}
 
-		// 改动 8c：WebDAV 同步配置（仅手动导入导出携带；明文，按需求不设导出提示）。
-		// 排除运行时状态键（last_sync_time/first_sync_prompted/冷却键/user_overrides）。
 		if (isSelected('webdavConfig')) {
 			allData.data.webdavConfig = {};
-			for (const key of WEBDAV_CONFIG_KEYS) {  // F9：共享键清单（F7 已移除死键 webdav_path_encoding）
+			for (const key of WEBDAV_CONFIG_KEYS) {
 				const value = GM_getValue(key);
 				if (value !== undefined) allData.data.webdavConfig[key] = value;
 			}
@@ -11885,6 +11617,113 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) return false;
 		}
 		return true;
+	}
+
+	const AI_PARAM_LOG_LABELS = {
+		system_prompt: 'System Prompt',
+		user_prompt: 'User Prompt',
+		temperature: 'Temperature',
+		reasoning_effort: '推理深度',
+		para_mode: '标记方式',
+		chunk_size: '每次翻译文本量',
+		para_limit: '每次翻译段落数',
+		request_rate: '平均每秒请求数',
+		request_capacity: '最大突发请求数',
+		lazy_load_margin: '懒加载参数设置',
+		validation_thresholds: '占位符校验阈值',
+		batch_mode: '批次大小'
+	};
+
+	function normalizeAiServiceUrl(url) {
+		const raw = String(url || '').trim();
+		if (!raw) return '';
+		try {
+			const parsed = new URL(raw);
+			const port = parsed.port ? `:${parsed.port}` : '';
+			return `${parsed.protocol}//${parsed.hostname}${port}${parsed.pathname.replace(/\/+$/, '')}`.toLowerCase();
+		} catch (e) {
+			return raw.replace(/\/+$/, '').toLowerCase();
+		}
+	}
+
+	function collectAiServiceUrlMap(extraLists) {
+		const map = new Map();
+		const lists = [GM_getValue(CUSTOM_SERVICES_LIST_KEY, [])];
+		(extraLists || []).forEach(list => lists.push(list));
+		lists.forEach(list => {
+			if (!Array.isArray(list)) return;
+			list.forEach(service => {
+				if (!service || typeof service.id !== 'string' || !service.url) return;
+				const key = normalizeAiServiceUrl(service.url);
+				if (key) map.set(service.id, key);
+			});
+		});
+		return map;
+	}
+
+	function aiServiceIdentity(serviceIds, urlMap) {
+		return (serviceIds || []).map(id => {
+			const url = urlMap && urlMap.get(id);
+			return url ? `url:${url}` : `id:${id}`;
+		}).sort().join('|');
+	}
+
+	function aiProfileIdentityKey(profile, urlMap) {
+		return `${String((profile && profile.name) || '').trim()}\u0001${aiServiceIdentity(profile && profile.services, urlMap)}`;
+	}
+
+	function resolveAiProfileServiceIds(serviceIds, serviceIdMap, urlMap, localServices) {
+		const localIdByUrl = new Map();
+		const localIds = new Set();
+		(localServices || []).forEach(service => {
+			if (!service || typeof service.id !== 'string') return;
+			localIds.add(service.id);
+			if (!service.url) return;
+			const key = normalizeAiServiceUrl(service.url);
+			if (key && !localIdByUrl.has(key)) localIdByUrl.set(key, service.id);
+		});
+		return (serviceIds || []).map(id => {
+			if (serviceIdMap && serviceIdMap.has(id)) return serviceIdMap.get(id);
+			if (localIds.has(id)) return id;
+			const url = urlMap && urlMap.get(id);
+			if (url && localIdByUrl.has(url)) return localIdByUrl.get(url);
+			return id;
+		});
+	}
+
+	function formatAiParamValue(key, value) {
+		if (value === undefined) return '未设置';
+		if (value === null) return '空';
+		if (key === 'reasoning_effort') return REASONING_LEVEL_LABELS[value] || String(value);
+		if (key === 'para_mode') return value === 'json' ? 'JSON 数组' : (value === '%%' ? '分隔符' : String(value));
+		if (key === 'batch_mode') return value === 'fixed' ? '固定' : (value === 'dynamic' ? '动态' : String(value));
+		const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+		return text.length > 40 ? `${text.slice(0, 40)}…` : text;
+	}
+
+	function diffAiProfileParams(localParams, remoteParams) {
+		const local = localParams || {};
+		const remote = remoteParams || {};
+		const diffs = {};
+		const keys = Array.from(new Set([...Object.keys(local), ...Object.keys(remote)])).sort();
+		keys.forEach(key => {
+			if (JSON.stringify(local[key]) === JSON.stringify(remote[key])) return;
+			const label = AI_PARAM_LOG_LABELS[key] || key;
+			if (key === 'system_prompt' || key === 'user_prompt') {
+				diffs[label] = '内容有修改';
+				return;
+			}
+			diffs[label] = `${formatAiParamValue(key, local[key])} → ${formatAiParamValue(key, remote[key])}`;
+		});
+		return diffs;
+	}
+
+	function describeAiProfileConflicts(conflicts) {
+		if (!conflicts || conflicts.length === 0) return '';
+		if (conflicts.length === 1) {
+			return `有 1 项同名翻译参数配置内容不一致，已各自留存（${conflicts[0].name}、${conflicts[0].kept}）`;
+		}
+		return `有 ${conflicts.length} 项同名翻译参数配置内容不一致，已各自留存`;
 	}
 
 	function generateUniqueName(desiredName, existingNames) {
@@ -11912,7 +11751,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	/**
 	 * 导入用户配置数据，支持按需导入及智能合并/覆盖模式
 	 */
-	async function importAllData(jsonData, selectedCategories, importMode, isSync = false) {
+	async function importAllData(jsonData, selectedCategories, importMode, isSync = false, syncContext = null) {
 		if (!jsonData || typeof jsonData !== 'object' || !jsonData.data || typeof jsonData.data !== 'object') {
 			return { success: false, message: "文件格式无效或文件已损坏：缺少核心 'data' 模块。" };
 		}
@@ -11924,7 +11763,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		const fileMetadata = jsonData.metadata || {};
 		const fileFormatVersion = parseFloat(fileMetadata.exportFormatVersion || "1.0");
-		const currentScriptSupportedVersion = 1.4;  // 与 exportFormatVersion 对齐（URL-only 格式）
+		const currentScriptSupportedVersion = 1.4;
 
 		if (fileFormatVersion > currentScriptSupportedVersion) {
 			try {
@@ -11944,6 +11783,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let importLog =[];
 
 		const serviceIdMap = new Map();
+		let aiProfileConflicts = [];
+		let aiProfileRemoteApplied = [];
 
 		// 1. 自定义服务
 		if (isSelected('customServices')) {
@@ -11983,9 +11824,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 								const mergedKey = mergeApiKeys(localApiKey, importedApiKey);
 								GM_setValue(`${matchedService.id}_keys_string`, mergedKey);
 								GM_setValue(`${matchedService.id}_keys_array`, parseKeysToArray(mergedKey));
-								// F3：合并分支补拷贝 key_index —— 仅当本地本无 key 时采用导入 index
-								//（此时合并只含导入 key，index 直接对齐）；本地已有 key 则保留本地 index，
-								// 避免 mergeApiKeys "本地在前、导入在后"造成的错位。
 								const oldIndexKey = `${importedService.id}_key_index`;
 								if (!localApiKey && data.apiKeys[oldIndexKey] !== undefined) {
 									GM_setValue(`${matchedService.id}_key_index`, data.apiKeys[oldIndexKey]);
@@ -11993,8 +11831,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 								clampKeyIndex(matchedService.id);
 							}
 						}
-						// F3：合并分支补拷贝 selectedModel（与新建分支一致）——此前仅新建分支还原，
-						// URL 匹配的合并导入会静默丢失模型选择。
 						if (importedService.selectedModel !== undefined) {
 							GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${matchedService.id}`, importedService.selectedModel);
 						}
@@ -12099,7 +11935,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						GM_setValue(key, value);
 						GM_setValue(key.replace('_keys_string', '_keys_array'), parseKeysToArray(value));
 						keysUpdated = true;
-						// 覆盖模式沿用导入的 index（如有），越界时 clamp 归 0
 						const importedIndexKey = key.replace('_keys_string', '_key_index');
 						if (data.apiKeys[importedIndexKey] !== undefined) {
 							GM_setValue(importedIndexKey, data.apiKeys[importedIndexKey]);
@@ -12140,7 +11975,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			if (isOverwrite) {
 				GM_setValue(CUSTOM_GLOSSARIES_KEY,[]);
-				// URL-only：词条由重拉回填，覆盖时清空词条缓存（订阅列表即事实）
 				GM_setValue(IMPORTED_GLOSSARY_KEY, {});
 				GM_setValue(GLOSSARY_METADATA_KEY, {});
 				GM_setValue(ONLINE_GLOSSARY_ORDER_KEY,[]);
@@ -12148,7 +11982,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			if (g.local || g.forbidden) {
 				const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY,[]);
-				// 【修复】merge/导入时：若本地已有"同名且为空"的'默认'术语表，并入其词条，避免再产生重复的"默认"表。
 				const emptyDefault = !isOverwrite && existingLocal.find(local =>
 					local.name === '默认' &&
 					(local.sensitive || '').trim() === '' &&
@@ -12180,8 +12013,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				let localAdded = 0;
 				
 				g.customGlossaries.forEach(importedLocal => {
-					// 【修复】merge/导入时：若本地已有"同名且为空"的术语表，直接并入其词条，
-					// 避免生成 "名字 (1)" 这类重复表。不限"默认"，任何同名空表都适用；仅非覆盖(merge)模式。
 					const emptySameName = !isOverwrite && existingLocal.find(local =>
 						local.name === importedLocal.name &&
 						(local.sensitive || '').trim() === '' &&
@@ -12196,7 +12027,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						if (data.uiState && data.uiState.localGlossarySelectedId === importedLocal.id) {
 							data.uiState._mappedLocalId = emptySameName.id;
 						}
-						return;   // 已并入同名空表，不新增、不重命名
+						return;
 					}
 
 					const isDuplicate = !isOverwrite && existingLocal.some(local => 
@@ -12229,15 +12060,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				if (localAdded > 0) importLog.push(`新增 ${localAdded} 个本地术语表`);
 			}
 
-			// URL-only：词条不再同步/导入（由重拉回填），移除原 importedGlossaries 合并块
-
-			// URL-only：metadata 仅恢复 enabled（订阅列表）；版本/时间戳由本地重拉重建，不同步、不覆盖
 			if (g.metadata || g.onlineMetadata) {
 				const importedMeta = g.metadata || g.onlineMetadata;
 				const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
 				for (const [url, meta] of Object.entries(importedMeta)) {
 					const enabled = (meta && typeof meta === 'object') ? meta.enabled : meta;
-					// 保留本地已知字段（version/时间戳），仅覆盖 enabled
 					existingMeta[url] = { ...(existingMeta[url] || {}), enabled: enabled };
 				}
 				GM_setValue(GLOSSARY_METADATA_KEY, existingMeta);
@@ -12253,9 +12080,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, [...currentOrder, ...newItems]);
 				}
 			}
-			// 修复 G1：还原"上次选中的在线词表"（导出含但原未导入，补上还原使导出/导入对称）
 			if (g.lastSelected) GM_setValue(LAST_SELECTED_GLOSSARY_KEY, g.lastSelected);
-		invalidateGlossaryCache();  // 修复 sync-invalidate：同步应用术语表数据后失效规则缓存
+		invalidateGlossaryCache();
 		}
 
 		// 6. 替换规则
@@ -12354,13 +12180,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			const importedProfiles = data.aiParameters[AI_PROFILES_KEY];
 			if (importedProfiles && Array.isArray(importedProfiles)) {
-				if (serviceIdMap.size > 0) {
-					importedProfiles.forEach(profile => {
-						if (profile.services && Array.isArray(profile.services)) {
-							profile.services = profile.services.map(oldId => serviceIdMap.get(oldId) || oldId);
-						}
-					});
-				}
+				const localServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+				const serviceUrlMap = collectAiServiceUrlMap([data.customServices, syncContext && syncContext.baseServices]);
+
+				importedProfiles.forEach(profile => {
+					if (profile && Array.isArray(profile.services)) {
+						profile.services = resolveAiProfileServiceIds(profile.services, serviceIdMap, serviceUrlMap, localServices);
+					}
+				});
 
 				if (isOverwrite) {
 					GM_setValue(AI_PROFILES_KEY, importedProfiles);
@@ -12368,28 +12195,51 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				} else {
 					const currentProfiles = GM_getValue(AI_PROFILES_KEY,[]);
 					const existingNames = currentProfiles.map(p => p.name);
+					const baseProfiles = (syncContext && Array.isArray(syncContext.baseProfiles)) ? syncContext.baseProfiles : null;
 					let addedCount = 0;
 
 					importedProfiles.forEach(importedProfile => {
-						// 修复：去重键原只比 params，忽略 services → 相同 params 但不同服务关联的 profile 会被误判重复、
-						// 远端服务关联被丢弃。改为 params + services 联合比较（services 视为集合，排序后比较避免顺序误判）。
-						const normServices = (arr) => (arr || []).slice().sort();
-						const isDuplicate = currentProfiles.some(p =>
-							deepEqual(p.params, importedProfile.params) &&
-							deepEqual(normServices(p.services), normServices(importedProfile.services))
-						);
-						
-						if (!isDuplicate) {
+						const identityKey = aiProfileIdentityKey(importedProfile, serviceUrlMap);
+						const localMatch = currentProfiles.find(p => aiProfileIdentityKey(p, serviceUrlMap) === identityKey);
+
+						if (!localMatch) {
 							let finalName = generateUniqueName(importedProfile.name, existingNames);
 							existingNames.push(finalName);
 
 							importedProfile.id = `profile_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 							importedProfile.name = finalName;
-							importedProfile.isProtected = false; 
-							
+							importedProfile.isProtected = false;
+
 							currentProfiles.push(importedProfile);
 							addedCount++;
+							return;
 						}
+
+						if (deepEqual(localMatch.params, importedProfile.params)) return;
+
+						const baseMatch = baseProfiles ? baseProfiles.find(p => aiProfileIdentityKey(p, serviceUrlMap) === identityKey) : null;
+						const localChanged = baseMatch ? !deepEqual(baseMatch.params, localMatch.params) : true;
+						const remoteChanged = baseMatch ? !deepEqual(baseMatch.params, importedProfile.params) : true;
+
+						if (baseMatch && !localChanged && remoteChanged) {
+							if (importedProfile.params && typeof importedProfile.params === 'object') localMatch.params = importedProfile.params;
+							aiProfileRemoteApplied.push(localMatch.name);
+							return;
+						}
+
+						if (baseMatch && localChanged && !remoteChanged) return;
+
+						const diffs = diffAiProfileParams(localMatch.params, importedProfile.params);
+						let finalName = generateUniqueName(importedProfile.name, existingNames);
+						existingNames.push(finalName);
+
+						importedProfile.id = `profile_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+						importedProfile.name = finalName;
+						importedProfile.isProtected = false;
+
+						currentProfiles.push(importedProfile);
+						addedCount++;
+						aiProfileConflicts.push({ name: localMatch.name, kept: finalName, diffs: diffs });
 					});
 					GM_setValue(AI_PROFILES_KEY, currentProfiles);
 					if (addedCount > 0) importLog.push(`新增 ${addedCount} 个 AI 参数配置`);
@@ -12398,10 +12248,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		// 8. UI 状态
-		// P2-1：导入应用完成（提示词/模型选择/后处理/自定义服务均已落盘），统一失效配置指纹
 		invalidateConfigFingerprint();
 		if (isSelected('uiState') && data.uiState) {
-			// P1(8.7)：与导出对齐——仅导入逻辑偏好，设备相关（悬浮球/面板位置）与瞬态字段不再写入
 			if (data.uiState.exportSelection) GM_setValue('ao3_export_selection_memory', data.uiState.exportSelection);
 
 			if (data.uiState._mappedLocalId) GM_setValue('ao3_local_glossary_selected_id', data.uiState._mappedLocalId);
@@ -12415,9 +12263,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			if (data.uiState.exportLastFormat) GM_setValue('ao3_export_last_format', data.uiState.exportLastFormat);
 			if (data.uiState.exportLastAction) GM_setValue('ao3_export_last_action', data.uiState.exportLastAction);
-			if (data.uiState.exportFormats) GM_setValue('ao3_export_selected_formats', data.uiState.exportFormats);  // 改动 4(G4)：还原作品导出格式选择
+			if (data.uiState.exportFormats) GM_setValue('ao3_export_selected_formats', data.uiState.exportFormats);
 
-			// 归位微调：uiState 现承载 show_status_light（状态灯显隐）；更新检查间隔改由 staticKeys 导入
 			if (data.uiState.show_status_light !== undefined) GM_setValue('show_status_light', data.uiState.show_status_light);
 
 			if (data.uiState.serviceCollapsedStates) {
@@ -12561,7 +12408,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							const existingNames = currentTemplates[format].map(t => t.name);
 							
 							importedTemplates[format].forEach(importedTpl => {
-								// 跳过默认模板的导入，防止覆盖内置默认模板
 								if (importedTpl.isProtected) return;
 								
 								// 通过 CSS 内容比对去重
@@ -12591,16 +12437,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (cData.autoCleanupEnabled !== undefined) GM_setValue('ao3_cache_auto_cleanup_enabled', cData.autoCleanupEnabled);
 			if (cData.maxItems !== undefined) GM_setValue('ao3_cache_max_items', cData.maxItems);
 			if (cData.maxDays !== undefined) GM_setValue('ao3_cache_max_days', cData.maxDays);
-			if (cData.maxSizeBytes !== undefined) GM_setValue('ao3_cache_max_size_bytes', cData.maxSizeBytes);  // G3 转正：随 cacheSettings 同步
+			if (cData.maxSizeBytes !== undefined) GM_setValue('ao3_cache_max_size_bytes', cData.maxSizeBytes);
 			importLog.push("缓存清理策略已导入");
 		}
 
-		// 改动 8d：WebDAV 同步配置。仅手动导入导出链路进入（!isSync 双重防御：即使篡改的云端文件夹带该分类也不导入）。
-		// 传输参数/认证方案（auth_scheme/path_encoding/chunk/concurrency/timeout/retry/conflict/checksum）由自动检测
-		// applyConfig 统一管理、面板已无配置入口，故导入仅作全量快照回填、【不登记用户覆盖】——目标端在服务商变更时
-		// 由 applyConfig 自动调整为最优值，避免把旧备份的快照值钉死对抗自动检测。
 		if (isSelected('webdavConfig') && data.webdavConfig && !isSync) {
-			for (const key of WEBDAV_CONFIG_KEYS) {  // F9：共享键清单（F7 已移除死键 webdav_path_encoding）
+			for (const key of WEBDAV_CONFIG_KEYS) {
 				if (data.webdavConfig[key] !== undefined) GM_setValue(key, data.webdavConfig[key]);
 			}
 			// 让自动同步开关/间隔立即生效
@@ -12611,15 +12453,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		// 统一激活所有数据和状态
 		SettingsSyncManager.syncAll();
 
-		// F1：导入可能新增自定义服务（custom_imp_*），其动态键（*_keys_string/_keys_array/_key_index/
-		// active_model_for_*/service_collapsed_*/custom_service_last_action_*）此前无监听。
-		// 不刷新监听，导入/同步应用过来的服务后续配置修改不会触发 data-change 同步。
-		// SettingsSyncManager.syncAll 不负责此项；仅在追踪器已 init（_listening）时有意义。
 		if (typeof SyncTimestampTracker !== 'undefined' && SyncTimestampTracker.refreshDynamicListeners) {
 			SyncTimestampTracker.refreshDynamicListeners();
 		}
 
-		// 【严格拦截 1】：如果是同步，绝对不执行数据迁移
 		if (!isSync) {
 			GM_setValue('ao3_migration_version', 0);
 			runDataMigration();
@@ -12636,9 +12473,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		let syncSummary = "";
-		
-		// URL-only：应用订阅列表后，后台按 URL 重拉最新词条（手动导入与同步应用统一走此路径；
-		// 词条已不进同步文件，重拉只是数据物化，不是配置应用，故不再区分 isSync）
+
 		if (isSelected('glossaries')) {
 			const onlineUrls = Object.keys(GM_getValue(GLOSSARY_METADATA_KEY, {}));
 			if (onlineUrls.length > 0) {
@@ -12649,7 +12484,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		const modeText = isOverwrite ? "覆盖" : "合并";
 		const finalMessage = importLog.length > 0 ? `${modeText}导入完成：${importLog.join('，')}。` : "数据导入完成。";
-		return { success: true, message: finalMessage + syncSummary };
+		return { success: true, message: finalMessage + syncSummary, aiProfileConflicts: aiProfileConflicts, aiProfileRemoteApplied: aiProfileRemoteApplied };
 	}
 
 	/**
@@ -12669,10 +12504,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				const keysArray = parseKeysToArray(keysString);
 				GM_setValue(arrayKey, keysArray);
 			}
-			// index 越界安全：array 变短/为空时 index 归 0（或删除）
 			clampKeyIndex(serviceId);
 		}
-		Logger.info('System', 'API Keys 格式化校验完成');
+		Logger.debug('System', 'API Keys 格式化校验完成');
 	}
 
 	/**
@@ -12871,18 +12705,18 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						<option value="export_manage">作品导出与生成</option>
 						<option value="cache_manage">翻译缓存管理项</option>
 						<option value="fab_manage">悬浮按钮操作项</option>
-						<option value="data_sync">数据导入与导出</option>
-						<option value="webdav_sync">云端同步配置项</option>
+						<option value="analytics">数据统计与分析</option>
 						<option value="debug_mode">调试模式与日志</option>
+						<option value="webdav_sync">云端同步配置项</option>
+						<option value="data_sync">数据导入与导出</option>
 						<option value="update_check">插件更新检测项</option>
-						<option value="analytics">用户体验改善项</option>
 					</select>
 					<label for="setting-glossary-actions" class="settings-label">更多功能</label>
 				</div>
 
 				<div id="editable-section-debug-mode" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
 					<div class="settings-group static-label settings-group-select">
-<select id="setting-log-level" class="settings-control settings-select custom-styled-select">
+						<select id="setting-log-level" class="settings-control settings-select custom-styled-select">
 						<option value="DEBUG">DEBUG</option>
 						<option value="INFO">INFO</option>
 							<option value="WARN">WARN</option>
@@ -12924,18 +12758,24 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				<div id="editable-section-analytics" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
 					<div class="settings-group static-label settings-group-select">
 						<select id="setting-analytics-opt" class="settings-control settings-select custom-styled-select">
-							<option value="joined">加入</option>
-							<option value="left">退出</option>
+							<option value="joined">启用</option>
+							<option value="left">禁用</option>
 						</select>
-						<label for="setting-analytics-opt" class="settings-label">用户体验改善计划</label>
+						<label for="setting-analytics-opt" class="settings-label">数据统计与分析</label>
 					</div>
 					<div id="analytics-id-row" class="settings-group static-label" style="display: none;">
 						<div class="input-wrapper">
 							<input type="text" id="setting-analytics-id" class="settings-control settings-input" readonly spellcheck="false" autocomplete="off">
-							<label for="setting-analytics-id" class="settings-label">AOT Analytics 验证 ID</label>
+							<label for="setting-analytics-id" class="settings-label">验证 ID</label>
 							<button id="btn-copy-analytics-id" class="settings-action-button-inline" type="button">复制</button>
 						</div>
-						<p style="margin: 6px 12px 0; color: var(--settings-text-secondary, #777); font-size: 11px; line-height: 1.45;">此 ID 可查看你的匿名统计，请勿公开分享。</p>
+					</div>
+					<div id="analytics-secret-row" class="settings-group static-label" style="display: none;">
+						<div class="input-wrapper">
+							<input type="text" id="setting-analytics-secret" class="settings-control settings-input" placeholder="自定义，若留空则不设置密钥" spellcheck="false" autocomplete="off">
+							<label for="setting-analytics-secret" class="settings-label">验证密钥</label>
+							<button id="btn-analytics-secret-save" class="settings-action-button-inline" type="button">保存</button>
+						</div>
 					</div>
 					<div id="aot-dashboard-link" class="settings-group static-label settings-group-select" style="display: none;">
 						<div id="btn-open-aot-dashboard" class="settings-control settings-select pseudo-select">查看 AOT Analytics</div>
@@ -12944,7 +12784,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				</div>
 
 				<div id="data-sync-actions-container" class="data-sync-actions-container" style="display: none; flex-direction: column; gap: 16px; width: 100%; align-items: stretch; padding: 0; margin: 0; justify-content: flex-start;">
-					<!-- 1. 加密密钥输入框（全宽，与 normal 设置项一致） -->
 					<div class="settings-group static-label">
 						<div class="input-wrapper">
 							<input type="text" id="setting-export-enc-key" class="settings-control settings-input" placeholder="自定义，若留空则不加密" spellcheck="false">
@@ -12952,12 +12791,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							<button id="btn-export-enc-key-save" class="settings-action-button-inline">保存</button>
 						</div>
 					</div>
-					<!-- 2. 本地数据备份伪下拉选框（复刻「查看实时日志」伪下拉，点击打开模态框） -->
 					<div class="settings-group static-label settings-group-select">
 						<div id="btn-open-local-backup" class="settings-control settings-select pseudo-select">查看本地备份</div>
 						<span class="settings-label">本地数据备份</span>
 					</div>
-					<!-- 3. 数据导入、数据导出按钮行（复刻作品屏蔽按钮行的收紧间距：padding 6px 12px + margin -10px） -->
 					<div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; margin-top: -10px; margin-bottom: -10px;">
 						<button id="btn-import-data" class="data-sync-action-btn">数据导入</button>
 						<button id="btn-export-data" class="data-sync-action-btn">数据导出</button>
@@ -12965,7 +12802,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				</div>
 
 				<div id="editable-section-webdav-sync" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
-					<!-- 基础配置 -->
 					<div class="settings-group static-label settings-group-select">
 						<select id="webdav-action-select" class="settings-control settings-select custom-styled-select">
 							<option value="url">接口地址</option>
@@ -13048,6 +12884,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							<option value="user_prompt">User Prompt</option>
 							<option value="temperature">Temperature</option>
 							<option value="reasoning_effort">推理深度</option>
+							<option value="para_mode">段落标记</option>
 							<option value="chunk_size">每次翻译文本量</option>
 							<option value="para_limit">每次翻译段落数</option>
 							<option value="request_rate">平均每秒请求数</option>
@@ -13472,7 +13309,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			webdavPass: panel.querySelector('#setting-webdav-pass'),
 			webdavEncKey: panel.querySelector('#setting-webdav-enc-key'),
 			webdavInterval: panel.querySelector('#setting-webdav-interval'),
-			// 清理：移除 webdavChunkSize/Concurrency/Timeout 注册（对应元素已随面板移除，条目为死引用）
 			webdavSyncNowBtn: panel.querySelector('#btn-webdav-sync-now'),
 			webdavStatus: panel.querySelector('#webdav-sync-status'),
 		};
@@ -13570,8 +13406,54 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
-	 * 更新提示模态框（迭代-10）：复刻 showCustomConfirm 结构，三按钮。
-	 * @param {{ current: string, latest: string }} param0 当前版本/最新版本（形如 1.10.0）
+	 * 密钥失败提示模态框
+	 */
+	function showKeyRetryModal(lines) {
+		if (shadowWrapper.querySelector('#ao3-key-retry-overlay')) {
+			return Promise.resolve('ok');
+		}
+		const message = (Array.isArray(lines) ? lines : [lines]).join('\n');
+		return new Promise((resolve) => {
+			const overlay = document.createElement('div');
+			overlay.id = 'ao3-key-retry-overlay';
+			overlay.className = 'ao3-overlay';
+
+			const style = document.createElement('style');
+			style.textContent = `
+				.ao3-key-retry-body { padding: 20px 16px; font-size: 14px; line-height: 1.6; color: var(--ao3-text); white-space: pre-wrap; text-align: center; }
+				.ao3-key-retry-body p { margin: 0; }
+			`;
+			overlay.appendChild(style);
+
+			const modal = document.createElement('div');
+			modal.id = 'ao3-key-retry-modal';
+			modal.className = 'ao3-modal';
+			modal.innerHTML = `
+				<div class="ao3-modal-header"><h3>提示</h3></div>
+				<div class="ao3-key-retry-body">${message.split('\n').map(line => `<p>${line}</p>`).join('')}</div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn cancel">好的</button>
+					<button class="ao3-modal-btn confirm">重试</button>
+				</div>
+			`;
+
+			overlay.appendChild(modal);
+			shadowWrapper.appendChild(overlay);
+
+			const done = (action) => {
+				overlay.remove();
+				resolve(action);
+			};
+			modal.querySelector('.cancel').addEventListener('click', () => done('ok'));
+			modal.querySelector('.confirm').addEventListener('click', () => done('retry'));
+			overlay.addEventListener('click', (e) => {
+				if (e.target === overlay) done('ok');
+			});
+		});
+	}
+
+	/**
+	 * 更新提示模态框
 	 */
 	function showUpdateModal({ current, latest }) {
 		if (shadowWrapper.querySelector('#ao3-update-overlay')) return;
@@ -13603,7 +13485,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		modal.querySelector('#ao3-update-later').addEventListener('click', () => overlay.remove());
 		modal.querySelector('#ao3-update-log').addEventListener('click', () => {
-			window.open('https://github.com/V-Lipset/ao3-chinese/releases/latest', '_blank');  // 不关闭模态框
+			window.open('https://github.com/V-Lipset/ao3-chinese/releases/latest', '_blank');
 		});
 		modal.querySelector('#ao3-update-now').addEventListener('click', () => {
 			window.open(GM_info.script.updateURL || 'https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js', '_blank');
@@ -13615,11 +13497,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
-	 * 首次同步方向选择对话框（样式与更新提示一致，三按钮直接操作）
-	 * 三选一：云端覆盖本地(download) / 本地上传云端(upload) / 数据去重合并(merge)。
-	 * resolve('upload' | 'download' | 'merge')，取消/超时/关闭则 reject。
+	 * 首次同步方向选择对话框
 	 */
-	// P1(8.7)：记录挂起的方向选择 Promise；面板关闭时强制 dismiss，避免 executeSync 永久卡死导致 isSyncing 卡死
 	let _pendingSyncDirectionReject = null;
 	function dismissPendingSyncDirectionModal() {
 		const overlay = shadowWrapper.querySelector('#ao3-sync-direction-overlay');
@@ -13664,7 +13543,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			overlay.appendChild(modal);
 			shadowWrapper.appendChild(overlay);
 
-			// P1(8.7)：注册 reject（供面板关闭强制 dismiss）+ 安全超时兜底，保证 Promise 必 settle
 			_pendingSyncDirectionReject = reject;
 			const timeoutId = setTimeout(() => {
 				cleanup();
@@ -13758,7 +13636,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					</button>
 					<h3 class="log-modal-title">日志</h3>
 					<div class="settings-group settings-group-select log-filter-wrapper">
-<select id="log-filter-level" class="settings-control settings-select custom-styled-select small-select">
+						<select id="log-filter-level" class="settings-control settings-select custom-styled-select small-select">
 						<option value="DEBUG">DEBUG</option>
 						<option value="INFO">INFO</option>
 							<option value="WARN">WARN</option>
@@ -13784,9 +13662,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const closeBtn = overlay.querySelector('#log-btn-cancel');
 		const copyBtn = overlay.querySelector('#log-btn-copy');
 		const exportBtn = overlay.querySelector('#log-btn-export');
-		
-		// 解耦:查看级别与「记录日志级别」互相独立——未设置过时默认取全局默认 INFO,
-		// 不再继承 Logger.config.level(改记录级别不再牵连首次打开模态框的查看级别)
 		const savedFilter = GM_getValue('ao3_log_modal_filter', DEFAULT_CONFIG.GENERAL.log_level);
 		filterSelect.value = savedFilter === 'ALL' ? 'DEBUG' : savedFilter;
 
@@ -13794,7 +13669,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 		};
 
-		// 阈值筛选:显示所选级别及更严重级别(权重 ≥ 所选级别权重)。选 OFF(权重 99)时无任何日志符合,天然为空
 		const passesFilter = (level) => (LOG_LEVEL_WEIGHTS[level] ?? 0) >= (LOG_LEVEL_WEIGHTS[filterSelect.value] ?? 0);
 
 		const renderEntry = (entry) => {
@@ -13803,7 +13677,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			div.dataset.level = entry.level;
 			div.dataset.module = entry.module;
 			const dataStr = entry.data ? `<div class="log-entry-data">${escapeHTML(JSON.stringify(entry.data, null, 2))}</div>` : '';
-			// P2: 折叠计数(同级别重复合并后显示 ×N)
 			const levelBadge = entry.count > 1 ? `[${escapeHTML(entry.level)}]×${entry.count}` : `[${escapeHTML(entry.level)}]`;
 			div.innerHTML = `
 				<div class="log-entry-header">
@@ -13821,7 +13694,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let currentRenderId = 0;
 		function startRendering() {
 			container.innerHTML = '';
-			// 阈值筛选:显示当前所选级别及更严重级别(与复制按钮一致,区别于导出全部日志)
 			const filteredHistory = Logger.history.filter(entry => passesFilter(entry.level));
 			
 			const myRenderId = ++currentRenderId;
@@ -13856,7 +13728,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const onLogAdded = (e) => {
 			const entry = e.detail;
 			if (passesFilter(entry.level)) {
-				// P2: 折叠更新 —— 找到最后一条同级别同模块的行,原位更新计数徽标与时间戳,不新增行
 				if (entry._collapsed) {
 					const rows = container.querySelectorAll('.log-entry');
 					for (let i = rows.length - 1; i >= 0; i--) {
@@ -13891,7 +13762,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		});
 
 		copyBtn.addEventListener('click', () => {
-			// 阈值筛选:复制当前所选级别及更严重级别的日志(导出才包含全部日志)
 			const filteredLogs = Logger.history.filter(entry => passesFilter(entry.level));
 
 			const logText = JSON.stringify(filteredLogs, null, 2);
@@ -13904,7 +13774,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}).catch((err) => {
 				copyBtn.textContent = '×';
 				setTimeout(() => { copyBtn.textContent = originalText; }, 1500);
-				console.error('复制日志失败:', err);
 			});
 		});
 
@@ -13920,9 +13789,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
-	 * 打开扩展编辑器模态框 (点击右侧展开图标唤起)
+	 * 打开扩展编辑器模态框
 	 */
-	
 	function openEditorForField(input) {
 		input.blur();
 		const wrapper = input.closest('.input-wrapper');
@@ -13932,7 +13800,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		openExpandedEditorModal(input, label, { raw });
 	}
 
-function openExpandedEditorModal(inputElement, labelName, opts = {}) {
+	function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		if (shadowWrapper.querySelector('#ao3-expanded-editor-overlay')) return;
 		if (inputElement.disabled) return;
 
@@ -13967,7 +13835,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 		const textarea = overlay.querySelector('#ee-textarea');
 		textarea.value = editorValue;
-		// v3：光标移到最后一个字符之后；移动端手势内 focus 唤起软键盘，桌面端仅获焦
 		textarea.focus();
 		textarea.setSelectionRange(editorValue.length, editorValue.length);
 
@@ -13984,11 +13851,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			if (finalValue !== originalValue) {
 				inputElement.value = finalValue;
 				inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-				// 三条保存钩子（数据保存机制，缺一不可）：
-				//  1) 派发 change → 触发模块挂的 change 监听（本地术语表/后处理/主 API Key/屏蔽/自定义服务等）；
-				//  2) 点击内联保存按钮 → 触发按钮 click 保存（WebDAV/缓存/AI 数值等）；
-				//  3) 派发 blur → 触发 blur 监听（AI 参数 autoSave 文本域）。
-				// expandable 输入此前只有展开按钮（非内联保存按钮），1) 无 change 监听、3) 无 blur 监听 → 模态保存不落盘。
 				inputElement.dispatchEvent(new Event('change', { bubbles: true }));
 
 				const wrapper = inputElement.closest('.input-wrapper');
@@ -14189,7 +14051,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					</div>
 				`;
 
-				// 修复 B7：远端 name 用 textContent/title 属性赋值，避免 innerHTML 注入
 				const nameEl = div.querySelector('.lib-item-name');
 				const itemName = item.name || '';
 				nameEl.textContent = itemName;
@@ -14200,7 +14061,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					importBtn.innerHTML = SVG_ICONS.spinner;
 					importBtn.querySelector('svg').style.animation = 'ao3-spin 1s linear infinite';
 					importBtn.disabled = true;
-					// A4 修复：把在线库索引的 feedback 随导入固化进元数据，避免反馈渠道依赖瞬时索引缓存
 					const res = await importOnlineGlossary(item.url, { silent: true, metaOverrides: { feedback: item.feedback } });
 
 					if (res.success) {
@@ -14377,11 +14237,9 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 		const parsedUrls = parseGlossaryUrl(url);
 
-		// A5 修复：元数据同步从 GM 存储读取（不再等原文加载完成，消除反馈点击竞态）
 		const parsedMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {})[url] || {};
 		const cleanup = () => overlay.remove();
 
-		// A9 修复：visibility 未开放预览则直接关闭，跳过拉取与全文缓存
 		if (parsedMetadata.visibility === false) {
 			showCustomConfirm('此术语表暂未开放预览。', '提示', { textAlign: 'center', singleButton: true, confirmText: '确认' }).catch(() => {});
 			cleanup();
@@ -14509,7 +14367,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
 
 		btnAction.addEventListener('click', async () => {
-			// A3 修复：归一化反馈值（剥 mailto: 前缀）
 			const normalizeFeedback = (value) => {
 				if (typeof value !== 'string' || !value.trim()) return '';
 				let v = value.trim();
@@ -14517,7 +14374,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				return v;
 			};
 
-			// 反馈渠道解析：优先级 1 = 词表元数据（含在线库索引导入固化的 feedback）；
+			// 反馈渠道解析：
+			// 优先级 1 = 词表元数据（含在线库索引导入固化的 feedback）；
 			// 优先级 2 = 在线库索引缓存兜底（旧版本导入的词表可能只在索引里声明了反馈）
 			const resolveFeedbackValue = () => {
 				const fromMeta = normalizeFeedback(parsedMetadata.feedback);
@@ -14535,7 +14393,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				return '';
 			};
 
-			// 统一外链打开：http(s) 走 window.open；mailto 用锚点点击（避免 window.location.href 的非标准导航）
+			// 统一外链打开：http(s) 走 window.open；mailto 用锚点点击
 			const openExternalUrl = (targetUrl) => {
 				if (/^https?:\/\//i.test(targetUrl)) {
 					window.open(targetUrl, '_blank', 'noopener');
@@ -14547,8 +14405,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				a.click();
 			};
 
-			// A2 修复：用户手势内先开 about:blank 占位，检测完成后导航/关闭以规避弹窗拦截；
-			// window.open 返回 null（被拦截）时降级为检测后直接打开，杜绝 TypeError。
 			const openIssueAfterCheck = async (issueUrl, owner, repo) => {
 				const gestureTab = window.open('about:blank', '_blank');
 				const originalBtnText = btnAction.textContent;
@@ -14570,9 +14426,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				return false;
 			};
 
-			// A10 修复：GitHub 链接分流（回归设计文档 Phase-1 语义，见 8.13/术语表反馈机制优化方案.md）
 			// 含 /issues 的显式链接直接打开；裸 GitHub 链接（主页/仓库页，如索引里大量 https://github.com/{用户}）
-			// 先走自动派生 Issues 页，失败（Issues 未启用/无法确认）再降级打开显式链接；邮箱与其他 http(s) 维持直接打开。
+			// 先走自动派生 Issues 页，失败（Issues 未启用/无法确认）再降级打开显式链接；邮箱与其她 http(s) 维持直接打开。
 			const feedback = resolveFeedbackValue();
 			if (feedback) {
 				const isHttp = /^https?:\/\//i.test(feedback);
@@ -14605,7 +14460,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			if (parsedUrls && parsedUrls.feedbackUrl) {
 				const opened = await openIssueAfterCheck(parsedUrls.feedbackUrl, parsedUrls.owner, parsedUrls.repo);
 				if (!opened) {
-					// A6 修复：Issues 不可用 ≠ 无渠道，给出解释与出口，而非断言维护者未提供反馈方式
 					showCustomConfirm('该术语表通过 GitHub Issues 收集反馈，但当前检测到该仓库未启用 Issues（或暂时无法确认）。\n\n您可以：\n1. 稍后重试；\n2. 点击「访问」按钮前往仓库页面直接反馈。', '反馈不可用', { textAlign: 'center', confirmText: '知道了' }).catch(() => {});
 				}
 				return;
@@ -14640,7 +14494,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		const getServices = () => GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
 		const setServices = (services) => {
 			GM_setValue(CUSTOM_SERVICES_LIST_KEY, services);
-			// C9 修复：自定义服务增删后重新注册动态键监听
 			if (typeof SyncTimestampTracker !== 'undefined' && SyncTimestampTracker.refreshDynamicListeners) {
 				SyncTimestampTracker.refreshDynamicListeners();
 			}
@@ -14680,7 +14533,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					setServices(services);
 				}
 			}
-			// P1-3：自定义服务字段保存（url/models 影响稳定层指纹；apiKey 不参与指纹，重算同值无害）
 			invalidateConfigFingerprint();
 			return serviceId;
 		};
@@ -14823,9 +14675,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
                 `;
 				const input = section.querySelector('input');
 				input.value = value;
-				// 数据保存修复：保存逻辑提取为 saveFieldValue，同时绑到按钮 click 与输入 change。
-				// apiKey 字段是 expandable-input（仅展开按钮、无内联保存按钮、无 change 监听），
-				// 直接输入后关面板 / 展开模态编辑后保存都不落盘（值只留 DOM），补 change 监听覆盖两条路径。
 				const saveFieldValue = async () => {
 					const trimmedValue = input.value.trim();
 
@@ -14853,7 +14702,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						}
 					}
 				};
-				{ const _b = section.querySelector('button'); if (_b) _b.addEventListener('click', (e) => { if (e.target.closest('.acs-expand')) return; saveFieldValue(); }); }
+				{ const _b = section.querySelector('button'); if (_b) _b.addEventListener('click', () => saveFieldValue()); }
 				input.addEventListener('change', saveFieldValue);
 				return section;
 			};
@@ -14898,9 +14747,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
                 `;
 				const input = section.querySelector('input');
 				input.value = modelsRaw;
-				// 数据保存修复：保存逻辑提取为 saveModels，同时绑到按钮 click 与输入 change。
-				// 该输入是 expandable-input（仅展开按钮、无内联保存按钮、无 change 监听），
-				// 直接输入后关面板 / 展开模态编辑后保存都不落盘（值只留 DOM），补 change 监听覆盖两条路径。
 				const saveModels = () => {
 					const rawValue = input.value;
 					const normalizedModels = rawValue.replace(/[，]/g, ',').split(',').map(m => m.trim()).filter(Boolean);
@@ -14910,7 +14756,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					triggerModelFetchIfReady(serviceId);
 					editorDiv.dataset.mode = 'select';
 				};
-				{ const _b = section.querySelector('button'); if (_b) _b.addEventListener('click', (e) => { if (e.target.closest('.acs-expand')) return; saveModels(); }); }
+				{ const _b = section.querySelector('button'); if (_b) _b.addEventListener('click', () => saveModels()); }
 				input.addEventListener('change', saveModels);
 				editorDiv.appendChild(section);
 			} else {
@@ -14943,7 +14789,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						renderModelEditor(service);
 					} else {
 						GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${currentServiceId}`, select.value);
-						invalidateConfigFingerprint(); // P1-3：自定义服务模型切换 → 稳定层指纹
+						invalidateConfigFingerprint();
 					}
 				});
 				editorDiv.appendChild(section);
@@ -15037,7 +14883,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					GM_setValue('transEngine', 'google_translate');
 				}
 
-				// P1-3：删除服务/回退引擎 → 稳定层指纹变化
 				invalidateConfigFingerprint();
 
 				SettingsSyncManager.syncUI();
@@ -15061,7 +14906,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 		if (services.length !== servicesToKeep.length) {
 			GM_setValue(CUSTOM_SERVICES_LIST_KEY, servicesToKeep);
-			invalidateConfigFingerprint(); // P1-3：删除自定义服务 → 稳定层指纹
+			invalidateConfigFingerprint();
 			const currentEngine = GM_getValue('transEngine');
 			const isCurrentEngineRemoved = !servicesToKeep.some(s => s.id === currentEngine);
 
@@ -15069,7 +14914,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				GM_setValue('transEngine', 'google_translate');
 			}
 
-			// 清理被移除服务的孤儿 key（string/array/index）
 			for (const removed of services) {
 				if (!servicesToKeep.some(s => s.id === removed.id)) {
 					GM_deleteValue(`${removed.id}_keys_string`);
@@ -15626,8 +15470,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					servicesMod.customManager.cancelPending();
 				}
 				cleanupAllEmptyCustomServices();
-
-				// P1(8.7)：关闭面板时强制取消挂起的方向选择模态框，防止其 Promise 永久挂起导致同步锁卡死
 				dismissPendingSyncDirectionModal();
 
 				this.panel.style.display = 'none';
@@ -15645,9 +15487,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			
 			if (!hasBeenOpened) {
 				savedPos = { x: (window.innerWidth - panelWidth) / 2, y: (window.innerHeight - panelHeight) / 2 };
-				
-				// 【核心修复】：只有当面板真正可见（用户主动打开）时，才写入初始坐标
-				// 防止后台静默同步触发 UI 刷新时，意外写入数据导致触发二次同步
+
 				if (this.panel.style.display === 'flex') {
 					GM_setValue('ao3_panel_position', savedPos);
 					GM_setValue('panel_has_been_opened_once', true);
@@ -15793,33 +15633,14 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				}
 			});
 
-			// 11.5 复合按钮：「保存」反馈与保存触发
-			this.panel.addEventListener('click', (e) => {
-				const saveLabel = e.target.closest('.acs-save');
-				if (saveLabel && e.isTrusted) {
-					e.preventDefault();
-					e.stopPropagation();
-					const wrapperC = saveLabel.closest('.input-wrapper');
-					const inputC = wrapperC ? wrapperC.querySelector('input, textarea') : null;
-					if (inputC) {
-						inputC.dispatchEvent(new Event('input', { bubbles: true }));
-						inputC.dispatchEvent(new Event('change', { bubbles: true }));
-						inputC.dispatchEvent(new Event('blur', { bubbles: true }));
-					}
-					saveLabel.textContent = '✓';
-					setTimeout(() => { saveLabel.textContent = '保存'; }, 1000);
-					return;
-				}
-			});
-
-			// 12. 长文本：点击输入框直接展开编辑器(输入框已 readonly，移动端在手势内 focus 唤起软键盘)
+			// 12. 长文本：点击输入框直接展开编辑器
 			this.panel.addEventListener('click', (e) => {
 				const il = e.target.closest('.expandable-input');
 				if (!il || (il.tagName !== 'INPUT' && il.tagName !== 'TEXTAREA')) return;
 				e.preventDefault(); e.stopPropagation();
 				openEditorForField(il);
 			});
-			// 13. 长文本输入框统一设为只读(点击即进编辑器)：覆盖现有与动态新增的 .expandable-input
+			// 13. 长文本输入框统一设为只读(点击即进编辑器)
 			this.panel.querySelectorAll('.expandable-input').forEach(el => el.setAttribute('readonly', ''));
 			const _ro = new MutationObserver((muts) => {
 				for (const m of muts) for (const n of m.addedNodes) {
@@ -15830,23 +15651,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				}
 			});
 			_ro.observe(this.panel, { childList: true, subtree: true });
-
-			// 11. 全局展开图标按钮点击事件
-			this.panel.addEventListener('click', (e) => {
-				const expandBtn = e.target.closest('.settings-action-button-expand, .acs-expand');
-				if (expandBtn) {
-					e.preventDefault();
-					e.stopPropagation();
-					const wrapper = expandBtn.closest('.input-wrapper');
-					const input = wrapper ? wrapper.querySelector('input, textarea') : null;
-					if (input) {
-						input.blur();
-						const labelEl = wrapper.querySelector('.settings-label');
-						const label = labelEl ? labelEl.textContent : '编辑内容';
-						openExpandedEditorModal(input, label);
-					}
-				}
-			});
 		}
 	}
 
@@ -16037,11 +15841,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					input.value = GM_getValue(config.keys[0], DEFAULT_CONFIG.BLOCKER[defaultKey] || '');
 				}
 
-				// 数据保存修复：保存逻辑提取为 saveBlockerValue，同时绑到按钮 click 与输入 change。
-				// 此前 expandable 输入（仅展开按钮、无内联保存按钮、无 change 监听）两类场景值丢失：
-				// ① 直接输入后关面板（失焦委托找不到内联按钮，原生 change 无监听）→ 不落盘；
-				// ② 展开模态编辑后保存（模态派发 change，但输入无 change 监听）→ 不落盘。
-				// 文本输入失焦必发原生 change，模态保存必派发 change，补 change 监听即覆盖两条路径。
 				const saveBlockerValue = () => {
 					const val = input.value.trim();
 					if (config.isRange) {
@@ -16062,7 +15861,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					this.updateLabel(input);
 					SettingsSyncManager.syncBlocker('full');
 				};
-				{ const _b = group.querySelector('button'); if (_b) _b.addEventListener('click', (e) => { if (e.target.closest('.acs-expand')) return; saveBlockerValue(); }); }
+				{ const _b = group.querySelector('button'); if (_b) _b.addEventListener('click', () => saveBlockerValue()); }
 				input.addEventListener('change', saveBlockerValue);
 
 				this.inputArea.appendChild(group);
@@ -16116,7 +15915,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			this.btnMaxSizeSave = this.$('#setting-btn-cache-max-size-save');
 			this.autoCleanupSelect = this.$('#setting-cache-auto-cleanup-enabled');
 			this.countDisplay = this.$('#cache-count-display');
-			// 2026-08-15：3 个清理参数行（禁用自动清理时隐藏，参数失效即不展示）
 			this.autoParamRows = this.container.querySelectorAll('.cache-auto-param');
 
 			this.CACHE_MANAGE_MODE_KEY = 'ao3_cache_manage_mode';
@@ -16147,7 +15945,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				if (lastCleanup > 0) {
 					const date = new Date(lastCleanup);
 					const pad = (n) => String(n).padStart(2, '0');
-					// 格式：YYYY-MM-DD HH:mm:ss（精确到秒）
 					lastCleanupStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 				}
 				this.countDisplay.textContent = `已缓存：${count.toLocaleString()} 项，上次清理：${lastCleanupStr}`;
@@ -16158,8 +15955,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		}
 
 		/**
-		 * 2026-08-15：自动清理禁用时隐藏 3 个参数行（禁用 = 停止一切自动淘汰，
-		 * 参数失效即隐藏，避免"隐藏了但仍在删"的误导）。
+		 * 自动清理禁用时隐藏 3 个参数行
 		 */
 		updateAutoParamsVisibility() {
 			const enabled = GM_getValue('ao3_cache_auto_cleanup_enabled', true);
@@ -16357,11 +16153,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			}
 
 			if (profile.isTraditional) {
-				['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort'].forEach(val => {
+				['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort', 'para_mode'].forEach(val => {
 					const opt = this.paramSelect.querySelector(`option[value="${val}"]`);
 					if (opt) { opt.style.display = 'none'; opt.hidden = true; opt.disabled = true; }
 				});
-				if (['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort', 'delete_profile'].includes(currentVal)) {
+				if (['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort', 'para_mode', 'delete_profile'].includes(currentVal)) {
 					currentVal = 'chunk_size'; GM_setValue(this.LAST_PARAM_KEY, 'chunk_size');
 				}
 			} else {
@@ -16414,6 +16210,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				user_prompt: { type: 'textarea', label: 'User Prompt', autoSave: true },
 				temperature: { type: 'number', label: 'Temperature', attrs: { min: 0, max: 2, step: 0.1 }, hint: ' (0-2)', validation: { min: 0, max: 2, step: 0.1 }, defaultKey: 'temperature' },
 				reasoning_effort: { type: 'select', label: '推理深度', options: REASONING_LEVELS.map(v => ({ value: v, text: REASONING_LEVEL_LABELS[v] })), defaultKey: 'reasoning_effort' },
+				para_mode: { type: 'select', label: '标记方式', options: [{ value: 'json', text: 'JSON 数组' }, { value: '%%', text: '分隔符' }], defaultKey: 'para_mode' },
 				chunk_size: { type: 'number', label: '每次翻译文本量', attrs: { min: 100, step: 100 }, validation: { min: 100, step: 100 }, defaultKey: 'chunk_size' },
 				para_limit: { type: 'number', label: '每次翻译段落数', attrs: { min: 1, step: 1 }, validation: { min: 1, step: 1 }, defaultKey: 'para_limit' },
 				request_rate: { type: 'number', label: '平均每秒请求数', attrs: { min: 0.1, step: 0.1 }, hint: ' (req/s)', validation: { min: 0.1, step: 0.1 }, defaultKey: 'request_rate' },
@@ -16425,7 +16222,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const config = paramConfig[paramType];
 			if (!config) return;
 
-			// —— 2.2 动态批次：每次翻译段落数 → 批次大小子下拉（固定/动态），动态时隐藏段落数输入框（无说明） ——
 			if (paramType === 'para_limit') {
 				const modeSection = document.createElement('div');
 				modeSection.className = 'settings-group static-label settings-group-select';
@@ -16449,7 +16245,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				this.inputArea.appendChild(modeSection);
 				this.updateLabel(modeSelect);
 
-				if (modeSelect.value === 'dynamic') return; // 动态：隐藏「每次翻译段落数」输入框，不显示任何说明
+				if (modeSelect.value === 'dynamic') return;
 			}
 
 			const section = document.createElement('div');
@@ -16463,7 +16259,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					const validationResult = this.validateAiParam(val, config);
 					if (!validationResult.valid) {
 						const defaultValue = BASE_AI_PARAMS[config.defaultKey];
-						GM_notification({ title: '参数设置错误', text: `${validationResult.message}\n已自动重置为默认值：${defaultValue}。` });
+						Logger.info('Settings', `参数 ${paramType} 输入非法（${validationResult.message}），已自动重置为默认值：${defaultValue}。`);
 						val = defaultValue; inputElement.value = val;
 					} else { val = validationResult.value; }
 				}
@@ -16679,15 +16475,15 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 			// 拖拽排序：按新顺序回写并重建选项
 			this.select.addEventListener('ao3-dropdown-reorder', (e) => {
-				const newOrder = e.detail.newOrder; // 不含 create_new
+				const newOrder = e.detail.newOrder;
 				const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
 				const map = new Map(glossaries.map(g => [g.id, g]));
 				const reordered = newOrder.map(id => map.get(id)).filter(Boolean);
-				if (reordered.length !== glossaries.length) return; // 健壮性，对齐 1.6.1
+				if (reordered.length !== glossaries.length) return;
 				const saved = this.select.value;
 				GM_setValue(CUSTOM_GLOSSARIES_KEY, reordered);
-				this.populateSelect(); // 按新顺序重建选项
-				this.select.value = saved; // 保持当前选中项
+				this.populateSelect();
+				this.select.value = saved;
 				invalidateGlossaryCache();
 				SettingsSyncManager.syncGlossary(false);
 			});
@@ -16811,11 +16607,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				}
 			});
 
-			// 拖拽排序：按新顺序写回并重建（不派发伪 change）
+			// 拖拽排序：按新顺序写回并重建
 			this.select.addEventListener('ao3-dropdown-reorder', (e) => {
 				GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, e.detail.newOrder);
 				const saved = this.select.value;
-				this.populateSelect(false); // 不派发伪 change
+				this.populateSelect(false);
 				if (saved && [...this.select.options].some(o => o.value === saved)) this.select.value = saved;
 				invalidateGlossaryCache();
 			});
@@ -16901,7 +16697,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			if (rules.length === 0) {
 				rules.push({ id: `replace_${Date.now()}`, name: '默认', content: '', enabled: true });
 				GM_setValue(POST_REPLACE_RULES_KEY, rules);
-				invalidateConfigFingerprint(); // P1-3：替换规则变更 → 易变层指纹
+				invalidateConfigFingerprint();
 				isInitializedDefault = true;
 			}
 			this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY), isInitializedDefault ? 'settings' : GM_getValue(this.EDIT_MODE_KEY, 'settings'));
@@ -16966,7 +16762,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						const currentState = rules[index].enabled !== false;
 						rules[index].enabled = !currentState;
 						GM_setValue(POST_REPLACE_RULES_KEY, rules);
-						invalidateConfigFingerprint(); // P1-3：替换规则变更 → 易变层指纹
+						invalidateConfigFingerprint();
 						SettingsSyncManager.syncGlossary(false);
 						
 						const btn = e.detail.button;
@@ -16989,9 +16785,9 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				if (reordered.length !== rules.length) return;
 				const saved = this.select.value;
 				GM_setValue(POST_REPLACE_RULES_KEY, reordered);
-				this.populateSelect(); // 按新顺序重建选项
-				this.select.value = saved; // 保持当前选中项
-				invalidateConfigFingerprint(); // P1-3：易变层指纹
+				this.populateSelect();
+				this.select.value = saved;
+				invalidateConfigFingerprint();
 				SettingsSyncManager.syncGlossary(false);
 			});
 
@@ -17002,7 +16798,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					const newId = `replace_${Date.now()}`;
 					rules.push({ id: newId, name: `规则 ${maxNum + 1}`, content: '', enabled: true });
 					GM_setValue(POST_REPLACE_RULES_KEY, rules);
-					invalidateConfigFingerprint(); // P1-3：替换规则变更 → 易变层指纹
+					invalidateConfigFingerprint();
 					this.reloadEditor(newId, 'name'); SettingsSyncManager.syncGlossary(false);
 				} else {
 					this.reloadEditor(this.select.value);
@@ -17016,7 +16812,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 							let rules = GM_getValue(POST_REPLACE_RULES_KEY, []).filter(r => r.id !== this.select.value);
 							if (rules.length === 0) rules.push({ id: `replace_${Date.now()}`, name: '默认', content: '', enabled: true });
 							GM_setValue(POST_REPLACE_RULES_KEY, rules);
-							invalidateConfigFingerprint(); // P1-3：替换规则变更 → 易变层指纹
+							invalidateConfigFingerprint();
 							const nextId = rules[0].id;
 							GM_setValue(this.SELECTED_ID_KEY, nextId); GM_setValue(this.EDIT_MODE_KEY, 'name');
 							this.reloadEditor(nextId, 'name'); SettingsSyncManager.syncGlossary(false);
@@ -17033,7 +16829,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				const index = rules.findIndex(r => r.id === id);
 				if (index === -1 || rules[index].name === newName) return;
 				rules[index].name = newName; GM_setValue(POST_REPLACE_RULES_KEY, rules);
-				invalidateConfigFingerprint(); // P1-3：替换规则变更 → 易变层指纹
+				invalidateConfigFingerprint();
 				this.reloadEditor(id, this.modeSelect.value); SettingsSyncManager.syncGlossary(false);
 			});
 
@@ -17043,7 +16839,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				const index = rules.findIndex(r => r.id === id);
 				if (index === -1 || rules[index].content === this.contentInput.value) return;
 				rules[index].content = this.contentInput.value; GM_setValue(POST_REPLACE_RULES_KEY, rules);
-				invalidateConfigFingerprint(); // P1-3：替换规则变更 → 易变层指纹
+				invalidateConfigFingerprint();
 				this.reloadEditor(id, this.modeSelect.value); SettingsSyncManager.syncGlossary(false);
 			});
 		}
@@ -17147,7 +16943,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 			this.fromLangSelect.addEventListener('change', () => {
 				GM_setValue('from_lang', this.fromLangSelect.value);
-				// 改造 B：源语言变更 → configFingerprint 失效
 				if (_ConfigMemo) _ConfigMemo.invalidate();
 				this.updateSwapButtonState();
 				this.controller.syncAllModules();
@@ -17155,7 +16950,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 			this.toLangSelect.addEventListener('change', () => {
 				GM_setValue('to_lang', this.toLangSelect.value);
-				// 改造 B：目标语言变更 → configFingerprint 失效
 				if (_ConfigMemo) _ConfigMemo.invalidate();
 				this.controller.syncAllModules();
 			});
@@ -17334,7 +17128,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 				const newMapping = {}; models.forEach(m => newMapping[m] = m);
 				GM_setValue(`${engineId}_custom_model_mapping`, newMapping);
-				invalidateConfigFingerprint(); // P1-3：模型映射变更
+				invalidateConfigFingerprint();
 				GM_setValue(config.modelGmKey, models.includes(originalValue) ? originalValue : models[0]);
 
 				this.renderBuiltInModelUI(engineId);
@@ -17379,12 +17173,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				input.setAttribute('readonly', '');
 
 				const label = document.createElement('label'); label.className = 'settings-label'; label.textContent = '编辑模型 ID';
-								// v3：无内联保存按钮，改由展开编辑器保存(确认时派发 change 触发)；input 只读
 				input.addEventListener('change', () => {
 					const newMapping = parseModelString(input.value);
 					if (Object.keys(newMapping).length === 0) GM_deleteValue(customMappingKey);
 					else GM_setValue(customMappingKey, newMapping);
-					invalidateConfigFingerprint(); // P1-3：模型映射编辑器保存
+					invalidateConfigFingerprint();
 					this.isEditingBuiltInModel = false; this.renderBuiltInModelUI(engineId);
 				});
 
@@ -17407,7 +17200,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				select.addEventListener('change', () => {
 					if (select.value === 'FETCH_MODELS_INLINE') this.fetchModelsForBuiltIn(engineId);
 					else if (select.value === 'EDIT_MODELS_INLINE') { this.isEditingBuiltInModel = true; this.renderBuiltInModelUI(engineId); }
-					else if (select.value === 'RESET_MODELS_INLINE') { GM_deleteValue(customMappingKey); this.renderBuiltInModelUI(engineId); invalidateConfigFingerprint(); /* P1-3：reset 后若保存模型不在默认映射，render 会覆写 modelGmKey → 稳定层指纹 */ }
+					else if (select.value === 'RESET_MODELS_INLINE') { GM_deleteValue(customMappingKey); this.renderBuiltInModelUI(engineId); invalidateConfigFingerprint(); }
 					else { GM_setValue(config.modelGmKey, select.value); if (_ConfigMemo) _ConfigMemo.invalidate(); }
 				});
 
@@ -17445,7 +17238,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					this.updateUiForEngine(newEngine);
 				} else {
 					GM_setValue('transEngine', newEngine);
-					// 改造 B：翻译引擎切换 → configFingerprint 失效
 					if (_ConfigMemo) _ConfigMemo.invalidate();
 					this.updateUiForEngine(newEngine);
 					this.isEditingBuiltInModel = false;
@@ -17544,7 +17336,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 插件更新提示模块（迭代-11）：更新检查间隔
+	 * 插件更新提示模块：更新检查间隔
 	 */
 	class UpdateCheckModule extends BaseSettingsModule {
 		constructor(controller) {
@@ -17557,10 +17349,10 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			this.intervalSelect.addEventListener('change', () => {
 				GM_setValue('ao3_update_check_interval', this.intervalSelect.value);
 				if (this.intervalSelect.value !== 'never') {
-					GM_setValue('ao3_update_last_check', 0);  // 换间隔后尽快检查一次
+					GM_setValue('ao3_update_last_check', 0);
 				}
 			});
-			// 手动更新：新标签页打开 @updateURL（与弹窗「立即更新」一致）
+			// 手动更新：新标签页打开 @updateURL
 			this.updateNowBtn.addEventListener('click', () => {
 				window.open(GM_info.script.updateURL || 'https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js', '_blank');
 			});
@@ -17579,7 +17371,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 埋点（用户体验改善计划）模块
+	 * 埋点模块
 	 */
 	class AnalyticsSettingsModule extends BaseSettingsModule {
 		constructor(controller) {
@@ -17588,6 +17380,9 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			this.idRow = this.$('#analytics-id-row');
 			this.idInput = this.$('#setting-analytics-id');
 			this.copyBtn = this.$('#btn-copy-analytics-id');
+			this.secretRow = this.$('#analytics-secret-row');
+			this.secretInput = this.$('#setting-analytics-secret');
+			this.secretSaveBtn = this.$('#btn-analytics-secret-save');
 			this.dashRow = this.$('#aot-dashboard-link');
 			this.openDashBtn = this.$('#btn-open-aot-dashboard');
 		}
@@ -17596,22 +17391,55 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			this.optSelect.addEventListener('change', () => {
 				const joined = this.optSelect.value === 'joined';
 				if (!joined) {
-					// 退出：先用旧 ID 上报 opt_out 信号（服务端标记为已退出→立即无法鉴权），再轮换本地 ID，再关闭采集。
 					Analytics.reportOptOut();
 					Analytics.rotateInstallId();
 				}
 				Analytics.setEnabled(joined);
+				if (joined && Analytics.authSecret()) {
+					Analytics.pushAuthSecret(Analytics.authSecret()).then((result) => {
+						if (result.ok) Logger.info('Analytics', '验证密钥已自动同步');
+						else Logger.info('Analytics', `验证密钥自动同步失败: ${result.error}`);
+					});
+				}
 				this.refreshAnalyticsIdRow();
-				Logger.info('Analytics', joined ? '已加入用户体验改善计划' : '已退出用户体验改善计划');
+				Logger.debug('Analytics', joined ? '已启用：数据统计与分析' : '已禁用：数据统计与分析');
 			});
 			this.copyBtn.addEventListener('click', () => this.copyId());
+			this.secretSaveBtn.addEventListener('click', () => this.saveSecret());
 			this.openDashBtn.addEventListener('click', () => {
 				try { window.open('https://aot-analytics-dashboard.pages.dev', '_blank', 'noopener'); }
 				catch (e) { Logger.debug('Analytics', `打开 AOT 面板失败: ${e.message}`); }
 			});
 		}
 
-		// 复制成功/失败后在按钮上打 ✓/×，1.5s 后恢复为「复制」（与其它内联保存按钮一致）。
+		// 保存验证密钥：先本地暂存当前值用于按钮反馈，成功后由 pushAuthSecret 写入 GM 存储。
+		async saveSecret() {
+			const next = this.secretInput.value.trim();
+			const original = this.secretSaveBtn.textContent;
+			const settle = (ok, message) => {
+				this.secretSaveBtn.textContent = ok ? '✓' : '×';
+				setTimeout(() => { this.secretSaveBtn.textContent = original; }, 1500);
+				if (!ok && message) notifyAndLog(message, '操作失败', 'error');
+			};
+			this.secretSaveBtn.disabled = true;
+			try {
+				const result = await Analytics.pushAuthSecret(next);
+				if (result.ok) {
+					this.secretInput.value = Analytics.authSecret();
+					updateInputLabel(this.secretInput);
+					settle(true);
+				} else if (result.error === 'bad_secret') {
+					settle(false, '服务端已设有不同的验证密钥：请先在输入框填入当前密钥保存，再改为新密钥。');
+				} else if (result.error === 'unauthorized') {
+					settle(false, '验证密钥同步失败：该验证 ID 尚未产生数据或已禁用数据统计与分析。');
+				} else {
+					settle(false, `验证密钥同步失败（${result.error}），稍后重试。`);
+				}
+			} finally {
+				this.secretSaveBtn.disabled = false;
+			}
+		}
+
 		copyId() {
 			const id = Analytics.installId();
 			if (!id) return;
@@ -17635,18 +17463,20 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			} else fallback();
 		}
 
-		// 仅当处于计划内：显示只读验证 ID 并填入当前 ID，并显示「查看 AOT Analytics」伪下拉；退出后隐藏。
-		// 用 block 布局（而非 flex）使输入框保持与其它正常输入框一致的 100% 宽度。
 		refreshAnalyticsIdRow() {
 			const joined = Analytics.enabled();
 			if (this.idRow) this.idRow.style.display = joined ? 'block' : 'none';
+			if (this.secretRow) this.secretRow.style.display = joined ? 'block' : 'none';
 			if (this.dashRow) this.dashRow.style.display = joined ? 'block' : 'none';
 			if (this.idInput) {
 				const id = joined ? Analytics.installId() : '';
 				this.idInput.value = id;
-				// 让浮动标签保持「上浮」状态（对齐其它有值输入框的 has-value 表现）
 				if (id) this.idInput.classList.add('has-value');
 				else this.idInput.classList.remove('has-value');
+			}
+			if (this.secretInput) {
+				this.secretInput.value = joined ? Analytics.authSecret() : '';
+				updateInputLabel(this.secretInput);
 			}
 		}
 
@@ -17678,11 +17508,9 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			this.importBtn.addEventListener('click', () => this.handleImport());
 			this.exportBtn.addEventListener('click', () => this.handleExport());
 			this.localBackupBtn.addEventListener('click', () => openLocalBackupModal());
-			// 加载已保存的加密密钥；保存按钮写入 GM（本地键，不进同步/导出清单）
 			this.exportEncKeyInput.value = GM_getValue(AO3_EXPORT_ENC_KEY, '');
 			this.exportEncKeySaveBtn.addEventListener('click', () => {
 				GM_setValue(AO3_EXPORT_ENC_KEY, this.exportEncKeyInput.value.trim());
-				notifyAndLog('加密密钥已保存。', '提示');
 			});
 		}
 
@@ -17693,7 +17521,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				const data = await exportAllData(selectionResult.ids);
 				const encKey = GM_getValue(AO3_EXPORT_ENC_KEY, '');
 				const dateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).replace(/:/g, '-').replace(' ', '_');
-				// 加密密钥非空 → 加密导出（v1 信封）；为空 → 明文 JSON（保留缩进便于人工核对）
 				const content = encKey ? await ConfigSerializer.pack(data, encKey) : JSON.stringify(data, null, 2);
 				saveFile(content, `AO3-Translator-Config-${dateStr}.json`, 'application/json');
 			} catch (e) {
@@ -17708,13 +17535,25 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				const reader = new FileReader();
 				reader.onload = async (event) => {
 					try {
-						// 统一走 ConfigSerializer 解包：自动识别 加密(v1)/压缩(v2)/明文；加密则用所存密钥解密
 						let jsonData = null;
-						try {
+						for (;;) {
 							const encKey = GM_getValue(AO3_EXPORT_ENC_KEY, '');
-							jsonData = await ConfigSerializer.unpack(event.target.result, encKey);
-						} catch (e) {
-							throw new Error(`解密/解析失败：${e.message}`);
+							try {
+								jsonData = await ConfigSerializer.unpack(event.target.result, encKey);
+								break;
+							} catch (e) {
+								if (e && (e.code === 'ENC_MISSING_KEY' || e.code === 'ENC_WRONG_KEY')) {
+									const lines = e.code === 'ENC_MISSING_KEY' ? [
+										'该备份文件已加密，请填写加密密钥。'
+									] : [
+										'使用已保存的加密密钥解密失败：',
+										'密钥不正确，或文件已损坏。'
+									];
+									if (await showKeyRetryModal(lines) !== 'retry') throw new Error('User cancelled');
+									continue;
+								}
+								throw e;
+							}
 						}
 						if (!jsonData.data) throw new Error("文件缺少 data 字段");
 
@@ -17736,7 +17575,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 								case 'formatting': return data ? Object.keys(data).length > 0 : false;
 								case 'fabActions': return data ? Object.keys(data).length > 0 : false;
 								case 'exportTemplates': return data ? data.templates && Object.keys(data.templates).length > 0 : false;
-								case 'cacheSettings': return data ? data.autoCleanupEnabled !== undefined || data.maxItems !== undefined || data.maxDays !== undefined || data.maxSizeBytes !== undefined : false;  // F5：补 autoCleanupEnabled 检测，与导出四键对齐
+								case 'cacheSettings': return data ? data.autoCleanupEnabled !== undefined || data.maxItems !== undefined || data.maxDays !== undefined || data.maxSizeBytes !== undefined : false;
 								case 'webdavConfig': return data ? Object.keys(data).length > 0 : false;
 								default: return false;
 							}
@@ -17754,15 +17593,16 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						if (selectionResult && selectionResult.ids.length > 0) {
 							const result = await importAllData(jsonData, selectionResult.ids, selectionResult.mode);
 							Logger.info('Data', result.message);
+							if (result.aiProfileConflicts && result.aiProfileConflicts.length > 0) {
+								notifyAndLog(`${result.message} ${describeAiProfileConflicts(result.aiProfileConflicts)}。参数差异详情请查阅日志`, '导入完成');
+							}
 
-							// 改动 8f：导入含 WebDAV 配置时自动触发一次同步（用户已确认）。
-							// 走手动路径 executeSync(false)：会显示失败原因、弹首次/服务商变更方向框，且不受失败冷却与最小间隔限制。
 							const importedWebdav = selectionResult.ids.includes('webdavConfig') && jsonData.data?.webdavConfig;
 							if (importedWebdav) {
 								const wdUrl = GM_getValue('webdav_url', '');
 								const wdUser = GM_getValue('webdav_user', '');
 								const wdPass = GM_getValue('webdav_pass', '');
-								const wdComplete = wdUrl && wdUser && wdPass;  // 仅 Basic 认证
+								const wdComplete = wdUrl && wdUser && wdPass;
 								if (!wdComplete) {
 									notifyAndLog('已导入 WebDAV 配置，但连接信息不完整，请在 设置→云端同步 补齐后手动同步。', '提示', 'warn');
 								} else {
@@ -17771,7 +17611,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 										notifyAndLog('WebDAV 配置已导入并完成同步。', '同步成功');
 										if (typeof AutoSyncScheduler !== 'undefined') AutoSyncScheduler._clearFailure();
 									} else if (syncRes._silent) {
-										// 首次方向选择由模态框承载，无需额外提示
 									} else {
 										notifyAndLog(`WebDAV 配置已导入，但同步失败：${syncRes.reason}`, '同步错误', 'error');
 									}
@@ -17810,10 +17649,9 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				pass: this.$('#setting-webdav-pass'),
 				encKey: this.$('#setting-webdav-enc-key'),
 				autoSync: this.$('#setting-webdav-interval')
-				// 清理：chunkSize/concurrency/timeout 输入元素已随面板移除，传输参数由自动检测统一管理
 			};
 
-			// 自动同步状态开关（独立于 interval 输入框）
+			// 自动同步状态开关
 			this.selects = {
 				autoSyncEnabled: this.$('#setting-webdav-auto-sync-enabled')
 			};
@@ -17829,8 +17667,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		onInit() {
 			this.initEvents();
 			AutoSyncScheduler.init();
-
-			// 兼容迁移：老用户曾用 interval=0 应急关闭自动同步 → 转为显式 enabled=false
 			const intervalStr = GM_getValue('webdav_sync_interval', '60');
 			if (intervalStr === '0') {
 				GM_setValue('webdav_auto_sync_enabled', false);
@@ -17862,7 +17698,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		updateActionContainers() {
 			const action = this.actionSelect.value;
 
-			// 隐藏所有容器（含独立于 action 的间隔 group）
 			Object.values(this.containers).forEach(c => {
 				if (c) c.style.display = 'none';
 			});
@@ -17884,7 +17719,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			}
 		}
 
-		// 读取自动同步开关状态（默认启用）
+		// 读取自动同步开关状态
 		getAutoSyncEnabled() {
 			const val = GM_getValue('webdav_auto_sync_enabled', true);
 			return String(val) !== 'false';
@@ -17893,7 +17728,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		renderInput() {
 			const action = this.actionSelect.value;
 
-			// 加载对应的值（面板仅暴露 url/user/pass/encKey/autoSync 五项；传输参数/认证方案由自动检测统一管理）
+			// 加载对应的值
 			const gmKeys = {
 				url: 'webdav_url',
 				user: 'webdav_user',
@@ -17910,7 +17745,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				this.updateLabel(this.inputs[action]);
 			}
 
-			// 处理选择器（目前仅自动同步状态开关）
+			// 处理选择器
 			for (const [name, select] of Object.entries(this.selects)) {
 				if (select) {
 					if (name === 'autoSyncEnabled') {
@@ -17943,35 +17778,27 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						this.inputs[field].value = '60';
 						this.updateLabel(this.inputs[field]);
 					}
-					// quiet（由 handleManualSync 前置保存触发）→ 仅重武装定时器，不触发「立即自动同步」。
-					// 避免点一次「同步」按钮额外入队一个 interval-update 自动同步。
 					AutoSyncScheduler.updateInterval(!quiet);
 				}
 			} else if (field === 'autoSyncEnabled' && this.selects[field]) {
-				// 目前仅自动同步状态开关一个选择器；传输参数选择器已随面板移除
 				const enabled = this.selects[field].value === 'true';
 				GM_setValue('webdav_auto_sync_enabled', enabled);
-				// 【真修复】updateInterval(enabled) 会把"自动同步开关"的布尔值误当 triggerImmediate：
-				// 开关为启用(true)时即触发一次立即 interval-update 自动同步，这正是「点一次同步按钮多跑一轮」的根因。
-				// updateInterval 内部通过 _isAutoDisabled() 读取开关状态来启停定时器，故此处只需 updateInterval()（不立即同步）。
 				AutoSyncScheduler.updateInterval();
-				if (!quiet) Logger.info('Sync', `自动同步已${enabled ? '启用' : '禁用'}`);
+				if (!quiet) Logger.debug('Sync', `自动同步已${enabled ? '启用' : '禁用'}`);
 				this.updateActionContainers();
 			}
-			// 清理：移除 recordUserOverride 登记（传输参数已全自动管理、面板无配置入口，覆盖保护机制为死代码）
 		}
 
 		async handleManualSync() {
 			// 1. 并发检查 - 静默返回，防止重复点击
 			if (WebDAVSyncManager.isSyncing) {
-				return; // 静默返回，不提示、不报错
+				return;
 			}
 			
 			// 2. 保存当前正在显示的输入框的值
 			const currentAction = this.actionSelect.value;
-			this.saveField(currentAction, true);   // quiet：前置保存不触发立即自动同步
-			
-			// 也保存选择器的值（quiet：同上，避免点「同步」额外触发 interval-update 自动同步）
+			this.saveField(currentAction, true);
+
 			for (const [name, select] of Object.entries(this.selects)) {
 				this.saveField(name, true);
 			}
@@ -17993,35 +17820,47 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const originalText = this.syncNowBtn.textContent;
 			this.syncNowBtn.textContent = '同步中...';
 			this.syncNowBtn.disabled = true;
-			// 注意：不修改 statusText，保持显示上次同步时间
 
 			try {
-				const result = await WebDAVSyncManager.executeSync(false);
+				let result = await WebDAVSyncManager.executeSync(false);
+				let keyErrorDismissed = false;
+				while (result && result.success === false && !result._silent &&
+				       (result.notifyCategory === 'missingKey' || result.notifyCategory === 'wrongKey')) {
+					const lines = result.notifyCategory === 'missingKey'
+						? ['云端数据已加密，但本地未配置同步密钥，无法解密。']
+						: ['同步密钥错误，无法解密云端数据。'];
+					if (await showKeyRetryModal(lines) !== 'retry') { keyErrorDismissed = true; break; }
+					result = await WebDAVSyncManager.executeSync(false);
+				}
 
 				if (result.success) {
 					let msg = 'WebDAV 同步成功！';
 					if (result.applied) {
 						msg += ' 已拉取云端最新配置。';
-						// P1(8.7)：仅实际拉取/上传数据时刷新"最后同步时间"
 						this.statusText.textContent = `最后同步时间：${result.time}`;
 					} else if (result.uploaded) {
 						msg += ' 已将本地配置上传至云端。';
 						this.statusText.textContent = `最后同步时间：${result.time}`;
 					} else {
-						// 无变更：不刷新 statusText（保持旧时间，语义=最后一次实际同步数据）
 						msg += ' 本地与云端数据一致。';
+					}
+					if (result.mergedCategories && result.mergedCategories.length > 0) {
+						msg += `（含 ${result.mergedCategories.length} 个冲突分类自动合并）`;
+					}
+					if (result.aiProfileConflicts && result.aiProfileConflicts.length > 0) {
+						msg += ' ' + describeAiProfileConflicts(result.aiProfileConflicts);
+						if (result.aiProfileConflicts.length > 1) msg += '。参数差异详情请查阅日志';
 					}
 					notifyAndLog(msg, '同步成功');
 				} else if (result._silent) {
-					// 静默失败（并发控制），不做任何 UI 变更
+				} else if (keyErrorDismissed) {
+					Logger.warn('Sync', `同步已取消：${result.reason}`);
 				} else {
-					// 失败：不修改 statusText，保持显示上次同步时间
 					notifyAndLog(`WebDAV 同步失败: ${result.reason}`, '同步错误', 'error');
 				}
 			} catch (err) {
 				notifyAndLog(`同步异常: ${err.message}`, '错误', 'error');
 			} finally {
-				// 始终恢复按钮状态
 				this.syncNowBtn.disabled = false;
 				this.syncNowBtn.textContent = originalText;
 			}
@@ -18036,8 +17875,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 			this.syncNowBtn.addEventListener('click', () => this.handleManualSync());
 
-			// 【修复】自动同步完成（实际发生数据变更）后，实时刷新"最后同步时间"，无需切换功能项或重开面板。
-			// 与 onSync 的可见性判断一致：仅当本配置项当前展示时刷新，避免无关的 DOM 写入。
 			document.addEventListener(CUSTOM_EVENTS.WEBDAV_SYNC_COMPLETED, () => {
 				if (this.container.style.display === 'flex') this.loadStatus();
 			});
@@ -18052,7 +17889,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				});
 			});
 
-			// 选择器变化保存（含自动同步状态开关）
+			// 选择器变化保存
 			for (const [name, select] of Object.entries(this.selects)) {
 				if (select) {
 					select.addEventListener('change', () => this.saveField(name));
@@ -18500,7 +18337,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		let expectedCloseQuote = "";
 		let lastOp = null;
 
-		const quotePairs = QUOTE_PAIRS;  // R1：统一引号对
+		const quotePairs = QUOTE_PAIRS;
 
 		for (let i = 0; i < str.length; i++) {
 			let char = str[i];
@@ -19643,8 +19480,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	const TRADITIONAL_REQUEST_TIMEOUT = 30000;
 
 	/**
-	 * 通用 JSON 修复解析（v2）：先原样解析，失败再按两条保守规则修复
-	 * （去非法控制字符 / 去尾随逗号），任一成功即返回；全部失败返回 null。
+	 * 通用 JSON 修复解析
 	 */
 	function tryParseJson(text) {
 		if (typeof text !== 'string') return null;
@@ -19652,8 +19488,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 		let cur = text;
 		for (const fix of [
-			(s) => s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ''), // 非法控制字符
-			(s) => s.replace(/,(\s*[}\]])/g, '$1')                             // 尾随逗号
+			(s) => s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ''),
+			(s) => s.replace(/,(\s*[}\]])/g, '$1')
 		]) {
 			const next = fix(cur);
 			if (next === cur) continue;
@@ -19663,8 +19499,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 前向括号配对（v2）：从 start 起扫描，跳过字符串内转义引号，
-	 * 按 {}[] 深度配对取最外层闭合位，返回 [start..配对闭括号] 子串；无结果返回 null。
+	 * 前向括号配对
 	 */
 	function balancedForward(str, start) {
 		if (start < 0) return null;
@@ -19690,8 +19525,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 反向括号配对（v2）：从 close 回溯找配对开括号，返回含开括号的子串；无结果返回 null。
-	 * 用于「前言文本夹带括号」场景——真正的 JSON 一定在整串最末。
+	 * 反向括号配对
 	 */
 	function balancedBackward(str, close) {
 		if (close < 0) return null;
@@ -19701,7 +19535,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const c = str[i];
 			if (c === '"') {
 				if (inString) {
-					// 反向判定该引号是否被转义：紧邻反斜杠数为奇数则为 \"，不退出字符串态
 					let backslashes = 0;
 					for (let j = i - 1; j >= 0 && str[j] === '\\'; j--) backslashes++;
 					if (backslashes % 2 === 0) inString = false;
@@ -19721,20 +19554,18 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 形态感知提取（v2）：4 个通用候选——整文 / 首个代码块 / 首括号前向 / 末括号回溯。
-	 * 取第一个「能解析且符合翻译契约」的译文列表；无则返回 null。
-	 * 不做任何格式/键名白名单——契约固定，模型输出的东西不在契约内即视为无结果。
+	 * 形态感知提取
 	 */
 	function tryExtractTranslations(content) {
 		const candidates = [];
 		const text = String(content || '').trim();
 		if (!text) return null;
 
-		candidates.push(text); // ① 整文（纯净输出快路径）
+		candidates.push(text);
 		const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-		if (fence && fence[1]) candidates.push(fence[1].trim()); // ② 首个代码块
-		candidates.push(balancedForward(text, text.search(/[{\[]/))); // ③ 首括号前向
-		candidates.push(balancedBackward(text, Math.max(text.lastIndexOf('}'), text.lastIndexOf(']')))); // ④ 末括号回溯
+		if (fence && fence[1]) candidates.push(fence[1].trim());
+		candidates.push(balancedForward(text, text.search(/[{\[]/)));
+		candidates.push(balancedBackward(text, Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'))));
 
 		for (const cand of candidates) {
 			if (!cand || cand.length < 2) continue;
@@ -19747,8 +19578,19 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 契约归一化（v2）：只认提示词约定的 3 种形态——
-	 * 裸数组 / {translations:[...]} / 单对象 {id, trans|text}。其余返回 null。
+	 * 段落标记分隔符协议（%% 模式）
+	 */
+	const BATCH_SEPARATOR_LINE_PATTERN = /\r?\n[ \t]*%%[ \t]*\r?\n/;
+
+	function tryExtractSeparatedTranslations(content, expectedCount) {
+		const text = String(content || '').replace(/[\u200B\u200C\u200D\uFEFF]/g, '').trim();
+		if (!text) return null;
+		const parts = text.split(BATCH_SEPARATOR_LINE_PATTERN).map(t => t.trim());
+		return parts.length === expectedCount ? parts : null;
+	}
+
+	/**
+	 * 契约归一化
 	 */
 	function normalizeTranslations(json) {
 		if (!json || typeof json !== 'object') return null;
@@ -19762,8 +19604,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 单条条目归一（v2）：trans 是契约键，text 兼容「模型回显输入结构」（输入数组即 {id,text}）；
-	 * id 剥非数字，无有效 id 用数组位；非字符串译文（如对象）直接丢弃，交给缺号重译。
+	 * 单条条目归一
 	 */
 	function normalizeItem(item, pos) {
 		if (!item || typeof item !== 'object') return null;
@@ -19775,7 +19616,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 报错内容片段（v2）：截取前 120 字符并入错误文案，便于用户直接反馈 AI 实际返回。
+	 * 报错内容片段
 	 */
 	function makeSnippet(text, len = 120) {
 		const s = String(text || '').replace(/\s+/g, ' ').trim();
@@ -19791,14 +19632,16 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const toLangName = LANG_CODE_TO_NAME[toLang] || toLang;
 
 			const params = ProfileManager.getParamsByEngine(engineId);
-			
+			const paraMode = normalizeParaMode(params.para_mode);
+
 			// 1. 基础 Prompt 替换
 			let finalSystemPrompt = params.system_prompt
 				.replace(/\{fromLangName\}/g, fromLangName)
 				.replace(/\{toLangName\}/g, toLangName);
 
-			// 2. 获取底层系统指令并注入目标语言示例
-			const directives = getSystemDirectives().replace(/\{exampleOutput\}/g, generatePromptExample(toLang));
+			// 2. 获取底层系统指令并按标记模式分叉：json 注入每语言示例；%% 分支无 {exampleOutput} 槽，替换为空
+			const directives = getSystemDirectives(paraMode)
+				.replace(/\{exampleOutput\}/g, generatePromptExample(toLang));
 
 			// 3. 变量注入与防误删兜底
 			if (finalSystemPrompt.includes('{systemDirectives}')) {
@@ -19807,14 +19650,26 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				finalSystemPrompt = `${finalSystemPrompt.trim()}\n\n${directives}`;
 			}
 
-			// 4. 构建 JSON 输入数组
-			const inputArray = paragraphs.map((p, i) => ({
-				id: i,
-				text: p.innerHTML
-			}));
-			const numberedText = JSON.stringify(inputArray, null, 2);
+			// 4. 构建输入文本：json → 编号 JSON 数组；%% → 独立行分隔符拼接（单段无分隔符）
+			let numberedText;
+			if (paraMode === '%%') {
+				numberedText = paragraphs.length === 1
+					? paragraphs[0].innerHTML
+					: paragraphs.map(p => p.innerHTML).join('\n\n%%\n\n');
+			} else {
+				const inputArray = paragraphs.map((p, i) => ({
+					id: i,
+					text: p.innerHTML
+				}));
+				numberedText = JSON.stringify(inputArray, null, 2);
+			}
 
-			let finalUserPrompt = params.user_prompt
+			let userPromptTemplate = params.user_prompt;
+			if (paraMode === '%%' && userPromptTemplate === BASE_AI_PARAMS.user_prompt) {
+				userPromptTemplate = 'Translate the following text to {toLangName} (translate only, no explanations):\n\n{numberedText}';
+			}
+
+			let finalUserPrompt = userPromptTemplate
 				.replace(/\{toLangName\}/g, toLangName)
 				.replace(/\{numberedText\}/g, numberedText);
 
@@ -19895,10 +19750,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						return reject(error);
 					}
 
-					Logger.info('Network', `发起请求: ${this.provider.name}`, {
-						model: this.provider.selectedModel
-					}, reqId);
-
 					safeRequest({
 						method: 'POST',
 						url: url,
@@ -19940,9 +19791,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 								const err = this._normalizeError(res, responseData);
 								if (this.usedApiKey) err.usedKey = this.usedApiKey;
 							err.status = res.status;
-							err.totalKeys = this.totalKeys;  // P1-2：供重试管理器判断额度类错误能否换 Key
-								
-								// 单 Key 或无 Key 场景下，遇到鉴权错误直接升级为致命错误，中断重试
+							err.totalKeys = this.totalKeys;
 								if (err.type === 'auth_error' && (err.status === 401 || err.status === 403) && this.totalKeys <= 1) {
 									err.originalType = 'auth_error';
 									err.type = 'fatal_error';
@@ -20001,40 +19850,37 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const caps = resolveReasoningCaps(this.provider.id, model);
 			const degrade = payload.reasoningDegrade || 0;
 
-			// 推理参数降级（requestRemoteTranslation 内推进，最多 2 次）：
-			// - 显式档位（非 none）：一次降级即完全省略（发不出的档位不硬撑）
-			// - none 档：降级 1 = 换另一形态关思考（toggle off → reasoning_effort:'none'）；降级 2 = 省略
+			if (payload.reasoningOffLadder && payload.reasoningOffForm) {
+				requestData[payload.reasoningOffForm.field] = payload.reasoningOffForm.value;
+				return JSON.stringify(requestData);
+			}
+
+			// 推理参数降级
 			if (degrade >= 2 || (degrade === 1 && level !== 'none')) {
 				// 完全省略：不发任何推理参数；o/gpt5 家族仍需删 temperature
 				if (fam === 'o' || fam === 'gpt5') delete requestData.temperature;
 				return JSON.stringify(requestData);
 			}
 			if (degrade === 1) {
-				// none 首档（厂商 toggle off）被拒 → 换 reasoning_effort:'none' 形态再试；
-				// 无 toggle 的模型直接省略（首档已是 effort-none，无其它形态可换）
+				// none 首档（厂商 toggle off）被拒 → 换 reasoning_effort:'none' 形态再试
 				if (caps && caps.toggle) requestData.reasoning_effort = 'none';
 				else if (fam === 'o' || fam === 'gpt5') delete requestData.temperature;
 				return JSON.stringify(requestData);
 			}
 
 			// 已知模型能力（精确模型 ID / 内置厂商 / 品牌前缀）：
-			// - uncontrollable：始终思考、无 API 控制项，一律省略推理参数
-			// - none：有 toggle 则关闭思考；无 toggle 时按 defaultThinking 决定省略或显式发 effort-none
-			// - 显式档位：有 toggle 则开启，并按 effortByLevel 钳制到模型支持的档位
 			if (caps) {
 				if (caps.uncontrollable) return JSON.stringify(requestData);
 				if (level === 'none') {
 					const explicitNone = caps.effortByLevel && caps.effortByLevel.none;
 					if (caps.toggle) requestData[caps.toggle.field] = caps.toggle.off;
 					if (explicitNone) requestData.reasoning_effort = explicitNone;
-					// 无 toggle 无 explicitNone 时：默认思考开/未知的模型显式发 effort-none，
-					// 不再依赖"厂商默认恰好不思考"（hy3 等默认 no-think 的显式标 defaultThinking:'off'）
 					else if ((caps.defaultThinking ?? 'on') !== 'off') requestData.reasoning_effort = 'none';
 				} else if (level !== 'default') {
 					if (caps.toggle) requestData[caps.toggle.field] = caps.toggle.on;
 					const effort = caps.effortByLevel && caps.effortByLevel[level];
 					if (effort) requestData.reasoning_effort = effort;
-					delete requestData.temperature;                 // 思考模式不支持 temperature
+					delete requestData.temperature;
 				}
 				return JSON.stringify(requestData);
 			}
@@ -20042,18 +19888,13 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			if (fam === 'o' || fam === 'gpt5') {
 				delete requestData.temperature;
 				if (fam === 'gpt5' && level === 'none') {
-					requestData.reasoning_effort = 'none';   // 显式关闭思考
+					requestData.reasoning_effort = 'none';
 				} else if (level !== 'none' && level !== 'default') {
 					requestData.reasoning_effort = level;
 				}
 			} else if (level === 'none') {
-				// 核心修复：unknown 模型 none 不再"什么都不发"。
-				// 推理模型默认思考普遍开（省略 = 跟随默认 = 大量思考），带推理特征的模型
-				// 显式发 reasoning_effort:'none'（保留 temperature，无思考 + temperature 合法）；
-				// 无推理特征按非推理模型省略，避免对严格网关发未知字段导致 400。
 				if (looksLikeReasoningModel(model)) requestData.reasoning_effort = 'none';
 			} else if (level !== 'default') {
-				// 未知/其他模型：乐观发送，被拒则由降级链降级
 				requestData.reasoning_effort = level;
 				delete requestData.temperature;
 			}
@@ -20168,7 +20009,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				requestData.max_tokens = budget + 4096;
 				delete requestData.temperature;
 			} else {
-				requestData.max_tokens = 4096;   // none/default/降级：不传 thinking = Claude 默认无思考
+				requestData.max_tokens = 4096;
 			}
 
 			return JSON.stringify(requestData);
@@ -20266,9 +20107,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			};
 
 			if (payload.omitReasoning) {
-				// 降级重试：完全不发 thinkingConfig
 			} else if (level === 'none') {
-				requestData.generationConfig.thinkingConfig = { thinkingBudget: 0 };   // 显式关闭（Gemini 默认思考开）
+				requestData.generationConfig.thinkingConfig = { thinkingBudget: 0 };
 			} else if (budget > 0) {
 				requestData.generationConfig.thinkingConfig = {
 					includeThoughts: true,
@@ -20357,8 +20197,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					const headers = await this._buildHeaders();
 					const body = this._buildBody(payload);
 
-					Logger.info('Network', '发起请求: Google AI', { model: modelId }, reqId);
-
 					safeRequest({
 						method: 'POST',
 						url: finalUrl,
@@ -20399,7 +20237,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 								const err = this._normalizeError(res, responseData);
 								if (this.usedApiKey) err.usedKey = this.usedApiKey;
 							err.status = res.status;
-							err.totalKeys = this.totalKeys;  // P1-2：供重试管理器判断额度类错误能否换 Key
+							err.totalKeys = this.totalKeys;
 								
 								// 单 Key 或无 Key 场景下，遇到鉴权错误直接升级为致命错误，中断重试
 								if (err.type === 'auth_error' && (err.status === 401 || err.status === 403) && this.totalKeys <= 1) {
@@ -20651,7 +20489,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				case 'groq_ai': return new GroqClient(provider);
 				case 'together_ai': return new TogetherClient(provider);
 				case 'cerebras_ai': return new CerebrasClient(provider);
-				case 'modelscope_ai': return new TogetherClient(provider); // ModelScope 沿用 Together 的错误逻辑
+				case 'modelscope_ai': return new TogetherClient(provider);
 				case 'openai':
 				case 'openai-compatible':
 					return new OpenAICompatibleClient(provider);
@@ -20802,7 +20640,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		return new Promise((resolve) => {
 			const sample = text.substring(0, LANG_DETECT_MAX_LENGTH);
 			const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=${encodeURIComponent(sample)}`;
-			Logger.info('Network', `语言检测 (Google GTX)`);
 			GM_xmlhttpRequest({
 				method: "GET",
 				url: url,
@@ -20829,7 +20666,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	 */
 	function apiBaiduLangdetect(text) {
 		return new Promise((resolve) => {
-			Logger.info('Network', `语言检测 (Baidu)`);
 			GM_xmlhttpRequest({
 				method: "POST",
 				url: "https://fanyi.baidu.com/langdetect",
@@ -20858,7 +20694,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	 */
 	function apiTencentLangdetect(text) {
 		return new Promise((resolve) => {
-			Logger.info('Network', `语言检测 (Tencent)`);
 			GM_xmlhttpRequest({
 				method: "POST",
 				url: "https://transmart.qq.com/api/imt",
@@ -20875,7 +20710,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				onload: (res) => {
 					try {
 						const data = JSON.parse(res.responseText);
-						// ret_code 非 succ（如 Session-Out）说明当前 client_key 会话失效 → 轮换新 key 自愈
 						if (data && data.header && data.header.ret_code && data.header.ret_code !== 'succ') {
 							Logger.warn('Network', '语言检测 (Tencent) 会话失效，轮换 client_key', { retCode: data.header.ret_code });
 							TencentClientKey.rotate();
@@ -20951,7 +20785,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			if (strategy === "tencent") {
 				return apiTencentLangdetect(text);
 			}
-			// 微软语言检测端点已失效（2026-07 上游移除 token 端点），未知策略默认走 Google GTX
 			return apiGoogleLangdetect(text);
 		},
 
@@ -20971,9 +20804,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			// 1. 主引擎检测
 			let detectedLang = await this._detectWithEngine(strategy, text);
 
-			// 2. 主引擎无结果（und/空）→ 按可达性回退链。
-			//    默认回退 Baidu（国内可达、对中文/混杂文本相对稳）；Google 被墙时不能作兜底，
-			//    需用户明确选择（海外网络）才作为回退引擎。
+			// 2. 主引擎无结果（und/空）→ 按可达性回退链
 			if (!detectedLang || detectedLang === 'und') {
 				if (fallback && fallback !== '-' && fallback !== strategy) {
 					Logger.warn('Network', '语言检测主引擎无结果，触发回退', { from: strategy, to: fallback });
@@ -21044,15 +20875,12 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						} else if (error.type === 'rate_limit') {
 							KeyBlacklistManager.markRateLimited(error.usedKey);
 						} else if (error.type === 'quota_error') {
-							// P1-2：该 Key/账号额度耗尽——不永久拉黑（他日可能充值/恢复），但计入换 Key 次数，受 >20 安全阀约束
 							keySwitchCount++;
 						}
 					}
 
 					// 2. 致命错误直接抛出
 					if (error.type === 'fatal_error') throw error;
-					// 余额/配额类错误(402/insufficient_quota/次数超限)：不同账号的 Key 可能各有额度，换一把 Key 也许能解决
-					// （P1-2 中间态）。仅当单一 Key（换无可换）时直接上抛，避免空转。
 					if (error.type === 'quota_error' && (error.totalKeys || 1) <= 1) throw error;
 
 					// 3. 防止死循环安全阀
@@ -21072,7 +20900,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					}
 
 					// 5. 只有非 Key 级错误，才消耗常规的 attempt 计数
-					// quota_error 也归为 Key 级：换一把 Key（不同账号可能各有额度）重试，不耗尽常规 attempt
 					const isKeyError = error.usedKey && (error.type === 'rate_limit' || error.type === 'quota_error' || ((error.type === 'auth_error' || error.originalType === 'auth_error') && (error.status === 401 || error.status === 403)));
 					if (!isKeyError) attempt++;
 
@@ -21115,8 +20942,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		
 		const resourceManager = new ResourceManager(engineName);
 
-		// 推理参数降级档位：0=正常；1=none 换形态/显式档位省略推理参数；2=完全省略。
-		// 首个请求若因推理参数被拒（400 等），最多降级 2 次，避免连重 3 次全挂。
 		let reasoningDegrade = 0;
 
 		// 包装成单次请求任务
@@ -21150,7 +20975,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				return { contentArray: innerContents, reasoning: '', meta: { durationMs: result.durationMs } };
 			}
 
-			// 传统引擎：腾讯翻译（失败自动降级 Bing，避免腾讯 key/契约失效时整段翻译不可用）
+			// 传统引擎：腾讯翻译（失败自动降级 Bing）
 			if (engineName === 'tencent_translator') {
 				try {
 					const result = await _handleTencentRequest(CONFIG.TRANS_ENGINES.tencent_translator, paragraphs, fromLang, toLang, reqId);
@@ -21177,28 +21002,55 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 			// 1. 构建纯净的 Payload
 			const payload = PromptBuilder.build(paragraphs, fromLang, toLang, engineName);
-			// Anthropic/Gemini 读 omitReasoning（降级即省略推理参数）；OpenAI 兼容体读 reasoningDegrade
-			if (reasoningDegrade >= 1) payload.omitReasoning = true;
+			const reasoningOffLadder = provider.isCustom
+				&& normalizeReasoningEffort(payload.reasoningEffort) === 'none'
+				&& !resolveReasoningCaps(provider.id, provider.selectedModel)
+				&& classifyOpenAIReasoningFamily(provider.selectedModel) === 'other';
+			if (reasoningOffLadder) {
+				payload.reasoningOffLadder = true;
+				payload.reasoningOffForm = reasoningOffFormById(readReasoningOffFormId(provider, provider.selectedModel));
+			}
+			if (reasoningDegrade >= 1 && !reasoningOffLadder) payload.omitReasoning = true;
 			payload.reasoningDegrade = reasoningDegrade;
-			
+
 			// 2. 实例化 Client 并请求
 			const client = ApiClientFactory.create(provider);
 			let result;
-			try {
-				result = await client.translate(payload, reqId);
-			} catch (err) {
-				// 推理参数被拒（400 等）：直接在本任务内推进降级档位重试。
-				// 不走 RetryManager —— 单 Key 下 auth_error 会被升级为 fatal_error，立即抛出不给降级机会。
-				if (reasoningDegrade < 2 && isReasoningParamRejected(err)) {
-					reasoningDegrade += 1;
-					if (reasoningDegrade >= 1) payload.omitReasoning = true;
-					payload.reasoningDegrade = reasoningDegrade;
+			let probeBudget = GENERIC_THINKING_OFF_FORMS.length;
+			while (true) {
+				try {
 					result = await client.translate(payload, reqId);
-				} else {
+					break;
+				} catch (err) {
+					const paramRejected = isReasoningParamRejected(err);
+					const probeRejected = reasoningOffLadder && payload.reasoningOffForm && probeBudget > 0
+						&& (paramRejected || err.status === 400 || err.status === 422);
+					if (probeRejected) {
+						probeBudget -= 1;
+						const nextId = nextReasoningOffFormId(payload.reasoningOffForm.id);
+						writeReasoningOffFormId(provider, provider.selectedModel, nextId, paramRejected);
+						payload.reasoningOffForm = reasoningOffFormById(nextId);
+						if (!payload.reasoningOffForm) payload.reasoningDegrade = 2;
+						continue;
+					}
+					if (reasoningDegrade < 2 && isReasoningParamRejected(err)) {
+						reasoningDegrade += 1;
+						payload.omitReasoning = true;
+						payload.reasoningDegrade = reasoningDegrade;
+						result = await client.translate(payload, reqId);
+						break;
+					}
 					throw err;
 				}
 			}
-			
+			if (reasoningOffLadder && payload.reasoningOffForm && result) {
+				if (result.reasoning && String(result.reasoning).trim()) {
+					writeReasoningOffFormId(provider, provider.selectedModel, nextReasoningOffFormId(payload.reasoningOffForm.id));
+				} else {
+					writeReasoningOffFormId(provider, provider.selectedModel, payload.reasoningOffForm.id);
+				}
+			}
+
 			// 3. 返回富结果对象
 			return { ...result };
 		};
@@ -21245,10 +21097,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		const engineName = getValidEngineName();
 
 		// 2. 缓存查询
-		// 改造 A + P1-2：key = ['stable_v3', fromLang, toLang, scopeId, contextHash, textHash,
-		//   perTextHitHash, SEMANTIC_FINGERPRINT(稳定层)]；易变层(提示词/后处理)走条目 entryCfg 校验。
-		// perTextHitHash 来自本段实际命中的术语规则集（轻量匹配），失效粒度=命中词条，
-		// 而非全局术语表版本号。查缓存前先取 preparedRules（命中路径不参与 DOM 预处理）。
 		const preparedRules = await getPreparedGlossaryRules();
 		const cacheKeys = await Promise.all(contentToTranslate.map(async (p) => {
 			const scopeId = getScopeId(p.original);
@@ -21256,12 +21104,10 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const context = shouldIncludeContext(p.original, textContent.length)
 				? getLightweightCacheContext(p.original)
 				: null;
-			// P1-5：逐文本节点扫描（与 _applyRegexRules 同粒度），修复锚定正则 under-invalidation
 			const perTextHitHash = computePerTextHits(collectTextNodeValues(p.original), preparedRules).fingerprint;
 			return buildStableCacheKey(p.content, fromLang, toLang, scopeId, context, perTextHitHash);
 		}));
 
-		// 后手回退（决策点 4，默认关）：LEGACY_KEY_MODE=on 时，指纹 key miss 再回退旧版本号 key
 		const legacyMode = GM_getValue('ao3_cache_legacy_key_mode', false) === true;
 		let legacyKeys = null;
 		if (legacyMode) {
@@ -21277,15 +21123,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 		const cachedResults = await TranslationCacheDB.get(cacheKeys);
 
-		// 后手回退：指纹 key 未命中的，尝试旧 key 兜底
 		const legacyResults = (legacyMode && legacyKeys)
 			? await TranslationCacheDB.get(legacyKeys)
 			: null;
 
-		// P1-2：读取时的易变层指纹，命中条目用它校验（提示词/后处理等已变则按 miss 原位覆盖）
 		const currentEntryCfg = await _ConfigMemo.getEntryCfg();
-		// LOW 4：快照读阶段指纹，随批传给写路径——批处理期间配置若变更，本批不落库
-		//（否则旧提示词译文会被以新 entryCfg 落库并被后续读命中 → 陈旧译文）
 		const cfgGenAtRead = await _ConfigMemo.getSemantic();
 		const entryCfgAtRead = currentEntryCfg;
 
@@ -21293,8 +21135,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		const hits = new Map();
 		const hitKeysToUpdate =[];
 		const now = Date.now();
-		// F5（2026-08-15）：时间戳刷新门限随 maxDays 缩放，小 TTL 下"n 天未访问"
-		// 语义不失真。maxDays=30 → 24h（与旧行为一致）；maxDays≤2 → 6~12h。
 		const maxDays = parseInt(GM_getValue('ao3_cache_max_days', 30), 10);
 		const refreshGapMs = Math.min(24 * 60 * 60 * 1000,
 			Math.max(1 * 60 * 60 * 1000, (isNaN(maxDays) || maxDays <= 0 ? 30 : maxDays) * 6 * 60 * 60 * 1000));
@@ -21305,13 +21145,10 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const key = cacheKeys[i];
 			let cached = cachedResults[i];
 
-			// 回退路径：仅当指纹 key 未命中时才读旧 key（避免双写一致性隐患）
 			if (!cached && legacyResults && legacyResults[i]) {
 				cached = legacyResults[i];
 			}
 
-			// P1-2：稳定键命中后校验易变层。entryCfg 缺失（旧 v1/v2 条目，含 LEGACY 模式）
-			// 视为有效命中（保持旧行为）；v3 条目指纹不符 → 按 miss 重翻，同 key 覆盖不膨胀 DB。
 			if (cached && cached.entryCfg !== undefined && cached.entryCfg !== currentEntryCfg) {
 				cached = null;
 			}
@@ -21328,7 +21165,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		}
 
 		if (hitKeysToUpdate.length > 0) {
-			// 改造 D：updateTimestamps 现为可 await，命中超 refreshGapMs 才批量更新 timestamp+hitCount
 			await TranslationCacheDB.updateTimestamps(hitKeysToUpdate);
 		}
 
@@ -21337,10 +21173,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			resultsMap.set(id, text);
 		}
 
-		// 3. 处理未命中的段落（改造 C：占位符校验失败自动二分下探，不整批重来）
+		// 3. 处理未命中的段落
 		if (misses.length > 0) {
-			// preparedRules 已在缓存查询段获取（getPreparedGlossaryRules 内部有
-			// runtimePreparedGlossaryCache 二级缓存，不会重复构建）
 			await translateMissesWithDescend(misses, resultsMap, preparedRules, engineName, {
 				isCancelled,
 				knownFromLang: fromLang,
@@ -21375,7 +21209,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			}
 		}
 
-		// M3：把缓存命中数挂到返回的 Map 上（Map 可扩展属性），供埋点 trackTranslation 读取 cache_hit
 		finalResults.cacheHits = hits.size;
 		finalResults.cacheSavedChars = cacheSavedChars;
 
@@ -21384,10 +21217,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 
 	/**
-	 * 二分下探翻译（改造 C）：占位符校验失败不再整批重来。
-	 * 对 miss 子批递归二分，最终把译文写入 resultsMap；成功子批照常写缓存。
-	 * validation_failed 以外的错误（网络/认证）直接抛出。
-	 *
+	 * 二分下探翻译
 	 * @param {Array} misses - { p, key, index } 列表
 	 * @param {Map} resultsMap - 共享结果容器
 	 * @param {Object} preparedRules - 术语规则
@@ -21415,7 +21245,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			});
 		} catch (e) {
 			if (e && e.type === 'validation_failed') {
-				// 1.2 定位性重译：校验失败能定位到具体丢失段时，只重译这些段（好段已部分成功落库）
 				if (e.lostIndices && e.lostIndices.size > 0 && e.lostIndices.size < misses.length) {
 					Logger.warn('Translation', `占位符校验失败，定位性重译 (批 ${misses.length} → 重译 ${e.lostIndices.size} 段)`, { reqId, reason: e.message });
 					const affected = misses.filter((_, i) => e.lostIndices.has(i));
@@ -21435,8 +21264,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				const half = Math.ceil(misses.length / 2);
 				const left = misses.slice(0, half);
 				const right = misses.slice(half);
-				// 修复：两个子树并行执行，互不阻塞——左子树失败不影响右子树继续翻译。
-				// allSettled 保证最坏情况下各自降级，不把 validation_failed 一路冒泡到整批。
 				const results = await Promise.allSettled([
 					translateMissesWithDescend(left, resultsMap, preparedRules, engineName, {
 						isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError
@@ -21445,7 +21272,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError
 					}, depth + 1)
 				]);
-				// 两侧都失败才抛出（最细粒度已无救），交给上层 _executeBatch 兜底
 				const rejected = results.filter(r => r.status === 'rejected');
 				if (rejected.length > 0 && rejected.length === results.length) {
 					const first = rejected[0].reason;
@@ -21458,7 +21284,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 翻译单批（含预处理/请求/解析/校验/还原/写缓存）。由 translateMissesWithDescend 调用。
+	 * 翻译单批（含预处理/请求/解析/校验/还原/写缓存）
 	 */
 	async function translateSingleBatch(misses, resultsMap, preparedRules, engineName, {
 		isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError, cfgGenAtRead, entryCfgAtRead
@@ -21524,43 +21350,58 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			let combinedTranslation = response.content.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
 			combinedTranslation = pm.normalize(combinedTranslation);
 
-			const translations = tryExtractTranslations(combinedTranslation);
+			const paraMode = normalizeParaMode(ProfileManager.getParamsByEngine(engineName).para_mode);
 
-			if (!translations) {
-				// v2-R2：单段纯文本兜底（正常模型给单段纯文本即译文本身，不再硬报 JSON 解析失败）
-				if (misses.length === 1 && combinedTranslation.trim()) {
-					Logger.warn('Translation', 'AI 未返回结构化 JSON，采用单段纯文本兜底', { reqId });
+			if (paraMode === '%%') {
+				// %% 分隔符协议
+				const parts = tryExtractSeparatedTranslations(combinedTranslation, misses.length);
+				if (parts) {
+					parts.forEach((t, i) => { if (t) parsedMisses.set(i, t); });
+				} else if (misses.length === 1 && combinedTranslation.trim()) {
+					Logger.warn('Translation', '%% 分隔译文单段批段数不匹配，采用整文兜底', { reqId });
 					parsedMisses.set(0, combinedTranslation.trim());
-				}
-				if (parsedMisses.size === 0) {
-					const err = new Error(`AI 未返回有效的 JSON 格式数据（内容片段：${makeSnippet(combinedTranslation)}）`);
+				} else {
+					const segCount = combinedTranslation.split(BATCH_SEPARATOR_LINE_PATTERN).length;
+					const err = new Error(`%% 分隔译文段数不匹配 (预期: ${misses.length}, 实际: ${segCount})（内容片段：${makeSnippet(combinedTranslation)}）`);
 					err.type = 'validation_failed';
 					throw err;
 				}
 			} else {
-				// v2：槽位填充——0/1-based 基准检测 → 越界/多余段忽略 → 重复 id 告警取先到者
-				const n = misses.length;
-				const zeroBased = translations.every(it => it.id >= 0 && it.id < n);
-				const oneBased = translations.every(it => it.id >= 1 && it.id <= n);
-				const shift = zeroBased || !oneBased ? 0 : -1;
-				const slots = new Array(n).fill(undefined);
-				let duplicated = 0;
-				for (const it of translations) {
-					const idx = it.id + shift;
-					if (idx < 0 || idx >= n) continue;
-					if (slots[idx] !== undefined) { duplicated++; continue; }
-					slots[idx] = it.text.trim();
+				const translations = tryExtractTranslations(combinedTranslation);
+
+				if (!translations) {
+					if (misses.length === 1 && combinedTranslation.trim()) {
+						Logger.warn('Translation', 'AI 未返回结构化 JSON，采用单段纯文本兜底', { reqId });
+						parsedMisses.set(0, combinedTranslation.trim());
+					}
+					if (parsedMisses.size === 0) {
+						const err = new Error(`AI 未返回有效的 JSON 格式数据（内容片段：${makeSnippet(combinedTranslation)}）`);
+						err.type = 'validation_failed';
+						throw err;
+					}
+				} else {
+					const n = misses.length;
+					const zeroBased = translations.every(it => it.id >= 0 && it.id < n);
+					const oneBased = translations.every(it => it.id >= 1 && it.id <= n);
+					const shift = zeroBased || !oneBased ? 0 : -1;
+					const slots = new Array(n).fill(undefined);
+					let duplicated = 0;
+					for (const it of translations) {
+						const idx = it.id + shift;
+						if (idx < 0 || idx >= n) continue;
+						if (slots[idx] !== undefined) { duplicated++; continue; }
+						slots[idx] = it.text.trim();
+					}
+					if (duplicated > 0) {
+						Logger.warn('Translation', `AI 返回重复段落 id ${duplicated} 处，取先到者`, { reqId });
+					}
+					slots.forEach((t, i) => { if (t !== undefined) parsedMisses.set(i, t); });
 				}
-				if (duplicated > 0) {
-					Logger.warn('Translation', `AI 返回重复段落 id ${duplicated} 处，取先到者`, { reqId });
-				}
-				slots.forEach((t, i) => { if (t !== undefined) parsedMisses.set(i, t); });
 			}
 
-			// v2：缺号兜底（保留 缺少段落 语义，驱动二分/定位性重译）
 			for (let i = 0; i < misses.length; i++) {
 				if (!parsedMisses.has(i)) {
-					const err = new Error(`AI 返回的 JSON 缺少段落 ${i} 的译文（内容片段：${makeSnippet(combinedTranslation)}）`);
+					const err = new Error(`AI 返回的结果缺少段落 ${i} 的译文（内容片段：${makeSnippet(combinedTranslation)}）`);
 					err.type = 'validation_failed';
 					throw err;
 				}
@@ -21591,20 +21432,15 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 		const preprocessedText = preprocessedMisses.map(p => p.innerHTML).join(' ');
 
-		// P1-2/P1-1 + LOW 4：易变层校验指纹 / 稳定层代数 / 可写缓存判定。
-		// 提前到 validate 前取值，供校验失败分支的"部分成功落库"复用（1.2）。
 		const entriesToSave = [];
 		const currentEntryCfg = await _ConfigMemo.getEntryCfg();
 		const currentCfgGen = await _ConfigMemo.getSemantic();
-		// 批处理期间配置若已变更（读阶段快照 vs 写阶段），本批译文不落库——
-		// 否则旧配置产出的译文会以新 entryCfg/cfgGen 入库，被后续读路径当新配置命中 → 陈旧译文。
 		const cacheable = (cfgGenAtRead === undefined || cfgGenAtRead === currentCfgGen)
 			&& (entryCfgAtRead === undefined || entryCfgAtRead === currentEntryCfg);
 
 		const validation = pm.validate(preprocessedText, textForValidation, baseThresholds, currentChunkSize, currentParaLimit);
 
 		if (!validation.isValid) {
-			// —— 1.2 定位性重译：逐段定位丢失占位符的段；好段立即部分成功（还原+写缓存），坏段交给 translateMissesWithDescend 定位重译 ——
 			Logger.warn('Translation', `占位符校验失败: ${validation.errorReason}`, { totalLoss: validation.totalLoss }, reqId);
 			const lostIndices = new Set();
 			TimeSlicer.reset();
@@ -21617,7 +21453,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					: false;
 
 				if (isGood) {
-					// 好段：立即部分成功——还原、清洗、写结果与缓存
 					let restored = pm.restore(pm.normalize(translatedContent));
 					let cleaned = AdvancedTranslationCleaner.clean(restored || miss.p.content);
 					cleaned = applyPostTranslationReplacements(cleaned);
@@ -21650,11 +21485,9 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const err = new Error(`占位符校验失败 (${validation.errorReason})`);
 			err.type = 'validation_failed';
 			if (lostIndices.size > 0 && lostIndices.size < misses.length) {
-				// 能定位到具体丢失段 → 只重译这些段
 				err.lostIndices = lostIndices;
 				Logger.warn('Translation', `占位符校验失败且可定位，重译 ${lostIndices.size}/${misses.length} 段`, { reqId });
 			} else {
-				// 全丢/无法定位 → 不附加 lostIndices，回退盲二分兜底
 				Logger.warn('Translation', `占位符校验失败且无法定位，回退二分下探`, { reqId });
 			}
 			throw err;
@@ -21682,8 +21515,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						hitCount: 1,
 						sizeBytes,
 						shortText: miss.p.content.length < SHORT_TEXT_CONTEXT_THRESHOLD,
-						entryCfg: currentEntryCfg,   // P1-2：读路径校验（提示词/后处理等易变层）
-						cfgGen: currentCfgGen        // P1-1：代数清理判定（稳定层语义指纹）
+						entryCfg: currentEntryCfg,
+						cfgGen: currentCfgGen
 					});
 				}
 			}
@@ -21692,7 +21525,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 		if (entriesToSave.length > 0) {
 			await TranslationCacheDB.put(entriesToSave);
-			// 改造 D：写合并批次后增量字节淘汰（超限即时触发，不等 24h）
 			TranslationCacheDB.pruneBySize().catch(err => Logger.warn('System', '增量缓存淘汰失败', err));
 		}
 	}
@@ -21703,7 +21535,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	const KeyBlacklistManager = {
 		GM_KEY: 'api_key_blacklist',
 		BAN_DURATION_429: 10000,
-		DEAD_TTL: 24 * 60 * 60 * 1000, // 死 key 24h 后自动复活，防误锁
+		DEAD_TTL: 24 * 60 * 60 * 1000,
 
 		_read() {
 			try {
@@ -21842,7 +21674,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 				if (status === 'ACTIVE') {
 					GM_setValue(indexKey, (currentIndex + 1) % keys.length);
-					Logger.info('Network', `API Key 调度: ${provider.name}`, { keyIndex: (currentIndex + 1) % keys.length });
+					Logger.debug('Network', `API Key 调度: ${provider.name}`, { keyIndex: (currentIndex + 1) % keys.length });
 					return { key: candidateKey, index: currentIndex, totalKeys: keys.length };
 				}
 
@@ -21919,13 +21751,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			[sourceTexts, fromLang, toLang], "te"
 		]);
 
-		Logger.info('Network', '发起请求: 谷歌翻译', {
-			url: engineConfig.url_api,
-			from: fromLang,
-			to: toLang,
-			paragraphs: paragraphs.length
-		}, reqId);
-
 		const startTime = Date.now();
 		const res = await new Promise((resolve, reject) => {
 			safeRequest({
@@ -21957,24 +21782,19 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 处理对腾讯翻译接口的特定请求流程（批量：text_list 一次请求，响应 auto_translation 与入参 1:1 对齐）
-	 * 移植自 kiss-translator genTencent / parseTransRes（OPT_TRANS_TENCENT）。
+	 * 处理对腾讯翻译接口的特定请求流程
 	 */
 	async function _handleTencentRequest(engineConfig, paragraphs, fromLang, toLang, reqId = 'Unknown') {
-		// 源语言不在腾讯白名单时回退 auto（服务端自动检测），避免发非法 lang 被拒
 		const tencentFrom = (fromLang === 'auto' || Object.prototype.hasOwnProperty.call(TENCENT_LANG_CODE_MAP, fromLang))
 			? (TENCENT_LANG_CODE_MAP[fromLang] || 'auto')
 			: 'auto';
 		const tencentTo = TENCENT_LANG_CODE_MAP[toLang] || toLang;
-		// 腾讯仅支持显式白名单目标语言，白名单外显式抛错，避免静默错翻
 		if (toLang !== 'auto' && !Object.prototype.hasOwnProperty.call(TENCENT_LANG_CODE_MAP, toLang)) {
 			const e = new Error(`腾讯翻译暂不支持目标语言: ${toLang}`);
 			e.type = 'api_error';
 			throw e;
 		}
 		const sourceTexts = paragraphs.map(p => nodeToPlainText(p));
-		// client_key 是腾讯端点的会话标识（空/失效 key → ret_code "Session-Out"）。
-		// 动态生成每次建立新会话，避免硬编码旧 key 依赖过期会话；失败时轮换自愈。
 		const requestBody = {
 			header: {
 				fn: "auto_translation",
@@ -21987,12 +21807,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			source: { text_list: sourceTexts, lang: tencentFrom },
 			target: { lang: tencentTo }
 		};
-
-		Logger.info('Network', '发起请求: 腾讯翻译', {
-			from: tencentFrom,
-			to: tencentTo,
-			paragraphs: paragraphs.length
-		}, reqId);
 
 		const startTime = Date.now();
 		const res = await new Promise((resolve, reject) => {
@@ -22017,7 +21831,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 		const duration = Date.now() - startTime;
 		if (res.status !== 200) {
-			// 非 2xx（尤其 429 限流 / 403 风控）：轮换 client_key，下次重试用新会话
 			TencentClientKey.rotate();
 			const e = new Error(`腾讯翻译 API 错误 (代码: ${res.status}): ${res.statusText}`);
 			e.type = res.status === 429 ? 'rate_limit' : 'api_error';
@@ -22030,7 +21843,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			e.type = 'invalid_json';
 			throw e;
 		}
-		// ret_code 非 succ（如 Session-Out = client_key 会话失效）→ 轮换 key
 		if (responseData.header && responseData.header.ret_code && responseData.header.ret_code !== 'succ') {
 			Logger.warn('Network', '腾讯翻译会话失效，轮换 client_key', { retCode: responseData.header.ret_code, reqId });
 			TencentClientKey.rotate();
@@ -22048,22 +21860,10 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	 * 处理对微软翻译接口的特定请求流程
 	 */
 	async function _handleBingRequest(engineConfig, paragraphs, fromLang, toLang, reqId = 'Unknown') {
-		// 2026-07 微软移除 edge.microsoft.com/translate/auth token 端点后，改用无鉴权端点：
-		// https://edge.microsoft.com/translate/translatetext?from=&to=...&isEnterpriseClient=false
-		// Body 为裸字符串数组（旧 [{ Text }] 形状会被拒绝），from 留空即自动检测。
 		const bingFrom = fromLang === 'auto' ? '' : (BING_LANG_CODE_MAP[fromLang] || fromLang);
 		const bingTo = BING_LANG_CODE_MAP[toLang] || toLang;
 		const url = `${engineConfig.url_api}?from=${encodeURIComponent(bingFrom)}&to=${encodeURIComponent(bingTo)}&isEnterpriseClient=false`;
-		// 该端点无标记保真（会破坏带属性 HTML），与 read-frog / kiss-translator 一致发送纯文本；
-		// <br> 转 \n 保行内换行，术语表占位符（z1 等字母序号令牌）为纯文本令牌可存活。
 		const requestBody = JSON.stringify(paragraphs.map(p => nodeToPlainText(p)));
-
-		Logger.info('Network', '发起请求: 微软翻译', {
-			url: url,
-			from: bingFrom || '(auto)',
-			to: bingTo,
-			paragraphs: paragraphs.length
-		}, reqId);
 
 		const startTime = Date.now();
 
@@ -22117,15 +21917,12 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	 **************************************************************************/
 
 	/**
-	 * 无序多词匹配时，两个组成部分之间允许的最大间隙长度（纵深防御，修复 R5）
+	 * 无序多词匹配时，两个组成部分之间允许的最大间隙长度
 	 */
 	const MAX_ALLOWED_GAP_LENGTH = 30;
 
 	/**
-	 * 预处理单个段落 DOM 节点，应用所有术语表规则并替换为占位符
-	 */
-	/**
-	 * 预处理单个段落 DOM 节点：先正则/字面量策略，再 DOM 策略（R3 拆分编排）
+	 * 预处理单个段落 DOM 节点：先正则/字面量策略，再 DOM 策略
 	 */
 	function _preprocessParagraph(p, preparedRules, pm) {
 		const clone = p.cloneNode(true);
@@ -22136,7 +21933,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 正则/字面量策略：按 executionPlan 逐文本节点替换匹配为占位符（R3 拆分）
+	 * 正则/字面量策略：按 executionPlan 逐文本节点替换匹配为占位符
 	 */
 	function _applyRegexRules(clone, executionPlan, pm) {
 		// 1. 正则规则处理
@@ -22191,7 +21988,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						const placeholder = pm.create(finalValue, rule, matchedText);
 						bumpUsageCounter(ANALYTICS_KEY_USAGE_GLOSSARY_HITS);
 
-						// --- 智能空格垫补逻辑 ---
+						// 空格垫补逻辑
 						const prevChar = matchIndex > 0 ? text[matchIndex - 1] : '';
 						const nextChar = matchIndex + matchedText.length < text.length ? text[matchIndex + matchedText.length] : '';
 
@@ -22220,7 +22017,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		}
 
 	/**
-	 * DOM 策略：跨节点文本匹配 + 词形，替换为占位符（R3 拆分）
+	 * DOM 策略：跨节点文本匹配 + 词形，替换为占位符
 	 */
 	function _applyDomRules(clone, domRules, pm) {
 		// 2. DOM 规则处理
@@ -22258,7 +22055,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			if (plainText.length > 0) {
 				const used = new Uint8Array(plainText.length);
 				const allMatches =[];
-				// 修复 B6：大小写归一化只算一次，避免每条不敏感规则重复 toLowerCase
 				const lowerPlainText = plainText.toLowerCase();
 
 				for (const rule of domRules) {
@@ -22269,7 +22065,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						let missingPart = false;
 						
 						for (let pIdx = 0; pIdx < numParts; pIdx++) {
-							const forms = rule.parts[pIdx];  // P2：forms 已在 getPreparedGlossaryRules 预排序
+							const forms = rule.parts[pIdx];
 							let foundAny = false;
 							for (const form of forms) {
 								const formStr = rule.isGeneral ? form.toLowerCase() : form;
@@ -22306,10 +22102,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 								
 								const gap = plainText.substring(currentEnd, nextInst.start);
 
-								// 纵深防御 1：间隙最大长度限制（常量 MAX_ALLOWED_GAP_LENGTH 已上提）
 								if (gap.length > MAX_ALLOWED_GAP_LENGTH) break;
 
-								// 正确转义 \-，防止被解析为 Unicode 范围 (U+0001 至 U+FF0D)
 								if (!/^[\s\u0001\-－﹣—–]*$/.test(gap)) break;
 								
 								chain.push(nextInst);
@@ -22334,7 +22128,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 							}
 						}
 					} else {
-						const firstForms = rule.parts[0];  // P2：forms 已在 getPreparedGlossaryRules 预排序
+						const firstForms = rule.parts[0];
 						
 						for (const firstForm of firstForms) {
 							const formStr = rule.isGeneral ? firstForm.toLowerCase() : firstForm;
@@ -22374,7 +22168,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 										if (sepLen === 0) { matchedAll = false; break; }
 										currentI += sepLen;
 										
-										const forms = rule.parts[pIdx];  // P2：forms 已在 getPreparedGlossaryRules 预排序
+										const forms = rule.parts[pIdx];
 										let foundForm = null;
 										for (const form of forms) {
 											const fStr = rule.isGeneral ? form.toLowerCase() : form;
@@ -22425,7 +22219,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						const endMap = textMap[endIdx];
 						
 						if (startMap && endMap && startMap.node && endMap.node) {
-							// 1. 【关键】在 range.extractContents() 破坏 DOM 之前，先安全读取前后字符
+							// 1. 在 range.extractContents() 破坏 DOM 之前，先安全读取前后字符
 							const prevChar = (startMap.offset > 0 && startMap.node.nodeValue) 
 								? startMap.node.nodeValue[startMap.offset - 1] 
 								: '';
@@ -22479,7 +22273,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			if (this.placeholderCache.has(finalValue)) {
 				return this.placeholderCache.get(finalValue);
 			}
-			// 批内计数器自增：同一 finalValue 复用同一占位符（placeholderCache），不同值严格递增，无碰撞重试之需。
 			const placeholder = `${PlaceholderConfig.prefix}${++this.counter}${PlaceholderConfig.suffix}`;
 
 			this.placeholderCache.set(finalValue, placeholder);
@@ -22525,9 +22318,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			let hasUnknownPlaceholders = false;
 			const fuzzyRegex = PlaceholderConfig.fuzzyRegex;
 			fuzzyRegex.lastIndex = 0;
-			// 原文自然令牌豁免：预处理原文里本就存在的 z<n>（如 z0/z5 等字母+数字，含模板、跑团、LaTeX 等）
-			// 允许在译文中原样出现——只有"原文没有、译文新冒出"的 z<n> 才判未知占位符，
-			// 否则会把这类天然文本误报为未知并触发整批重译。
 			const naturalTokens = this._collectNaturalTokens(preprocessedText);
 			let match;
 			while ((match = fuzzyRegex.exec(normalizedTranslatedText)) !== null) {
@@ -22570,8 +22360,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		}
 
 		/**
-		 * 收集预处理原文中"天然存在"的 z<n>（字母+数字，如模板、跑团、LaTeX 等）作豁免集合：
-		 * 供 validate / checkParagraphPlaceholders 判定"译文新冒出的未知占位符"。
+		 * 收集预处理原文中"天然存在"的 z<n>
 		 */
 		_collectNaturalTokens(text) {
 			const tokens = new Set();
@@ -22583,9 +22372,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		}
 
 		/**
-		 * 单段占位符校验（1.2 定位性重译）：
-		 * 判定一段译文是否完整保留了其预处理原文中的全部占位符（经 normalize 后精确匹配），
-		 * 并检测未知占位符。返回 { ok, loss, unknown }。
+		 * 单段占位符校验
 		 */
 		checkParagraphPlaceholders(preprocessedHtml, normalizedTranslatedText) {
 			if (this.placeholders.size === 0) return { ok: true, loss: 0, unknown: false };
@@ -22606,7 +22393,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			let unknown = false;
 			const fuzzyRegex = PlaceholderConfig.fuzzyRegex;
 			fuzzyRegex.lastIndex = 0;
-			// 与 validate 同源：原文自然令牌豁免，避免把原文含 {n} 的段误判为未知占位符
 			const naturalTokens = this._collectNaturalTokens(preprocessedHtml);
 			let fm;
 			while ((fm = fuzzyRegex.exec(text)) !== null) {
@@ -22660,7 +22446,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
                             finalHTML = tempDiv.innerHTML;
                         }
 					}
-					// 修复 B3：用函数作 replace 第二参，避免译文/还原内容中的 $ 被当作替换模式解释
 					processedText = processedText.replace(regex, () => finalHTML);
 				} else {
 					processedText = processedText.replace(regex, () => replacement);
@@ -23003,7 +22788,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			if (queueManager.size === 0) return { batchNodes:[], reason: 'empty', batchLang: 'auto' };
 
 			const { chunkSize, paragraphLimit, batchMode } = this.config.getLimits();
-			// 2.2 动态批次：忽略 para_limit，只按 chunk_size 打包，单批段数硬顶 DYNAMIC_BATCH_PARA_CAP
 			const effectiveParaLimit = batchMode === 'dynamic' ? DYNAMIC_BATCH_PARA_CAP : paragraphLimit;
 			const batchNodes =[];
 			let currentChars = 0;
@@ -23192,6 +22976,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			this.onRetryCallback = options.onRetry;
 			this.onActiveStateChange = options.onActiveStateChange;
 			this.onErrorCallback = options.onError;
+			this.onUnitSettled = options.onUnitSettled || null;
 			this.containerLang = options.containerLang || "auto";
 			this.useObserver = options.useObserver !== false;
 
@@ -23206,7 +22991,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					return {
 						chunkSize: params.chunk_size,
 						paragraphLimit: params.para_limit,
-						batchMode: params.batch_mode || 'fixed' // 2.2：动态批次时 BatchStrategy 用 DYNAMIC_BATCH_PARA_CAP
+						batchMode: params.batch_mode || 'fixed'
 					};
 				}
 			});
@@ -23300,7 +23085,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const newMargin = this._getRootMargin();
 			if (newMargin === this.currentRootMargin) return;
 			
-			Logger.info('Translation', `懒加载范围已动态更新: ${this.currentRootMargin} -> ${newMargin}`);
+			Logger.debug('Translation', `懒加载范围已动态更新: ${this.currentRootMargin} -> ${newMargin}`);
 			this.currentRootMargin = newMargin;
 			
 			// 1. 销毁旧的观察者
@@ -23460,20 +23245,20 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 					if (el.tagName === 'HR') {
 						el.dataset.translationState = 'translated';
-						this.pendingNodes.delete(el);
+						this._settleUnit(el);
 						continue;
 					}
 
 					const res = results.get(el);
 					if (res) {
 						this.renderer.applyResult(el, res, this.onRetryCallback);
-						this.pendingNodes.delete(el);
+						this._settleUnit(el);
 						if (res.status !== 'success') {
 							this.hasError = true;
 						}
 					} else {
 						this.renderer.applyResult(el, { status: 'error', content: '底层异常：翻译结果丢失' }, this.onRetryCallback);
-						this.pendingNodes.delete(el);
+						this._settleUnit(el);
 						this.hasError = true;
 					}
 					await TimeSlicer.yieldIfNeeded();
@@ -23518,7 +23303,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				for (const node of batchNodes) {
 					if (node.unit.dataset.translationState !== 'translating') continue;
 					this.renderer.applyResult(node.unit, { status: 'error', content: e.message }, this.onRetryCallback);
-					this.pendingNodes.delete(node.unit);
+					this._settleUnit(node.unit);
 				}
 			} finally {
 				this.inFlightBatches--;
@@ -23531,6 +23316,20 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const engineName = getValidEngineName();
 			const params = ProfileManager.getParamsByEngine(engineName);
 			return params.lazy_load_margin;
+		}
+
+		/**
+		 * 单元结算：移出待处理集合并通知外部
+		 */
+		_settleUnit(el) {
+			this.pendingNodes.delete(el);
+			if (this.onUnitSettled) {
+				try {
+					this.onUnitSettled(el);
+				} catch (e) {
+					Logger.error('Translation', 'onUnitSettled 回调执行失败', e);
+				}
+			}
 		}
 
 		_finish() {
@@ -24380,8 +24179,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		try {
 			tpStart = Date.now();
 			const reqId = 'Tags-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-			// 源语言由调用方传入（容器级检测基于提取子集，见 LanguageDetectionManager.extractText）；
-			// 仅当 'auto'（无法判定 / 用户设置 from_lang=auto）时才交由翻译引擎逐请求自动识别。
 			const translationResults = await translateParagraphs(nodesToTranslate, {
 				isCancelled,
 				reqId,
@@ -24582,17 +24379,18 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					if (!stateManager.isActive) return;
 
 					await Promise.all(entries.map(async (entry) => {
-						if (entry.isIntersecting) {
-							const container = entry.target;
-							if (container.dataset.translationState) return;
+						if (!entry.isIntersecting) return;
+						const container = entry.target;
+						if (container.dataset.translationState) return;
 
-							container.dataset.translationState = 'processing';
-							containerObserver.unobserve(container);
+						container.dataset.translationState = 'processing';
+						containerObserver.unobserve(container);
 
+						const detectionTaskId = Symbol('container-detection');
+						try {
 							const rule = JSON.parse(container.dataset.translationRule || '{}');
-							
+
 							// 1. 语言检测
-							const detectionTaskId = Symbol('container-detection');
 							taskManager.startTask(detectionTaskId);
 							const { detectedLang, shouldSkip } = await LanguageDetectionManager.processContainer(container, rule, 'full_page');
 							container.dataset.detectedLang = detectedLang;
@@ -24614,6 +24412,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 							} else {
 								this.processContent(container, detectedLang);
 							}
+						} catch (e) {
+							// 检测/路由抛异常时容器必须落终态，否则永久停留在 processing 且无法被重新扫描
+							taskManager.endTask(detectionTaskId);
+							Logger.error('Translation', '容器处理流程异常，标记为 error', e);
+							if (stateManager.isActive) container.dataset.translationState = 'error';
 						}
 					}));
 				}, { rootMargin });
@@ -24670,6 +24473,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						globalEngine.addUnits([titleRecord.tempDiv]);
 					}
 					container.dataset.translationState = 'queued';
+					promoteContainerIfDone(container);
 				} else {
 					container.dataset.translationState = 'skipped';
 				}
@@ -24681,11 +24485,13 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					let unitsBatch = [];
 					if (!globalEngine) return;
 
+					let extractedCount = 0;
 					for await (const unit of globalEngine.normalizer.generateUnits(container)) {
 						if (!stateManager.isActive) return;
 						unit.dataset.detectedLang = detectedLang;
 						unitsBatch.push(unit);
-						
+						extractedCount++;
+
 						if (unitsBatch.length >= 50) {
 							globalEngine.addUnits(unitsBatch);
 							unitsBatch = [];
@@ -24695,7 +24501,14 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					if (unitsBatch.length > 0 && globalEngine) {
 						globalEngine.addUnits(unitsBatch);
 					}
+
+					if (extractedCount === 0) {
+						container.dataset.translationState = 'translated';
+						return;
+					}
+
 					container.dataset.translationState = 'queued';
+					promoteContainerIfDone(container);
 				} catch (e) {
 					Logger.error('Translation', '提取翻译单元失败', e);
 					container.dataset.translationState = 'error';
@@ -24704,6 +24517,21 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		};
 
 		// 4. 内部辅助方法
+
+		/**
+		 * 容器状态收敛：当容器仍为 queued 且其子树内已无排队/翻译中的单元时，置为 translated
+		 */
+		const hasPendingDescendant = (el) => el.querySelector('[data-translation-state="queued"], [data-translation-state="translating"]');
+
+		const promoteContainerIfDone = (container) => {
+			let current = container;
+			while (current && current.dataset && current.dataset.translationState === 'queued') {
+				if (hasPendingDescendant(current)) return;
+				current.dataset.translationState = 'translated';
+				current = current.parentElement ? current.parentElement.closest('[data-translation-state="queued"]') : null;
+			}
+		};
+
 		const scanAndObserveContainers = (rootNode = document) => {
 			if (!stateManager.isActive) return;
 
@@ -24758,6 +24586,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				isCancelled: () => !stateManager.isActive,
 				onComplete: (hasErrors) => {
 					taskManager.endRetry(ENGINE_RETRY_ID);
+					if (stateManager.isActive) {
+						document.querySelectorAll('[data-translation-rule][data-translation-state="queued"]').forEach(el => {
+							promoteContainerIfDone(el);
+						});
+					}
 				},
 				onError: (err) => {
 					taskManager.addError(ENGINE_TASK_ID);
@@ -24773,6 +24606,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 							globalEngine.scheduleProcessing(true);
 						}
 					}
+				},
+				onUnitSettled: (unit) => {
+					if (!stateManager.isActive) return;
+					if (unit.classList && unit.classList.contains('ao3-title-translatable-temp')) return;
+					promoteContainerIfDone(unit.closest ? unit.closest('[data-translation-state="queued"]') : null);
 				},
 				onActiveStateChange: (isActive) => {
 					if (isActive) {
@@ -24878,9 +24716,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	const IMPORTED_GLOSSARY_KEY = 'ao3_imported_glossary';
 	const GLOSSARY_METADATA_KEY = 'ao3_glossary_metadata';
 	const ONLINE_GLOSSARY_ORDER_KEY = 'ao3_online_glossary_order';
-	// 迁移专用（B10.3）：V1 遗留键，仅被迁移代码读取
 	const POST_REPLACE_STRING_KEY = 'ao3_post_replace_string';
-	// 迁移专用（B10.3）：V1 遗留键，仅被迁移代码读取
 	const POST_REPLACE_MAP_KEY = 'ao3_post_replace_map';
 	const POST_REPLACE_RULES_KEY = 'ao3_post_replace_rules';
 	const POST_REPLACE_SELECTED_ID_KEY = 'ao3_post_replace_selected_id';
@@ -24896,9 +24732,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	const GLOSSARY_RAW_TEXT_CACHE_MAX = 30;
 
 	/**
-	 * 词表原文缓存（GLOSSARY_RAW_TEXT_CACHE_KEY）的有界读写封装。
-	 * 结构：{ [url]: { text, ts } }，读时刷新 ts，超出 GLOSSARY_RAW_TEXT_CACHE_MAX 时按 ts 淘汰最旧。
-	 * 兼容旧格式（纯字符串）：读到时自动迁移为新格式。
+	 * 词表原文缓存（GLOSSARY_RAW_TEXT_CACHE_KEY）的有界读写封装
 	 */
 	function getCachedRawText(url) {
 		const cache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
@@ -24934,13 +24768,9 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	/**
 	 * 术语表引擎版本号
 	 * 仅在修改了术语表底层解析逻辑（如分词算法、正则生成规则等）时，才手动递增此常量
-	 * 变更记录：
-	 *   - v4：B4 修复——dom 规则 parts 由 Set 统一为数组（规则缓存序列化格式变更，旧缓存失效重建）
 	 */
 	const GLOSSARY_ENGINE_VERSION = 4;
 
-// 修复 P0-3：顶层残留分隔符检测——括号/引号内视为合法（如 "汽车人（注：变形金刚）"），
-// 仅在深度 ≤ 0 处命中 [=＝:：] 才算残留分隔符，用于提示疑似被截断/误输入的词条。
 	const RESIDUAL_SEP_RE = /[=＝:：]/;
 	const BRACKET_DEPTH_MAP = { '(': 1, ')': -1, '[': 1, ']': -1, '{': 1, '}': -1, '（': 1, '）': -1, '【': 1, '】': -1, '「': 1, '」': -1 };
 	function hasTopLevelResidualSeparator(value) {
@@ -24961,6 +24791,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		}
 		return false;
 	}
+
 	/**
 	 * 解析自定义的、非 JSON 格式的术语表文本
 	 */
@@ -24973,8 +24804,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			multiPartGeneralTerms: {},
 			forbiddenTerms: [],
 			regexTerms:[],
-			warnings: [],  // 修复 P0-3：解析阶段收集的残留分隔符诊断（仅导入时输出，不持久化）
-			dropped: 0     // F2：解析期无法解析（缺分隔符）而被放弃的行数，用于导入提示"跳过"计数
+			warnings: [],
+			dropped: 0
 		};
 		const lines = text.split('\n');
 
@@ -25029,20 +24860,13 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const trimmedLine = line.trim();
 			if (!trimmedLine || trimmedLine.startsWith('//')) return;
 
-			// 修复 P0-3 + P1-2（D1=B）：统一复用引号感知解析器，取第一个分隔符、值保留整串。
-			// 旧实现 split(regex, 2) 会在第二个分隔符处截断静默丢词（如 "key: v1 : v2" 丢 v2）。
 			const parsed = parseGlossaryKeyValuePair(trimmedLine);
 			if (!parsed) {
-				// F2：与运行时 processStringRules 对齐——缺冒号/等号的行不应再静默丢弃，
-				// 记入 warnings 供导入提示"跳过"；避免用户只见"成功导入 N"而不知有行被舍弃。
 				result.dropped++;
-				// 建议3（采纳）：识别「整行被成对引号包裹且内含分隔符」的写法（如 "晴天：晴朗"），
-				// 给针对性说明，替代笼统的"缺分隔符"——规范要求引号只包词条、分隔符放引号外。
 				const wholeLineQuoted = isWholeLineQuotedWithSeparator(trimmedLine);
 				if (wholeLineQuoted) {
 					result.warnings.push(`第 ${lineNo} 行词条 "${trimmedLine}" 写法有误：引号包裹了整条规则，而非只包裹词条。请改为「引号只包词条、分隔符放引号外」，如 ${wholeLineQuoted.key}：${wholeLineQuoted.value}。`);
 				} else {
-					// 建议2（采纳）：裸词条被跳时补一句引导——如需保持原文不翻译，应放『禁翻词条』区。
 					result.warnings.push(`第 ${lineNo} 行词条 "${trimmedLine}" 无法定位分隔符，已跳过。词条含撇号/冒号/等号等标点时，请使用引号包裹；无标点词条请用「词条: 译文」或「词条 = 译文」。如需该词保持原文不翻译，请放入『禁翻词条』区。`);
 				}
 				return;
@@ -25055,7 +24879,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				if (parsed.key && value) target[parsed.key] = value;
 			}
 
-			// 值保留整串后不再丢数据；顶层残留分隔符多为误输入，提示确认（URL 值不提示）
 			if (value && !/^https?:\/\//.test(value) && hasTopLevelResidualSeparator(value)) {
 				result.warnings.push(`第 ${lineNo} 行词条 "${parsed.key}" 的译文值 "${value}" 内含额外分隔符，请确认是否为误输入（多个译文建议拆行或用 "=" 关联）。如需在原文或译文内保留冒号/等号等标点，请用引号包裹。`);
 			}
@@ -25068,7 +24891,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 			for (let j = 0; j < sectionLines.length; j++) {
 				const line = sectionLines[j];
-				const lineNo = section.start + j + 1;   // 修复 P1-4：记录原始 1-based 行号
+				const lineNo = section.start + j + 1;
 				const trimmedLine = line.trim();
 				if (!trimmedLine || trimmedLine.startsWith('//')) continue;
 
@@ -25084,22 +24907,17 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 						if (term) result.forbiddenTerms.push(term);
 						break;
 					case 'REGEX_TERMS':
-						// 修复 R-REGEX-COLON：用贪婪 .+ 在「最后一个冒号」切分——正则 pattern 可含冒号（如 (?:、(?=），
-						// 惰性 .+? 会在 (?: 的冒号处断开，导致文档示例 \bWachm(?:ann|änner)\b 被切成非法片段
 						const match = trimmedLine.match(/^(.+)\s*[:：]\s*(.*)$/s);
 						if (match) {
 							const pattern = match[1].trim();
 							const replacement = match[2].trim().replace(/[,，]$/, '');
 							if (pattern) {
-								// 修复 P0-2：解析期预校验编译（供导入计数"有效/跳过"用），并记录行号
 								let valid = false;
 								let compileError = null;
 								try { new RegExp(pattern); valid = true; } catch (e) { compileError = e.message; }
 								result.regexTerms.push({ pattern, replacement, line: lineNo, valid, error: compileError });
 							}
 						} else {
-							// 建议4（采纳，修漏报洞）：正则区无冒号的行此前被静默丢弃，既不报也不计数，
-							// 与 F2「缺分隔符应提示」的目标相悖——补上计数与提示。
 							result.dropped++;
 							result.warnings.push(`第 ${lineNo} 行正则 "${trimmedLine}" 缺少冒号分隔符，已跳过。正则区格式应为「正则表达式: 替换后的文本」。`);
 						}
@@ -25136,7 +24954,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		}
 		
 		if (owner && repo && branch && filePath) {
-			// 修复 A8：畸形转义（如 %E0%A4%A）会抛 URIError，需兜底保留原始文件名
 			let glossaryName;
 			try {
 				glossaryName = decodeURIComponent(filePath.split('/').pop().replace(/\.[^/.]+$/, ''));
@@ -25217,19 +25034,19 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		});
 	}
 
-	/* ==================== 迭代-10：插件更新检查 ==================== */
+	// 插件更新检查
 	const UPDATE_SOURCE_URL = 'https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js';
 	const UPDATE_INTERVAL_MS = { daily: 86400e3, weekly: 7 * 86400e3, monthly: 30 * 86400e3 };
 
 	/**
-	 * 版本归一化：去 v 前缀、去 -日期 后缀 → 形如 1.10.0
+	 * 版本归一化
 	 */
 	function normalizeVersion(v) {
 		return String(v || '').trim().replace(/^v/i, '').split('-')[0].trim();
 	}
 
 	/**
-	 * 数值化比较 major.minor.patch：a > b 返回 1，a < b 返回 -1，相等返回 0
+	 * 数值化比较
 	 */
 	function compareVersions(a, b) {
 		const pa = a.split('.').map(Number);
@@ -25243,7 +25060,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 拉取 main/local.user.js 解析 @version（与 @updateURL/@downloadURL 同源；fetchWithFallback 自动备源 jsDelivr）
+	 * 拉取 main/local.user.js 解析 @version
 	 */
 	async function fetchLatestVersion() {
 		const { responseText } = await fetchWithFallback(UPDATE_SOURCE_URL, { timeout: 10000 });
@@ -25259,22 +25076,22 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		if (interval === 'never') return;
 		const now = Date.now();
 		if (now - GM_getValue('ao3_update_last_check', 0) < UPDATE_INTERVAL_MS[interval]) return;
-		GM_setValue('ao3_update_last_check', now);  // 先节流：本次无论成败，间隔内不再试
+		GM_setValue('ao3_update_last_check', now);
 		try {
 			const latest = await fetchLatestVersion();
 			if (!latest) return;
 			const current = normalizeVersion(GM_info.script.version);
 			const hasUpdate = compareVersions(latest, current) > 0;
 			if (hasUpdate && latest !== GM_getValue('ao3_update_last_notified_version', '')) {
-				GM_setValue('ao3_update_last_notified_version', latest);  // 弹出前记录，同一版本不重复弹
+				GM_setValue('ao3_update_last_notified_version', latest);
 				showUpdateModal({ current, latest });
 			}
-			// 埋点：更新检查结果（每日一次；M3 起 outcome 语义化：update_available=发现新版，up_to_date=已最新）
+			// 埋点：更新检查结果（每日一次）
 			Analytics.featureUsed('update_check', 'system', {
 				outcome: hasUpdate ? 'update_available' : 'up_to_date'
 			});
 		} catch (e) {
-			Logger.warn('System', `更新检查失败: ${e.message}`);  // 静默失败，不打扰
+			Logger.warn('System', `更新检查失败: ${e.message}`);
 			// 埋点：更新检查失败（每日一次）
 			Analytics.featureUsed('update_check', 'system', { outcome: 'failure' });
 		}
@@ -25285,8 +25102,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	 */
 	const GitHubStatusManager = {
 		CACHE_KEY: 'ao3_github_status_cache',
-		EXPIRATION: 24 * 60 * 60 * 1000,          // 可用状态缓存 24h
-		NEGATIVE_EXPIRATION: 1 * 60 * 60 * 1000,  // 不可用状态缓存 1h（用户可能中途登录，缩短负结果 TTL）
+		EXPIRATION: 24 * 60 * 60 * 1000,
+		NEGATIVE_EXPIRATION: 1 * 60 * 60 * 1000,
 		pendingChecks: new Map(),
 
 		_readCache() { return GM_getValue(this.CACHE_KEY, {}); },
@@ -25383,17 +25200,15 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				return resolve({ success: false, name: '未知', message: 'URL 不能为空。' });
 			}
 
-			// B1 修复：URL 校验统一复用 parseGlossaryUrl（与查看/访问模态框同一组正则，避免规则漂移）
 			if (!parseGlossaryUrl(url)) {
 				const message = "链接格式不正确。请输入一个有效的 GitHub Raw 或 jsDelivr 链接。";
-				if (!silent) alert(message);
+				if (!silent) notifyAndLog(message, '导入失败', 'error');
 				return resolve({ success: false, name: url, message });
 			}
 
 			const filename = url.split('/').pop();
 			const lastDotIndex = filename.lastIndexOf('.');
 			const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
-			// 修复 A8：畸形转义时保留原始文件名，避免 promise executor 内抛错卡住导入按钮
 			let glossaryName = baseName;
 			try { glossaryName = decodeURIComponent(baseName); } catch (e) { /* 保留 baseName */ }
 
@@ -25402,13 +25217,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					try {
 							const onlineData = parseCustomGlossaryFormat(responseText);
 
-							// 修复 P0-3：解析阶段收集的残留分隔符诊断在此输出（仅导入时提示一次，不持久化）
 							(onlineData.warnings || []).forEach(w => {
 								const msg = `术语表 "${glossaryName}" ${w}`;
 								if (reportGlossaryDiagnostic(msg, 'warn')) Logger.warn('Data', msg);
 							});
 
-							// 修复 B8：保存逻辑统一走 saveImportedGlossary（含 invalidateGlossaryCache）
 							saveImportedGlossary(url, onlineData, responseText, 'last_imported', metaOverrides);
 
 							const parsedUrls = parseGlossaryUrl(url);
@@ -25416,7 +25229,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 								GitHubStatusManager.check(parsedUrls.owner, parsedUrls.repo);
 							}
 
-							// 修复 P0-2：计数只算有效词条（编译失败跳过），并补入禁翻词条
 							const regexValid = onlineData.regexTerms.filter(t => t.valid).length;
 							const regexInvalid = onlineData.regexTerms.length - regexValid;
 							const importedCount = Object.keys(onlineData.terms).length + Object.keys(onlineData.generalTerms).length +
@@ -25425,15 +25237,14 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 							let message = `已成功导入 ${glossaryName} 术语表，共 ${importedCount} 个有效词条`;
 							if (regexInvalid > 0) message += `（另有 ${regexInvalid} 条正则编译失败，已跳过）`;
-							if (onlineData.dropped > 0) message += `（另有 ${onlineData.dropped} 行无法解析，已跳过）`;  // F2：缺分隔符被放弃的行
+							if (onlineData.dropped > 0) message += `（另有 ${onlineData.dropped} 行无法解析，已跳过）`;
 							message += `。版本号：v${onlineData.metadata.version || '未知'}，维护者：${onlineData.metadata.maintainer || '未知'}。`;
 							if (isFallback) message += ' (通过备用链接下载)';
 
 							if (!silent) {
-								notifyAndLog(message, '导入成功');
+								Logger.info('Data', message);
 							}
 
-						// keepLastSelected：后台重拉（URL-only 同步物化）不应改写用户"上次选中"偏好
 						if (!keepLastSelected) GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
 						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.GLOSSARY_IMPORTED));
 
@@ -25442,7 +25253,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					} catch (e) {
 						const message = `导入 ${glossaryName} 术语表失败：${e.message}`;
 						if (!silent) notifyAndLog(message, '处理错误', 'error');
-						// M3：术语表导入失败埋点（成功由 GLOSSARY_IMPORTED → outcome: success）
 						try {
 							document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.GLOSSARY_IMPORT_FAILED));
 						} catch (evErr) { /* 埋点失败不影响导入主流程 */ }
@@ -25458,7 +25268,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 保存一份已下载/解析完成的在线术语表数据（共享手动导入与自动更新两条路径，修复 B8）
+	 * 保存一份已下载/解析完成的在线术语表数据
 	 * @param {string} url 术语表 URL
 	 * @param {object} onlineData parseCustomGlossaryFormat 的解析结果
 	 * @param {string} responseText 原始文件文本（写入 GLOSSARY_RAW_TEXT_CACHE_KEY）
@@ -25476,14 +25286,12 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		};
 		GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
 
-		// D2 修复：原文缓存走有界封装（总量上限 + 时间戳淘汰）
 		setCachedRawText(url, responseText);
 
 		// 保留本地字段（enabled、上次时间戳等），再合并在线元数据并打时间戳
 		const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
 		const existing = metadata[url] || {};
 		const merged = { ...existing, ...onlineData.metadata };
-		// A4 修复：元数据兜底补充（如在线库索引的 feedback）仅在目标字段缺失时填充，不覆盖词表文件头
 		for (const [k, v] of Object.entries(metadataOverrides)) {
 			if (v !== undefined && merged[k] === undefined) merged[k] = v;
 		}
@@ -25494,7 +25302,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		}
 		GM_setValue(GLOSSARY_METADATA_KEY, metadata);
 
-		invalidateGlossaryCache();
+		invalidateGlossaryCache(true);
 	}
 
 	/**
@@ -25519,18 +25327,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	/**
 	 * 检查术语表更新
 	 */
-	/**
-	 * URL-only：接收端应用订阅列表后，后台按 URL 重拉最新词条（手动导入与同步应用共用）。
-	 * - 始终重拉订阅列表全部 URL：流量可忽略（GitHub raw 近无限流），换来同步后立即最新，
-	 *   且逻辑最简（无"是否缺失"分支与"跳过陈旧"语义）。
-	 * - 带去重（多次调度 URL 取并集、单定时器）、顺序拉取 + 500ms 间隔、单 URL 失败不阻断后续。
-	 * - keepLastSelected：后台物化不改写用户"上次选中"偏好。
-	 */
 	let _glossaryRefreshTimer = null;
 	let _glossaryRefreshUrls = new Set();
 	function scheduleSilentGlossaryRefresh(urls) {
 		(urls || []).forEach(u => _glossaryRefreshUrls.add(u));
-		if (_glossaryRefreshTimer) return;  // 已有调度在途，URL 已并入本次
+		if (_glossaryRefreshTimer) return;
 		_glossaryRefreshTimer = setTimeout(async () => {
 			_glossaryRefreshTimer = null;
 			const batch = Array.from(_glossaryRefreshUrls);
@@ -25549,13 +25350,12 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 
 	async function checkForGlossaryUpdates() {
 		const runCheck = async () => {
-			// 改造 E：连续失败降频——失败 3 次以上转为每 3 天一次，避免反复打无用请求
 			const failKey = 'ao3_glossary_check_fail_count';
 			let failCount = GM_getValue(failKey, 0);
 			const now = Date.now();
 			const lastFailAt = GM_getValue('ao3_glossary_check_fail_at', 0);
 			if (failCount >= 3 && now - lastFailAt < 3 * 24 * 60 * 60 * 1000) {
-				return; // 降频期内跳过
+				return;
 			}
 	
 			const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
@@ -25566,6 +25366,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			}
 	
 			let successCount = 0;
+			const updatedGlossaries = [];
 	
 			const updatePromises = urls.map(async (url) => {
 				try {
@@ -25581,11 +25382,10 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					const glossaryName = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
 	
 					if (!localVersion || compareVersions(onlineVersion, localVersion) > 0) {
-						// 修复 B8：保存逻辑统一走 saveImportedGlossary（含 B1 的 enabled 保留与 invalidate）
 						saveImportedGlossary(url, onlineData, responseText, 'last_updated');
 	
 						Logger.info('Data', `术语表 ${glossaryName} 更新成功: v${localVersion} -> v${onlineVersion}`);
-						GM_notification(`检测到术语表 ${glossaryName} 新版本，已自动更新至 v${onlineVersion} 。`, 'AO3 Translator');
+						updatedGlossaries.push({ name: glossaryName, from: localVersion, to: onlineVersion });
 						successCount++;
 					} else {
 						Logger.debug('Data', `术语表 ${glossaryName} 已是最新版本 (v${localVersion})`);
@@ -25597,8 +25397,12 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			});
 	
 			await Promise.allSettled(updatePromises);
-	
-			// 改造 E：统计成功/失败，维护降频计数
+
+			if (updatedGlossaries.length > 0) {
+				const summary = updatedGlossaries.map(g => `${g.name} → v${g.to}`).join('、');
+				GM_notification(`检测到术语表新版本，已自动更新：${summary}。`, 'AO3 Translator');
+			}
+
 			if (successCount === urls.length && urls.length > 0) {
 				GM_deleteValue(failKey);
 				GM_deleteValue('ao3_glossary_check_fail_at');
@@ -25609,13 +25413,11 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			}
 		};
 
-	// 修复 L3：Web Locks 防多标签页并发拉取（复用项目既有锁模式；拿不到锁则跳过本次）
 	if (navigator.locks && navigator.locks.request) {
 		return navigator.locks.request('ao3_glossary_update_lock', { mode: 'exclusive', ifAvailable: true }, async (lock) => {
 			if (lock) await runCheck();
 		});
 	}
-	// 降级方案：GM_getValue 伪锁（1 小时窗口，避免多标签同时拉取）
 	const lockKey = 'ao3_glossary_update_fallback_lock';
 	const now = Date.now();
 	if (now - GM_getValue(lockKey, 0) < 60 * 60 * 1000) return;
@@ -25662,7 +25464,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		Logger.debug('Data', '二级缓存未命中，正在构建术语匹配策略');
 		const rules = getGlossaryRules();
 		currentStateVersion = GM_getValue(GLOSSARY_STATE_VERSION_KEY, 0);
-		// 修复 P2：DOM 规则 parts 在此一次性预排序（按 form 长度降序），避免逐段重复 sort
 		const domRules = rules
 			.filter(r => r.matchStrategy === 'dom')
 			.map(rule => ({
@@ -25733,7 +25534,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		let splitIndex = -1;
 		let separator = '';
 
-		const quotePairs = QUOTE_PAIRS;  // R1：统一引号对
+		const quotePairs = QUOTE_PAIRS;
 
 		const rawChars = entry.split('');
 
@@ -25789,10 +25590,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 检测「整行被成对引号包裹且内含分隔符」的写法，如 "晴天：晴朗" 或 '词条 = 译文'。
-	 * 规范要求引号只包词条、分隔符放引号外（如 "-chan"：酱）；整条包裹时 parseGlossaryKeyValuePair
-	 * 会把分隔符当引号内容而返回 null，此处用于给出针对性提示（仅改文案，不改变解析判定）。
-	 * @returns {{key: string, value: string}|null} 命中返回可展示的 key/value，否则 null
+	 * 检测「整行被成对引号包裹且内含分隔符」的写法
 	 */
 	function isWholeLineQuotedWithSeparator(entry) {
 		if (!entry) return null;
@@ -25807,7 +25605,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 引号匹配集与分隔符（R2 从 buildPrioritizedGlossaryMaps 上提）
+	 * 引号匹配集与分隔符
 	 */
 	const TERM_SEPARATOR_RE = /[\s-－﹣—–]+/;
 	const TRANSLATION_SEPARATOR_RE = /[\s·・]+/;
@@ -25815,7 +25613,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	const QUOTE_PAIRS = { '"': '"', "'": "'", '“': '”', '‘': '’' };
 
 	/**
-	 * 引号感知分词（R2 上提）
+	 * 引号感知分词
 	 */
 	function smartSplit(str, regex) {
 		if (!QUOTE_RE.test(str)) return str.split(regex);
@@ -25845,7 +25643,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 译文去首尾引号（R2 上提）
+	 * 译文去首尾引号
 	 */
 	function sanitizeTranslation(trans) {
 		if (!trans) return trans;
@@ -25855,12 +25653,8 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 单条词条 → 规则对象（R2 上提；ctx 承载跨词表状态，处理顺序=文档优先级级联）
+	 * 单条词条 → 规则对象
 	 */
-
-	// 修复 P0-1：术语表诊断去重——同一页面会话内，同一错误/警告只上报一次。
-	// buildPrioritizedGlossaryMaps 每次重建（导入、同步、启用/禁用切换）都会重放全部诊断，
-	// 不设防则同一组错误在日志与通知里反复出现。错误驱动通知、警告仅日志。
 	let _reportedGlossaryDiagnostics = new Set();
 	function reportGlossaryDiagnostic(message, kind) {
 		const key = `${kind}::${message}`;
@@ -25870,9 +25664,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	function tryAddRule(term, translation, ctx, glossaryIndex, sourceName, isSensitive, isForbidden, isRegex = false, isUnordered = false, line) {
-		// F1 防御：外部术语表数据字段类型不可信，非字符串的 term/translation 直接跳过并记诊断，
-		// 避免在 trim()/sanitizeTranslation/regex 构造处抛 TypeError 击穿重建与翻译热路径（getGlossaryRules 无 try/catch）。
-		// translation 允许为 null/undefined（禁翻词条透传）。
 		if (typeof term !== 'string' || (translation != null && typeof translation !== 'string')) {
 			const shown = typeof term === 'string' ? term : String(term || '');
 			const msg = `术语表 "${sourceName}" 中的词条 "${shown}" 数据格式非法（期望字符串），已跳过。`;
@@ -25929,7 +25720,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					}
 					return;
 				}
-				// 修复 L1：嵌套量词 = 高灾难性回溯风险（仅 Logger.warn，不跳过——避免禁用可能正常工作的规则）
 				if (/[\(][^()]*[*+{][^()]*[\)][*+]/.test(normalizedTerm)) {
 					const msg = `术语表 "${sourceName}"${loc}中的正则 "${normalizedTerm}" 含嵌套量词，存在灾难性回溯风险，建议重构为不含嵌套量词的写法。`;
 					if (reportGlossaryDiagnostic(msg, 'warn')) Logger.warn('Data', msg);
@@ -25942,7 +25732,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				}
 				return;
 			}
-			// 修复 P1-1：u 标志严格校验（仅诊断，不改变运行时无 u 语义）——捕捉 \k、Wach{ 等非 u 宽松语义掩盖的问题
 			try {
 				new RegExp(normalizedTerm, 'u');
 			} catch (e2) {
@@ -25980,7 +25769,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			const termForms = termParts.map(part => {
 				const partLiteralMatch = part.match(/^["“‘'](.*)["”’']$/);
 				if (partLiteralMatch) {
-					// 修复 B4：parts 一律用数组，避免 Set 在 GM 存储 JSON 序列化后变 {} 导致重载后规则失效
 					return [partLiteralMatch[1].trim()];
 				}
 				return Array.from(generateWordForms(part, { preserveCase: isForbidden, forceLowerCase: !isSensitive }));
@@ -26000,7 +25788,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 多词 `=` 关联定义（R2 上提）
+	 * 多词 `=` 关联定义
 	 */
 	function processEqualsSyntax(term, translation, ctx, glossaryIndex, sourceName, isSensitive) {
 		tryAddRule(term, translation, ctx, glossaryIndex, sourceName, isSensitive, false, false, true);
@@ -26015,7 +25803,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 逗号分隔字符串规则逐条加入（R2 上提）
+	 * 逗号分隔字符串规则逐条加入
 	 */
 	function processStringRules(rawString, ctx, glossaryIndex, sourceName, isSensitive, isForbidden) {
 		if (!rawString) return;
@@ -26036,10 +25824,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					processEqualsSyntax(parsed.key, parsed.value, ctx, glossaryIndex, sourceName, isSensitive);
 				} else {
 					tryAddRule(parsed.key, parsed.value, ctx, glossaryIndex, sourceName, isSensitive, false);
-					// F4：删除陈旧 L4 URL 截断分支——P0-3 后值不再被首个冒号截断（key: https://x 的值保留整串），
-					// /^\/\// 分支仅在"URL 位于 key 位"的少见畸形输入命中且修复建议误导；URL 保留场景由下方 hasTopLevelResidualSeparator（含 ^https?:// 豁免）覆盖。
 				}
-				// 修复 P0-3：与文件解析器统一（D1=B 保留整串）后，顶层残留分隔符提示确认
 				if (parsed.value && !/^https?:\/\//.test(parsed.value) && hasTopLevelResidualSeparator(parsed.value)) {
 					const msg = `术语表 "${sourceName}" 中的词条 "${entry}" 的译文值 "${parsed.value}" 内含额外分隔符，请确认是否为误输入（多个译文建议拆行或用 "=" 关联）。如需在原文或译文内保留冒号/等号等标点，请使用引号包裹。`;
 					if (reportGlossaryDiagnostic(msg, 'warn')) {
@@ -26083,7 +25868,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				orderedGlossaries.push({ ...allImportedGlossaries[url], type: 'ONLINE', sourceName: decodeURIComponent(url.split('/').pop()) });
 			}
 		});
-		// R2：可变状态收拢到 ctx，规则生成逻辑拆分到模块级 tryAddRule/processEqualsSyntax/processStringRules
 		const ctx = {
 			validRules: [],
 			processedInsensitiveTerms: new Set(),
@@ -26146,19 +25930,26 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 		});
 		Logger.debug('Data', `术语表规则重建完成，当前版本: v${currentStateVersion}`);
 
-		const errCount = ctx.glossaryErrors.length;
-		const warnCount = ctx.glossaryWarnings.length;
-		// F3：warnings 原只进 Logger，从不随通知呈现（通知文案却引导用户去日志找详情）——一并计入，
-		// 使仅含提醒（嵌套量词/严格 u/残留分隔符）的术语表也能获得一次可见提示。
-		if (errCount > 0 || warnCount > 0) {
-			let summaryMsg;
-			if (errCount > 0 && warnCount > 0) summaryMsg = `术语表解析完成，发现 ${errCount} 处错误、${warnCount} 处提醒，请前往“调试模式与日志”功能查看详情。`;
-			else if (errCount > 0) summaryMsg = `术语表解析完成，发现 ${errCount} 处错误，请前往“调试模式与日志”功能查看详情。`;
-			else summaryMsg = `术语表解析完成，发现 ${warnCount} 处提醒，请前往“调试模式与日志”功能查看详情。`;
-			GM_notification({
-				text: summaryMsg,
-				title: 'AO3 Translator'
-			});
+		if (_glossaryDiagNotifyArmed) {
+			_glossaryDiagNotifyArmed = false;
+			const errCount = ctx.glossaryErrors.length;
+			const warnCount = ctx.glossaryWarnings.length;
+			const signature = [...ctx.glossaryErrors, ...ctx.glossaryWarnings].join('\x02');
+			if (errCount > 0 || warnCount > 0) {
+				if (GM_getValue('ao3_glossary_diag_notified', null) !== signature) {
+					let summaryMsg;
+					if (errCount > 0 && warnCount > 0) summaryMsg = `术语表解析完成，发现 ${errCount} 处错误、${warnCount} 处提醒，请前往“调试模式与日志”功能查看详情。`;
+					else if (errCount > 0) summaryMsg = `术语表解析完成，发现 ${errCount} 处错误，请前往“调试模式与日志”功能查看详情。`;
+					else summaryMsg = `术语表解析完成，发现 ${warnCount} 处提醒，请前往“调试模式与日志”功能查看详情。`;
+					GM_notification({
+						text: summaryMsg,
+						title: 'AO3 Translator'
+					});
+					GM_setValue('ao3_glossary_diag_notified', signature);
+				}
+			} else {
+				GM_deleteValue('ao3_glossary_diag_notified');
+			}
 		}
 		return ctx.validRules;
 	}
@@ -26271,9 +26062,7 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	}
 
 	/**
-	 * 译文后处理规则预编译缓存（修复 B5/P1）
-	 * 自愈式：每次调用按「启用的规则 id+content（含顺序）」算签名，签名不一致才重建。
-	 * 不依赖外部失效钩子——任何路径改动 POST_REPLACE_RULES_KEY 都会反映到签名上，避免规则失效。
+	 * 译文后处理规则预编译缓存
 	 */
 	const _PostReplaceCompileCache = {
 		signature: null,
@@ -26321,7 +26110,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 			return text;
 		}
 
-		// 修复 B5/P1：签名未变则复用已编译结果，不再逐段解析/建正则
 		const signature = rulesList
 			.filter(ruleConfig => ruleConfig.enabled)
 			.map(ruleConfig => `${ruleConfig.id}\u0001${ruleConfig.content}`)
@@ -26409,16 +26197,13 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	/**
 	 * 使术语表规则缓存失效
 	 */
-	let _glossaryRebuildScheduled = false; // 重建合并标志：同一事件内多次失效只调度一次重建
-	function invalidateGlossaryCache() {
+	let _glossaryRebuildScheduled = false;
+	let _glossaryDiagNotifyArmed = false;
+	function invalidateGlossaryCache(armDiagNotify = false) {
+		if (armDiagNotify) _glossaryDiagNotifyArmed = true;
 		GM_deleteValue(GLOSSARY_RULES_CACHE_KEY);
 		generateGlossaryStateVersion();
 		runtimePreparedGlossaryCache = null;
-		// 改造 F：预重建——利用空闲时间重建规则缓存，避免翻译热路径首触时的同步阻塞。
-		// 触发同步重建的 getGlossaryRules 会在下次调用时命中已重建的缓存。
-		// 【优化】重建合并：同步重试 / 在线词表刷新会在短时间内连续失效多次，若各自调度独立重建，
-		// 版本计数器与重建日志会暴涨（实测 2 分钟 v1→v36）。用标志位合并为至多一个待执行重建，
-		// 重建执行时读取的始终是最新数据，不引入任何过期。
 		if (!_glossaryRebuildScheduled) {
 			_glossaryRebuildScheduled = true;
 			const scheduleRebuild = () => {
@@ -26463,8 +26248,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 	 */
 	const AdvancedTranslationCleaner = new (class {
 		constructor() {
-			// P3：清洗逻辑版本，并入缓存易变层指纹。改动 clean()（决定缓存译文文本）时必须 +1；
-			// smartStripPunctuation/cleanTitle 是渲染期叠加逻辑（不进缓存），不需 +1，改了也只会无害重翻。
 			this.CLEANER_VERSION = 1;
 			this.metaKeywords = [
 				'原文', '输出', '说明', '润色', '语境', '遵守', '指令',
@@ -26803,8 +26586,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 					// 2. 占位符规则迁移 (ph_ -> vtr_)
 					const migratePrompt = (prompt) => {
 						if (!prompt) return prompt;
-						// 仅迁移旧 `ph_12345` 占位符说明 → 新 `z1` 形态；`vtr_`（1.9.0 已发布版）由 V6 迁移处理。
-						// 不依赖已移除的 PlaceholderConfig.length/generate。
 						return prompt
 							.replace(/ph_[0-9]+/gi, PlaceholderConfig.exampleString)
 							.replace(/Ph_[0-9]+/gi, PlaceholderConfig.exampleString)
@@ -27015,12 +26796,6 @@ function openExpandedEditorModal(inputElement, labelName, opts = {}) {
 				version: 6,
 				name: 'V6 存量配置与占位符提示词迁移',
 				migrate: () => {
-					// 本版本为公开版(最大 v5)之后首个含迁移的版本，把此前的 v6/v7/v8 三段合并为一段原子迁移：
-					//   6.1 推理档位统一：缺失或旧 default（跟随厂商默认）→ none（关闭思考）
-					//   6.2 提示词默认模板精简：仅替换仍等于旧版默认 system_prompt 的 profile（用户自定义过的不动）
-					//   6.3 传统 profile 并入腾讯翻译并更名「谷歌、微软、腾讯」（兼容旧名「谷歌、微软」/「免费翻译」）
-					//   6.4 占位符提示词迁移：1.9.0 已发布版的旧随机 vtr_NNNNN → z<n>（仅改仍含旧说明的用户自定义提示词）
-					// 每段均幂等（守卫判断），重复执行无害。默认提示词靠运行时 getSystemDirectives() 自动跟随新格式，无需迁移。
 					const oldDefaultPrompt = `You are a professional translator fluent in {toLangName}, with particular expertise in translating web novels and online fanfiction from {fromLangName}.
 
 Your task is to translate multiple text segments provided by the user. For each segment, you will follow an internal three-stage strategy to produce the final, polished translation.
@@ -27033,11 +26808,9 @@ Your task is to translate multiple text segments provided by the user. For each 
 {systemDirectives}`;
 					const newDefaultPrompt = getSharedSystemPrompt();
 
-					// 6.4 占位符提示词迁移：1.9.0 已发布版的旧随机 vtr_NNNNN 说明 → z<n> 新说明
 					const migratePlaceholderPrompt = (prompt) => {
 						if (typeof prompt !== 'string' || !prompt) return prompt;
 						return prompt
-							// vtr_：1.9.0 已发布版的随机占位符（如 vtr_12345）→ z<n>
 							.replace(/`vtr_`/g, '`z1`')
 							.replace(/vtr_[0-9]+/gi, PlaceholderConfig.exampleString)
 							.replace(/followed by (five|six) digits/gi, 'a short lowercase letter followed by a number')
@@ -27086,8 +26859,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 			}
 		];
 
-		// 当前迁移版本号：始终取最后一个迁移任务版本。
-		// 注意：新增迁移必须追加到数组末尾，勿手动改此处硬编码，否则会漏跑新迁移。
+		// 当前迁移版本号：始终取最后一个迁移任务版本
 		const CURRENT_MIGRATION_VERSION = migrations[migrations.length - 1].version;
 
 		if (savedVersion >= CURRENT_MIGRATION_VERSION) {
@@ -27174,12 +26946,11 @@ Your task is to translate multiple text segments provided by the user. For each 
 				--ao3-selected-bg: #e3f2fd;
 				--ao3-shadow: 0 8px 24px rgba(0,0,0,0.12);
 				--ao3-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-				--ao3-letter-spacing: 0.01em;  /* 迭代-15：UI 全局字间距（统一微调点：改此值即全端生效） */
+				--ao3-letter-spacing: 0.01em;
 			}
-			/* 迭代-16：字间距直接作用于每个 Shadow 元素（不依赖继承——继承对 select/input/button 等控件不可靠），覆盖设置面板/模态框/下拉/按钮/输入框等全部 UI 文本 */
 			:host * { letter-spacing: var(--ao3-letter-spacing); }
 
-			/* 0. 移除所有交互元素的 WebKit 点击高亮（蓝色块状背景） */
+			/* 0. 移除所有交互元素的 WebKit 点击高亮 */
 			:host, :host * { -webkit-tap-highlight-color: transparent !important; }
 			
 			/* 1. 统一滚动条 */
@@ -27217,6 +26988,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 			
 			/* 确认提示框 */
 			#ao3-custom-confirm-modal,
+			#ao3-key-retry-modal,
 			#ao3-update-modal,
 			#ao3-sync-direction-modal {
 				max-width: 360px !important;
@@ -27255,7 +27027,8 @@ Your task is to translate multiple text segments provided by the user. For each 
 			.ao3-modal-btn:hover { opacity: 0.7; }
 
 			/* 为“确认模态框”移除底栏阴影 */
-			#ao3-custom-confirm-modal .ao3-modal-footer {
+			#ao3-custom-confirm-modal .ao3-modal-footer,
+			#ao3-key-retry-modal .ao3-modal-footer {
 				box-shadow: none !important;
 			}
 
@@ -27334,8 +27107,6 @@ Your task is to translate multiple text segments provided by the user. For each 
 			input[type=number] { -moz-appearance: textfield; }
 			.settings-action-button-inline { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--ao3-primary); font-size: 14px; font-weight: 500; cursor: pointer; padding: 4px 0; display: flex; align-items: center; justify-content: center; width: 42px; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
 			.settings-action-button-inline:disabled { opacity: 1; cursor: default; pointer-events: none; }
-			.settings-action-button-expand { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--ao3-primary); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
-			.settings-action-button-expand svg { width: 20px; height: 20px; fill: currentColor; }
 			.data-sync-actions-container { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; margin-top: -10px; margin-bottom: -10px; overflow: visible; }
 			.data-sync-action-btn { background: none; border: none; color: var(--ao3-primary); font-size: 13px; font-weight: 500; cursor: pointer; padding: 2px 4px; text-align: center; outline: none; -webkit-tap-highlight-color: transparent; }
 			.language-swap-container { display: flex; align-items: center; gap: 2px; }
@@ -27734,12 +27505,12 @@ Your task is to translate multiple text segments provided by the user. For each 
 		},
 
 		handleRemoteChange(key, newValue) {
-			Logger.info('System', `检测到跨标签页配置更改: ${key}`);
+			Logger.debug('System', `检测到跨标签页配置更改: ${key}`);
 			this.refreshMemoryAndUI(key, newValue);
 		},
 
 		handleWakeUp() {
-			Logger.info('System', '页面从 BFCache 唤醒，执行全局状态同步');
+			Logger.debug('System', '页面从 BFCache 唤醒，执行全局状态同步');
 			this.refreshMemoryAndUI('all');
 		},
 
@@ -27821,13 +27592,8 @@ Your task is to translate multiple text segments provided by the user. For each 
 
 		// 基础数据与样式初始化
 		Logger.init();
-		// 埋点：生命周期兜底监听位置不变；init 推迟到 updatePageConfig('初始载入') 之后（M2，
-		// 否则 install/heartbeat 的 page_type 恒为 unknown）。默认开启，opt-out；设置面板「用户体验改善项」可退出
+		// 埋点：生命周期兜底监听位置不变；init 推迟到 updatePageConfig('初始载入') 之后
 		Analytics.bindLifecycle();
-		// 固定打印：插件启动时统一输出版本与运行环境（页面级静态信息，仅打印一次）。
-		// 脚本引擎（scriptHandler）用于区分篡改猴（Tampermonkey/Violentmonkey）与 Via 等
-		// 无完整 GM 能力的引擎，辅助判断跨域/同步类问题；原位于 WebDAV Client 日志中的
-		// scriptHandler/hasGM_xmlhttpRequest/userAgent 已归入此处。
 		Logger.info('System', `插件初始化开始，版本：v${GM_info.script.version}`, {
 			scriptHandler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) || 'unknown',
 			hasGM_xmlhttpRequest: typeof GM_xmlhttpRequest === 'function',
@@ -27843,12 +27609,11 @@ Your task is to translate multiple text segments provided by the user. For each 
 			TranslationCacheDB.autoCleanup();
 			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
 		});
-		// 本地数据自动备份（独立 IndexedDB；页开期间每小时检查，差异才写）
+		// 本地数据自动备份
 		LocalBackupScheduler.init();
 		runDataMigration();
 		updateBlockerCache();
 		checkForGlossaryUpdates();
-		// 改造 E：在线术语表每日定时检查（Web Locks 防多标签并发，失败自动降频）
 		setInterval(() => {
 			checkForGlossaryUpdates();
 		}, 24 * 60 * 60 * 1000);
@@ -28958,9 +28723,82 @@ Your task is to translate multiple text segments provided by the user. For each 
 		});
 	}
 
+/* ==AOT-SPLIT:REGION zh-cn BEGIN== */
 /**************************************************************************
  * I18N 翻译数据区
  **************************************************************************/
+
+/**
+ * 专门翻译“标签提名”页面的提名规则说明。
+ * @param {string} originalText - 匹配到的原始英文句子。
+ * @returns {string} - 动态构建的中文翻译。
+ */
+function translateNominationRule(originalText) {
+	const componentRules = {
+		fandoms: {
+			regex: /([\d,]+) fandoms/,
+			template: "$1 个同人圈"
+		},
+		characters: {
+			regex: /([\d,]+) characters/,
+			template: "$1 个角色"
+		},
+		relationships: {
+			regex: /([\d,]+) relationships/,
+			template: "$1 对关系"
+		},
+		additionalTags: {
+			regex: /([\d,]+) additional tags/,
+			template: "$1 个附加标签"
+		}
+	};
+	const parts = {};
+	for (const key in componentRules) {
+		const match = originalText.match(componentRules[key].regex);
+		if (match) {
+			parts[key] = match[1];
+		}
+	}
+	if (Object.keys(parts).length === 0) {
+		return originalText;
+	}
+	const mainClauses = [];
+	const perFandomClauses = [];
+	let additionalTagClause = '';
+	const hasFandomContext = !!parts.fandoms || originalText.includes('for each one');
+	if (parts.fandoms) {
+		mainClauses.push(componentRules.fandoms.template.replace('$1', parts.fandoms));
+	}
+	if (!hasFandomContext) {
+		if (parts.characters) mainClauses.push(componentRules.characters.template.replace('$1', parts.characters));
+		if (parts.relationships) mainClauses.push(componentRules.relationships.template.replace('$1', parts.relationships));
+		if (parts.additionalTags && !originalText.includes('You can also nominate')) {
+			mainClauses.push(componentRules.additionalTags.template.replace('$1', parts.additionalTags));
+		}
+	}
+	if (hasFandomContext) {
+		if (parts.characters) perFandomClauses.push(componentRules.characters.template.replace('$1', parts.characters));
+		if (parts.relationships) perFandomClauses.push(componentRules.relationships.template.replace('$1', parts.relationships));
+	}
+	if (parts.additionalTags && originalText.includes('You can also nominate')) {
+		additionalTagClause = ` 您也可以最多提名 ${componentRules.additionalTags.template.replace('$1', parts.additionalTags)}。`;
+	}
+	let finalTranslation = '';
+	if (mainClauses.length > 0) {
+		finalTranslation = `您最多可提名 ${mainClauses.join('和 ')}`;
+	}
+	if (perFandomClauses.length > 0) {
+		if (finalTranslation === '') {
+			finalTranslation = `您最多可为每个同人圈提名 ${perFandomClauses.join('和 ')}。`;
+		} else {
+			finalTranslation += `，最多可为每个同人圈提名 ${perFandomClauses.join('和 ')}。`;
+		}
+	} else if (finalTranslation !== '') {
+		finalTranslation += '。';
+	}
+	finalTranslation += additionalTagClause;
+	return finalTranslation.trim() || originalText;
+}
 
 const I18N = {
 	'conf': {
@@ -31912,6 +31750,7 @@ const I18N = {
 	}
 };
 
+/* ==AOT-SPLIT:REGION zh-cn END== */
 	/**
 	 * 脚本主入口检查
 	 */
