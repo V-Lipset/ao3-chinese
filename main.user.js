@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
-// @version      1.9.0-2026-05-25
+// @version      1.10.0-2026-09-20
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -18,7 +18,7 @@
 // @match        https://xn--iao3-lw4b.ws/*
 // @match        https://ao3sg.hyf9588.tech/*
 // @match        https://ao3rc.hyf9588.tech/*
-// @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/assets/icon.png
+// @icon         https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/assets/AOT.png
 // @resource     vIcon https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/assets/icon.png
 // @resource     santaHat https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/assets/santa%20hat.png
 // @supportURL   https://github.com/V-Lipset/ao3-chinese/issues
@@ -31,7 +31,6 @@
 // @connect      translate.googleapis.com
 // @connect      translate-pa.googleapis.com
 // @connect      edge.microsoft.com
-// @connect      api-edge.cognitive.microsofttranslator.com
 // @connect      api.anthropic.com
 // @connect      api.cerebras.ai
 // @connect      api.deepseek.com
@@ -45,6 +44,17 @@
 // @connect      fanyi.baidu.com
 // @connect      transmart.qq.com
 // @connect      cdnjs.cloudflare.com
+// @connect      wajima.infini-cloud.net
+// @connect      dav.jianguoyun.com
+// @connect      webdav.yandex.com
+// @connect      dav.dropdav.com
+// @connect      nanao.teracloud.jp
+// @connect      bora.teracloud.jp
+// @connect      app.koofr.net
+// @connect      webdav.pcloud.com
+// @connect      ewebdav.pcloud.com
+// @connect      aot-analytics.tracifrit.workers.dev
+// @connect      aot-analytics-dashboard.pages.dev
 // @run-at       document-start
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
@@ -56,6 +66,7 @@
 // @grant        GM_addStyle
 // @grant        GM_getResourceURL
 // @grant        GM_addValueChangeListener
+// @grant        GM_removeValueChangeListener
 // @grant        GM_download
 // @grant        GM_info
 // ==/UserScript==
@@ -92,7 +103,10 @@
 		STATUS_LIGHT_TOGGLED: 'ao3-status-light-toggled',
 		LOG_ADDED: 'ao3-log-added',
 		GLOSSARY_IMPORTED: 'ao3-glossary-imported',
-		LAZY_LOAD_MARGIN_CHANGED: 'ao3-lazy-load-margin-changed'
+		GLOSSARY_IMPORT_FAILED: 'ao3-glossary-import-failed',
+		LAZY_LOAD_MARGIN_CHANGED: 'ao3-lazy-load-margin-changed',
+		WEBDAV_SYNC_COMPLETED: 'ao3-webdav-sync-completed',
+		WEBDAV_SYNC_FAILED: 'ao3-webdav-sync-failed'
 	};
 
 	/**
@@ -110,6 +124,7 @@
 			from_lang: 'script_auto',
 			to_lang: 'zh-CN',
 			lang_detector: 'franc',
+			lang_detector_fallback: 'baidu',
 			custom_url_first_save_done: false,
 			fab_actions: {
 				unit: {
@@ -178,40 +193,29 @@
 		toggleOff: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M280-240q-100 0-170-70T40-480q0-100 70-170t170-70h400q100 0 170 70t70 170q0 100-70 170t-170 70H280Zm0-80h400q66 0 113-47t47-113q0-66-47-113t-113-47H280q-66 0-113 47t-47 113q0 66 47 113t113 47Zm85-75q35-35 35-85t-35-85q-35-35-85-35t-85 35q-35 35-35 85t35 85q35 35 85 35t85-35Zm115-85Z"/></svg>',
 		retry: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-694v-106h80v240H560v-80h136q-34-45-84.5-72.5T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q88 0 151.5-54T713-440h82q-19 127-115 203.5T480-160Z"/></svg>',
 		visibilityOn: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46A11.804 11.804 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>',
-		visibilityOff: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>'
+		visibilityOff: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-3z"/></svg>'
 	};
 
 	/**
 	 * 占位符全局配置与管理模块
 	 */
 	const PlaceholderConfig = {
-		prefix: 'vtr_',  // 占位符前缀
-		length: 5,       // 占位符数字长度
+		prefix: 'z',
+		suffix: '',
+		startAt: 1,
 
 		get exampleString() {
-			return this.prefix + '123456789'.substring(0, this.length);
-		},
-		generate: function () {
-			const chars = '0123456789';
-			let result = '';
-			for (let i = 0; i < this.length; i++) {
-				result += chars.charAt(Math.floor(Math.random() * chars.length));
-			}
-			return this.prefix + result;
-		},
-		get endBoundaryRegex() {
-			return new RegExp(`${this.prefix}\\d{${this.length}}$`);
-		},
-		get startBoundaryRegex() {
-			return new RegExp(`^${this.prefix}\\d{${this.length}}`);
+			return this.prefix + this.startAt + this.suffix;
 		},
 		get fuzzyRegex() {
-			const prefixBase = this.prefix.replace(/_$/, '');
-			return new RegExp(`${prefixBase}[\\s_\\-－＿—]*(\\d{${this.length}})`, 'gi');
+			return /(?<![a-zA-Z0-9])[zZｚＺ]\s*([0-9０-９]+)(?![a-zA-Z0-9])/g;
+		},
+		placeholderFor(digits) {
+			const asciiDigits = String(digits).replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+			return this.prefix + asciiDigits + this.suffix;
 		},
 		get instructionText() {
-			const numWord = this.length === 5 ? 'five' : (this.length === 6 ? 'six' : this.length);
-			return `- **Placeholder Preservation:** If an item contains special placeholders in the format \`${this.prefix}\` followed by ${numWord} digits (e.g., \`${this.exampleString}\`), you MUST preserve these placeholders exactly as they are. DO NOT translate, modify, or delete them.`;
+			return '- **Placeholder Preservation:** If an item contains special indicators in the format `z1`, `z2`, `z3`, ... (a short lowercase letter immediately followed by a number), you MUST keep them EXACTLY as they are. They are opaque markers, not words. DO NOT translate, spell out, rewrite, change their case, renumber, or delete them.';
 		}
 	};
 
@@ -226,6 +230,11 @@
 	const CUSTOM_SERVICES_LIST_KEY = 'custom_services_list';
 	const ACTIVE_MODEL_PREFIX_KEY = 'active_model_for_';
 	const ADD_NEW_CUSTOM_SERVICE_ID = 'add_new_custom';
+
+	// 手动导入导出的加密密钥
+	const AO3_EXPORT_ENC_KEY = 'ao3_export_enc_key';
+	// 本地自动备份的加密密钥
+	const AO3_LOCAL_BACKUP_ENC_KEY = 'ao3_local_backup_enc_key';
 
 	// 存储已编译的术语表正则组
 	let runtimePreparedGlossaryCache = null;
@@ -287,6 +296,20 @@
 		["vi", "Tiếng Việt"],
 		["zu", "isiZulu"],
 	];
+
+	/**
+	 * 脚本支持的翻译语言码集合
+	 */
+	const SUPPORTED_LANG_CODES = new Set(ALL_LANG_OPTIONS.map(([code]) => code));
+	SUPPORTED_LANG_CODES.add('yue');
+
+	/**
+	 * 归一化源语言码
+	 */
+	function normalizeDetectFromLang(lang) {
+		if (!lang || lang === 'auto') return 'auto';
+		return SUPPORTED_LANG_CODES.has(lang) ? lang : 'auto';
+	}
 
 	/**
 	 * 语言代码到自然语言名称的映射
@@ -626,16 +649,30 @@
 	}
 
 	/**
-	 * 获取底层强制的系统指令
+	 * 获取底层强制的系统指令。paraMode 决定段落标记契约：'json'、'%%'
 	 */
-	function getSystemDirectives() {
-		return `### CRITICAL OUTPUT INSTRUCTIONS:
-- The input consists of a JSON array of objects, each containing an "id" and "text".
-- Your entire response MUST consist of *only* a valid JSON object containing a "translations" array.
-- Each object in the "translations" array MUST contain the exact same "id" and the polished translation in "trans".
-- Do NOT include any markdown formatting (like \`\`\`json), stage numbers, headers, notes, or explanations in your final output.
-- **HTML Tag Preservation:** If an item contains HTML tags (e.g., \`<em>\`, \`<strong>\`), you MUST preserve these tags exactly as they are in the original.
+	function getSystemDirectives(paraMode) {
+		if (paraMode === '%%') {
+			return `### Output Format:
+- The input consists of multiple segments separated by a standalone line containing only %%.
+- Return ALL segments translated, in the same order, each translation separated by a standalone %% line. Output nothing else — no markdown, no headers, notes, or explanations.
+- **CRITICAL**: Treat %% as a separator only when it appears on its own line. Do not treat %% as a separator when it appears inside normal text, code, quotes, or punctuation.
+- Single-segment input → output the translation directly, with no %% at all.
+
+### Preserve Verbatim:
+- HTML tags in the source (e.g. <em>, <strong>) must appear unchanged in the translation.
 ${PlaceholderConfig.instructionText}
+- Non-translatable separators (e.g. "---") must appear unchanged.`;
+		}
+		return `### Output Format:
+- The input is a JSON array of objects, each with an "id" and a "text".
+- Return exactly one JSON object: {"translations": [{"id": ..., "trans": ...}]}, one entry per input item, reusing the original "id" values.
+- Output nothing but that JSON — no markdown, no \`\`\`json fences, no headers, notes, or explanations.
+
+### Preserve Verbatim:
+- HTML tags in the source (e.g. <em>, <strong>) must appear unchanged in the translation.
+${PlaceholderConfig.instructionText}
+- Non-translatable separators (e.g. "---") must appear unchanged.
 
 ### Example Input:
 [
@@ -653,12 +690,10 @@ ${PlaceholderConfig.instructionText}
 	function getSharedSystemPrompt() {
 		return `You are a professional translator fluent in {toLangName}, with particular expertise in translating web novels and online fanfiction from {fromLangName}.
 
-Your task is to translate multiple text segments provided by the user. For each segment, you will follow an internal three-stage strategy to produce the final, polished translation.
-
-### Internal Translation Strategy (for each item):
-1.  **Stage 1 (Internal Thought Process):** Produce a literal, word-for-word translation of the original content.
-2.  **Stage 2 (Internal Thought Process):** Based on the literal translation, identify any phrasing that is unnatural or does not flow well in the target language.
-3.  **Stage 3 (Final Output):** Produce a polished, idiomatic translation that fully preserves the original meaning, tone, cultural nuances, and any specialized fandom terminology. The final translation must be natural-sounding, readable, and conform to standard usage in {toLangName}.
+For each input segment, translate in three internal steps:
+1. Produce a literal, word-for-word translation, keeping every detail and token of the source.
+2. Identify any phrasing that is unnatural or does not flow well in {toLangName}.
+3. Produce a polished, idiomatic translation that preserves the original meaning, tone, cultural nuance, and fandom-specific terminology, and reads naturally in {toLangName}.
 
 {systemDirectives}`;
 	}
@@ -678,9 +713,88 @@ Your task is to translate multiple text segments provided by the user. For each 
 	const BING_LANG_CODE_MAP = {
 		'zh-CN': 'zh-Hans',
 		'zh-TW': 'zh-Hant',
-		'yue': 'yue',
-		'auto': 'auto-detect'
+		'yue': 'yue'
 	};
+
+	/**
+	 * 腾讯翻译语言代码映射表
+	 */
+	const TENCENT_LANG_CODE_MAP = {
+		'auto': 'auto',
+		'zh-CN': 'zh',
+		'zh-TW': 'zh',
+		'en': 'en', 'ar': 'ar', 'de': 'de', 'ru': 'ru', 'fr': 'fr',
+		'fi': 'fi', 'ko': 'ko', 'ms': 'ms', 'pt': 'pt', 'ja': 'ja',
+		'th': 'th', 'tr': 'tr', 'es': 'es', 'it': 'it', 'hi': 'hi',
+		'id': 'id', 'vi': 'vi'
+	};
+
+	/**
+	 * 免费简单翻译引擎集合：无需 API Key、走 contentArray 纯文本/HTML 路径
+	 */
+	const SIMPLE_TRANSLATION_ENGINES = new Set([
+		'google_translate', 'bing_translator',
+		'tencent_translator'
+	]);
+	const isSimpleTranslationEngine = (engineId) => SIMPLE_TRANSLATION_ENGINES.has(engineId);
+
+	/**
+	 * 腾讯 TranSmart 免鉴权端点的 client_key 会话管理器
+	 */
+	const TencentClientKey = {
+		current: null,
+
+		_generate() {
+			const uuid = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+				? crypto.randomUUID()
+				: 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+					const r = Math.random() * 16 | 0;
+					return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+				});
+			const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+			const verMatch = ua.match(/Chrome\/(\d+\.\d+\.\d+)/);
+			const ver = verMatch ? verMatch[1] : '131.0.0';
+			const os = /Windows/i.test(ua) ? 'Windows_10' : (/Mac|Darwin/i.test(ua) ? 'Mac OS' : 'Linux');
+			return `browser-chrome-${ver}-${os}-${uuid}-${Date.now()}`;
+		},
+
+		/**
+		 * 获取当前 client_key：优先用户/发布方覆盖值；否则会话内复用动态生成值
+		 * @returns {string}
+		 */
+		get() {
+			const override = GM_getValue('tencent_client_key', '');
+			if (override) return override;
+			if (!this.current) this.current = this._generate();
+			return this.current;
+		},
+
+		/**
+		 * 轮换：会话失效/限流/契约变更时生成新 key，下次请求建立新会话
+		 */
+		rotate() {
+			this.current = this._generate();
+		}
+	};
+
+	/**
+	 * 提取节点纯文本（用于纯文本免费翻译服务）
+	 */
+	function nodeToPlainText(node) {
+		const clone = node.cloneNode(true);
+		const textNodes = [];
+		const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, null);
+		let tn;
+		while ((tn = walker.nextNode())) textNodes.push(tn);
+		textNodes.forEach(t => { t.nodeValue = t.nodeValue.replace(/[ \t\r\n]+/g, ' '); });
+		clone.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+		return (clone.textContent || '').replace(/\u00a0/g, ' ').trim();
+	}
+
+	/**
+	 * 翻译请求/输出格式版本：免费引擎（腾讯/Bing）纯文本路径的文本处理变更时 +1
+	 */
+	const TRANSLATION_OUTPUT_VERSION = 4;
 
 	// 语言检测截取字符长度限制
 	const LANG_DETECT_MAX_LENGTH = 400;
@@ -711,34 +825,6 @@ Your task is to translate multiple text segments provided by the user. For each 
 					proportional_trigger_count: 6,
 					catastrophic_loss: 3
 				}
-			},
-			// 谷歌翻译
-			google_translate: {
-				CHUNK_SIZE: 4000,
-				PARAGRAPH_LIMIT: 20,
-				LAZY_LOAD_ROOT_MARGIN: '1200px 0px 10000px 0px',
-				REQUEST_RATE: 5,
-				REQUEST_CAPACITY: 20,
-				VALIDATION: {
-					absolute_loss: 6,
-					proportional_loss: 0.5,
-					proportional_trigger_count: 6,
-					catastrophic_loss: 3
-				}
-			},
-			// 微软翻译
-			bing_translator: {
-				CHUNK_SIZE: 3000,
-				PARAGRAPH_LIMIT: 15,
-				LAZY_LOAD_ROOT_MARGIN: '1200px 0px 10000px 0px',
-				REQUEST_RATE: 5,
-				REQUEST_CAPACITY: 20,
-				VALIDATION: {
-					absolute_loss: 6,
-					proportional_loss: 0.5,
-					proportional_trigger_count: 6,
-					catastrophic_loss: 3
-				}
 			}
 		},
 		TRANS_ENGINES: {
@@ -756,7 +842,13 @@ Your task is to translate multiple text segments provided by the user. For each 
 			},
 			bing_translator: {
 				name: '微软翻译',
-				url_api: 'https://api-edge.cognitive.microsofttranslator.com/translate?api-version=3.0&includeSentenceLength=true',
+				url_api: 'https://edge.microsoft.com/translate/translatetext',
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' }
+			},
+			tencent_translator: {
+				name: '腾讯翻译',
+				url_api: 'https://transmart.qq.com/api/imt',
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' }
 			},
@@ -824,8 +916,228 @@ Your task is to translate multiple text segments provided by the user. For each 
 		request_capacity: CONFIG.SERVICE_CONFIG.default.REQUEST_CAPACITY,
 		lazy_load_margin: CONFIG.SERVICE_CONFIG.default.LAZY_LOAD_ROOT_MARGIN,
 		validation_thresholds: `${CONFIG.SERVICE_CONFIG.default.VALIDATION.absolute_loss}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.proportional_loss}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.proportional_trigger_count}, ${CONFIG.SERVICE_CONFIG.default.VALIDATION.catastrophic_loss}`,
-		reasoning_effort: 'default'
+		reasoning_effort: 'none',
+		batch_mode: 'fixed',
+		para_mode: '%%'
 	};
+
+	const DYNAMIC_BATCH_PARA_CAP = 24;
+
+	/**
+	 * 推理深度控制
+	 */
+	const REASONING_LEVELS = ['default', 'none', 'minimal', 'low', 'medium', 'high', 'xhigh'];
+	const REASONING_LEVEL_LABELS = {
+		default: 'Default', none: 'None', minimal: 'Minimal',
+		low: 'Low', medium: 'Medium', high: 'High', xhigh: 'Xhigh'
+	};
+	const THINKING_BUDGET_BY_LEVEL = {
+		none: 0, default: 0, minimal: 1024,
+		low: 2048, medium: 4096, high: 8192, xhigh: 16384
+	};
+	function normalizeReasoningEffort(v) {
+		if (v === undefined || v === null || v === '') return 'default';
+		return REASONING_LEVELS.indexOf(v) !== -1 ? v : 'default';
+	}
+
+	const GENERIC_THINKING_OFF_FORMS = [
+		{ id: 'chat_template_kwargs', field: 'chat_template_kwargs', value: { enable_thinking: false } },
+		{ id: 'enable_thinking', field: 'enable_thinking', value: false },
+		{ id: 'thinking', field: 'thinking', value: { type: 'disabled' } },
+		{ id: 'reasoning_effort', field: 'reasoning_effort', value: 'none' }
+	];
+	const GENERIC_THINKING_OFF_OMIT = 'omit';
+	const REASONING_OFF_FORM_KEY = 'ao3_reasoning_off_form_v1';
+	const reasoningOffFormSessionCache = new Map();
+
+	function reasoningOffFormScopeKey(provider, model) {
+		return `${provider.id}|${provider.apiHost || ''}|${model || ''}`;
+	}
+
+	function reasoningOffFormById(id) {
+		if (id === GENERIC_THINKING_OFF_OMIT) return null;
+		return GENERIC_THINKING_OFF_FORMS.find(f => f.id === id) || GENERIC_THINKING_OFF_FORMS[0];
+	}
+
+	function nextReasoningOffFormId(id) {
+		const i = GENERIC_THINKING_OFF_FORMS.findIndex(f => f.id === id);
+		if (i < 0 || i + 1 >= GENERIC_THINKING_OFF_FORMS.length) return GENERIC_THINKING_OFF_OMIT;
+		return GENERIC_THINKING_OFF_FORMS[i + 1].id;
+	}
+
+	function readReasoningOffFormId(provider, model) {
+		const key = reasoningOffFormScopeKey(provider, model);
+		if (reasoningOffFormSessionCache.has(key)) return reasoningOffFormSessionCache.get(key);
+		const store = GM_getValue(REASONING_OFF_FORM_KEY, null);
+		if (!store || typeof store !== 'object') return undefined;
+		return store[key];
+	}
+
+	function writeReasoningOffFormId(provider, model, id, persist = true) {
+		const key = reasoningOffFormScopeKey(provider, model);
+		reasoningOffFormSessionCache.set(key, id);
+		if (!persist) return;
+		const prev = GM_getValue(REASONING_OFF_FORM_KEY, null);
+		const store = (prev && typeof prev === 'object') ? { ...prev } : {};
+		if (store[key] === id) return;
+		store[key] = id;
+		GM_setValue(REASONING_OFF_FORM_KEY, store);
+		Logger.debug('Network', `思考关闭形态更新: ${id}`, { provider: provider.id, model });
+	}
+
+	/**
+	 * 段落标记方式控制：'json'、'%%'
+	 */
+	const PARA_MODES = ['json', '%%'];
+	function normalizeParaMode(v) {
+		return PARA_MODES.indexOf(v) !== -1 ? v : '%%';
+	}
+
+	/**
+	 * 模型族
+	 */
+	function classifyOpenAIReasoningFamily(model) {
+		if (/^o[134]/i.test(model)) return 'o';
+		if (/^gpt-5/i.test(model)) return 'gpt5';
+		return 'other';
+	}
+
+	/**
+	 * OpenAI 兼容系内的厂商级推理覆盖
+	 */
+	const OPENAI_COMPAT_REASONING_OVERRIDES = {
+		deepseek_ai: {
+			effortByLevel: { minimal: 'low', low: 'low', medium: 'high', high: 'high', xhigh: 'max' },
+			toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } }
+		}
+	};
+
+	/**
+	 * 模型前缀
+	 */
+	const REASONING_OVERRIDE_BY_MODEL_PREFIX = {
+		'deepseek': 'deepseek_ai'
+	};
+
+	/**
+	 * 精确模型 ID 的思考能力表
+	 */
+	const OPENAI_COMPAT_MODEL_REASONING_CAPS = {
+		// effort 控制族
+		'deepseek-v4-flash-free': {
+			effortByLevel: { minimal: 'low', low: 'low', medium: 'high', high: 'high', xhigh: 'max' },
+			toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } }
+		},
+		'hy3-free': {
+			// 默认即 no-think 模式
+			defaultThinking: 'off',
+			effortByLevel: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'high' }
+		},
+		'laguna-s-2.1-free': {
+			effortByLevel: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'high' }
+		},
+		'ling-3.0-flash-free': {
+			effortByLevel: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'high' }
+		},
+		'north-mini-code-free': {
+			// effort 含 none/high
+			effortByLevel: { none: 'none', minimal: 'low', low: 'low', medium: 'high', high: 'high', xhigh: 'high' }
+		},
+		// 仅 toggle 控制族
+		'glm-4.7-free': { toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } } },
+		'glm-5-free': { toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } } },
+		'kimi-k2.5-free': { toggle: { field: 'enable_thinking', off: false, on: true } },
+		'qwen3.6-plus-free': { toggle: { field: 'enable_thinking', off: false, on: true } },
+		'minimax-m3-free': { toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } } },
+		'longcat-2.0-free': { toggle: { field: 'enable_thinking', off: false, on: true } },
+		// 不可控族：始终思考，一律省略推理参数
+		'mimo-v2.5-free': { uncontrollable: true },
+		'mimo-v2-pro-free': { uncontrollable: true },
+		'mimo-v2-flash-free': { uncontrollable: true },
+		'mimo-v2-omni-free': { uncontrollable: true },
+		'nemotron-3-ultra-free': { uncontrollable: true },
+		'nemotron-3.5-lightning-free': { uncontrollable: true },
+		'nemotron-3-super-free': { uncontrollable: true },
+		'ring-2.6-1t-free': { uncontrollable: true },
+		'ling-3.0-tiny-free': { uncontrollable: true },
+		'ling-2.6-flash-free': { uncontrollable: true },
+		'hy3-preview-free': { uncontrollable: true },
+		'minimax-m2.1-free': { uncontrollable: true },
+		'minimax-m2.5-free': { uncontrollable: true },
+		'trinity-large-preview-free': { uncontrollable: true }
+	};
+
+	/**
+	 * 厂商级推理控制规则
+	 */
+	const REASONING_BRAND_RULES = {
+		deepseek: {
+			defaultThinking: 'on',
+			toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } },
+			effortByLevel: { minimal: 'low', low: 'low', medium: 'high', high: 'high', xhigh: 'max' }
+		},
+		qwen:    { defaultThinking: 'on', toggle: { field: 'enable_thinking', off: false, on: true } },
+		kimi:    { defaultThinking: 'on', toggle: { field: 'enable_thinking', off: false, on: true } },
+		glm:     { defaultThinking: 'on', toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } } },
+		minimax: { defaultThinking: 'on', toggle: { field: 'thinking', off: { type: 'disabled' }, on: { type: 'enabled' } } },
+		longcat: { defaultThinking: 'on', toggle: { field: 'enable_thinking', off: false, on: true } },
+		hy3:     { defaultThinking: 'off', effortByLevel: { minimal: 'low', low: 'low', medium: 'medium', high: 'high', xhigh: 'high' } },
+		claude:  { defaultThinking: 'off' },
+		gemini:  { defaultThinking: 'on' }
+	};
+
+	// 前缀命中
+	function resolveBrandRule(model) {
+		if (!model) return undefined;
+		const bare = String(model).toLowerCase().replace(/^opencode\//i, '');
+		for (const prefix of Object.keys(REASONING_BRAND_RULES)) {
+			if (bare === prefix || bare.startsWith(prefix)) return REASONING_BRAND_RULES[prefix];
+		}
+		return undefined;
+	}
+
+	/**
+	 * 模型名是否带"推理特征"
+	 */
+	function looksLikeReasoningModel(model) {
+		if (!model) return false;
+		const bare = String(model).toLowerCase().replace(/^opencode\//i, '');
+		return /\b(?:thinking|thinker|think|reasoner|reasoning)\b|-r\d+|\bo[134]\b|gpt-5/.test(bare);
+	}
+
+	/**
+	 * 解析模型思考能力
+	 */
+	function resolveReasoningCaps(providerId, model) {
+		if (model) {
+			const bare = String(model).replace(/^opencode\//i, '');
+			const hit = OPENAI_COMPAT_MODEL_REASONING_CAPS[bare];
+			if (hit) return hit;
+		}
+		const byProvider = OPENAI_COMPAT_REASONING_OVERRIDES[providerId];
+		if (byProvider) return byProvider;
+		if (!model) return undefined;
+		const lower = String(model).toLowerCase();
+		for (const prefix of Object.keys(REASONING_OVERRIDE_BY_MODEL_PREFIX)) {
+			if (lower.startsWith(prefix)) {
+				return OPENAI_COMPAT_REASONING_OVERRIDES[REASONING_OVERRIDE_BY_MODEL_PREFIX[prefix]];
+			}
+		}
+		const brand = resolveBrandRule(model);
+		if (brand) return brand;
+		return undefined;
+	}
+
+	/**
+	 * 判断 400 类错误是否由"推理参数不被支持"引起
+	 */
+	function isReasoningParamRejected(err) {
+		if (!err) return false;
+		const msg = String(err.message || '');
+		if (!msg) return false;
+		return /(?:reasoning_effort|reasoningEffort|budget_tokens|thinkingConfig|includeThoughts|enableThinking|enable_thinking|chat_template_kwargs|chatTemplateKwargs|\breasoning\b|\bthinking\b)/i.test(msg)
+			&& /(?:unsupported|invalid|not (?:supported|recognized|allowed|permitted)|unknown (?:parameter|field)|extra inputs|unexpected (?:keyword|argument|field)|unrecognized|400|422|not_found_error)/i.test(msg);
+	}
 
 	const ProfileManager = {
 		// 初始化配置数据
@@ -845,10 +1157,10 @@ Your task is to translate multiple text segments provided by the user. For each 
 				// 初始化传统引擎专属配置
 				const traditionalProfile = {
 					id: 'profile_traditional_init',
-					name: '谷歌、微软',
+					name: '谷歌、微软、腾讯',
 					isProtected: true,
 					isTraditional: true,
-					services: ['google_translate', 'bing_translator'],
+					services: ['google_translate', 'bing_translator', 'tencent_translator'],
 					params: {
 						...BASE_AI_PARAMS,
 						chunk_size: 3000,
@@ -893,6 +1205,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 			if (index !== -1) {
 				profiles[index] = updatedProfile;
 				GM_setValue(AI_PROFILES_KEY, profiles);
+				if (_ConfigMemo) _ConfigMemo.invalidate();
 				return true;
 			}
 			return false;
@@ -919,6 +1232,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 
 			profiles = profiles.filter(p => p.id !== id);
 			GM_setValue(AI_PROFILES_KEY, profiles);
+			invalidateConfigFingerprint();
 			return true;
 		},
 
@@ -936,6 +1250,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 			targetProfile.services = serviceIds;
 
 			GM_setValue(AI_PROFILES_KEY, profiles);
+			invalidateConfigFingerprint();
 		},
 
 		getParamsByEngine(engineId) {
@@ -1007,20 +1322,21 @@ Your task is to translate multiple text segments provided by the user. For each 
 			const elements = profile.params.indentElements || ['work_text'];
 			const selectors = [];
 			const map = {
-				work_text: '#chapters .userstuff',
-				summary: '.summary .userstuff',
-				notes: '.notes .userstuff',
-				comments: '.comment .userstuff'
+				work_text: ['#chapters .userstuff'],
+				summary: ['.summary .userstuff', '.userstuff.summary', '.latest.news .post.group > blockquote.userstuff'],
+				notes: ['.notes .userstuff', '.userstuff.notes'],
+				comments: ['.comment .userstuff']
 			};
-			
+
 			elements.forEach(el => {
-				if (map[el]) selectors.push(map[el]);
+				const sels = map[el];
+				if (sels) selectors.push(...sels);
 			});
-			
+
 			if (elements.includes('other')) {
-				selectors.push('.userstuff:not(#chapters .userstuff):not(.summary .userstuff):not(.notes .userstuff):not(.comment .userstuff)');
+				selectors.push('.userstuff:not(#chapters .userstuff):not(.summary .userstuff):not(.userstuff.summary):not(.latest.news .post.group > blockquote.userstuff):not(.notes .userstuff):not(.userstuff.notes):not(.comment .userstuff)');
 			}
-			
+
 			return selectors;
 		},
 
@@ -1094,13 +1410,12 @@ Your task is to translate multiple text segments provided by the user. For each 
 	 * 用于在 window.crypto.subtle 不可用时的安全降级
 	 */
 	function pureSHA256(s) {
-		const utf8Encode = (str) => unescape(encodeURIComponent(str));
-		let ascii = utf8Encode(s);
+		const bytes = new TextEncoder().encode(s);
 		const mathPow = Math.pow;
 		const maxWord = mathPow(2, 32);
 		let result = '';
 		const words = [];
-		const asciiBitLength = ascii.length * 8;
+		const bitLength = bytes.length * 8;
 		let hash = pureSHA256.h = pureSHA256.h || [];
 		let k = pureSHA256.k = pureSHA256.k || [];
 		let primeCounter = k.length;
@@ -1112,14 +1427,17 @@ Your task is to translate multiple text segments provided by the user. For each 
 				k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
 			}
 		}
-		ascii += '\x80';
-		while (ascii.length % 64 - 56) ascii += '\x00';
-		for (let i = 0; i < ascii.length; i++) {
-			const j = ascii.charCodeAt(i);
+		let paddedLen = bytes.length + 1;
+		while (paddedLen % 64 - 56) paddedLen++;
+		const padded = new Uint8Array(paddedLen);
+		padded.set(bytes, 0);
+		padded[bytes.length] = 0x80;
+		for (let i = 0; i < padded.length; i++) {
+			const j = padded[i];
 			words[i >> 2] |= j << ((3 - i) % 4) * 8;
 		}
-		words[words.length] = ((asciiBitLength / maxWord) | 0);
-		words[words.length] = (asciiBitLength) | 0;
+		words[words.length] = ((bitLength / maxWord) | 0);
+		words[words.length] = (bitLength) | 0;
 		for (let j = 0; j < words.length;) {
 			const w = words.slice(j, j += 16);
 			const oldHash = hash;
@@ -1209,6 +1527,16 @@ Your task is to translate multiple text segments provided by the user. For each 
 	const SHORT_TEXT_CONTEXT_LIMIT = 30;
 
 	/**
+	 * 是否应为该节点构建短文本上下文
+	 */
+	function shouldIncludeContext(node, textLength) {
+		if (!node || textLength >= SHORT_TEXT_CONTEXT_THRESHOLD) return false;
+		if (node.classList && typeof node.classList.contains === 'function' && node.classList.contains('ao3-tag-original')) return false;
+		if (typeof node.closest === 'function' && node.closest('a.tag, .tag')) return false;
+		return true;
+	}
+
+	/**
 	 * 获取短文本缓存用的轻量上下文
 	 */
 	function getLightweightCacheContext(element) {
@@ -1285,9 +1613,256 @@ Your task is to translate multiple text segments provided by the user. For each 
 	}
 
 	/**
+	 * djb2 哈希 → base36 字符串
+	 */
+	function djb2(str) {
+		let h = 5381;
+		for (let i = 0; i < str.length; i++) {
+			h = ((h << 5) + h) ^ str.charCodeAt(i);
+			h = h >>> 0;
+		}
+		return h.toString(36);
+	}
+
+	/**
+	 * 收集根节点下所有文本节点的值
+	 */
+	function collectTextNodeValues(root) {
+		if (!root) return [''];
+		if (!document || !document.createTreeWalker) return [root.textContent || ''];
+		const values = [];
+		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+			acceptNode: (node) => {
+				if (node.parentElement && node.parentElement.closest('[data-glossary-applied="true"]')) {
+					return NodeFilter.FILTER_REJECT;
+				}
+				return NodeFilter.FILTER_ACCEPT;
+			}
+		});
+		let n;
+		while ((n = walker.nextNode())) values.push(n.nodeValue || '');
+		return values;
+	}
+
+	/**
+	 * 对文本节点值数组运行轻量术语匹配
+	 */
+	function computePerTextHits(textNodeValues, preparedRules) {
+		const hitRuleIds = [];
+		const addHit = (rule) => {
+			const key = `${rule.id}:${rule.matchStrategy || ''}:${rule.type || ''}:${rule.replacement}`;
+			if (hitRuleIds.indexOf(key) === -1) hitRuleIds.push(key);
+		};
+		if (!textNodeValues || !preparedRules) return { hitRuleIds, fingerprint: djb2('0') };
+		const nodes = typeof textNodeValues === 'string' ? [textNodeValues] : textNodeValues;
+		const fullText = nodes.join('');
+
+		// 1. regex 策略
+		const plan = preparedRules.executionPlan;
+		if (plan && plan.length) {
+			for (const nodeText of nodes) {
+				if (!nodeText) continue;
+				for (const planItem of plan) {
+					if (planItem.type === 'combined') {
+						const re = planItem.regex;
+						re.lastIndex = 0;
+						let m;
+						while ((m = re.exec(nodeText)) !== null) {
+							const gi = m.slice(1).findIndex(v => v !== undefined);
+							if (gi >= 0 && planItem.rules[gi]) addHit(planItem.rules[gi]);
+							if (m[0].length === 0) re.lastIndex++;
+						}
+					} else {
+						const re = planItem.rule.regex;
+						re.lastIndex = 0;
+						if (re.test(nodeText)) addHit(planItem.rule);
+					}
+				}
+			}
+		}
+
+		// 2. dom 策略
+		const domRules = preparedRules.domRules;
+		if (domRules && domRules.length) {
+			const lowerText = fullText.toLowerCase();
+			for (const rule of domRules) {
+				const searchText = rule.isGeneral ? lowerText : fullText;
+				let allFound = true;
+				for (const partForms of rule.parts) {
+					let found = false;
+					for (const form of partForms) {
+						const fStr = rule.isGeneral ? form.toLowerCase() : form;
+						if (searchText.indexOf(fStr) !== -1) { found = true; break; }
+					}
+					if (!found) { allFound = false; break; }
+				}
+				if (allFound) addHit(rule);
+			}
+		}
+
+		return { hitRuleIds, fingerprint: djb2(hitRuleIds.length ? hitRuleIds.sort().join('|') : '0') };
+	}
+
+	// 配置指纹双层 memo
+	const _ConfigMemo = {
+		semantic: null,
+		entryCfg: null,
+		signers: null,
+		_computePromise: null,
+		_gen: 0,
+		_lastAuditAt: 0,
+		_AUDIT_INTERVAL_MS: 5 * 60 * 1000,
+
+		// 稳定层指纹：进入缓存查找键（引擎/模型/地址/温度/推理深度）
+		async getSemantic() {
+			this._maybeAudit();
+			while (this.semantic === null) await this._compute();
+			return this.semantic;
+		},
+
+		// 易变层指纹：读路径校验用（提示词/词表引擎版本/后处理签名）
+		async getEntryCfg() {
+			this._maybeAudit();
+			while (this.entryCfg === null) await this._compute();
+			return this.entryCfg;
+		},
+
+		// 显式失效（配置变更路径调用）
+		invalidate() {
+			this.semantic = null;
+			this.entryCfg = null;
+			this.signers = null;
+			this._gen++;
+		},
+
+		/**
+		 * 周期性重采集 signers 并与缓存比较，捕获漏掉的失效路径
+		 */
+		_maybeAudit() {
+			const now = Date.now();
+			if (now - this._lastAuditAt < this._AUDIT_INTERVAL_MS) return;
+			let current = null;
+			try {
+				current = this._collect();
+			} catch (e) {
+				Logger.warn('Config', '配置指纹审计采集失败', e.message);
+				return;
+			}
+			this._lastAuditAt = now;
+			if (this.signers !== null && JSON.stringify(this.signers) !== JSON.stringify(current)) {
+				this.semantic = null;
+				this.entryCfg = null;
+				this._gen++;
+			}
+			this.signers = current;
+		},
+
+		async _compute() {
+			if (this._computePromise) return this._computePromise;
+			const genAtStart = this._gen;
+			this._computePromise = (async () => {
+				if (this.signers === null) this.signers = this._collect();
+				const s = this.signers;
+				const [semantic, entryCfg] = await Promise.all([
+					sha256(JSON.stringify([
+						'semantic', s.engine, s.model, s.apiHost, s.temperature, s.reasoningEffort
+					])),
+					sha256(JSON.stringify([
+						'entryCfg', s.sysPrompt, s.usrPrompt, GLOSSARY_ENGINE_VERSION,
+						AdvancedTranslationCleaner.CLEANER_VERSION,
+						TRANSLATION_OUTPUT_VERSION,
+						s.postReplaceSignature
+					]))
+				]);
+				if (this._gen !== genAtStart) return;
+				this.semantic = semantic;
+				this.entryCfg = entryCfg;
+			})();
+			try {
+				await this._computePromise;
+			} finally {
+				this._computePromise = null;
+			}
+		},
+
+		_collect() {
+			const engine = getValidEngineName();
+			const provider = getProviderById(engine);
+			const model = provider ? provider.selectedModel : 'default';
+			const apiHost = provider ? provider.apiHost : 'default';
+			const params = ProfileManager.getParamsByEngine(engine) || {};
+			const sysPrompt = params.system_prompt || '';
+			const usrPrompt = params.user_prompt || '';
+			const temperature = params.temperature !== undefined ? params.temperature : 'default';
+			const reasoningEffort = normalizeReasoningEffort(params.reasoning_effort);
+			const rawRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+			const postReplaceSignature = rawRules
+				.filter(r => r && r.enabled)
+				.map(r => `${r.id}${r.content}`)
+				.join('');
+			return {
+				engine, model, apiHost,
+				sysPrompt, usrPrompt, temperature, reasoningEffort,
+				postReplaceSignature
+			};
+		}
+	};
+
+	/**
+	 * 配置指纹失效辅助：统一触达所有需要重算的路径
+	 */
+	function invalidateConfigFingerprint() {
+		if (_ConfigMemo) _ConfigMemo.invalidate();
+	}
+
+	/**
+	 * 文本→sha256 会话级 memo
+	 */
+	const _TextHashMemo = new Map();
+	const _TEXT_HASH_MEMO_LIMIT = 5000;
+
+	/**
+	 * 缓存键文本归一化
+	 */
+	function stripLeadingManualIndent(text) {
+		if (!text) return text;
+		return String(text).replace(/^(?:(?:&nbsp;|&#160;|&#xA0;)|\u00A0|\u3000|[ \t\r\n])+/, '');
+	}
+
+	/**
 	 * 构建缓存 Key：长文本使用稳定 Key，短文本额外纳入轻量上下文
 	 */
-	async function buildStableCacheKey(text, fromLang, toLang, scopeId = "global", context = null) {
+	async function buildStableCacheKey(text, fromLang, toLang, scopeId = "global", context = null, perTextHitHash = '0') {
+		const semanticFingerprint = await _ConfigMemo.getSemantic();
+		const normalizedText = stripLeadingManualIndent(text);
+		let textHash = _TextHashMemo.get(normalizedText);
+		if (textHash === undefined) {
+			textHash = await sha256(normalizedText);
+			_TextHashMemo.set(normalizedText, textHash);
+			if (_TextHashMemo.size > _TEXT_HASH_MEMO_LIMIT) _TextHashMemo.clear();
+		}
+		const contextHash = (context?.prev || context?.next)
+			? await sha256(`${context.prev || ''}${context.next || ''}`)
+			: '';
+
+		const rawString = JSON.stringify([
+			'stable_v3',
+			fromLang,
+			toLang,
+			scopeId,
+			contextHash,
+			textHash,
+			perTextHitHash,
+			semanticFingerprint
+		]);
+		return await sha256(rawString);
+	}
+
+	/**
+	 * 旧版缓存 key
+	 */
+	async function buildLegacyCacheKey(text, fromLang, toLang, scopeId = "global", context = null) {
+		const normalizedText = stripLeadingManualIndent(text);
 		const engine = getValidEngineName();
 		const provider = getProviderById(engine);
 		const model = provider ? provider.selectedModel : 'default';
@@ -1296,7 +1871,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 		const sysPrompt = params.system_prompt || '';
 		const usrPrompt = params.user_prompt || '';
 		const temperature = params.temperature !== undefined ? params.temperature : 'default';
-		const reasoningEffort = params.reasoning_effort || 'default';
+		const reasoningEffort = normalizeReasoningEffort(params.reasoning_effort);
 		const glossaryVer = GM_getValue(GLOSSARY_STATE_VERSION_KEY, 0);
 		const rawRules = GM_getValue(POST_REPLACE_RULES_KEY, []);
 		const sortedRules = [...rawRules].sort((a, b) => (a.id || '').localeCompare(b.id || ''));
@@ -1307,7 +1882,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 			scopeId,
 			context?.prev || '',
 			context?.next || '',
-			text,
+			normalizedText,
 			engine,
 			model,
 			apiHost,
@@ -1324,10 +1899,82 @@ Your task is to translate multiple text segments provided by the user. For each 
 	}
 
 	/**
+	 * 热点钉住阈值
+	 */
+	const HOT_THRESHOLD = 20;
+
+	/**
+	 * 钉住上限：单次清理中豁免淘汰的"短文本热点"条目数上限
+	 */
+	const PINNED_CAP = 20000;
+
+	/**
+	 * 增量字节淘汰节流
+	 */
+	const PRUNE_THROTTLE_MS = 30 * 1000;
+
+	/**
+	 * 陈旧代数条目宽限
+	 */
+	const STALE_GEN_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
+
+	/**
+	 * 每条目记账开销
+	 */
+	const ENTRY_OVERHEAD_BYTES = 320;
+
+	/**
+	 * 节流派发
+	 */
+	let _cacheEventLastDispatch = 0;
+	let _cacheEventTimer = null;
+	function dispatchCacheUpdatedThrottled() {
+		const now = Date.now();
+		const RATE_MS = 1000;
+		if (now - _cacheEventLastDispatch >= RATE_MS) {
+			_cacheEventLastDispatch = now;
+			if (_cacheEventTimer) { clearTimeout(_cacheEventTimer); _cacheEventTimer = null; }
+			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+			return;
+		}
+		if (_cacheEventTimer) return;
+		const remaining = RATE_MS - (now - _cacheEventLastDispatch);
+		_cacheEventTimer = setTimeout(() => {
+			_cacheEventTimer = null;
+			_cacheEventLastDispatch = Date.now();
+			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+		}, remaining);
+	}
+
+	/**
+	 * 缓存清理有效参数解析
+	 */
+	async function getEffectiveCacheLimits() {
+		let maxItems = parseInt(GM_getValue('ao3_cache_max_items', 500000), 10);
+		let maxDays = parseInt(GM_getValue('ao3_cache_max_days', 30), 10);
+		let maxSizeBytes = parseInt(GM_getValue('ao3_cache_max_size_bytes', 512 * 1024 * 1024), 10);
+		if (isNaN(maxItems) || maxItems <= 0) maxItems = 500000;
+		if (isNaN(maxDays) || maxDays <= 0) maxDays = 30;
+		if (isNaN(maxSizeBytes) || maxSizeBytes <= 0) maxSizeBytes = 512 * 1024 * 1024;
+		if (navigator.storage && navigator.storage.estimate) {
+			try {
+				const est = await navigator.storage.estimate();
+				const quota = est.quota;
+				if (quota && quota > 0) {
+					const clamped = Math.floor(quota * 0.1);
+					if (clamped < maxSizeBytes) maxSizeBytes = clamped;
+				}
+			} catch (e) {
+				Logger.warn('System', 'storage.estimate 失败，使用配置字节上限', e.message);
+			}
+		}
+		return { maxItems, maxDays, maxSizeBytes };
+	}
+
+	/**
 	 * 翻译缓存数据库 (原生 IndexedDB 封装)
 	 */
-	const TranslationCacheDB = {
-		dbName: 'AO3TranslatorCacheDB',
+	const TranslationCacheDB = {		dbName: 'AO3TranslatorCacheDB',
 		storeName: 'translations',
 		// IndexedDB 原生结构版本号
 		version: 1,
@@ -1349,7 +1996,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 				request.onsuccess = (event) => {
 					this.db = event.target.result;
 					// 业务数据版本号：用于在 Key 算法改变时强制清空旧的无效缓存
-					const CURRENT_SCHEMA_VERSION = 1;
+					const CURRENT_SCHEMA_VERSION = 2;
 					const savedSchema = GM_getValue('ao3_cache_schema_version', 0);
 					if (savedSchema < CURRENT_SCHEMA_VERSION) {
 						this.clear().then(() => {
@@ -1422,9 +2069,9 @@ Your task is to translate multiple text segments provided by the user. For each 
 				try {
 					const transaction = this.db.transaction([this.storeName], 'readwrite');
 					const store = transaction.objectStore(this.storeName);
-					
+
 					transaction.oncomplete = () => {
-						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+						dispatchCacheUpdatedThrottled();
 						resolve();
 					};
 					transaction.onerror = () => resolve();
@@ -1438,25 +2085,40 @@ Your task is to translate multiple text segments provided by the user. For each 
 			});
 		},
 
+		/**
+		 * 更新命中条目的 timestamp 与 hitCount
+		 */
 		async updateTimestamps(keys) {
 			if (!this.db || keys.length === 0) return;
 			const now = Date.now();
-			try {
-				const transaction = this.db.transaction([this.storeName], 'readwrite');
-				const store = transaction.objectStore(this.storeName);
-				keys.forEach(key => {
-					const req = store.get(key);
-					req.onsuccess = (e) => {
-						const data = e.target.result;
-						if (data) {
-							data.timestamp = now;
-							store.put(data);
-						}
+			return new Promise((resolve) => {
+				try {
+					const transaction = this.db.transaction([this.storeName], 'readwrite');
+					const store = transaction.objectStore(this.storeName);
+
+					transaction.oncomplete = () => {
+						dispatchCacheUpdatedThrottled();
+						resolve();
 					};
-				});
-			} catch (e) {
-				Logger.error('System', 'IndexedDB updateTimestamps 事务创建失败', e);
-			}
+					transaction.onerror = () => resolve();
+					transaction.onabort = () => resolve();
+
+					keys.forEach(key => {
+						const req = store.get(key);
+						req.onsuccess = (e) => {
+							const data = e.target.result;
+							if (data) {
+								data.timestamp = now;
+								data.hitCount = (data.hitCount || 0) + 1;
+								store.put(data);
+							}
+						};
+					});
+				} catch (e) {
+					Logger.error('System', 'IndexedDB updateTimestamps 事务创建失败', e);
+					resolve();
+				}
+			});
 		},
 
 		async delete(keys) {
@@ -1493,7 +2155,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 					let deletedCount = 0;
 
 					transaction.oncomplete = () => {
-						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+						dispatchCacheUpdatedThrottled();
 						resolve(deletedCount);
 					};
 					transaction.onerror = () => resolve(deletedCount);
@@ -1524,7 +2186,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 					const store = transaction.objectStore(this.storeName);
 					
 					transaction.oncomplete = () => {
-						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
+						dispatchCacheUpdatedThrottled();
 						resolve();
 					};
 					transaction.onerror = () => resolve();
@@ -1553,8 +2215,15 @@ Your task is to translate multiple text segments provided by the user. For each 
 			});
 		},
 
-		async cleanup(maxItems, expireTime) {
+		/**
+		 * 缓存清理
+		 */
+		async cleanup(maxItems, expireTime, maxSizeBytes = Infinity) {
 			if (!this.db) return 0;
+			let currentCfgGen = null;
+			try { currentCfgGen = await _ConfigMemo.getSemantic(); } catch (e) { currentCfgGen = null; }
+			const genNow = Date.now();
+			const genExpireTime = genNow - STALE_GEN_GRACE_MS;
 			return new Promise((resolve) => {
 				try {
 					const transaction = this.db.transaction([this.storeName], 'readwrite');
@@ -1562,6 +2231,8 @@ Your task is to translate multiple text segments provided by the user. For each 
 					if (!store.indexNames.contains('timestamp')) return resolve(0);
 
 					let deletedCount = 0;
+					let totalBytes = 0;
+					let pinnedCount = 0;
 
 					// 事务级兜底，由 oncomplete 统一 resolve
 					transaction.oncomplete = () => resolve(deletedCount);
@@ -1570,7 +2241,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 
 					const index = store.index('timestamp');
 					const range = IDBKeyRange.upperBound(expireTime);
-					
+
 					// 1. 删除过期数据
 					const req = index.openCursor(range);
 					req.onsuccess = (e) => {
@@ -1580,24 +2251,92 @@ Your task is to translate multiple text segments provided by the user. For each 
 							deletedCount++;
 							cursor.continue();
 						} else {
-							// 2. 检查容量并执行 LRU 清理
+							// 2. 检查容量并执行 LFU+LRU 混合清理
 							const countReq = store.count();
 							countReq.onsuccess = () => {
 								const total = countReq.result;
-								if (total > maxItems) {
-									const toDelete = total - maxItems;
-									let deletedLRU = 0;
-									const lruReq = index.openCursor();
-									lruReq.onsuccess = (ev) => {
-										const lruCursor = ev.target.result;
-										if (lruCursor && deletedLRU < toDelete) {
-											lruCursor.delete();
-											deletedLRU++;
+								const overCount = Math.max(0, total - maxItems);
+								if (overCount === 0 && maxSizeBytes === Infinity) return;
+
+								// 收集候选：按 (hitCount 升序, timestamp 升序) 排序
+								const candidates = [];
+								const collectReq = store.openCursor();
+								collectReq.onsuccess = (ev) => {
+									const cur = ev.target.result;
+									if (cur) {
+										const value = cur.value;
+										if (currentCfgGen && value && value.cfgGen !== undefined && value.cfgGen !== currentCfgGen
+											&& (value.timestamp || 0) < genExpireTime) {
+											store.delete(cur.primaryKey);
 											deletedCount++;
-											lruCursor.continue();
+											cur.continue();
+											return;
 										}
-									};
-								}
+										if (value && value.sizeBytes) totalBytes += value.sizeBytes;
+										const isShort = value && value.shortText !== undefined
+											? value.shortText
+											: (value.sizeBytes || 0) <= 512;
+										const hot = isShort && (value.hitCount || 0) >= HOT_THRESHOLD && pinnedCount < PINNED_CAP;
+										if (hot) pinnedCount++;
+										if (!hot) {
+											candidates.push({
+												key: cur.primaryKey,
+												hitCount: value.hitCount || 0,
+												timestamp: value.timestamp || 0,
+												sizeBytes: value.sizeBytes || 0,
+												isShort
+											});
+										}
+										cur.continue();
+									} else {
+										// 3. 排序：冷 → 旧 → 大
+										candidates.sort((a, b) =>
+											a.hitCount - b.hitCount ||
+											a.timestamp - b.timestamp ||
+											b.sizeBytes - a.sizeBytes
+										);
+
+										// 4. 按条数超限删除（删到条数达标为止）
+										let i = 0;
+										const overCountLimit = overCount;
+										while (i < candidates.length && i < overCountLimit) {
+											store.delete(candidates[i].key);
+											totalBytes -= candidates[i].sizeBytes;
+											deletedCount++;
+											i++;
+										}
+
+										// 5. 字节超限：继续删（跳过已删的热点），直到 bytes 达标
+										while (i < candidates.length && totalBytes > maxSizeBytes) {
+											store.delete(candidates[i].key);
+											totalBytes -= candidates[i].sizeBytes;
+											deletedCount++;
+											i++;
+										}
+
+										// 6. 字节仍超限兜底：删除最大的热条目（极端场景）
+										if (totalBytes > maxSizeBytes) {
+											const hotRescan = [];
+											const hotReq = store.openCursor();
+											hotReq.onsuccess = (ev2) => {
+												const cur2 = ev2.target.result;
+												if (cur2) {
+													const value = cur2.value;
+													if (value && value.sizeBytes) hotRescan.push({ key: cur2.primaryKey, sizeBytes: value.sizeBytes });
+													cur2.continue();
+												} else {
+													hotRescan.sort((a, b) => b.sizeBytes - a.sizeBytes);
+													for (const h of hotRescan) {
+														if (totalBytes <= maxSizeBytes) break;
+														store.delete(h.key);
+														totalBytes -= h.sizeBytes;
+														deletedCount++;
+													}
+												}
+											};
+										}
+									}
+								};
 							};
 						}
 					};
@@ -1617,14 +2356,12 @@ Your task is to translate multiple text segments provided by the user. For each 
 				const lastCheck = GM_getValue('ao3_cache_last_check_time', 0);
 				if (now - lastCheck < 24 * 60 * 60 * 1000) return;
 
-				let maxItems = parseInt(GM_getValue('ao3_cache_max_items', 100000), 10);
-				let maxDays = parseInt(GM_getValue('ao3_cache_max_days', 30), 10);
-				if (isNaN(maxItems) || maxItems <= 0) maxItems = 100000;
-				if (isNaN(maxDays) || maxDays <= 0) maxDays = 30;
+				// 有效参数统一经解析器：默认 500000 / 30d / 512MB + 配额钳制
+				const { maxItems, maxDays, maxSizeBytes } = await getEffectiveCacheLimits();
 
 				const expireTime = now - (maxDays * 24 * 60 * 60 * 1000);
-				const deletedCount = await this.cleanup(maxItems, expireTime);
-				
+				const deletedCount = await this.cleanup(maxItems, expireTime, maxSizeBytes);
+
 				if (deletedCount > 0) {
 					Logger.info('System', `自动清理了 ${deletedCount} 条过期/超量的翻译缓存`);
 					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
@@ -1657,8 +2394,36 @@ Your task is to translate multiple text segments provided by the user. For each 
 			} else {
 				setTimeout(executeWithLock, 5000);
 			}
+		},
+
+		/**
+		 * 增量字节淘汰
+		 */
+		async pruneBySize() {
+			if (!this.db) return 0;
+			const now = Date.now();
+			if (this._lastPruneAt && now - this._lastPruneAt < PRUNE_THROTTLE_MS) return 0;
+			this._lastPruneAt = now;
+			const isEnabled = GM_getValue('ao3_cache_auto_cleanup_enabled', true);
+			let safetyValveSize = null;
+			if (!isEnabled) {
+				if (navigator.storage && navigator.storage.estimate) {
+					try {
+						const est = await navigator.storage.estimate();
+						if (est.quota && est.usage && est.usage > est.quota * 0.9) {
+							safetyValveSize = Math.floor(est.quota * 0.8);
+						}
+					} catch (e) { /* 无法获取配额则放行 */ }
+				}
+				if (safetyValveSize === null) return 0;
+			}
+			const { maxItems, maxDays, maxSizeBytes } = await getEffectiveCacheLimits();
+			const expireTime = now - (maxDays * 24 * 60 * 60 * 1000);
+			const sizeCap = safetyValveSize !== null ? safetyValveSize : maxSizeBytes;
+			return await this.cleanup(maxItems, expireTime, sizeCap);
 		}
 	};
+
 
 	/**
 	 * 语言检测与决策管理器
@@ -1669,16 +2434,18 @@ Your task is to translate multiple text segments provided by the user. For each 
 		 */
 		extractText(container, rule) {
 			if (!container) return '';
-			if (rule && rule.isTags) {
-				const tags = Array.from(container.querySelectorAll('a.tag')).map(a => a.textContent.trim());
-				return tags.join(' ').substring(0, 400);
-			}
 			if (rule && rule.isTitle) {
 				const clone = container.cloneNode(true);
 				clone.querySelectorAll('a').forEach(a => {
 					if (a.textContent.match(/^(?:Chapter|第)\s*\d+\s*(?:章)?$/i)) a.remove();
 				});
 				return clone.textContent.trim().substring(0, 400);
+			}
+			if (rule && rule.isTags) {
+				return extractTagsToTranslate(container)
+					.map(el => (el.querySelector('.ao3-tag-original') || el).textContent.trim())
+					.filter(Boolean)
+					.join(' ');
 			}
 			return container.textContent.trim().substring(0, 400);
 		},
@@ -1791,6 +2558,8 @@ Your task is to translate multiple text segments provided by the user. For each 
 	/**
 	 * 日志管理系统
 	 */
+	const LOG_LEVEL_WEIGHTS = { 'DEBUG': 0, 'ALL': 0, 'INFO': 1, 'WARN': 2, 'ERROR': 3, 'OFF': 99 };
+
 	const Logger = {
 		config: {
 			level: GM_getValue('ao3_log_level', 'INFO'),
@@ -1798,34 +2567,84 @@ Your task is to translate multiple text segments provided by the user. For each 
 			maxHistory: 2000,
 			maxPersist: 500
 		},
-		levels: { 'ALL': 0, 'INFO': 1, 'WARN': 2, 'ERROR': 3, 'OFF': 99 },
+		levels: LOG_LEVEL_WEIGHTS,
+		_collapseWindowMs: 10000,
+		_maxPersistBytes: 1024 * 1024,
 		history:[],
 		saveTimer: null,
 
 		init() {
 			this.history = GM_getValue('ao3_log_history',[]);
 			this.cleanOldLogs();
+			window.addEventListener('pagehide', () => this.flush());
+		},
+
+		// 按保留天数过滤
+		_filterByAge(list) {
+			const now = Date.now();
+			const cutoff = now - (this.config.autoClearDays * 24 * 60 * 60 * 1000);
+			return list.filter(entry => entry.timestampMs >= cutoff);
+		},
+
+		// 字节硬上限兜底
+		_pruneByBytes(list) {
+			const maxBytes = this._maxPersistBytes;
+			let total = 0;
+			const sizes = list.map(entry => {
+				const s = JSON.stringify(entry).length;
+				total += s;
+				return s;
+			});
+			if (total <= maxBytes) return list;
+			let start = 0;
+			let removed = 0;
+			while (start < list.length && (total - removed) > maxBytes) {
+				removed += sizes[start];
+				start++;
+			}
+			return start > 0 ? list.slice(start) : list;
+		},
+
+		// 统一落盘流水线:时间过滤 → 剔除 reasoning → 条数优先级裁剪 → 字节兜底
+		_buildPersistData() {
+			const timeFiltered = this._filterByAge(this.history);
+			const stripped = timeFiltered.map(entry => {
+				const copy = { ...entry };
+				delete copy.reasoning;
+				return copy;
+			});
+			const countCapped = this._prune(stripped, this.config.maxPersist);
+			return this._pruneByBytes(countCapped);
+		},
+
+		// 立即落盘
+		flush() {
+			if (this.saveTimer) {
+				clearTimeout(this.saveTimer);
+				this.saveTimer = null;
+			}
+			if (!this.history.length) return;
+			GM_setValue('ao3_log_history', this._buildPersistData());
 		},
 
 		cleanOldLogs() {
-			const now = Date.now();
-			const cutoff = now - (this.config.autoClearDays * 24 * 60 * 60 * 1000);
 			const initialLength = this.history.length;
-            
-            // 1. 先按时间过期清理
-			this.history = this.history.filter(entry => entry.timestampMs >= cutoff);
-            
-            // 2. 如果剩余日志依然超过持久化上限，执行优先级清理
-            if (this.history.length > this.config.maxPersist) {
-                this.history = this._prune(this.history, this.config.maxPersist);
-            }
+			// 1. 先按时间过期清理
+			this.history = this._filterByAge(this.history);
+			// 2. 如果剩余日志依然超过持久化上限，执行优先级清理
+			if (this.history.length > this.config.maxPersist) {
+				this.history = this._prune(this.history, this.config.maxPersist);
+			}
+			// 3. 字节硬上限兜底
+			this.history = this._pruneByBytes(this.history);
 
 			if (this.history.length !== initialLength) {
-				GM_setValue('ao3_log_history', this.history);
+				GM_setValue('ao3_log_history', this._buildPersistData());
 			}
 		},
 
 		setLevel(level) {
+			if (level === 'ALL') level = 'DEBUG';
 			this.config.level = level;
 			GM_setValue('ao3_log_level', level);
 		},
@@ -1893,7 +2712,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 			if (list.length <= targetSize) return list;
 			
 			let toRemoveCount = list.length - targetSize;
-			const warnWeight = this.levels['WARN']; // 权重为 2
+			const warnWeight = this.levels['WARN'];
 
 			// 1. 找出所有权重低于 WARN 的日志索引 (INFO=1, ALL=0)
 			const lowPriorityIndices = [];
@@ -1906,7 +2725,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 			// 2. 决定要删除的索引集合
 			const indicesToDelete = new Set();
 			
-			// 优先从低级别日志中按时间顺序（最早的）取
+			// 优先从低级别日志中按时间顺序取
 			const removeFromLow = Math.min(toRemoveCount, lowPriorityIndices.length);
 			for (let i = 0; i < removeFromLow; i++) {
 				indicesToDelete.add(lowPriorityIndices[i]);
@@ -1914,7 +2733,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 			
 			toRemoveCount -= removeFromLow;
 
-			// 3. 如果低级别日志删光了还没达到目标，则按时间顺序删除剩余的最早日志（无论级别）
+			// 3. 如果低级别日志删光了还没达到目标，则按时间顺序删除剩余的最早日志
 			if (toRemoveCount > 0) {
 				for (let i = 0; i < list.length && toRemoveCount > 0; i++) {
 					if (!indicesToDelete.has(i)) {
@@ -1928,6 +2747,12 @@ Your task is to translate multiple text segments provided by the user. For each 
 			return list.filter((_, index) => !indicesToDelete.has(index));
 		},
 
+		_formatTimestamp(now) {
+			const baseTime = new Date(now).toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
+			const ms = String(now % 1000).padStart(3, '0');
+			return `${baseTime}.${ms}`;
+		},
+
 		_record(level, module, message, data, traceId = null, reasoning = null) {
 			const currentWeight = this.levels[this.config.level] ?? 2;
 			const msgWeight = this.levels[level] ?? 1;
@@ -1935,11 +2760,23 @@ Your task is to translate multiple text segments provided by the user. For each 
 			if (msgWeight < currentWeight) return;
 
 			const now = Date.now();
-			const baseTime = new Date(now).toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' });
-			const ms = String(now % 1000).padStart(3, '0');
-			const timestamp = `${baseTime}.${ms}`;
 
-			const logEntry = { 
+			if ((level === 'WARN' || level === 'ERROR') && this.history.length > 0) {
+				const last = this.history[this.history.length - 1];
+				if (last && last.level === level && last.module === module && last.message === message
+					&& (now - last.timestampMs) < this._collapseWindowMs) {
+					last.count = (last.count || 1) + 1;
+					last.timestampMs = now;
+					last.timestamp = this._formatTimestamp(now);
+					this._scheduleSave();
+					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.LOG_ADDED, { detail: { ...last, _collapsed: true } }));
+					return;
+				}
+			}
+
+			const timestamp = this._formatTimestamp(now);
+
+			const logEntry = {
 				timestampMs: now, 
 				timestamp, 
 				level, 
@@ -1963,7 +2800,8 @@ Your task is to translate multiple text segments provided by the user. For each 
 				const traceStr = traceId ? `[${traceId}] ` : '';
 				const prefix = `[${timestamp}] %c[${module}] ${traceStr}`;
 				let style = 'font-weight: bold;';
-				if (level === 'INFO') style += 'color: #2196F3;';
+				if (level === 'DEBUG') style += 'color: #9E9E9E;';
+				else if (level === 'INFO') style += 'color: #2196F3;';
 				else if (level === 'WARN') style += 'color: #FF9800;';
 				else if (level === 'ERROR') style += 'color: #F44336;';
 
@@ -1977,12 +2815,11 @@ Your task is to translate multiple text segments provided by the user. For each 
 		_scheduleSave() {
 			if (this.saveTimer) clearTimeout(this.saveTimer);
 			this.saveTimer = setTimeout(() => {
-				const persistData = this._prune(this.history, this.config.maxPersist).map(entry => {
-					const copy = { ...entry };
-					delete copy.reasoning;
-					return copy;
-				});
-				GM_setValue('ao3_log_history', persistData);
+				this.history = this._filterByAge(this.history);
+				if (this.history.length > this.config.maxHistory) {
+					this.history = this._prune(this.history, this.config.maxHistory);
+				}
+				GM_setValue('ao3_log_history', this._buildPersistData());
 			}, 2000);
 		},
 
@@ -1995,6 +2832,8 @@ Your task is to translate multiple text segments provided by the user. For each 
 			}
 			this._record('ERROR', module, message, errorData, traceId, reasoning);
 		},
+
+		debug(module, message, data = null, traceId = null, reasoning = null) { this._record('DEBUG', module, message, data, traceId, reasoning); },
 
 		clear() {
 			this.history =[];
@@ -2072,6 +2911,6486 @@ Your task is to translate multiple text segments provided by the user. For each 
 
 		return GM_xmlhttpRequest(options);
 	}
+
+	/**************************************************************************
+	 * 埋点系统
+	 **************************************************************************/
+
+	// 上报端点
+	const ANALYTICS_ENDPOINT = 'https://aot-analytics.tracifrit.workers.dev/track';
+	// 验证密钥端点
+	const ANALYTICS_SECRET_ENDPOINT = ANALYTICS_ENDPOINT.replace(/\/track$/, '/v2/secret');
+
+	// 存储 key
+	const ANALYTICS_KEY_ENABLED = 'ao3_analytics_enabled';
+	const ANALYTICS_KEY_INSTALL_ID = 'ao3_analytics_install_id';
+	const ANALYTICS_KEY_SECRET = 'ao3_analytics_secret';
+	const ANALYTICS_KEY_INSTALL_REPORTED = 'ao3_analytics_install_reported';
+	const ANALYTICS_KEY_HEARTBEAT_DAY = 'ao3_analytics_last_heartbeat_day';
+	const ANALYTICS_KEY_HOURS_DAY = 'ao3_analytics_hours_day';
+	const ANALYTICS_KEY_HOURS_MASK = 'ao3_analytics_hours_mask';
+	const ANALYTICS_KEY_RATE_LIMITED_DAY = 'ao3_analytics_rate_limited_day';
+	const ANALYTICS_KEY_PENDING_QUEUE = 'ao3_analytics_pending_queue';
+	const ANALYTICS_FEATURE_DAY_PREFIX = 'ao3_analytics_feature_last_day:';
+	const ANALYTICS_COOLDOWN_PREFIX = 'ao3_analytics_cooldown:';
+	const ANALYTICS_SCHEMA_VERSION = 1;
+	const ANALYTICS_KEY_USAGE_CHARS = 'ao3_usage_chars';
+	const ANALYTICS_KEY_USAGE_BATCHES = 'ao3_usage_batches';
+	const ANALYTICS_KEY_USAGE_CACHE_CHARS = 'ao3_usage_cache_chars';
+	const ANALYTICS_KEY_USAGE_CACHE_HITS = 'ao3_usage_cache_hits';
+	const ANALYTICS_KEY_USAGE_CACHE_TOTAL = 'ao3_usage_cache_total';
+	const ANALYTICS_KEY_USAGE_LATENCY_HIST = 'ao3_usage_latency_hist';
+	const ANALYTICS_KEY_ERROR_FULL = 'ao3_errors_full_count';
+	const ANALYTICS_LAT_HIST_EDGES = [
+		100, 125, 156, 195, 244, 305, 381, 477, 596, 745, 931, 1164, 1455, 1819,
+		2274, 2842, 3553, 4441, 5551, 6939, 8674, 10842, 13553, 16941, 21176,
+		26470, 33087, 41359, 51699, 64623, 80779
+	];
+	const ANALYTICS_KEY_USAGE_GLOSSARY_HITS = 'ao3_usage_glossary_hits';
+	const ANALYTICS_KEY_USAGE_POST_REPLACE_HITS = 'ao3_usage_post_replace_hits';
+	const ANALYTICS_KEY_USAGE_BLOCK_HITS = 'ao3_usage_block_hits';
+
+	// 配置修改统计
+	const ANALYTICS_KEY_USAGE_FORMAT_MODS = 'ao3_usage_format_mods';
+	const ANALYTICS_KEY_USAGE_PARAM_MODS = 'ao3_usage_param_mods';
+
+	// 事件属性白名单
+	const ANALYTICS_ALLOWED_PROPS = new Set([
+		// 通用
+		'feature', 'outcome', 'page_type', 'mirror',
+		// 翻译健康
+		'provider', 'engine', 'latency_ms', 'model_name', 'error_type',
+		// 功能/导出
+		'layout_mode', 'export_format', 'webdav_provider', 'detected_source_lang',
+		// 错误诊断
+		'http_status',
+		// usage 会话精确总量
+		'chars_count', 'batch_size', 'error_count', 'cache_saved_chars', 'cache_hit_count', 'cache_total_count',
+		// 规则组件命中
+		'glossary_hits', 'post_replace_hits', 'block_hits',
+		// 配置修改统计
+		'format_mods', 'param_mods', 'latency_hist',
+		// 活跃小时位图
+		'active_hours'
+	]);
+
+	// 值级校验规则
+	const ANALYTICS_STRING_LIMITS = {
+		feature: 64, outcome: 32, error_type: 64,
+		provider: 32, engine: 16, page_type: 32,
+		layout_mode: 32, export_format: 16, webdav_provider: 32,
+		detected_source_lang: 16, model_name: 64,
+		format_mods: 512, param_mods: 512, latency_hist: 256
+	};
+	const ANALYTICS_NUMERIC_RULES = {
+		latency_ms: [0, 3600000],
+		chars_count: [0, 10000000],
+		cache_hit_count: [0, 1000000],
+		cache_total_count: [0, 1000000],
+		cache_saved_chars: [0, 10000000],
+		batch_size: [0, 1000000],
+		error_count: [0, 1000000], http_status: [0, 999],
+		glossary_hits: [0, 10000000], post_replace_hits: [0, 10000000], block_hits: [0, 1000000],
+		active_hours: [0, 16777215]
+	};
+	const ANALYTICS_BOOL_PROPS = new Set([]);
+
+	// 规则组件命中辅助：给会话内的命中计数键自增
+	function bumpUsageCounter(key, delta = 1) {
+		GM_setValue(key, (Number(GM_getValue(key, 0)) || 0) + delta);
+	}
+
+	// 配置修改统计辅助：给 JSON 快照 { item: count } 中某项自增（文章格式/翻译参数自定义）
+	function bumpConfigCounter(category, item) {
+		if (typeof Analytics === 'undefined' || !Analytics.enabled()) return;
+		const key = category === 'format' ? ANALYTICS_KEY_USAGE_FORMAT_MODS : ANALYTICS_KEY_USAGE_PARAM_MODS;
+		let obj = {};
+		try { obj = JSON.parse(GM_getValue(key, '{}')) || {}; } catch { obj = {}; }
+		if (!obj || typeof obj !== 'object') obj = {};
+		obj[item] = (Number(obj[item]) || 0) + 1;
+		GM_setValue(key, JSON.stringify(obj));
+	}
+
+	const Analytics = {
+		queue: [],
+		inFlightBatches: new Set(),
+		pendingDedupeKeys: new Set(),
+		queueCap: 100,
+		flushTimer: null,
+		flushIntervalMs: 5000, 
+		batchSize: 20,
+		maxRetries: 2,
+		trackTranslationCooldownMs: 5 * 60 * 1000,
+		isSupported() {
+			return typeof GM_xmlhttpRequest === 'function'
+				&& typeof GM_getValue === 'function'
+				&& typeof GM_setValue === 'function';
+		},
+
+		enabled() { return this.isSupported() && GM_getValue(ANALYTICS_KEY_ENABLED, 'joined') === 'joined'; },
+
+		setEnabled(on) {
+			GM_setValue(ANALYTICS_KEY_ENABLED, on ? 'joined' : 'left');
+			if (!on) {
+				this.queue = [];
+				this.inFlightBatches.clear();
+				this.pendingDedupeKeys.clear();
+				this._persistQueue();
+			}
+		},
+
+		_restoreQueue() {
+			try {
+				const saved = GM_getValue(ANALYTICS_KEY_PENDING_QUEUE, []);
+				if (!Array.isArray(saved)) return;
+				this.queue = saved.filter((event) => event && typeof event.event_id === 'string'
+					&& typeof event.name === 'string' && event.properties && typeof event.properties === 'object'
+					&& typeof event.ts === 'number').slice(-this.queueCap);
+				for (const event of this.queue) if (event._dedupeKey) this.pendingDedupeKeys.add(event._dedupeKey);
+				if (this.queue.length > 0) this.scheduleFlush(250);
+			} catch (e) {
+				Logger.debug('Analytics', `恢复待发队列失败: ${e.message}`);
+			}
+		},
+
+		_persistQueue() {
+			try {
+				const inFlight = [...this.inFlightBatches].flat();
+				const events = [...this.queue, ...inFlight].slice(-this.queueCap * 2);
+				GM_setValue(ANALYTICS_KEY_PENDING_QUEUE, events);
+			} catch (e) {
+				Logger.debug('Analytics', `持久化待发队列失败: ${e.message}`);
+			}
+		},
+
+		installId() {
+			let id = GM_getValue(ANALYTICS_KEY_INSTALL_ID, '');
+			if (!id) {
+				id = (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
+					? crypto.randomUUID()
+					: this._uuidV4();
+				GM_setValue(ANALYTICS_KEY_INSTALL_ID, id);
+			}
+			return id;
+		},
+
+		// 当前脚本版本指纹
+		scriptVersion() {
+			return (typeof GM_info !== 'undefined' && GM_info && GM_info.script)
+				? String(GM_info.script.version || 'unknown')
+				: 'unknown';
+		},
+
+		_uuidV4() {
+			try {
+				if (crypto && typeof crypto.getRandomValues === 'function') {
+					const b = crypto.getRandomValues(new Uint8Array(16));
+					b[6] = (b[6] & 0x0f) | 0x40;
+					b[8] = (b[8] & 0x3f) | 0x80;
+					const hex = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+					return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+				}
+			} catch (e) { /* fall through */ }
+			return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+				const r = Math.random() * 16 | 0;
+				const v = c === 'x' ? r : (r & 0x3 | 0x8);
+				return v.toString(16);
+			});
+		},
+
+		// 轮换匿名 ID
+		rotateInstallId() {
+			GM_setValue(ANALYTICS_KEY_INSTALL_ID, this._uuidV4());
+		},
+
+		// 验证密钥
+		authSecret() { return GM_getValue(ANALYTICS_KEY_SECRET, ''); },
+
+		setAuthSecret(value) { GM_setValue(ANALYTICS_KEY_SECRET, String(value || '')); },
+
+		async pushAuthSecret(nextSecret) {
+			const secret = String(nextSecret || '');
+			const headers = {
+				'X-Analytics-Install': this.installId(),
+				'X-Analytics-Secret': secret,
+				'X-Analytics-Current-Secret': this.authSecret(),
+			};
+			const attempt = () => new Promise((resolve, reject) => {
+				if (typeof GM_xmlhttpRequest !== 'function') return reject(new Error('GM_xmlhttpRequest unavailable'));
+				GM_xmlhttpRequest({
+					method: 'POST',
+					url: ANALYTICS_SECRET_ENDPOINT,
+					headers,
+					timeout: 8000,
+					onload: (res) => resolve(res),
+					onerror: () => reject(new Error('network')),
+					ontimeout: () => reject(new Error('timeout')),
+				});
+			});
+			try {
+				const res = await attempt();
+				if (res.status === 200) {
+					this.setAuthSecret(secret);
+					return { ok: true };
+				}
+				let error = 'http_' + res.status;
+				try { error = (JSON.parse(res.responseText) || {}).error || error; } catch (e) { /* 保留状态码错误 */ }
+				return { ok: false, error };
+			} catch (e) {
+				return { ok: false, error: e.message === 'network' || e.message === 'timeout' ? e.message : 'request_failed' };
+			}
+		},
+
+		reportOptOut() {
+			const id = this.installId();
+			if (!id) return;
+			const payload = JSON.stringify({
+				v: ANALYTICS_SCHEMA_VERSION,
+				install_id: id,
+				version: (typeof GM_info !== 'undefined' && GM_info && GM_info.script) ? GM_info.script.version : 'unknown',
+				script_handler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) ? GM_info.scriptHandler : 'unknown',
+				handler_version: (typeof GM_info !== 'undefined' && GM_info && GM_info.version) ? GM_info.version : 'unknown',
+				ts: Date.now(),
+				events: [{ event_id: this._uuidV4(), event_type: 'opt_out', name: 'opt_out', ts: Date.now(), properties: { page_type: this.pageType() } }]
+			});
+			try {
+				if (this._canBeacon()) navigator.sendBeacon(ANALYTICS_ENDPOINT, new Blob([payload], { type: 'text/plain' }));
+				else if (typeof GM_xmlhttpRequest === 'function') {
+					GM_xmlhttpRequest({ method: 'POST', url: ANALYTICS_ENDPOINT, headers: { 'Content-Type': 'application/json' }, data: payload, timeout: 8000, onload: () => {}, onerror: () => {} });
+				}
+			} catch (e) {
+				Logger.debug('Analytics', `opt_out 上报失败: ${e.message}`);
+			}
+		},
+
+		// Asia/Shanghai 自然日
+		day() {
+			return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).slice(0, 10);
+		},
+
+		// Asia/Shanghai 小时（0-23）
+		hour() {
+			return Math.floor(((Date.now() + 8 * 3600e3) % 86400e3) / 3600e3);
+		},
+
+		// 活跃打点：当日任意埋点即标记该小时
+		_markActiveHour() {
+			try {
+				const day = this.day();
+				const hour = this.hour();
+				if (hour < 0 || hour > 23) return;
+				if (GM_getValue(ANALYTICS_KEY_HOURS_DAY, '') !== day) {
+					GM_setValue(ANALYTICS_KEY_HOURS_DAY, day);
+					GM_setValue(ANALYTICS_KEY_HOURS_MASK, (1 << hour) >>> 0);
+				} else {
+					GM_setValue(ANALYTICS_KEY_HOURS_MASK, (GM_getValue(ANALYTICS_KEY_HOURS_MASK, 0) | (1 << hour)) >>> 0);
+				}
+			} catch (e) {
+				Logger.debug('Analytics', `活跃小时打点失败: ${e.message}`);
+			}
+		},
+
+		// 昨日（上海日）完整活跃位图：随次日心跳上报；无数据返回 0
+		_yesterdayHoursMask() {
+			try {
+				const yesterday = new Date(Date.now() - 86400e3).toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).slice(0, 10);
+				if (GM_getValue(ANALYTICS_KEY_HOURS_DAY, '') !== yesterday) return 0;
+				const mask = Number(GM_getValue(ANALYTICS_KEY_HOURS_MASK, 0)) | 0;
+				return (mask > 0 && mask <= 0xffffff) ? mask : 0;
+			} catch (e) {
+				return 0;
+			}
+		},
+
+		pageType() {
+			return (typeof pageConfig !== 'undefined' && pageConfig && pageConfig.currentPageType)
+				? pageConfig.currentPageType : 'unknown';
+		},
+
+		// 镜像站判断：官方域名记 0，其余（镜像）记 1
+		isMirror() {
+			try {
+				const host = (typeof location !== 'undefined' && location && location.host) ? location.host : '';
+				return /^([a-z0-9-]+\.)*(archiveofourown\.org|archiveofourown\.gay)$/i.test(host) ? 0 : 1;
+			} catch (e) { return 1; }
+		},
+
+		engineInfo() {
+			const provider = getValidEngineName();
+			const isAi = (engineMenuConfig[provider] && engineMenuConfig[provider].requiresApiKey === true)
+				|| provider.startsWith('custom_');
+			return {
+				provider: provider.startsWith('custom_') ? 'custom_ai' : provider,
+				engine: isAi ? 'ai' : 'traditional'
+			};
+		},
+
+		// 字段白名单过滤 + 值级校验
+		sanitizeProps(props) {
+			const out = {};
+			for (const k of Object.keys(props || {})) {
+				if (!ANALYTICS_ALLOWED_PROPS.has(k)) {
+					Logger.debug('Analytics', `埋点字段 ${k} 不在白名单，已剔除`);
+					continue;
+				}
+				const v = props[k];
+				if (ANALYTICS_STRING_LIMITS[k]) {
+					if (typeof v === 'string') out[k] = v.length > ANALYTICS_STRING_LIMITS[k] ? v.slice(0, ANALYTICS_STRING_LIMITS[k]) : v;
+					else if (typeof v === 'number' || typeof v === 'boolean') out[k] = String(v).slice(0, ANALYTICS_STRING_LIMITS[k]);
+					else Logger.debug('Analytics', `埋点字符串字段 ${k} 类型非法(${typeof v})，已丢弃`);
+				} else if (ANALYTICS_NUMERIC_RULES[k]) {
+					const [min, max] = ANALYTICS_NUMERIC_RULES[k];
+					if (typeof v === 'number' && isFinite(v) && v >= min && v <= max) out[k] = Math.round(v);
+					else Logger.debug('Analytics', `埋点数值字段 ${k} 超范围(${v})，已丢弃`);
+				} else if (ANALYTICS_BOOL_PROPS.has(k)) {
+					if (v === true || v === 1) out[k] = true;
+					else if (v === false || v === 0) out[k] = false;
+					else Logger.debug('Analytics', `埋点布尔字段 ${k} 非法(${v})，已丢弃`);
+				} else if (k === 'mirror') {
+					if (v === 0 || v === 1) out[k] = v;
+					else Logger.debug('Analytics', `埋点 mirror 非法(${v})，已丢弃`);
+				} else {
+					out[k] = v;
+				}
+			}
+			return out;
+		},
+
+		init() {
+			if (!this.enabled()) return;
+			this._restoreQueue();
+			this.installId();
+			const today = this.day();
+			const reportedVersion = GM_getValue(ANALYTICS_KEY_INSTALL_REPORTED, '');
+			this._pendingInstall = reportedVersion !== this.scriptVersion();
+			this._pendingHeartbeat = GM_getValue(ANALYTICS_KEY_HEARTBEAT_DAY, '') !== today ? today : null;
+			const hoursMask = this._yesterdayHoursMask();
+			if (this._pendingInstall) this.push('adoption', 'install', { page_type: this.pageType(), mirror: this.isMirror() });
+
+			if (this._pendingHeartbeat) {
+				const props = { page_type: this.pageType(), mirror: this.isMirror() };
+				if (hoursMask > 0) props.active_hours = hoursMask;
+				this.push('adoption', 'daily_heartbeat', this.sanitizeProps(props));
+			}
+		},
+
+		// 功能使用（每日每 feature 一次，adoption 去重；ack/4xx 后才落当日标记）
+		featureUsed(feature, surface, extra = {}) {
+			if (!this.enabled()) return;
+			const today = this.day();
+			const outcome = extra.outcome || 'success';
+			const key = ANALYTICS_FEATURE_DAY_PREFIX + feature + ':' + outcome;
+			if (GM_getValue(key, '') === today || this.pendingDedupeKeys.has(key)) return;
+			this.pendingDedupeKeys.add(key);
+			const displayMode = GM_getValue('translation_display_mode', 'bilingual');
+			this.push('adoption', 'feature_used', this.sanitizeProps({
+				feature, outcome,
+				page_type: this.pageType(),
+				layout_mode: extra.layout_mode || displayMode,
+				...extra
+			}), { dedupeKey: key, dedupeDay: today });
+		},
+
+		// 导出是实际动作事件：每次导出一条，供格式分布统计，不混入每日功能采用口径
+		exportCreated(format, outcome = 'success', extra = {}) {
+			if (!this.enabled()) return;
+			this.push('adoption', 'export_created', this.sanitizeProps({
+				feature: 'export_created', outcome,
+				export_format: format, page_type: this.pageType(), ...extra
+			}));
+		},
+
+		// 翻译健康（每 provider 冷却窗口一条，保留成功/失败/延迟信号）
+		trackTranslation(feature, extra = {}) {
+			if (!this.enabled()) return;
+			const { provider, engine } = this.engineInfo();
+			const now = Date.now();
+			const cooldownKey = ANALYTICS_COOLDOWN_PREFIX + provider;
+			const last = parseInt(GM_getValue(cooldownKey, 0), 10) || 0;
+			if (now - last < this.trackTranslationCooldownMs) return;
+			GM_setValue(cooldownKey, now);
+			const displayMode = GM_getValue('translation_display_mode', 'bilingual');
+			const model_name = (getProviderById(getValidEngineName()) || {}).selectedModel;
+
+			this.push('metric', 'translation_health', this.sanitizeProps({
+				feature, provider, engine, mirror: this.isMirror(),
+				page_type: this.pageType(),
+				layout_mode: extra.layout_mode || displayMode,
+				model_name,
+				...extra
+			}));
+		},
+
+		// 错误归类（每类每天一次；ack/4xx 后才落当日标记）
+		error(errorType, feature, extra = {}) {
+			if (!this.enabled()) return;
+			GM_setValue(ANALYTICS_KEY_ERROR_FULL, (Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) || 0) + 1);
+			if (Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) >= 100000) this.flushUsage();
+			const today = this.day();
+			const key = ANALYTICS_FEATURE_DAY_PREFIX + 'error:' + errorType;
+			if (GM_getValue(key, '') === today || this.pendingDedupeKeys.has(key)) return;
+			this.pendingDedupeKeys.add(key);
+			this.push('error', 'error', this.sanitizeProps({
+				error_type: errorType, feature, page_type: this.pageType(), ...extra
+			}), { dedupeKey: key, dedupeDay: today });
+		},
+
+		push(eventType, name, properties, options = {}) {
+			if (this.paused()) {
+				this._releaseDedupe(options.dedupeKey);
+				return;
+			}
+			const ev = {
+				event_id: this._uuidV4(), event_type: eventType, name, properties, ts: Date.now(),
+				_dedupeKey: options.dedupeKey || null, _dedupeDay: options.dedupeDay || null
+			};
+			// 活跃打点
+			if (name !== 'opt_out') this._markActiveHour();
+			// 标记 install/heartbeat
+			if (name === 'install') ev._isInstall = true;
+			if (name === 'daily_heartbeat') ev._isHeartbeat = true;
+			this.queue.push(ev);
+			if (this.queue.length > this.queueCap) this._releaseDedupe(this.queue.shift());
+			this._persistQueue();
+			if (this.queue.length >= this.batchSize) this.flush();
+			else this.scheduleFlush();
+		},
+
+		paused() {
+			return GM_getValue(ANALYTICS_KEY_RATE_LIMITED_DAY, '') === this.day();
+		},
+
+		scheduleFlush(delay = this.flushIntervalMs) {
+			if (this.flushTimer) return;
+			this.flushTimer = setTimeout(() => {
+				this.flushTimer = null;
+				this.flush();
+			}, delay);
+		},
+
+		flush() {
+			if (!this.enabled() || this.queue.length === 0) return;
+			const events = this.queue.splice(0, this.batchSize);
+			this.inFlightBatches.add(events);
+			this._persistQueue();
+			const payload = JSON.stringify({
+				v: ANALYTICS_SCHEMA_VERSION,
+				install_id: this.installId(),
+				version: (typeof GM_info !== 'undefined' && GM_info && GM_info.script) ? GM_info.script.version : 'unknown',
+				script_handler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) ? GM_info.scriptHandler : 'unknown',
+				handler_version: (typeof GM_info !== 'undefined' && GM_info && GM_info.version) ? GM_info.version : 'unknown',
+				ts: Date.now(),
+				events: events.map(e => ({ event_id: e.event_id, event_type: e.event_type, name: e.name, ts: e.ts, properties: e.properties }))
+			});
+			try {
+				GM_xmlhttpRequest({
+					method: 'POST',
+					url: ANALYTICS_ENDPOINT,
+					headers: { 'Content-Type': 'application/json' },
+					timeout: 8000,
+					data: payload,
+					onload: (res) => {
+						const status = res.status;
+						if (status >= 200 && status < 300) { this._onAcked(events); return; }
+						if (status === 429) {
+							GM_setValue(ANALYTICS_KEY_RATE_LIMITED_DAY, this.day());
+							this._finishBatch(events);
+							this._releaseDedupe(events);
+							return;
+						}
+						if (status >= 400 && status < 500) { this._onRejected(events); return; }
+						this._retryOrDrop(events);
+					},
+					onerror: () => this._retryOrDrop(events),
+					ontimeout: () => this._retryOrDrop(events)
+				});
+			} catch (e) {
+				Logger.warn('Analytics', `埋点上报失败: ${e.message}`);
+				this._finishBatch(events);
+				this._releaseDedupe(events);
+			}
+		},
+
+		_onAcked(events) {
+			if (events.some(e => e._isInstall)) GM_setValue(ANALYTICS_KEY_INSTALL_REPORTED, this.scriptVersion());
+			if (events.some(e => e._isHeartbeat)) GM_setValue(ANALYTICS_KEY_HEARTBEAT_DAY, this.day());
+			for (const e of events) {
+				if (e._dedupeKey) {
+					GM_setValue(e._dedupeKey, e._dedupeDay || this.day());
+					this.pendingDedupeKeys.delete(e._dedupeKey);
+				}
+			}
+			this._finishBatch(events);
+		},
+		_onRejected(events) {
+			this._onAcked(events);
+		},
+		_finishBatch(events) {
+			this.inFlightBatches.delete(events);
+			this._persistQueue();
+		},
+		_releaseDedupe(events) {
+			const list = Array.isArray(events) ? events : [{ _dedupeKey: events }];
+			for (const e of list) if (e && e._dedupeKey) this.pendingDedupeKeys.delete(e._dedupeKey);
+		},
+
+		_retryOrDrop(events) {
+			this.inFlightBatches.delete(events);
+			const attempt = events.reduce((m, e) => Math.max(m, e._attempt || 0), 0);
+			if (attempt >= this.maxRetries) {
+				this._releaseDedupe(events);
+				this._persistQueue();
+				return;
+			}
+			for (const e of events) e._attempt = attempt + 1;
+			if (this.queue.length < this.queueCap) this.queue.unshift(...events);
+			else this._releaseDedupe(events);
+			this._persistQueue();
+			this.scheduleFlush(this.flushIntervalMs * Math.pow(3, attempt));
+		},
+
+		// 合并上报（usage）累计
+		accumulateUsage(metrics) {
+			if (!this.enabled()) return;
+			const m = metrics || {};
+			const add = (key, v) => { const n = (Number(v) || 0); if (n > 0) GM_setValue(key, (Number(GM_getValue(key, 0)) || 0) + n); };
+			add(ANALYTICS_KEY_USAGE_CHARS, m.chars);
+			add(ANALYTICS_KEY_USAGE_BATCHES, 1);
+			add(ANALYTICS_KEY_USAGE_CACHE_CHARS, m.cacheSavedChars);
+			add(ANALYTICS_KEY_USAGE_CACHE_HITS, m.cacheHits);
+			add(ANALYTICS_KEY_USAGE_CACHE_TOTAL, m.cacheTotal);
+			// 纯缓存批次（全部段落命中本地缓存，无引擎调用）不计入延迟直方图
+			const latencyMs = Number(m.latencyMs);
+			const pureCacheBatch = Number(m.cacheTotal) > 0 && Number(m.cacheHits) >= Number(m.cacheTotal);
+			if (Number.isFinite(latencyMs) && latencyMs >= 0 && !pureCacheBatch) {
+				let histogram = GM_getValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, Array(32).fill(0));
+				if (!Array.isArray(histogram) || histogram.length !== ANALYTICS_LAT_HIST_EDGES.length + 1) histogram = Array(ANALYTICS_LAT_HIST_EDGES.length + 1).fill(0);
+				const bucket = ANALYTICS_LAT_HIST_EDGES.findIndex((edge) => latencyMs < edge);
+				const index = bucket === -1 ? ANALYTICS_LAT_HIST_EDGES.length : bucket;
+				histogram[index] = Math.min(1000000, (Number(histogram[index]) || 0) + 1);
+				GM_setValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, histogram);
+			}
+			if (Number(GM_getValue(ANALYTICS_KEY_USAGE_CHARS, 0)) >= 9000000
+				|| Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_CHARS, 0)) >= 5000000
+				|| Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_HITS, 0)) >= 900000) {
+				this.flushUsage();
+			}
+		},
+
+		// 会话末精确总量
+		flushUsage(useBeacon = false) {
+			if (!this.enabled() || this.paused()) return;
+			const chars = Number(GM_getValue(ANALYTICS_KEY_USAGE_CHARS, 0)) || 0;
+			const batches = Number(GM_getValue(ANALYTICS_KEY_USAGE_BATCHES, 0)) || 0;
+			const cacheChars = Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_CHARS, 0)) || 0;
+			const cacheHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_HITS, 0)) || 0;
+			const cacheTotal = Number(GM_getValue(ANALYTICS_KEY_USAGE_CACHE_TOTAL, 0)) || 0;
+			let latencyHist = GM_getValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, Array(ANALYTICS_LAT_HIST_EDGES.length + 1).fill(0));
+			if (!Array.isArray(latencyHist) || latencyHist.length !== ANALYTICS_LAT_HIST_EDGES.length + 1) latencyHist = Array(ANALYTICS_LAT_HIST_EDGES.length + 1).fill(0);
+			latencyHist = latencyHist.map((value) => Math.max(0, Math.min(1000000, Math.round(Number(value) || 0))));
+			const errorFull = Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) || 0;
+			const glossaryHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_GLOSSARY_HITS, 0)) || 0;
+			const postReplaceHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_POST_REPLACE_HITS, 0)) || 0;
+			const blockHits = Number(GM_getValue(ANALYTICS_KEY_USAGE_BLOCK_HITS, 0)) || 0;
+			// 配置修改统计
+			let formatMods = null, paramMods = null;
+			try { const o = JSON.parse(GM_getValue(ANALYTICS_KEY_USAGE_FORMAT_MODS, '{}') || '{}'); formatMods = o && typeof o === 'object' ? o : null; } catch { formatMods = null; }
+			try { const o = JSON.parse(GM_getValue(ANALYTICS_KEY_USAGE_PARAM_MODS, '{}') || '{}'); paramMods = o && typeof o === 'object' ? o : null; } catch { paramMods = null; }
+			const hasConfigMods = (formatMods && Object.keys(formatMods).length > 0) || (paramMods && Object.keys(paramMods).length > 0);
+			if (!(chars || batches || cacheChars || cacheHits || cacheTotal || latencyHist.some(Boolean) || errorFull || glossaryHits || postReplaceHits || blockHits || hasConfigMods)) return;
+			const props = this.sanitizeProps({
+				feature: 'usage',
+				chars_count: chars,
+				batch_size: batches,
+				cache_saved_chars: cacheChars,
+				cache_hit_count: cacheHits,
+				cache_total_count: cacheTotal,
+				latency_hist: latencyHist.join(','),
+				error_count: errorFull,
+				glossary_hits: glossaryHits,
+				post_replace_hits: postReplaceHits,
+				block_hits: blockHits,
+				...((formatMods && Object.keys(formatMods).length) ? { format_mods: JSON.stringify(formatMods) } : {}),
+				...((paramMods && Object.keys(paramMods).length) ? { param_mods: JSON.stringify(paramMods) } : {})
+			});
+			const reset = () => {
+				GM_setValue(ANALYTICS_KEY_USAGE_CHARS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_BATCHES, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_CACHE_CHARS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_CACHE_HITS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_CACHE_TOTAL, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_LATENCY_HIST, Array(ANALYTICS_LAT_HIST_EDGES.length + 1).fill(0));
+				GM_setValue(ANALYTICS_KEY_ERROR_FULL, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_GLOSSARY_HITS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_POST_REPLACE_HITS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_BLOCK_HITS, 0);
+				GM_setValue(ANALYTICS_KEY_USAGE_FORMAT_MODS, '{}');
+				GM_setValue(ANALYTICS_KEY_USAGE_PARAM_MODS, '{}');
+			};
+			if (useBeacon && this._canBeacon()) {
+				if (this._beaconEvent('metric', 'usage', props)) { reset(); return; }
+			}
+			this.push('metric', 'usage', props, { dedupeKey: null });
+			reset();
+		},
+
+		_canBeacon() {
+			return typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function';
+		},
+
+		_beaconEvent(eventType, name, props) {
+			const payload = JSON.stringify({
+				v: ANALYTICS_SCHEMA_VERSION,
+				install_id: this.installId(),
+				version: (typeof GM_info !== 'undefined' && GM_info && GM_info.script) ? GM_info.script.version : 'unknown',
+				script_handler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) ? GM_info.scriptHandler : 'unknown',
+				handler_version: (typeof GM_info !== 'undefined' && GM_info && GM_info.version) ? GM_info.version : 'unknown',
+				ts: Date.now(),
+				events: [{ event_id: this._uuidV4(), event_type: eventType, name, ts: Date.now(), properties: props }]
+			});
+			try {
+				return navigator.sendBeacon(ANALYTICS_ENDPOINT, new Blob([payload], { type: 'text/plain' }));
+			} catch (e) {
+				Logger.warn('Analytics', `usage 直投失败: ${e.message}`);
+				return false;
+			}
+		},
+
+		bindLifecycle() {
+			window.addEventListener('pagehide', () => { this.flushUsage(true); this.flush(); });
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'hidden') { this.flushUsage(true); this.flush(); }
+			});
+		}
+	};
+
+/**************************************************************************
+ * 特殊翻译函数与 DOM 操作
+ **************************************************************************/
+
+/**
+ * 专用翻译函数：翻译首次登录的帮助横幅
+ */
+function translateFirstLoginBanner() {
+	const banner = document.querySelector('#first-login-help-banner');
+	if (!banner || banner.hasAttribute('data-translated-by-custom-function')) {
+		return;
+	}
+	const translatedHTML = `
+		<p>
+		嗨！看起来这是您首次登录 AO3 。如需了解如何使用 AO3 ，请查看一些<a href="/first_login_help">新用户实用技巧</a>，或浏览<a href="/faq">我们的常见问题解答</a>。
+		</p>
+		<p>
+		如果您需要技术支持，请<a href="/support">联系我们的支持团队</a>；如果您遇到骚扰或对我们的<a href="/tos">服务条款</a>（包括<a href="/content">内容政策</a>和<a href="/privacy">隐私政策</a>）有疑问，请<a href="/abuse_reports/new">联系我们的政策与滥用团队</a>。
+		</p>
+		<form action="${banner.querySelector('form')?.action || ''}" accept-charset="UTF-8" data-remote="true" method="post">
+			<input type="hidden" name="authenticity_token" value="${banner.querySelector('input[name=authenticity_token]')?.value || ''}" autocomplete="off">
+			<p class="submit actions">
+				<input type="submit" name="commit" value="永久关闭此信息">
+				<a id="hide-first-login-help" title="隐藏首次登录帮助横幅" data-remote="true" href="${banner.querySelector('a#hide-first-login-help')?.href || ''}">×</a>
+			</p>
+		</form>
+	`;
+	banner.innerHTML = translatedHTML;
+	banner.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专用翻译函数：翻译未登录时首页的介绍模块
+ */
+function translateFrontPageIntro() {
+	const introDiv = document.querySelector('div.intro.module');
+	if (!introDiv || introDiv.hasAttribute('data-translated-by-custom-function')) {
+		return;
+	}
+	const h2 = introDiv.querySelector('h2.heading');
+	if (h2) {
+		h2.textContent = '一个由同人爱好者创建、由同人爱好者运营的非营利、非商业存档，收录再创作同人作品，如同人小说、同人画作、同人视频和同人有声作品';
+	}
+
+	const statsP = introDiv.querySelector('p.stats');
+	if (statsP) {
+		const counts = statsP.querySelectorAll('span.count');
+		if (counts.length === 3) {
+			statsP.innerHTML = `超过 <span class="count">${counts[0].textContent}</span> 个同人圈 | <span class="count">${counts[1].textContent}</span> 名用户 | <span class="count">${counts[2].textContent}</span> 篇作品`;
+		}
+	}
+
+	const parentP = introDiv.querySelector('p.parent');
+	if (parentP) {
+		const link = parentP.querySelector('a');
+		if (link) {
+			link.textContent = '再创作组织';
+			parentP.innerHTML = `Archive of Our Own 是隶属于${link.outerHTML}的一个项目。`;
+		}
+	}
+
+	const accountDiv = introDiv.querySelector('div.account.module');
+	if (accountDiv) {
+		const h4 = accountDiv.querySelector('h4.heading');
+		if (h4) {
+			h4.textContent = '拥有 AO3 账户，您可以：';
+		}
+
+		const listItems = accountDiv.querySelectorAll('ul li');
+		const translations = [
+			'分享您自己的同人作品',
+			'在您喜欢的作品、系列或用户更新时收到通知',
+			'参与各种活动',
+			'记录您已浏览以及想要稍后查看的作品'
+		];
+		listItems.forEach((item, index) => {
+			if (translations[index]) {
+				item.textContent = translations[index];
+			}
+		});
+		const paragraphs = accountDiv.querySelectorAll('p');
+		paragraphs.forEach(p => {
+			if (p.textContent.includes('You can join by getting an invitation')) {
+				p.textContent = '您可以通过我们的自动邀请队列获取邀请。所有同人爱好者和同人作品均受欢迎！';
+			} else if (p.classList.contains('actions')) {
+				const inviteLink = p.querySelector('a');
+				if (inviteLink) {
+					inviteLink.textContent = '获取邀请！';
+				}
+			}
+		});
+	}
+	introDiv.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专用翻译函数：翻译邀请请求页面
+ */
+function translateInvitationRequestsPage() {
+	function translateEnglishDate(englishDate) {
+		const monthFullNameMap = {
+			'January': '1', 'February': '2', 'March': '3', 'April': '4', 'May': '5', 'June': '6',
+			'July': '7', 'August': '8', 'September': '9', 'October': '10', 'November': '11', 'December': '12'
+		};
+		const dateParts = englishDate.trim().match(/(\w+)\s(\d{1,2}),\s(\d{4})/);
+		if (dateParts && dateParts.length === 4) {
+			const monthName = dateParts[1];
+			const day = dateParts[2];
+			const year = dateParts[3];
+			if (monthFullNameMap[monthName]) {
+				const paddedDay = day.padStart(2, '0');
+				return `${year} 年 ${monthFullNameMap[monthName]} 月 ${paddedDay} 日`;
+			}
+		}
+		return englishDate;
+	}
+
+	const mainDiv = document.querySelector('div#main[class*="invite_requests-"]');
+
+	if (!mainDiv) {
+		return;
+	}
+	const isAlreadyHandled = mainDiv.hasAttribute('data-translated-by-custom-function');
+	const inviteStatusDiv = mainDiv.querySelector('#invite-status');
+	const statusHasContent = inviteStatusDiv && inviteStatusDiv.innerHTML.trim() !== '';
+
+	if (isAlreadyHandled && !statusHasContent) {
+		return;
+	}
+
+	if (!isAlreadyHandled) {
+		const h2 = mainDiv.querySelector('h2.heading');
+		if (h2) {
+			const h2Text = h2.textContent.trim();
+			if (h2Text === 'Invitation Requests') {
+				h2.textContent = '邀请请求';
+			} else if (h2Text === 'Invitation Request Status') {
+				h2.textContent = '邀请请求状态';
+			}
+		}
+
+		const firstP = Array.from(mainDiv.querySelectorAll('p')).find(p => p.textContent.includes('To get a free Archive of Our Own account'));
+		if (firstP) {
+			const tosLink = firstP.querySelector('a[href="/tos"]');
+			const contentLink = firstP.querySelector('a[href="/content"]');
+			const privacyLink = firstP.querySelector('a[href="/privacy"]');
+			if (tosLink && contentLink && privacyLink) {
+				tosLink.textContent = '服务条款';
+				contentLink.textContent = '内容政策';
+				privacyLink.textContent = '隐私政策';
+				firstP.innerHTML = `要获得免费的 AO3 账户，您需要一份邀请。将您的电子邮箱地址提交到我们的邀请队列，即表示您确认自己已年满 13 周岁；如果您所在国家或地区要求居民/公民需超过 13 周岁才能同意您的个人数据处理，您也已达到该年龄，无需我们获取母父或法定监护人的书面许可。我们仅会使用您提交的电子邮箱地址发送邀请，并处理/管理您的账户激活。请在阅读并同意我们的${tosLink.outerHTML}（包括${contentLink.outerHTML}和${privacyLink.outerHTML}）后再申请邀请。`;
+			}
+		}
+
+		const h3 = mainDiv.querySelector('h3.heading');
+		if (h3 && h3.textContent.trim() === 'Request an invitation') {
+			h3.textContent = '申请邀请';
+		}
+
+		const newRequestForm = mainDiv.querySelector('form#new_invite_request');
+		if (newRequestForm) {
+			const label = newRequestForm.querySelector('label[for="invite_request_email"]');
+			if (label) {
+				label.textContent = '电子邮箱';
+			}
+			const submitButton = newRequestForm.querySelector('input[type="submit"]');
+			if (submitButton) {
+				submitButton.value = '添加到列表';
+			}
+		}
+
+		const listInfoP = Array.from(mainDiv.querySelectorAll('p')).find(p => p.textContent.includes('check your position on the waiting list'));
+		if (listInfoP) {
+			const statusLink = listInfoP.querySelector('a');
+			if (statusLink) {
+				statusLink.textContent = '查看自己在等待名单中的位置';
+				const originalText = listInfoP.textContent;
+				const peopleCountMatch = originalText.match(/currently ([\d,]+) people/);
+				const peopleCount = peopleCountMatch ? peopleCountMatch[1] : 'some';
+				const sendingCountMatch = originalText.match(/sending out ([\d,]+) invitations/);
+				const sendingCount = sendingCountMatch ? sendingCountMatch[1] : 'some';
+				const hoursMatch = originalText.match(/every ([\d]+) hours/);
+				const hours = hoursMatch ? hoursMatch[1] : 'some';
+				listInfoP.innerHTML = `如果您已提交邀请请求，可${statusLink.outerHTML}。目前等待名单上有 ${peopleCount} 人。我们每 ${hours} 小时发送 ${sendingCount} 份邀请。`;
+			}
+		}
+
+		const statusP = Array.from(mainDiv.querySelectorAll('p')).find(p => p.textContent.includes('people on the waiting list'));
+		if (statusP) {
+			const originalText = statusP.textContent;
+			const match = originalText.match(/There are currently ([\d,]+) people on the waiting list\.\s*We are sending out ([\d,]+) invitations every ([\d,]+) hours\./);
+			if (match) {
+				statusP.textContent = `当前等待名单上有 ${match[1]} 人。我们每 ${match[3]} 小时发送 ${match[2]} 个邀请。`;
+			}
+		}
+
+		const statusForm = mainDiv.querySelector('form[action="/invite_requests/show"]');
+		if (statusForm) {
+			const label = statusForm.querySelector('label[for="email"]');
+			if (label) {
+				label.textContent = '电子邮箱';
+			}
+			const submitButton = statusForm.querySelector('input[type="submit"][value="Look me up"]');
+			if (submitButton) {
+				submitButton.value = '查找';
+			}
+		}
+		mainDiv.setAttribute('data-translated-by-custom-function', 'true');
+	}
+
+	if (statusHasContent) {
+		const statusH2 = inviteStatusDiv.querySelector('h2.heading');
+		if (statusH2 && !statusH2.hasAttribute('data-translated-by-custom-function')) {
+			const match = statusH2.textContent.match(/Invitation Status for\s+(.+)/);
+			if (match && match[1]) {
+				statusH2.textContent = `${match[1].trim()} 的邀请状态`;
+				statusH2.setAttribute('data-translated-by-custom-function', 'true');
+			}
+		}
+
+		const statusH3 = inviteStatusDiv.querySelector('h3.heading');
+		if (statusH3 && !statusH3.hasAttribute('data-translated-by-custom-function')) {
+			const match = statusH3.textContent.match(/Invitation Status for\s+(.+)/);
+			if (match && match[1]) {
+				statusH3.textContent = `${match[1].trim()} 的邀请状态`;
+				statusH3.setAttribute('data-translated-by-custom-function', 'true');
+			}
+		}
+
+		const paragraphs = inviteStatusDiv.querySelectorAll('p');
+		paragraphs.forEach(p => {
+			if (p.hasAttribute('data-translated-by-custom-function')) return;
+			const text = p.textContent.trim();
+
+			const sentMatch = text.match(/Your invitation was emailed to this address on\s+([\d-]+)\.\s*If you can't find it, please check your email spam folder as your spam filters may have placed it there\./);
+			if (sentMatch) {
+				p.textContent = `您的邀请已于 ${sentMatch[1]} 发送至此邮箱地址。如果您无法找到它，请检查您的垃圾邮件文件夹，因为它可能被误判为垃圾邮件。`;
+				p.setAttribute('data-translated-by-custom-function', 'true');
+				return;
+			}
+
+			if (text.includes('Because your invitation was sent more than 24 hours ago, you can have your invitation resent.')) {
+				p.textContent = '由于您的邀请已发送超过 24 小时，您可以申请重新发送。';
+				p.setAttribute('data-translated-by-custom-function', 'true');
+				return;
+			}
+
+			const resentMatch = text.match(/Your invitation was emailed to this address on\s+([\d-]+)\s+and resent on\s+([\d-]+)\.\s*If you can't find it/);
+			if (resentMatch) {
+				p.textContent = `您的邀请已于 ${resentMatch[1]} 发送至此邮箱地址，并于 ${resentMatch[2]} 重新发送。如果您无法找到它，请检查您的垃圾邮件文件夹，因为它可能被误判为垃圾邮件。`;
+				p.setAttribute('data-translated-by-custom-function', 'true');
+				return;
+			}
+
+			if (text.includes('If it has been more than 24 hours since you should have received your invitation')) {
+				p.textContent = '如果距离您应该收到邀请的时间已超过 24 小时，且检查垃圾邮件文件夹后仍未找到，您可以访问此页面重新发送邀请。';
+				p.setAttribute('data-translated-by-custom-function', 'true');
+				return;
+			}
+		});
+
+		const resendBtn = inviteStatusDiv.querySelector('form button[type="submit"]');
+		if (resendBtn && resendBtn.textContent.trim() === 'Resend Invitation') {
+			resendBtn.textContent = '重新发送邀请';
+		}
+
+		const statusResultP = inviteStatusDiv.querySelector('p');
+		if (statusResultP && !statusResultP.hasAttribute('data-translated-by-custom-function')) {
+			const match = statusResultP.innerHTML.match(/You are currently number <strong>([\d,]+)<\/strong> on our waiting list!\s*At our current rate, you should receive an invitation on or around:\s*(.+)\./s);
+			if (match) {
+				const englishDate = match[2].trim();
+				const translatedDate = translateEnglishDate(englishDate);
+				statusResultP.innerHTML = `您目前在等待名单上的位置是第 <strong>${match[1]}</strong> 位！按照当前速度，您应在 ${translatedDate} 前后收到邀请。`;
+				statusResultP.setAttribute('data-translated-by-custom-function', 'true');
+			} else if (/Sorry, we can't find the email address you entered/.test(statusResultP.textContent)) {
+				statusResultP.textContent = '抱歉，我们无法找到您输入的电子邮箱地址。';
+				statusResultP.setAttribute('data-translated-by-custom-function', 'true');
+			}
+		}
+	}
+
+	const successNotice = mainDiv.querySelector('div.flash.notice');
+	if (successNotice && successNotice.textContent.includes("You've been added to our queue!")) {
+		const match = successNotice.innerHTML.match(/around (.+?)\. We strongly recommend/);
+		if (match && match[1]) {
+			const englishDate = match[1];
+			const translatedDate = translateEnglishDate(englishDate);
+			successNotice.innerHTML = `您已进入排队列表！我们预计您将在 ${translatedDate} 前后收到邀请。我们强烈建议您将 do-not-reply@archiveofourown.org 添加到您的通讯录，以防邀请邮件被您的邮件服务商误判为垃圾邮件。`;
+		}
+	}
+
+	const errorDiv = mainDiv.querySelector('div#error.error');
+	if (errorDiv) {
+		const errorH4 = errorDiv.querySelector('h4');
+		if (errorH4) {
+			errorH4.textContent = '抱歉！我们无法保存此邀请请求，因为：';
+		}
+
+		const errorMessages = {
+			"Email is already part of our queue.": "该邮箱已在我们的队列中。",
+			"Email can't be blank": "电子邮箱 不能为空。",
+			"Email should look like an email address.": "电子邮箱 格式不正确。",
+			"Email is already being used by an account holder.": "该电子邮箱地址已被其她账户使用。",
+		};
+
+		const errorLis = errorDiv.querySelectorAll('ul li');
+		errorLis.forEach(li => {
+			const originalError = li.textContent.trim();
+			if (errorMessages[originalError]) {
+				li.textContent = errorMessages[originalError];
+			}
+		});
+	}
+}
+
+/**
+ * 专用翻译函数：翻译“请求过于频繁”的错误页面
+ */
+function translateTooManyRequestsPage() {
+	const body = document.body;
+	if (body.hasAttribute('data-translated-by-custom-function')) {
+		return;
+	}
+	document.title = "请求过于频繁！ | AO3 作品库";
+	const headerH1 = document.querySelector('header h1');
+	if (headerH1) {
+		headerH1.innerHTML = 'AO3 作品库 <sup>beta</sup>';
+	}
+
+	const mainH2 = document.querySelector('main h2');
+	if (mainH2) {
+		const logoImg = mainH2.querySelector('img.logo');
+		if (logoImg) {
+			mainH2.innerHTML = `${logoImg.outerHTML} 请求页面过于频繁。`;
+		}
+	}
+
+	const paragraphs = document.querySelectorAll('main p');
+	if (paragraphs.length >= 2) {
+		paragraphs[0].textContent = '我们已阻止此操作以保护系统安全。请一次加载较少页面或放慢浏览速度，并在几分钟后重试。';
+
+		const supportLink = paragraphs[1].querySelector('a');
+		if (supportLink) {
+			supportLink.textContent = '联系支持团队';
+			paragraphs[1].innerHTML = `如果问题依旧存在，请 ${supportLink.outerHTML} 。`;
+		}
+	}
+
+	const footerSmall = document.querySelector('footer small');
+	if (footerSmall) {
+		const bTags = footerSmall.querySelectorAll('b');
+		if (bTags.length === 2) {
+			bTags[0].textContent = 'Ray ID：';
+			bTags[1].textContent = '您的 IP：';
+		}
+		const showIpLink = footerSmall.querySelector('#client-ip-reveal');
+		if (showIpLink) {
+			showIpLink.textContent = '显示 IP';
+		}
+	}
+	body.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专门用于翻译 /works/search 页面上的“作品搜索”帮助文本。
+ */
+function translateWorkSearchTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work search text help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>作品搜索：任意字段</h4>
+			<p>搜索数据库中与作品相关的所有字段，包括简介、注释和标签，但不包括作品全文。</p>
+			<p>字符“:”和“@”具有特殊含义。请不要在搜索中使用它们，否则会得到意想不到的结果。就像在“标题”和“作者/画师”字段中，您可以使用以下运算符来组合搜索词：</p>
+			<dl>
+				<dt>*: 匹配任意字符</dt>
+				<dd><kbd>book*</kbd> 将匹配 <samp>book</samp>、<samp>books</samp> 和 <samp>booking</samp>。</dd>
+				<dt>空格：在同一字段中，相当于 AND 操作</dt>
+				<dd><kbd>Harry Potter</kbd> 会匹配任何字段中包含 “<samp>Harry Potter</samp>” 或 “<samp>Harry James Potter</samp>” 的作品，但不会匹配创作者名为 <samp>Harry</samp> 且角色标签为 <samp>Sherman Potter</samp> 的作品。</dd>
+				<dt>AND：在任何字段中同时包含这两个词的作品</dt>
+				<dd><kbd>Harry AND Potter</kbd> 会匹配创作者名为 <samp>Harry</samp> 且角色标签为 <samp>Sherman Potter</samp> 的作品。</dd>
+				<dt>||: OR（非排她性）</dt>
+				<dd><kbd>Harry || Potter</kbd> 会匹配 <samp>Harry</samp>、<samp>Harry Potter</samp> 和 <samp>Potter</samp>。</dd>
+				<dt>"": 精确匹配词组</dt>
+				<dd><kbd>"Harry Lockhart"</kbd> 会匹配 <samp>Harry Lockhart</samp>，但不会匹配 <samp>Harry Potter/Gilderoy Lockhart</samp>。</dd>
+				<dt>-: NOT（排除）</dt>
+				<dd><kbd>Harry -Lockhart</kbd> 会匹配 <samp>Harry Potter</samp>，但不会匹配 <samp>Harry Lockhart</samp> 或 <samp>Gilderoy Lockhart/Harry Potter</samp>。</dd>
+			</dl>
+			<h5>示例</h5>
+			<dl>
+				<dt><kbd>"Fandom X" "F/F" -Explicit</kbd></dt>
+				<dd>会匹配出所有标记为 女/女 的 同人圈 X 的作品，并排除标记为 限制级 的作品。</dd>
+				<dt><kbd>"Character A" OR "Character B" -"Character Death"</kbd></dt>
+				<dd>会匹配出包含 Character A 或 Character B（或两者皆有）的所有作品，并排除在预警或附加标签中标记有 “角色死亡” 的作品。</dd>
+				<dt><kbd>"Character A/Character B" "Underage Sex" (Mature OR Explicit)</kbd></dt>
+				<dd>会匹配出所有包含 未成年性行为 预警且分级为 成人向 或 限制级的该配对作品。</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品搜索：文本 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /works/search 页面上“日期”相关的帮助文本框。
+ */
+function translateWorkSearchDateTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work search date help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>作品搜索：日期</h4>
+			<p>创建一个时间范围。如果未提供范围，将根据指定的时间段自动计算。</p>
+			<p>可用时间段：year, month, week, day, hour（年、月、周、天、小时）</p>
+			<ul>
+				<li>x days ago：从该天开始到结束的 24 小时区间</li>
+				<li>x weeks ago：从该周周一开始到周日结束的 7 天区间</li>
+				<li>x months ago：从该月第一天开始到最后一天结束的 1 个月区间</li>
+				<li>x years ago：从该年年初开始到年末结束的 1 年区间</li>
+			</ul>
+			<p>示例（以 2012 年 4 月 25 日 星期三 为当前日期）：</p>
+			<ul>
+				<li>7 days ago：匹配出 2012 年 4 月 18 日当天发布或更新的所有作品</li>
+				<li>1 week ago：匹配出 2012 年 4 月 16 日（周一）至 4 月 22 日（周日）这一周内发布或更新的所有作品</li>
+				<li>2 months ago：匹配出 2012 年 2 月内发布或更新的所有作品</li>
+				<li>3 years ago：匹配出 2010 年内发布或更新的所有作品</li>
+				<li>< 7 days：匹配出过去七天内发布或更新的所有作品</li>
+				<li>> 8 weeks：匹配出八周之前发布或更新的所有作品</li>
+				<li>13-21 months：匹配出十三到二十一个月之前发布或更新的所有作品</li>
+			</ul>
+			<p>请注意，“ago”（之前/前）一词是可选的。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品搜索：日期 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /works/search 页面上“跨圈作品”相关的帮助文本框。
+ */
+function translateWorkSearchCrossoverTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work search crossover help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>作品搜索：跨圈作品</h4>
+			<p>
+				一般来说，<a href="https://fanlore.org/wiki/Crossover">跨圈作品</a>指包含多个同人圈的作品。在筛选时，如果一篇作品被标注为两个或更多<em> 不相关的 </em>同人圈，就被视为跨圈作品（我们使用标签整理系统来做出此判定）。
+			</p>
+			<p>
+				想要查找两个特定同人圈之间的跨圈作品？请在搜索表单中的“同人圈”字段输入它们的名称，或在筛选器中选择/输入这两个同人圈。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '搜索：跨圈作品 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /works/search 页面上“数值”相关的帮助文本框。
+ */
+function translateWorkSearchNumericalTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work search numerical help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>作品搜索：数值</h4>
+			<p>在查找具有特定字数、点击量、点赞数、评论或书签数量的作品时，请使用以下指南。注意句号和逗号会被忽略：1.000 = 1,000 = 1000。</p>
+			<dl>
+				<dt>10</dt>
+				<dd>单个数字将查找具有该确切数值的作品。</dd>
+				<dt><100</dt>
+				<dd>查找数值小于该数的作品。</dd>
+				<dt>>100</dt>
+				<dd>查找数值大于该数的作品。</dd>
+				<dt>100–1000</dt>
+				<dd>查找数值在 100 到 1000 范围内的作品。</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品搜索：数值 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /works/search 页面上“语言”相关的帮助文本框。
+ */
+function translateWorkSearchLanguageTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work search language help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>作品搜索：语言</h4>
+			<p>从此下拉菜单中选择一种语言即可搜索该语言的作品。请注意，此列表包含我们当前支持的所有语言，并非所有选项都能返回结果。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品搜索：语言 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /works/search 页面上“标签”相关的帮助文本框。
+ */
+function translateWorkSearchTagsTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work search tags help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>作品搜索：标签</h4>
+			<p>
+				“同人圈”、“角色”、“关系”以及“附加标签”字段在输入搜索词时会提供标签建议。选择“规范”或常用标签（即自动补全列表中出现的标签）将匹配出所有包含该标签、本标签的同义标签以及与之关联的子标签的结果。例如，选中规范关系标签 <samp>Erika Mustermann/Juan Pérez</samp> 后，系统也会匹配出被标注为 <samp>Juan Pérez/Erika Mustermann</samp> 的作品，前提是这些标签已由标签管理员在后台关联完成。更多信息可参阅<a href="/faq/tags#whatcanonical">“什么是‘规范’标签？”</a>。
+			</p>
+			<p>
+				如果某个标签未出现在自动补全列表中，并不代表该标签在 Archive 中不存在；它可能仅尚未被标签管理员标记为常用标签。您可以在此字段输入任意词语或短语。如果您的短语未精确匹配某个常用标签，搜索则会检索所有包含该短语中词语的标签。例如，输入 <kbd>People Doing Things</kbd> 同时也会匹配 <samp>Nice People Doing Things</samp>、<samp>People Doing Shady Things</samp> 和 <samp>People Doing Things with Spoons</samp> 等标签。但在这种情况下，搜索结果可能会比较不可预测。
+			</p>
+			<p>
+				输入的搜索词越多、选项越多，搜索结果就越精确。默认情况下，所有搜索条件之间是 AND 关系：输入两个同人圈时，只会匹配出同时包含这两个同人圈标签的作品，而不是两个同人圈<em>任意一个</em>的所有作品；同理，输入两个角色时，只会匹配出同时包含这两个角色的作品；同时选中 <samp>女/男</samp> 和 <samp>男/男</samp> 关系标签，则仅会匹配出同时包含这两种关系标签的作品，依此类推。
+			</p>
+			<p>
+				更多关于标签的内容请参阅我们的<a href="/faq/tags">标签常见问题（Tags FAQ）</a>，更多关于标签搜索的说明请参阅<a href="/faq/search-and-browse/">搜索与浏览常见问题（Search and Browse FAQ）</a>。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品搜索：标签 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /people/search 页面上“用户搜索”相关的帮助文本框。
+ */
+function translatePeopleSearchTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'People search all fields') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>用户搜索：搜索所有字段</h4>
+			<p>
+				在“搜索所有字段”中输入文本，以查找用户名、笔名或笔名描述中包含搜索词的用户。
+			</p>
+			<p>
+				字符“:”和“@”具有特殊含义。请不要在搜索中使用它们，否则会得到意想不到的结果。
+			</p>
+			<dl>
+				<dt>*: 匹配任意字符</dt>
+				<dd><kbd>User*</kbd> 将匹配 <samp>User</samp>、<samp>Users</samp> 和 <samp>Username </samp>。</dd>
+				<dt>空格: 相当于 AND</dt>
+				<dd><kbd>A. User</kbd> 将匹配 <samp>A. User</samp> 和 <samp>A. Test User</samp>，但不会匹配 <samp>User </samp>。</dd>
+				<dt>|: OR (非排她性)</dt>
+				<dd><kbd>A. | User</kbd> 将匹配 <samp>A.</samp>、<samp>A. User</samp> 和 <samp>User </samp>。</dd>
+				<dt>"": 精确匹配词组</dt>
+				<dd><kbd>"A. User"</kbd> 将匹配 <samp>"A. User"</samp>，但不会匹配 <samp>A. Test User </samp>。</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '用户搜索：所有字段 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“文本”相关的帮助文本框。
+ */
+function translateBookmarkSearchTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark search text help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>书签搜索：文本</h4>
+			<p>使用以下指南输入搜索词和搜索运算符。“任意字段”会组合搜索表单中的所有文本字段（包括标签）。“书签创建者”可让您搜索由特定用户创建的书签。“注释”会在所有书签创建者的注释中搜索词条。</p>
+			<p>字符“:”和“@”具有特殊含义。请不要在搜索中使用它们，否则会得到意想不到的结果。</p>
+			<dl>
+				<dt>*: 匹配任意字符</dt>
+				<dd><kbd>book*</kbd> 会匹配 <samp>book</samp>、<samp>books</samp> 和 <samp>booking</samp>。</dd>
+				<dt>空格: 相当于 AND</dt>
+				<dd><kbd>Harry Potter</kbd> 会匹配 <samp>Harry Potter</samp> 和 <samp>Harry James Potter</samp>，但不会匹配 <samp>Harry</samp>。</dd>
+				<dt>||: OR (非排她性)</dt>
+				<dd><kbd>Harry || Potter</kbd> 会匹配 <samp>Harry</samp>、<samp>Harry Potter</samp> 和 <samp>Potter</samp>。</dd>
+				<dt>"": 精确匹配词组</dt>
+				<dd><kbd>"Harry Lockhart"</kbd> 会匹配 <samp>Harry Lockhart</samp>，但不会匹配 <samp>Harry Potter/Gilderoy Lockhart</samp>。</dd>
+				<dt>-: NOT (排除)</dt>
+				<dd><kbd>Harry -Lockhart</kbd> 会匹配 <samp>Harry Potter</samp>，但不会匹配 <samp>Harry Lockhart</samp> 或 <samp>Gilderoy Lockhart/Harry Potter</samp>。</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签搜索：文本 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“作品标签”相关的帮助文本框。
+ */
+function translateBookmarkSearchWorkTagsTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark search work tag') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>书签搜索：作品标签</h4>
+			<p>
+				“作品标签”字段会搜索条目创建者为书签作品添加的所有标签，不包括书签创建者自己添加的标签。标签类型可为：分级、预警、分类、同人圈、角色、关系、附加标签。该字段在您输入搜索关键词时会建议规范标签。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签搜索：作品标签 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“类型”相关的帮助文本框。
+ */
+function translateBookmarkSearchTypeTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark search type help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>书签搜索：类型</h4>
+			<p>
+				选择已创建书签条目的类型，以将搜索结果限制为“作品”、“系列”或“外部作品”。请注意，选择“外部作品”时，将匹配出所有托管于 Archive 之外的作品的书签。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签搜索：类型 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“更新日期”相关的帮助文本框。
+ */
+function translateBookmarkSearchDateUpdatedTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark search date updated help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>书签搜索：更新日期</h4>
+			<p>指定一个时间范围，以查找在该时间段内发布或更新的已创建书签条目，例如有新章节的作品或有新作品的系列。如果作品被创作者自定义发布日期（即上传时设置了与实际上传日期不同的发布日期），则该自定义发布日期将用于本次搜索。</p>
+			<p>您可以按 year, month, week, day, hour（年、月、周、天或小时）进行搜索。</p>
+			<h5>示例：</h5>
+			<dl>
+				<dt>< 3 days ago</dt>
+				<dd>查找过去 3 天内发布或更新的书签条目。</dd>
+				<dt>> 3 years ago</dt>
+				<dd>查找 3 年之前发布或更新的书签条目。</dd>
+				<dt>3-9 months ago</dt>
+				<dd>查找 3 到 9 个月前发布或更新的书签条目。</dd>
+			</dl>
+			<p>“ago”（之前/前）一词是可选的。请注意，“ 1 天前”并不是一个范围，只会查找恰好在昨天此时更新的条目。如有需要，应当创建一个区间来搜索。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签搜索：更新日期 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“书签创建者的标签”相关的帮助文本框。
+ */
+function translateBookmarkSearchBookmarkerTagsTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark search bookmarker tag') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>书签搜索：书签创建者标签</h4>
+			<p>
+				“书签创建者的标签”字段会搜索书签创建者为该书签添加的所有标签，不包括作品或系列本身的标签。标签类型可为：分级、预警、分类、同人圈、角色、关系、附加标签。该字段在您输入搜索词时会建议规范标签。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签搜索：书签创建者标签 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“推荐”相关的帮助文本框。
+ */
+function translateBookmarkSearchRecTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark search rec help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>书签搜索：推荐</h4>
+			<p>
+				选择此选项可将搜索范围限定为书签创建者标记为“推荐”的书签。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签搜索：推荐 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“含注释”相关的帮助文本框。
+ */
+function translateBookmarkSearchNotesTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark search notes help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>书签搜索：含注释</h4>
+			<p>
+				选择此选项可将搜索范围限定为带有书签创建者添加注释的书签。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签搜索：注释 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“添加日期”相关的帮助文本框。
+ */
+function translateBookmarkSearchDateBookmarkedTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark search date bookmarked help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>书签搜索：添加日期</h4>
+			<p>指定一个时间范围，以查找在该时间段内创建的书签。这可能与已创建书签条目的发布或更新时间不同。</p>
+			<p>您可以按 year, month, week, day, hour（年、月、周、天或小时）进行搜索。</p>
+			<h5>示例：</h5>
+			<dl>
+				<dt>< 3 days ago</dt>
+				<dd>查找过去 3 天内创建的书签。</dd>
+				<dt>> 3 years ago</dt>
+				<dd>查找 3 年之前创建的书签。</dd>
+				<dt>3-9 months ago</dt>
+				<dd>查找 3 到 9 个月前创建的书签。</dd>
+			</dl>
+			<p>“ago”（之前/前）一词是可选的。请注意，“ 1 天前”并不是一个范围，只会查找恰好在昨天此时创建的书签。如有需要，应当创建一个区间来搜索。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签搜索：添加日期 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /tags/search 页面上“文本搜索”相关的帮助文本框。
+ */
+function translateTagSearchTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Tag search text help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>标签搜索：文本</h4>
+			<dl>
+				<dt>*: 匹配任意字符</dt>
+				<dd><kbd>book*</kbd> 会匹配 <samp>book</samp>、<samp>books</samp> 和 <samp>booking</samp>。</dd>
+				<dt>空格: 相当于 AND</dt>
+				<dd><kbd>Harry Potter</kbd> 会匹配 <samp>Harry Potter</samp> 和 <samp>Harry James Potter</samp>，但不会匹配 <samp>Harry</samp>。</dd>
+				<dt>||: OR (非排她性)</dt>
+				<dd><kbd>Harry || Potter</kbd> 会匹配 <samp>Harry</samp>、<samp>Harry Potter</samp> 和 <samp>Potter</samp>。</dd>
+				<dt>"": 精确匹配词组</dt>
+				<dd><kbd>"Harry Lockhart"</kbd> 会匹配 <samp>Harry Lockhart</samp>，但不会匹配 <samp>Harry Potter/Gilderoy Lockhart</samp>。</dd>
+				<dt>NOT: 排除</dt>
+				<dd><kbd>Harry NOT Lockhart</kbd> 会匹配 <samp>Harry Potter</samp>，但不会匹配 <samp>Harry Lockhart</samp> 或 <samp>Gilderoy Lockhart/Harry Potter</samp>。</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '标签搜索：文本 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专用翻译函数：翻译“图标说明”弹窗
+ */
+function translateSymbolsKeyModal() {
+	const footerTitle = document.querySelector('#modal div.footer span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Symbols key') {
+		return;
+	}
+	const modal = footerTitle.closest('#modal');
+	if (!modal) {
+		return;
+	}
+	const mainTitle = modal.querySelector('div.content.userstuff > h4');
+	if (mainTitle) {
+		mainTitle.textContent = '在 AO3 上使用的图标';
+	}
+	const sections = modal.querySelectorAll('#symbols-key > dd');
+	if (sections.length === 4) {
+		const ratingDefs = sections[0].querySelectorAll('dl > dd');
+		if (sections[0].querySelector('h4')) sections[0].querySelector('h4').textContent = '内容分级';
+		if (ratingDefs.length === 5) {
+			ratingDefs[0].textContent = '全年龄';
+			ratingDefs[1].textContent = '青少年及以上';
+			ratingDefs[2].textContent = '成人向';
+			ratingDefs[3].textContent = '限制级：仅适合成年人';
+			ratingDefs[4].textContent = '该作品未设定任何分级';
+		}
+		const relDefs = sections[1].querySelectorAll('dl > dd');
+		if (sections[1].querySelector('h4')) sections[1].querySelector('h4').textContent = '关系、配对与性向';
+		if (relDefs.length === 7) {
+			relDefs[0].textContent = '女/女：女性/女性配对';
+			relDefs[1].textContent = '女/男：女性/男性配对';
+			relDefs[2].innerHTML = '无CP：无恋爱关系或性关系, 或者恋爱关系并非作品重点';
+			relDefs[3].textContent = '男/男：男性/男性配对';
+			relDefs[4].innerHTML = '多配对：含有一种以上的配对，或者含有数个伴侣的配对';
+			relDefs[5].textContent = '其她关系';
+			relDefs[6].textContent = '该作品未被归入任何分类';
+		}
+		const warnDefs = sections[2].querySelectorAll('dl > dd');
+		if (sections[2].querySelector('h4')) sections[2].querySelector('h4').textContent = '内容预警';
+		if (warnDefs.length === 4) {
+			warnDefs[0].innerHTML = '作者选择不标注预警，或 Archive 预警<em>可能 </em>适用，但作者未具体说明。';
+			warnDefs[1].innerHTML = '至少包含以下预警之一：暴力场景描写、主要角色死亡、强暴/<acronym title="非自愿性行为">非自愿性行为</acronym>、未成年性爱。具体预警请参阅 Archive 预警标签。';
+			warnDefs[2].innerHTML = '该作品未标注任何 Archive 预警。请注意，作者可能在“附加标签”（类型、预警、其她信息）部分提供了有关作品的其她信息。';
+			warnDefs[3].innerHTML = '这是外部作品；请查看该作品本身以获知预警。';
+		}
+		const statusDefs = sections[3].querySelectorAll('dl > dd');
+		if (sections[3].querySelector('h4')) sections[3].querySelector('h4').textContent = '作品是否完结或同人梗是否实现？';
+		if (statusDefs.length === 3) {
+			statusDefs[0].textContent = '该作品正在连载或尚未完成/同人梗尚未实现。';
+			statusDefs[1].textContent = '该作品已完结/该同人梗已实现！';
+			statusDefs[2].textContent = '该作品状态未知。';
+		}
+	}
+	footerTitle.textContent = '图标说明';
+	const closeButton = modal.querySelector('div.footer a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+	modal.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专门用于翻译“富文本”帮助弹窗。
+ */
+function translateRteHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Rte help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h2>富文本</h2>
+			<p>富文本编辑器（<abbr title="富文本编辑器">RTE</abbr>）的具体行为取决于您的设备、浏览器、操作系统以及您粘贴内容的来源。但是，从一个格式规范的文档开始，将有助于您最大程度地利用 <abbr>RTE</abbr> 。以下是一些通用技巧，以确保您的格式尽可能被保留：</p>
+			<ul>
+				<li><p><strong>在段落之间按<em>一次</em> <kbd>Enter</kbd> 键。</strong>按两次 <kbd>Enter</kbd> 会插入一个空段落，当您粘贴到 <abbr>RTE</abbr> 时，会在段落之间产生额外的、可能不需要的空格。Archive 使用顶部和底部边距来制造段落间的空行效果；您可以使用文本编辑器中的段落格式选项来达到类似效果，而无需添加额外的 <code>&lt;p&gt;</code> 标签。</p></li>
+				<li><p><strong>为标题、块引用、代码等使用预设样式。</strong>通常在文本编辑器的 “格式” 菜单中找到的 “样式” 选项，在粘贴到 <abbr>RTE</abbr> 时通常会转换为 <abbr title="超文本标记语言">HTML</abbr> 标签。仅仅通过改变字体大小、字体名称或文本缩进来模拟标题或块引用的视觉效果，通常是不会起作用的。</p></li>
+			</ul>
+			<h3>从特定文本编辑器粘贴</h3>
+			<h4>Google Drive</h4>
+			<p>Google Drive 使用内联 <abbr title="层叠样式表">CSS</abbr> 来改变文本对齐方式以及产生粗体、斜体、下划线和删除线格式。遗憾的是，我们不允许在 Archive 上使用内联样式，因此只有纯 <abbr>HTML</abbr> 格式（如标题、列表、链接和表格）会被保留。</p>
+			<p>在某些浏览器中，格式在粘贴到 <abbr>RTE</abbr> 时可能看起来被保留了，但在预览或发布您的作品时，它将被我们的 <abbr>HTML</abbr> 清理程序移除。</p>
+			<h4>Scrivener</h4>
+			<p>Scrivener 用户通常通过粘贴到 <abbr>HTML</abbr> 编辑器，然后切换到 <abbr>RTE</abbr> 进行修改，可以获得更好的效果。要从 Scrivener 复制 HTML，请执行以下操作：</p>
+			<ol>
+				<li>转到 “编辑” 菜单</li>
+				<li>选择 “特殊复制”</li>
+				<li>选择 “以 HTML 格式复制” 或 “以 HTML 格式复制（基础，使用 &lt;p&gt; 和 &lt;span&gt;）”</li>
+			</ol>
+			<h3>粘贴特定类型的格式</h3>
+			<h4>下划线和删除线</h4>
+			<p>下划线和删除线通常由 <abbr>CSS</abbr> 产生。因为 Archive 不允许使用内联 <abbr>CSS</abbr>，这些文本样式在粘贴时经常会丢失。</p>
+			<p>从使用 <code>&lt;u&gt;</code>、<code>&lt;del&gt;</code>、<code>&lt;strike&gt;</code> 或 <code>&lt;s&gt;</code> 标签的网页粘贴将可以正常工作。</p>
+			<h4>对齐</h4>
+			<p>文本对齐现在通常通过 <abbr>CSS</abbr> 实现，并且因为 Archive 不允许内联 <abbr>CSS</abbr>，对齐方式在粘贴时通常会丢失。</p>
+			<p>从使用 <code>align</code> 属性和 <code>&lt;center&gt;</code> 元素的来源粘贴将保持格式完整，但请注意，<abbr>RTE</abbr> 中的对齐按钮无法修改用 <code>&lt;center&gt;</code> 标签创建的居中对齐。</p>
+			<h4>标题</h4>
+			<p>文本编辑器为其标题预设使用许多不同的样式。例如，在 OpenOffice 中选择 “标题 4” 会产生斜体的无衬线文本。即使成功将标题粘贴到 <abbr>RTE</abbr> 中，这种视觉格式也<em>不会</em>被保留——只有 <code>&lt;h4&gt;</code> 标签会被保留。这不是 bug 。<abbr>HTML</abbr> 旨在告诉浏览器文本的含义（例如：“这是一个标题” ），而不是它应该如何显示（例如：“这应该是 Arial 字体” ）。如果您希望修改标题或作品任何其她部分的样式，请使用作品界面。</p>
+			<h4>缩进文本</h4>
+			<p>缩进文本是一种纯粹的视觉效果，没有等效的 <abbr>HTML</abbr>，并且不会被保留。请使用作品界面来缩进文本。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '富文本 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专用翻译函数：翻译“HTML帮助”弹窗
+ */
+function translateHtmlHelpModal() {
+	const modal = document.querySelector('#modal');
+	if (!modal) return;
+	const h2 = modal.querySelector('h2');
+	if (!h2 || !h2.textContent.includes('HTML on the Archive')) {
+		return;
+	}
+	const contentDiv = modal.querySelector('.content.userstuff');
+	if (!contentDiv) return;
+	contentDiv.innerHTML = `
+		<h2>Archive 上的 HTML</h2>
+		<h3>允许的 HTML</h3>
+		<p>
+			<code>a, abbr, acronym, address, [align], [alt], [axis], b, big, blockquote, br, caption, center, cite, [class], code, col, colgroup, dd, del, details, dfn, div, dl, dt, em, figcaption, figure, h1, h2, h3, h4, h5, h6, [height], hr, [href], i, img, ins, kbd, li, [name], ol, p, pre, q, rp, rt, ruby, s, samp, small, span, [src], strike, strong, sub, summary, sup, table, tbody, td, tfoot, th, thead, [title], tr, tt, u, ul, var, [width]</code>
+		</p>
+		<h3>我们如何格式化您的 HTML？</h3>
+		<p>当您在 Archive 上输入 HTML 时，我们会对其进行清理，以确保安全（防止垃圾邮件发送者和黑客上传恶意内容），并为方便您和提高可访问性做一些基本格式化。我们采取的格式化步骤如下：</p>
+		<ul>
+			<li>如果您在两段文字间留有空行，我们会为您自动在这两段文字外加上 &lt;p&gt; 段落标签。</li>
+			<li>如果您在两行文字间只有一个换行符，我们会为您插入 &lt;br /&gt; 换行标签。</li>
+			<li>如果您连续使用两个换行标签（&lt;br /&gt;&lt;br /&gt;）且中间没有内容，我们会将其转换为段落标签。</li>
+			<li>如果您连续留有两个空行，我们会为您插入额外的空白（使用 &lt;p&gt;&nbsp;&lt;/p&gt;）。</li>
+			<li>如果您有错误嵌套的标签，例如：&lt;em&gt;&lt;strong&gt;<em><strong>text!</em></strong>&lt;/em&gt;&lt;/strong&gt; ，我们会自动修正嵌套顺序（调整为：&lt;em&gt;&lt;strong&gt;<em><strong>text!</em></strong>&lt;/strong&gt;&lt;/em&gt; ）。</li>
+			<li>如果您忘记关闭某个格式化标签，该标签会在段落末尾自动关闭。</li>
+			<li>如果您在一段中打开了格式化标签但在几段之后才关闭，我们会在每个段落内重新打开并关闭该标签。</li>
+			<li>如果您插入了自定义 HTML（例如在 &lt;ul&gt; 中的项目列表），且不希望我们自动插入换行或段落标签，只需将所有内容写在同一行即可（这是为了自动段落/换行标签与自定义 HTML 兼容所做的不便折衷）。</li>
+			<li>如果某段文字显示得比其她文字大，可能是我们的格式化程序无法识别段落边界。您可以手动为该段文字添加段落标签来修复。</li>
+		</ul>
+		<p class="note">当您第一次输入 HTML 后再次编辑时，您将看到我们格式化的结果，以便纠正任何我们的格式化程序可能造成的错误。请注意，获得良好效果的最佳方式是输入规范的 HTML——这样您的作品在各浏览器、屏幕阅读器、移动设备和下载时都会正确显示。</p>
+		<p class="note">“良好 HTML” 意味着能准确标注文本含义的 HTML——如果是段落，应使用段落标签，而不仅仅是使用换行标签分隔。如果是强调文字，应使用 &lt;em&gt; 标签。如果是项目列表，每个项目都应放在列表标签内。如果&lt;em&gt;不是&lt;/em&gt;一个项目列表，您就不应该使用列表标签。:)</p>
+		<p class="note">如果您发现自己为了达到某种视觉效果而输入了不符合语义的 HTML，请尽量避免！“作品界面”功能允许您对作品应用自定义 CSS，让它们呈现您想要的任何样式（前提是从“良好 HTML”开始会更容易）。</p>
+		<p>一些具体建议：</p>
+		<dl id="help">
+			<dt>标题，使用标题标签： <code>h1、h2、h3、h4、h5、h6</code></dt>
+			<dd id="headings">
+			<ul>
+				<li><h1>&lt;h1&gt;标题&lt;h1&gt;<h1></li>
+				<li><h2>&lt;h2&gt;副标题&lt;h2&gt;<h2></li>
+				<li><h3>&lt;h3&gt;章节标题&lt;h3&gt;</li>
+				<li><h4>&lt;h4&gt;场景标题&lt;h4&gt;<h4></li>
+				<li><h5>&lt;h5&gt;小标题&lt;h5&gt;<h5></li>
+				<li><h6>&lt;h6&gt;脚注标题&lt;h6&gt;</li>
+			</ul>
+			</dd>
+			<dt>强调，使用强调标签： <code>em、strong</code></dt>
+			<dd id="emphasis">
+			<ul>
+				<li><p>&lt;em&gt;<em>Rodney</em>&lt;/em&gt;Mckay</p></li>
+				<li><p>我 &lt;strong&gt;<strong>永远都不会</strong>&lt;/strong&gt;理解你！</p></li>
+			</ul>
+			</dd>
+			<dt>引用诗歌、短句或书名，使用引用标签： <code>blockquote、q、cite</code></dt>
+			<dd id="quotes">
+			<ul>
+				<li>&lt;blockquote&gt;<blockquote><p>引用一段文字</p></blockquote>&lt;/blockquote&gt;</li>
+				<li><p>使用 q 来&lt;q&gt;<q>引用短句</q>&lt;/q&gt;</p></li>
+				<li><p>使用 cite 来引用&lt;cite&gt;<cite>书名或文章名</cite>&lt;/cite&gt;</p></li>
+			</ul>
+			</dd>
+		</dl>`;
+
+	const footer = modal.querySelector('div.footer');
+	if (footer) {
+		footer.querySelector('.title').textContent = 'Html 帮助';
+		footer.querySelector('.action').textContent = '关闭';
+	}
+}
+
+/**
+ * 专用翻译函数：翻译“书签搜索结果”帮助弹窗
+ */
+function translateBookmarkSearchResultsHelpModal() {
+	const modal = document.querySelector('#modal');
+	if (!modal) {
+		return;
+	}
+	const footerTitle = modal.querySelector('.footer .title');
+	if (!footerTitle || footerTitle.textContent.trim() !== 'Bookmark search results help') {
+		return;
+	}
+	const h4 = modal.querySelector('.content.userstuff h4');
+	if (h4) {
+		h4.textContent = '书签搜索：结果';
+	}
+	const p = modal.querySelector('.content.userstuff p');
+	if (p) {
+		const workSearchLink = p.querySelector('a[href="/works/search"]');
+		if (workSearchLink) {
+			workSearchLink.textContent = '“作品搜索”';
+			p.innerHTML = `结果按相关性排序。请注意，列表会包含某个作品的所有书签，因为每条书签都会单独计入结果。要搜索作品而非书签，请使用 ${workSearchLink.outerHTML} 。`;
+		}
+	}
+	footerTitle.textContent = '书签搜索：结果 帮助';
+	const closeButton = modal.querySelector('.footer a.action');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+	modal.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专用翻译函数：翻译“关于标签集”弹窗
+ */
+function translateTagsetAboutModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Tagset about') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>关于标签集</h4>
+			<p>如果您曾想在 Archive 举办挑战活动，就可以使用标签集。您可以创建一个标签集，列出所有应当出现在报名表单中的标签，即使这些标签此前在 Archive 上尚未使用过，然后将此标签集添加到您的挑战活动中。报名表单将自动显示标签集中包含的标签。</p>
+			<p>您可以添加任意数量的管理员协助管理标签集（无需开放活动设置权限），还可以允许活动参与者提名要添加到标签集的新标签。您及管理员可审核这些提名，并选择批准或拒绝。您可以为标签集中的新标签添加同人圈关联，或交由标签管理员处理（这可能需要一些时间）。</p>
+			<p>所有标签集均展示于“标签集主页面”，浏览它们有助于您更深入理解其运作机制。</p>
+			<p>部分用户可能会选择将自己的标签集公开共享，供她人在活动中使用。请注意，标签集的所有者可以随时<strong>删除或修改标签集而不另行通知</strong>，因此在使用她人标签集举办挑战活动前，请务必确认该标签集所有者不会对其进行变更。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '关于标签集';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专用翻译函数：翻译“预警”相关的帮助文本框
+ */
+function translateWarningHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Warning help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>预警标签</h4>
+			<p>由于法律及其她原因，AO3 要求用户必须为一组常见预警（血腥暴力描写、主要角色死亡、强暴/非自愿性行为、未成年性行为）选择是否预警。创作者可在此框架内选择不预警其中某些内容，或添加额外预警。</p>
+			<dl>
+				<dt>不使用 Archive 预警：</dt>
+				<dd>如果您不想为任何内容添加预警，或不知道应当预警什么，或不喜欢对特定话题或预警本身进行标注，或想避免部分剧透，可选择此项。</dd>
+				<dt>暴力场景描写：</dt>
+				<dd>用于描述血腥、露骨的暴力场面。具体界限由您自行判断。</dd>
+				<dt>主要角色死亡：</dt>
+				<dd>请自行判断哪些角色属于“主要角色”。</dd>
+				<dt>Archive 预警不适用：</dt>
+				<dd>如果您的内容不包含血腥暴力描写、主要角色死亡、强暴/非自愿性行为或未成年性行为，请选择此项。</dd>
+				<dt>强暴/非自愿性行为：</dt>
+				<dd>如您认为内容可能涉及非自愿性行为，但不确定或不想使用此预警，可选择“不使用 Archive 预警”。</dd>
+				<dt>未成年性行为：</dt>
+				<dd>用于描述或描绘十八岁以下角色的性行为（不包括亲吻等约会行为或无具体描写的模糊提及）。此预警一般适用于人类；如涉外星人或千年吸血鬼等特殊设定，请酌情判断。您也可注明角色年龄或选择“不使用 Archive 预警”。</dd>
+			</dl>
+			<p>您还可以使用“附加标签”字段添加其她或更详细的预警。有关预警的政策请参阅<a href="/content#II.J">服务条款</a>及<a href="/tos_faq#ratings_warnings_faq">服务条款常见问题</a>。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '预警 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专用翻译函数：翻译“同人圈”相关的帮助文本框
+ */
+function translateFandomHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Fandom help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>同人圈标签</h4>
+			<p>您的作品所属的同人圈名称。请使用全称，而非缩写。您可以列出多个同人圈，使用逗号分隔（例如，您的作品是跨圈同人文）。</p>
+			<p>要了解有关标签的更多信息，包括如何添加 Archive 上尚不存在的标签，请参阅我们的<a href="/faq/tags">标签常见问题解答</a>。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '同人圈 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专用翻译函数：翻译“书签图标”说明弹窗
+ */
+function translateBookmarkSymbolsKeyModal() {
+	const footerTitle = document.querySelector('#modal div.footer span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark symbols key') {
+		return;
+	}
+	const modal = footerTitle.closest('#modal');
+	if (!modal) {
+		return;
+	}
+	const mainTitle = modal.querySelector('div.content.userstuff > h4');
+	if (mainTitle) {
+		mainTitle.textContent = '书签图标';
+	}
+	const definitions = modal.querySelectorAll('#bookmark-symbols-key > dd');
+	const translations = [
+		'推荐',
+		'公开书签',
+		'私人书签',
+		'此书签已被管理员隐藏'
+	];
+	if (definitions.length === translations.length) {
+		definitions.forEach((dd, index) => {
+			dd.textContent = translations[index];
+		});
+	}
+	footerTitle.textContent = '书签图标说明';
+	const closeButton = modal.querySelector('div.footer a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+	modal.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专用翻译函数：翻译“分级”相关的帮助文本框
+ */
+function translateRatingHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Rating help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>分级标签</h4>
+			<p>（要了解更多信息，请参阅 <a href="/content#II.J">AO3 服务条款的分级与预警部分</a>。）</p>
+			<dl id="help">
+				<dt>未分级 (Adult!)</dt>
+				<dd>
+					在搜索、筛选及其她 Archive 功能中，未分级内容可能与限制级内容受到同等处理。实际上，其内容可能涵盖色情至完全适合家庭观看的各类作品。若您不想为内容评级（例如不喜欢评级、避免剧透等），请选择此项。
+				</dd>
+				<dt>全年龄</dt>
+				<dd>
+					内容适合所有读者。
+				</dd>
+				<dt>青少年及以上</dt>
+				<dd>
+					内容可能不适合 13 岁以下读者。
+				</dd>
+				<dt>成人向 (Adult!)</dt>
+				<dd>
+					适用于含有成人主题（性、暴力等），但描写不如“限制级”血腥的作品。
+				</dd>
+				<dt>限制级 (Adult!)</dt>
+				<dd>
+					适用于含有色情、血腥暴力等内容的作品。
+				</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '分级 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译分类标签帮助弹窗。
+ */
+function translateCategoriesHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Categories help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>分类标签</h4>
+			<p>（要了解更多信息，请参阅 <a href="/faq/tags">Archive 标签常见问题</a>。）</p>
+			<p>Archive 上的作品分为 6 类。以下为各缩写含义，具体定义因同人圈和用户而异；请选择最适用的分类，或留空：</p>
+			<dl>
+				<dt>女/女</dt>
+				<dd>女性/女性配对</dd>
+				<dt>女/男</dt>
+				<dd>女性/男性配对</dd>
+				<dt>无CP</dt>
+				<dd>无恋爱关系或性关系, 或者恋爱关系并非作品重点</dd>
+				<dt>男/男</dt>
+				<dd>男性/男性配对</dd>
+				<dt>多配对</dt>
+				<dd>含有一种以上的配对，或者含有数个伴侣的配对</dd>
+				<dt>其她</dt>
+				<dd>其她关系</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '分类 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译关系标签帮助弹窗。
+ */
+function translateRelationshipsHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Relationships help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>关系标签</h4>
+			<p>（要了解更多信息，请参阅 <a href="/faq/tags">Archive 标签常见问题</a>。）</p>
+			<p>对于您作品中存在的关系，请尽可能使用全名（例如"Mickey Mouse/Minnie Mouse"或"Rodney McKay &amp; John Sheppard"），可通过逗号分隔列出多个关系。请注意，所有用户创建的标签均不得超过 150 字符；若作品包含大型多角关系或名称较长的多名角色，建议将名称缩短为仅有名字或带首字母的姓氏，以避免超过字符限制且保持可识别性。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '关系 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译角色标签帮助弹窗。
+ */
+function translateCharactersHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Characters help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>角色标签</h4>
+			<p>（要了解更多信息，请参阅 <a href="/faq/tags">Archive 标签常见问题</a>。）</p>
+			<p>您作品中的主要角色，请使用全名并以逗号分隔。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '角色 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译"Additional Tags"帮助弹窗的文本。
+ */
+function translateAdditionalTagsHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Additional tags help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>附加标签</h4>
+			<p>（要了解更多信息，请参阅 <a href="/faq/tags">Archive 标签常见问题</a>。）</p>
+			<p>您希望为作品添加的其她标签（例如："虐心"、"跨圈"或"触手"）。您也可以用此字段来标注 Archive 预警中未涵盖的内容。请不要在此填写同人圈、关系或角色名称。多个标签请用逗号分隔。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '附加标签 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译"Adding To Collections"帮助弹窗的文本。
+ */
+function translateCollectionsHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Add collectible to collection') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>添加到合集</h4>
+			<p>
+				以逗号分隔输入合集名称，您正在编辑的作品将被添加到您指定的所有合集中。
+			</p>
+			<p>
+				请注意，您需要使用合集的名称（用于生成合集网址），而非其展示标题（因为不同合集允许重名）。合集名称与您的用户登录名相同。若启用 JavaScript ，名称会自动补全。
+			</p>
+			<p>
+				另请注意，如果您提交的合集受管理员审核，且您不是成员，您的作品不会自动添加——必须等待管理员批准后才会加入。如果这是匿名和/或未公开的合集，则作品发布后立即以匿名和/或隐藏状态展示，包括在等待审核期间。若作品被拒，则会保持匿名和/或未公开状态，直到您将其从合集中移除或管理员取消关联。
+			</p>
+			<p>
+				如果您改变主意想将作品从合集中移除，可在编辑时修改合集列表，或在账户的"我的合集"页面管理所有书签作品。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '将作品添加到合集';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译"Recipients"帮助弹窗的文本。
+ */
+function translateRecipientsHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Recipients') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>赠文对象</h4>
+			<p>
+				请输入赠文对象的名称，以逗号分隔！
+			</p>
+			<p>
+				如果您的作品是送给某人的礼物或为她们而作，您可以在此输入她们的姓名，作品署名下方会显示这些信息。
+				赠文对象<strong>无需</strong>是 Archive 的注册用户，但如果有匹配的笔名，自动补全会提供建议。我们会通知被选为赠文对象的注册用户。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '赠文对象';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译"Parent Works Help"帮助弹窗的文本。
+ */
+function translateParentWorksHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Parent works help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>母作品帮助</h4>
+			<p>
+				如果您正在创建新作品，目前只能添加一个灵感来源。
+				若要添加更多，请先保存您的作品，然后在已发布作品页面点击"编辑"按钮，再像之前那样添加新的灵感来源。
+			</p>
+			<p>
+				您添加为灵感来源的所有作品将显示在此表单下方，标题为"当前母作品"。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '母作品 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译"Choosing Series"帮助弹窗的文本。
+ */
+function translateChoosingSeriesHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Choosing series') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>选择系列</h4>
+			<p>
+				系列是一组相关的故事，每个故事独立完整。
+				您可以随时在个人中心中创建新系列或将作品添加到系列中。
+			</p>
+			<p>
+				如果您想发布正在创作中的作品或分章节故事，请选择多章节作品功能。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '选择系列';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译"Publication Date Options"帮助弹窗的文本。
+ */
+function translateBackdatingHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Backdating help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>发布日期选项</h4>
+			<p>
+				发布作品时，您可以选择设置不同的发布日期——也就是为作品回溯日期。您也可以为各单独章节设置发布日期。请注意，这两种情况下都会影响作品在个人中心和作品页面中的显示顺序和位置。这些页面显示的更新日期，将取您作品或任一章节的发布日期，以较晚者为准。
+			</p>
+			<p>
+				您添加的后续章节将在表单中预填此日期，您仍可手动覆盖该日期。这意味着如果您不清楚或不在意章节的实际发布日期，也能方便地为作品回溯日期。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '回溯日期 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译"Languages"帮助弹窗的文本。
+ */
+function translateLanguagesHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Languages help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>语言</h4>
+			<p>列表中没有您的语言？请<a href="/support">通过支持表单告诉我们</a>，我们会很高兴将其添加！（请放心，您现在可以发布作品，并在稍后更改语言。）外部作品无需选择语言。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '语言 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 Work Skins 弹窗页面的帮助文本。
+ */
+function translateWorkSkins() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work skins') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>作品界面</h4>
+			<p>
+			您可以像为 Archive 创建界面一样，为您的作品创建自定义样式表或"界面"。主要区别在于，作品界面会改变<strong>其她用户</strong>查看作品的方式，而不仅仅是您自己看到的效果。
+			</p>
+			<p>
+			作品界面<strong>仅</strong>影响所应用作品的正文——无法通过它们更改 Archive 的导航或背景。不过，您可以创建自定义类。例如，您可以更改部分文字的颜色，对某些段落进行特定方式的缩进，等等。
+			</p>
+			<p>
+			例如，假设您希望将文中某个单词设置为亮蓝色，可以按以下步骤操作：
+			</p>
+			<ul>
+			<li>
+				<a href="/skins/new?skin_type=WorkSkin">创建一个作品界面</a>，内容如下：<code>.bluetext {color: blue;}</code>
+			</li>
+			<li>
+				发布作品时选择此界面。
+			</li>
+			<li>
+				在作品的 HTML 中为该单词添加此样式类：<code>I want &lt;span class="bluetext"&gt;house&lt;/span&gt; to be in blue</code>
+			</li>
+			</ul>
+			<p>
+			要了解更多信息，请参阅<a href="/faq/tutorial-creating-a-work-skin">教程：创建作品界面</a>和<a href="/faq/skins-and-archive-interface">界面与 Archive 界面常见问题</a>。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品界面';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 Registered Users 弹窗页面的帮助文本。
+ */
+function translateRegisteredUsers() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Registered users') {
+		return;
+	}
+	if (container) {
+
+		container.innerHTML = `
+			<h4>注册用户</h4>
+			<p>
+			注册用户是拥有 Archive 账号的用户。勾选此选项后，您的作品仅限已登录用户查看。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '注册用户';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 Comments Moderated 弹窗页面的帮助文本。
+ */
+function translateCommentsModerated() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Comments moderated') {
+		return;
+	}
+	if (container) {
+
+		container.innerHTML = `
+			<h4>评论需审核</h4>
+			<p>启用此功能后，您必须审核并批准所有评论，评论才会在作品上公开显示。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '评论需审核';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 Who can comment on this work 弹窗页面的帮助文本。
+ */
+function translateWhoCanComment() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Who can comment on this work') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>谁可以评论此作品？</h4>
+			<dl>
+			<dt>注册用户及访客可评论</dt>
+			<dd>所有用户均可评论（无论是否登录）。</dd>
+			<dt>仅注册用户可评论</dt>
+			<dd><strong>默认选项</strong>，仅登录用户可评论此作品。</dd>
+			<dt>禁止评论</dt>
+			<dd>此选项将禁用所有新的评论。</dd>
+			</dl>
+			<p>更改设置不会影响现有评论。如需删除已有评论，请参阅<a href="/faq/comments-and-kudos#commentother">我能编辑或删除她人留下的评论吗？</a>以了解详情。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '谁可以评论此作品';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译导入疑难解答弹窗的帮助文本。
+ */
+function translateWorkImportTroubleshooting() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work import') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>导入疑难解答</h4>
+			<p>
+			如果您的文本在出现破折号或带重音字符处被截断，您可能需要使用下方的"设置自定义编码"菜单手动设置编码，才能成功导入作品。有效的编码类型可能有所不同；您可能需要尝试多个选项以找到正确的编码。有关更多信息，请参阅<a href="/help/encoding-help.html">编码帮助页面</a>。
+			</p>
+			<p>
+			如果您要从 e-fiction 网站导入带章节的作品，您需要分别输入每一章的 URL ，每行一个。一次最多可以导入 200 个章节。有关从其她网站导入作品的更多信息，请参阅<a href="/faq/posting-and-editing#importwork">"我如何从其她网站导入作品？"</a>
+			</p>
+			<p>
+			如果您想将已发布在 AO3 上的作品从一个用户账户转移到另一个账户，您必须编辑现有作品，将新账户添加为共同创作者，然后移除旧账户。不能使用导入工具处理 AO3 上托管的作品。
+			</p>
+			<p>
+			除非您勾选"覆盖标签和说明"选项框，否则您在"标签"下输入的信息仅在导入工具无法从作品中识别标签时才会使用。
+			</p>
+			<p>
+			导入完成后，您将可以编辑并完善标准的作品信息。有关发布和编辑的更多信息，请参阅<a href="/faq/posting-and-editing">发布与编辑常见问题</a>。
+			</p>
+			<p>
+			如果上述信息都无法解决您的问题，您也许可以在<a href="/known_issues#importing">已知问题</a>页面中找到答案。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品导入';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译编码帮助弹窗的帮助文本。
+ */
+function translateEncodingHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Encoding help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>编码帮助</h4>
+			<p>如果导入工具剥离了作品中的特殊字符（例如变音符号或弯引号），或未能导入整段文本，可能是由于自动检测您作品编码时出现了问题。UTF-8 是常见的编码，但也有其她编码需要您手动指定，以帮助导入工具正确处理您的作品。</p>
+			<p>如果不确定文本使用的编码，可以尝试 ISO-8859-1（通常称为 Latin-1）或 Windows-1252（有时被误称为 ANSI），这两种编码在 Windows 程序的输出中非常常见。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '编码 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /users/edit 页面上“隐私偏好”弹窗的帮助文本。
+ */
+function translatePrivacyPreferences() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Privacy preferences') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>隐私偏好</h4>
+			<dl id="help">
+				<dt>向其她人显示我的邮箱地址</dt>
+				<dd>
+					启用此选项后，与您的账户关联的电子邮箱地址将在您的用户资料页面公开可见。
+				</dd>
+				<dt>向其她人显示我的出生日期</dt>
+				<dd>
+					启用此选项后，与您的账户关联的出生日期将在您的用户资料页面公开可见。
+				</dd>
+				<dt>尽可能地对搜索引擎隐藏我的作品</dt>
+				<dd>
+					启用此选项将告知搜索引擎不要索引您的用户页面、作品或系列。请注意，并非所有搜索引擎都会遵守此设置。列出您作品或系列的页面----例如作品主页面----可能仍会被索引。如果您希望在任何情况下都避免作品或系列被索引，建议将它们仅限 Archive 注册用户可见。
+				</dd>
+				<dt>隐藏我作品中的分享按钮</dt>
+				<dd>
+					<p>
+						此偏好设置允许您禁用一键分享按钮。该按钮可让她人将您的作品推荐到 Twitter、Tumblr 等外部网站。
+					</p>
+					<p>
+						请注意，一旦您在线发布了作品，读者仍可复制并粘贴链接到任何位置----如果您想限制对作品的访问，最佳方法是将作品锁定，仅限 Archive 注册用户查看。
+					</p>
+				</dd>
+				<dt>允许其她人邀请我成为共同创作者</dt>
+				<dd>
+					<p>
+						启用此选项将允许其她 AO3 用户邀请您以共创者的身份列在作品、章节或系列中。在您接受邀请前，您不会在网站上任何地方以共创者身份出现。如果启用此选项，您可以在个人中心的“共创者请求”中查看收到的请求，并会收到一封通知邮件。
+					</p>
+					<p>
+						禁用此选项将阻止其她用户邀请您成为作品、章节或系列的共创者，您也不会收到任何通知。
+					</p>
+					<p>
+						更改此设置不会影响任何现有的共创作品。
+					</p>
+				</dd>
+			</dl>
+			<p>要了解有关偏好设置及其含义的更多信息，请参阅我们的<a href="/faq/preferences">偏好常见问题</a>。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '隐私偏好';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“显示偏好”弹窗的内容。
+ */
+function translateDisplayPreferences() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Display preferences') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>显示偏好</h4>
+			<dl id="help">
+			<dt>无需确认即可显示成人内容</dt>
+			<dd>
+				启用此选项后，在显示作品前不会提示您确认是否访问“成人向”、“限制级”或“未分级”作品。
+			</dd>
+			<dt>默认显示全文</dt>
+			<dd>
+				启用此选项后，多章节作品将作为单页显示。
+			</dd>
+			<dt>隐藏内容预警（仍可手动显示）</dt>
+			<dd>
+				启用此选项后，作品上的 Archive 预警标签将默认隐藏。您可以点击“显示预警”查看个别作品的内容预警。此功能需启用 JavaScript 。
+			</dd>
+			<dt>隐藏附加标签（仍可手动显示）</dt>
+			<dd>
+				启用此选项后，作品上的附加标签将默认隐藏。您可以点击“显示附加标签”查看个别作品的附加标签。此功能需启用 JavaScript 。
+			</dd>
+			<dt>隐藏她人作品界面</dt>
+			<dd>
+				启用此选项后，其她用户为其作品设定的自定义界面将不会显示，系统将使用您的默认站点界面。
+			</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '显示偏好';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“界面基础”弹窗的内容。
+ */
+function translateSkinsBasics() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Skins basics') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<p>
+			站点界面可让您在登录账户时自定义浏览体验。不喜欢 Archive 的字体？您可以更改它们！不喜欢红色页眉？换成蓝色！请记住，在创建站点界面时，您只是在为自己更改 Archive ——其她用户将按照她们各自的界面看到 Archive 。换言之，站点界面可帮助您打造理想的个人浏览体验，而不会影响她人查看作品的方式。
+			</p>
+			<p>
+			作品界面可让您更改一个或多个作品在她人眼中的显示方式。作品界面仅影响作品正文——您无法更改 Archive 的导航或背景在其她用户那里显示的样式。但您可以创建自定义样式类，例如更改部分文字的颜色，或以特定方式缩进段落，等等。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '界面基础';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“作品标题格式”帮助弹窗。
+ */
+function translateWorkTitleFormat() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work_title_format') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>作品标题格式</h4>
+			<p>指定在阅读作品时浏览器标签页标题的显示方式。示例：</p>
+			<dl>
+			<dt>标题 - 作者 - 同人圈</dt>
+			<dd>这是默认格式</dd>
+			<dt>标题 - 作者</dt>
+			<dd>不包含同人圈</dd>
+			<dt>同人圈_作者_标题</dt>
+			<dd>以同人圈、作者、标题的顺序显示，并用下划线替代连字符。</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品标题格式';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“评论偏好”帮助弹窗。
+ */
+function translateCommentPreferences() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Comment preferences') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>评论偏好</h4>
+			<dl id="help">
+			<dt>关闭评论邮件通知</dt>
+			<dd>启用此选项后，当有人在您的作品上发表评论或回复您发表的评论时，您将不会收到电子邮箱提醒。评论通知仍会发送到您的 AO3 收件箱，除非您已选择禁用收件箱通知。</dd>
+			<dt>关闭评论消息通知</dt>
+			<dd>启用此选项后，当有人在您的作品上发表评论或回复您发表的评论时，您将不会在 AO3 收件箱中收到通知。评论通知仍会通过电子邮箱发送给您，除非您已选择禁用电子邮箱通知。</dd>
+			<dt>关闭自己评论的副本通知</dt>
+			<dd>启用此选项后，您将不会收到针对自己发表评论（例如回复自己作品评论）的电子邮箱通知。</dd>
+			<dt>关闭点赞邮件通知</dt>
+			<dd>启用此选项后，当有人对您的作品点赞时，您将不会收到电子邮箱通知。</dd>
+			<dt>不允许游客回复我在动态帖或其她用户作品中的评论</dt>
+			<dd>启用此选项后，未登录 AO3 账户的用户将无法回复您在动态贴或其她用户作品中留下的评论。此设置不适用于您自己的作品评论；如需了解如何控制其她用户与您作品的互动，请参阅<a href="/faq/posting-and-editing#controlaccess">发布与编辑常见问题</a>。</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '评论偏好';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“合集、挑战与赠文偏好”帮助弹窗。
+ */
+function translateCollectionPreferences() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Collection preferences') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>合集、活动与赠文偏好</h4>
+			<dl id="help">
+			<dt>允许其她人将我的作品加入合集</dt>
+			<dd>
+				<p>启用此选项后，其她 AO3 用户可邀请您的作品加入其合集。在您接受邀请前，作品不会被添加。要了解有关接受合集邀请的更多信息，请参阅<a href="/faq/collections#collectionitems">如何批准或拒绝包含我的作品的合集邀请</a>。</p>
+				<p>禁用此选项将完全阻止她人邀请您的作品加入其合集，且您不会收到任何通知。</p>
+				<p>更改此设置不会影响已在合集中的现有作品。</p>
+			</dd>
+
+			<dt>允许任何人向我赠送作品</dt>
+			<dd>若禁用此选项，用户仅可在完成赠文活动分配或满足征稿活动要求时赠送作品给您。若希望允许用户在无分配或征稿要求的情况下赠送作品，请启用此选项。请注意，您随时可以单独拒绝赠文。要了解有关拒绝赠文的操作，请参阅<a href="/faq/your-account#refusegift">如何拒绝赠文</a>。</dd>
+
+			<dt>关闭来自合集的电子邮箱</dt>
+			<dd>启用此选项后，您将不会收到来自合集的电子邮箱提醒，如作者或作品的揭晓通知。但若您的用户名或作品在加入合集后被隐藏，仍会收到电子邮箱。除非您禁用收件箱通知，合集通知仍会发送到您的 AO3 收件箱。</dd>
+
+			<dt>关闭来自合集的消息通知</dt>
+			<dd>启用此选项后，您将不会在 AO3 收件箱中收到来自合集的通知，例如隐藏作品揭晓通知。但除非您禁用电子邮箱通知，这些通知仍会以电子邮箱形式发送给您。</dd>
+
+			<dt>关闭有关赠文的邮件通知</dt>
+			<dd>启用此选项后，当有人赠送作品给您时，您将不会收到电子邮箱提醒。通知仍会显示在您的“接收赠文”页面。</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '合集偏好';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“其她偏好”帮助弹窗。
+ */
+function translateMiscPreferences() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Misc preferences') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>其她偏好</h4>
+			<dl id="help">
+			<dt>启用历史记录</dt>
+			<dd>启用后，历史记录会保留您登录时访问的每个作品日志。您可以删除单个作品或清除整个历史记录。如果先启用后再禁用，此前访问的作品仍会保留（但需再次启用历史记录才能查看）。</dd>
+			<dt>重新显示新用户帮助横幅</dt>
+			<dd>启用此选项将重新显示提供入门信息和提示的新用户帮助横幅！</dd>
+			<dt>关闭每个页面的提示横幅</dt>
+			<dd>AO3 可能会通过提示横幅通知用户重要事件或站点变更。如要在登录时隐藏横幅，请启用此选项。请注意，这仅会隐藏您启用时显示的横幅。如横幅内容更换，新横幅将继续显示，直到您再次启用此选项。</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '其她偏好';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译筛选侧边栏中的“包含标签”帮助文本。
+ */
+function translateTagFiltersIncludeTags() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work filters include tags') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>标签筛选：包含标签</h4>
+			<p>筛选器列出了每个标签类别中最常用的十个标签。要使用其她标签进行筛选，请使用“要包括的其她标签”字段。</p>
+			<p>如果您感兴趣的标签不在前十个中，请在“要包括的其她标签”字段中开始输入所需标签——此处可使用所有标签类别，且可添加任意数量的标签。自动补全列表将帮助您找到标签的<em>规范</em>版本。可充分利用标签规范化结构排除所有关联作品（含子标签及同义标签）。</p>
+			<p>您也可以输入不在自动补全列表中的标签。如果您输入的标签已在 AO3 上使用但未标记为规范标签，则筛选器将查找使用您输入的确切标签的作品。如果您输入的标签在 AO3 上从未被使用，筛选器将进行简单的文本匹配，可能会带来意想不到的结果。“在结果中搜索”字段将更准确地进行文本匹配，尤其是在关系标签和其她包含“/”或其她非文字字符的标签的情况下。</p>
+			<p>从类别中选择任意标签,或在“要包括的其她标签”字段中输入标签，将与您选择的所有标签进行 AND 搜索。这意味着，如果您筛选<a href="/tags/F*s*F/works">女/女类别标签的作品</a>，选择 <samp>青少年及以上</samp> 分级，在附加标签类别中选择规范的 <samp>Romance（爱情）</samp> 标签，并在“要包括的其她标签”字段中输入或选择规范的<samp> Drama（剧情） </samp>标签，则结果中只会包含<a href="/works?utf8=%E2%9C%93&work_search[sort_column]=revised_at&work_search[rating_ids][]=11&work_search[freeform_ids][]=60&work_search[other_tag_names]=Drama&work_search[query]=&work_search[language_id]=&work_search[complete]=0&commit=Sort+and+Filter&tag_id=F%2FF">同时带有所有这些标签的作品</a>。</p>
+			<p>若要获取包含 标签A 或 标签B 的结果，请使用“在结果中搜索”字段。</p>
+			<p>要查看哪些标签为规范标签，请使用<a href="/tags/search">标签搜索</a>。</p>
+			<p>要了解有关标签的更多信息，请参阅我们的<a href="/faq/tags">标签常见问题</a>。要查看标签整理者用于标记规范标签的指南或更好地理解 AO3 特有的标签术语，请阅读<a href="/wrangling_guidelines">整理指南</a>。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品筛选：包括标签';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译筛选侧边栏中的“排除标签”帮助文本。
+ */
+function translateTagFiltersExcludeTags() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work filters exclude tags') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>标签筛选：排除标签</h4>
+			<p>筛选器列出了每个标签类别中最常用的十个标签。要使用其她标签进行筛选，请使用“要排除的其她标签”字段。</p>
+			<p>如果您想排除的标签不在前十个中，请在“要排除的其她标签”字段中开始输入所需标签——此处可使用所有标签类别，且可添加任意数量的标签。自动补全列表将帮助您找到标签的<em>规范</em>版本，可充分利用标签规范化结构排除所有关联作品（含子标签及同义标签）。</p>
+			<p>您也可以输入不在自动补全列表中的标签。如果您输入的标签已在 AO3 上使用但未标记为规范标签，则筛选器将查找使用您输入的确切标签的作品。如果您输入的标签在 AO3 上从未被使用，筛选器将进行简单的文本匹配，可能会带来意想不到的结果。“在结果中搜索”字段将更准确地进行文本匹配，尤其是在关系标签和其她包含“/”或其她非文字字符的标签的情况下。</p>
+			<p>从类别中选择任意标签,或在“要排除的其她标签”字段中输入标签，将与您选择的所有标签进行 OR 搜索。这意味着，如果您筛选<a href="/tags/F*s*F/works">女/女类别标签的作品</a>，选择 <samp>主要角色死亡</samp> 预警，在附加标签类别中选择规范的 <samp>Alternate Universe（平行世界）</samp> 标签，并在“要排除的其她标签”字段中输入或选择规范的 <samp>Drama（剧情）</samp> 标签，则结果中只会包含<a href="/works?utf8=%E2%9C%93&work_search%5Bsort_column%5D=revised_at&work_search%5Bother_tag_names%5D=&exclude_work_search%5Bwarning_ids%5D%5B%5D=18&exclude_work_search%5Bfreeform_ids%5D%5B%5D=968&work_search%5Bexcluded_tag_names%5D=Drama&work_search%5Bquery%5D=&work_search%5Blanguage_id%5D=&work_search%5Bcomplete%5D=0&commit=Sort+and+Filter&tag_id=F*s*F">不带有<em>任何</em>这些标签的作品</a>。</p>
+			<p>要查看哪些标签为规范标签，请使用<a href="/tags/search">标签搜索</a>。</p>
+			<p>要了解有关标签的更多信息，请参阅我们的<a href="/faq/tags">标签常见问题</a>。要查看标签整理者用于标记规范标签的指南或更好地理解 AO3 特有的标签术语，请阅读<a href="/wrangling_guidelines">整理指南</a>。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品筛选：排除标签';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“包含标签”筛选帮助的文本。
+ */
+function translateBookmarkFiltersIncludeTags() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark filters include tags') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>标签筛选：包含标签</h4>
+			<p>
+				筛选器列出了每个标签类别中最常用的十个标签。要使用其她标签进行筛选，请使用“要包括的其她作品标签”和“要包括的其她书签创建者标签”字段。
+			</p>
+			<p>
+				如果您感兴趣的标签不在前十个中，请在“要包括的其她作品标签”或“要包括的其她书签创建者标签”字段中开始输入所需标签——此处可使用所有标签类别，且可添加任意数量的标签。自动补全列表将帮助您找到标签的<em>规范</em>版本，可充分利用标签规范化结构排除所有关联作品（含子标签及同义标签）。
+			</p>
+			<p>
+				您也可以输入不在自动补全列表中的标签。如果您输入的标签已在 AO3 上使用但未标记为规范标签，则筛选器将查找使用您输入的确切标签的作品。如果您输入的标签在 AO3 上从未被使用，筛选器将进行简单的文本匹配，可能会带来意想不到的结果。“在结果中搜索”和“搜索书签创建者标签和注释”字段将更准确地进行文本匹配，尤其是在关系标签和其她包含“/”或其她非文字字符的标签的情况下。
+			</p>
+			<p>
+				从类别中选择任意标签,或在“要包括的其她作品标签”或“要包括的其她书签创建者标签”字段中输入标签，将与您选择的所有标签进行 AND 搜索。这意味着，如果您筛选<a href="/tags/F*s*F/bookmarks">女/女类别标签的书签</a>，选择 <samp>青少年及以上</samp> 分级，在附加标签类别中选择规范的 <samp>Romance（爱情）</samp> 标签，并在“要包括的其她作品标签”字段中输入或选择规范的 <samp>Drama（剧情）</samp> 标签，结果中只会包含<a href="/bookmarks?utf8=✓&bookmark_search%5Bsort_column%5D=created_at&include_bookmark_search%5Brating_ids%5D%5B%5D=11&include_bookmark_search%5Bfreeform_ids%5D%5B%5D=60&bookmark_search%5Bother_tag_names%5D=Drama&bookmark_search%5Bother_bookmark_tag_names%5D=&bookmark_search%5Bexcluded_tag_names%5D=&bookmark_search%5Bexcluded_bookmark_tag_names%5D=&bookmark_search%5Bbookmarkable_query%5D=&bookmark_search%5Bbookmark_query%5D=&bookmark_search%5Brec%5D=0&bookmark_search%5Bwith_notes%5D=0&commit=Sort+and+Filter&tag_id=F*s*F">同时带有所有这些标签的作品或系列的书签</a>。
+			</p>
+			<p>
+				若要获取包含标签 A 或 标签 B 的结果，请使用“在结果中搜索”或“搜索书签创建者标签和注释”字段。
+			</p>
+			<p>
+				要查看哪些标签为规范标签，请使用<a href="/tags/search">标签搜索</a>。
+			</p>
+			<p>
+				要了解有关标签的更多信息，请参阅我们的<a href="/faq/tags">标签常见问题</a>。要查看标签整理者用于标记规范标签的指南或更好地理解 AO3 特有的标签术语，请阅读<a href="/wrangling_guidelines">整理指南</a>。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签筛选：包括标签';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /bookmarks/search 页面上“排除标签”筛选帮助的文本。
+ */
+function translateBookmarkFiltersExcludeTags() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Bookmark filters exclude tags') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>标签筛选：排除标签</h4>
+			<p>
+				筛选器列出了每个标签类别中最常用的十个标签。要使用其她标签进行筛选，请使用“要排除的其她作品标签”或“要排除的其她书签创建者标签”字段。
+			</p>
+			<p>
+				如果您想排除的标签不在前十个中，请在“要排除的其她作品标签”或“要排除的其她书签创建者标签”字段中开始输入所需标签——此处可使用所有标签类别，且可添加任意数量的标签。自动补全列表将帮助您找到标签的<em>规范</em>版本，可充分利用标签规范化结构排除所有关联作品（含子标签及同义标签）。
+			</p>
+			<p>
+				您也可以输入不在自动补全列表中的标签。如果您输入的标签已在 AO3 上使用但未标记为规范标签，则筛选器将查找使用您输入的确切标签的作品。如果您输入的标签在 AO3 上从未被使用，则筛选器将进行简单的文本匹配，可能会带来意想不到的结果。“在结果中搜索”和“搜索书签创建者标签和注释”字段将更准确地进行文本匹配，尤其是在关系标签和其她包含“/”或其她非文字字符的标签的情况下。
+			</p>
+			<p>
+				从类别中选择任意标签，或在“要排除的其她作品标签”或“要排除的其她书签创建者标签”字段中输入标签，将对您选择的所有标签执行 OR 搜索。这意味着，如果您筛选<a href="/tags/F*s*F/bookmarks">女/女类别标签的书签</a>，选择 <samp>主要角色死亡</samp> 预警，在附加标签类别中选择规范的 <samp>Alternate Universe（平行世界）</samp> 标签，并在“要排除的其她作品标签”字段中输入或选择规范的 <samp>Drama（剧情）</samp> 标签，则结果中只会包含<a href="/bookmarks?utf8=✓&bookmark_search%5Bsort_column%5D=created_at&bookmark_search%5Bother_tag_names%5D=&bookmark_search%5Bother_bookmark_tag_names%5D=&exclude_bookmark_search%5Bwarning_ids%5D%5B%5D=18&exclude_bookmark_search%5Bfreeform_ids%5D%5B%5D=968&bookmark_search%5Bexcluded_tag_names%5D=Drama&bookmark_search%5Bexcluded_bookmark_tag_names%5D=&bookmark_search%5Bbookmarkable_query%5D=&bookmark_search%5Bbookmark_query%5D=&bookmark_search%5Brec%5D=0&bookmark_search%5Bwith_notes%5D=0&commit=Sort+and+Filter&tag_id=F*s*F">不带任何这些标签的书签</a>。
+			</p>
+			<p>
+				要查看哪些标签为规范标签，请使用<a href="/tags/search">标签搜索</a>。
+			</p>
+			<p>
+				要了解有关标签的更多信息，请参阅我们的<a href="/faq/tags">标签常见问题</a>。要查看标签整理者用于标记规范标签的指南或更好地理解 AO3 特有的标签术语，请阅读<a href="/wrangling_guidelines">整理指南</a>。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '书签筛选：排除标签';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /works/search 页面上“结果”相关的帮助文本。
+ */
+function translateWorkSearchResultsHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Work search results help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>作品搜索：结果</h4>
+			<p>符合条件的最新作品将显示在列表顶部。否则，列表将按相关性排序。如果作品数量众多，您可能需要更改搜索词而非翻页浏览结果。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '作品搜索：结果 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“Skins approval”弹窗的提示信息。
+ */
+function translateSkinsApprovalModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Skins approval') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>公共界面</h4>
+			<p>
+				AO3 不再将新用户创建的界面添加到公共界面列表，因此您目前无法申请公开您的界面。此复选框仅供站点管理员将新的公共站点界面添加到列表中使用。但是，您仍然可以在<a href="/skins?skin_type=Site">公共站点界面</a>和<a href="/skins?skin_type=WorkSkin">公共作品界面</a>中使用用户创建的界面，也可以继续创建供个人使用的界面。
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '界面审核';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“Skins creating”弹窗中的 CSS 帮助文本。
+ */
+function translateSkinsCreatingModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Skins creating') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<dl id="help">
+				<dt>您可以使用我们的向导或编写自己的 CSS（层叠样式表）代码为 Archive 创建新的界面</dt>
+				<dd>
+					<p>请注意，出于安全原因，您只能使用有限的 CSS 代码集：所有其她声明和注释都将被移除！</p>
+				</dd>
+
+				<dt>我们允许使用以下属性及其所有变体（包括简写）</dt>
+				<dd>
+					<p><code>background, border, column, cue, flex, font, layer-background, layout-grid, list-style, margin, marker, outline, overflow, padding, page-break, pause, scrollbar, text, transform, transition</code></p>
+				</dd>
+
+				<dt>我们还允许以下特定属性</dt>
+				<dd>
+					<p><code>-replace, -use-link-source, accelerator, align-content, align-items, align-self, alignment-adjust, alignment-baseline, appearance, azimuth, baseline-shift, behavior, binding, bookmark-label, bookmark-level, bookmark-target, bottom, box-align, box-direction, box-flex, box-flex-group, box-lines, box-orient, box-pack, box-shadow, box-sizing, caption-side, clear, clip, color, color-profile, color-scheme, content, counter-increment, counter-reset, crop, cue, cue-after, cue-before, cursor, direction, display, dominant-baseline, drop-initial-after-adjust, drop-initial-after-align, drop-initial-before-adjust, drop-initial-before-align, drop-initial-size, drop-initial-value, elevation, empty-cells, filter, fit, fit-position, float, float-offset, font, font-effect, font-emphasize, font-emphasize-position, font-emphasize-style, font-family, font-size, font-size-adjust, font-smooth, font-stretch, font-style, font-variant, font-weight, grid-columns, grid-rows, hanging-punctuation, height, hyphenate-after, hyphenate-before, hyphenate-character, hyphenate-lines, hyphenate-resource, hyphens, icon, image-orientation, image-resolution, ime-mode, include-source, inline-box-align, justify-content, layout-flow, left, letter-spacing, line-break, line-height, line-stacking, line-stacking-ruby, line-stacking-shift, line-stacking-strategy, mark, mark-after, mark-before, marks, marquee-direction, marquee-play-count, marquee-speed, marquee-style, max-height, max-width, min-height, min-width, move-to, nav-down, nav-index, nav-left, nav-right, nav-up, opacity, order, orphans, page, page-policy, phonemes, pitch, pitch-range, play-during, position, presentation-level, punctuation-trim, quotes, rendering-intent, resize, rest, rest-after, rest-before, richness, right, rotation, rotation-point, ruby-align, ruby-overhang, ruby-position, ruby-span, size, speak, speak-header, speak-numeral, speak-punctuation, speech-rate, stress, string-set, tab-side, table-layout, target, target-name, target-new, target-position, top, unicode-bibi, unicode-bidi, user-select, vertical-align, visibility, voice-balance, voice-duration, oice-family, voice-pitch, voice-pitch-range, voice-rate, voice-stress, voice-volume, volume, white-space, white-space-collapse, widows, width, word-break, word-spacing, word-wrap, writing-mode, z-index</code></p>
+				</dd>
+
+				<dt>查看其她公共界面示例</dt>
+				<dd>
+					<p><a href="/skins">所有已批准的公共界面</a>均可查看其代码，您可复制并编辑以供个人使用。</p>
+				</dd>
+
+				<dt>每条规则集中每个属性只使用一个声明</dt>
+				<dd>
+					<p>我们使用的 CSS 解析器仅保留每个属性的一个声明，这意味着像<br></p>
+					<pre><code>.my-class {
+background: -moz-linear-gradient(top, #1e5799 0%, #2989d8 50%, #207cca 51%, #7db9e8 100%);
+background: -o-linear-gradient(top, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%);
+background: -webkit-linear-gradient(top, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%);
+}</code></pre>
+					<p>这样的规则集将只保留最后一个 <code>background</code> 声明（因此您的渐变效果仅在 WebKit 浏览器中显示）。为避免丢失重复属性的声明，请将每个声明拆分到独立的规则集中，如：</p>
+					<pre><code>.my-class { background: -moz-linear-gradient(top, #1e5799 0%, #2989d8 50%, #207cca 51%, #7db9e8 100%); }
+.my-class { background: -o-linear-gradient(top, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%); }
+.my-class { background: -webkit-linear-gradient(top, #1e5799 0%,#2989d8 50%,#207cca 51%,#7db9e8 100%); }</code></pre>
+				</dd>
+
+				<dt>字体与字体族</dt>
+				<dd>
+					<p>遗憾的是，您不能在 CSS 中使用 <code>font</code> 简写。所有 font 属性必须分别指定，例如：<code>font-size: 1.1em; font-weight: bold; font-family: Cambria, Constantia, Palatino, Georgia, serif;</code></p>
+					<p>在 <code>font-family</code> 属性中，我们允许您使用字母数字名称指定任何字体。您可以（但不必）使用单引号或双引号将名称括起，只需确保引号成对匹配。（例如，'Gill Sans' 和 "Gill Sans" 都可；'Gill Sans" 则不可。）请记住，字体必须安装在用户的操作系统中才能生效。建议在指定字体时添加备用字体，以防首选字体不可用。请参阅<a href="https://www.w3schools.com/cssref/css_fonts_fallbacks.asp">包含备用字体的网页安全字体集</a>。</p>
+					<p>抱歉，我们<strong>不允许</strong>使用 <code>@font-face</code> 属性。如果您想在要分享的界面中使用不常见字体，建议在“描述”字段中添加注释，提供用户自行下载该字体的链接，并使用网页安全字体作为备用。</p>
+				</dd>
+
+				<dt>URLs</dt>
+				<dd>
+					<p>我们允许使用 JPG 、GIF 和 PNG 格式的外部图像 URL（格式如 <code>url('https://example.com/my_awesome_image.jpg')</code>）。但请注意，使用外部图像的界面将不会被批准为公共界面。</p>
+				</dd>
+
+				<dt>关键词</dt>
+				<dd>
+					<p>我们允许所有标准 CSS 关键词值（例如 <code>absolute</code>、<code>bottom</code>、<code>center</code>、<code>underline</code> 等）。</p>
+				</dd>
+
+				<dt>数值</dt>
+				<dd>
+					<p>您可以指定最多两位小数的数值，作为百分比或<a href="https://w3schools.com/css/css_units.asp">各种单位</a>：<br><code>cm, em, ex, in, mm, pc, pt, px</code></p>
+					<p>PS：我们强烈建议学习并使用 <code>em</code>，它可以让您根据查看者当前的字体大小设置布局！这将使您的布局更加灵活，并响应不同的浏览器/字体设置。</p>
+				</dd>
+
+				<dt>颜色</dt>
+				<dd>
+					<p>您可以使用十六进制值（例如，<code>#000000</code> 表示十六进制黑色）或 RGB 、RGBA 值（例如 <code>rgb(0,0,0)</code> 和 <code>rgba(0,0,0,0)</code> 都表示黑色）指定颜色。这可能更安全，因为并非所有浏览器都一定支持所有颜色名称。但是，颜色名称更具可读性且易于记忆，因此我们也允许使用颜色名称。（建议您坚持使用<a href="https://www.w3schools.com/colors/colors_names.asp">常见支持的颜色名称集</a>。）</p>
+				</dd>
+
+				<dt>缩放</dt>
+				<dd>
+					<p>您可以为 <code>transform</code> 属性指定 <code>scale(数值)</code> 形式的缩放，其中数值最多可指定两位小数。</p>
+				</dd>
+
+				<dt>注释</dt>
+				<dd>
+					<p>CSS 中的注释会被移除。</p>
+				</dd>
+
+				<dt>如果您是 CSS 新手，以下是基础知识：</dt>
+				<dd>
+					<p>一行 CSS 代码的格式类似：<code>selector {property: value;}</code></p>
+					<p><strong>selector</strong> 是要更改的 HTML 标签名称（如 <code>body</code> 或 <code>h1</code>），或已在标签上设置的 id 或 class。<strong>property</strong> 是您要更改的属性（例如字体大小），<strong>value</strong> 是您要设置的值。</p>
+					<p>示例：</p>
+					<ul>
+						<li>设置 <code>body</code> 标签内的字体大小略大于基线：<code>body {font-size: 1.1em;}</code></li>
+						<li>设置 id 为 <code>#header</code> 的标签背景色为紫色：<code>#header {background-color: purple}</code></li>
+						<li>设置 class 为 <code>.meta</code> 的标签文本闪烁（不建议使用）：<code>.meta {font-style: blink}</code></li>
+					</ul>
+					<p>一些有用的 CSS 教程：</p>
+					<ul>
+						<li><a href="https://www.w3schools.com/css/css_intro.asp">CSS 入门教程</a></li>
+						<li><a href="http://developer.mozilla.org/docs/CSS/Getting_Started">MDN 上的 CSS 入门教程</a></li>
+					</ul>
+				</dd>
+			</dl>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '界面创建';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“Skin Conditions”弹窗的帮助文本。
+ */
+function translateSkinsConditionsModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Skins conditions') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h3>界面条件</h3>
+			<p>如果您希望在特定情况下仅加载某段 CSS ，可以为界面创建一组特定的条件。只有满足条件时，我们才会加载该界面。可用的条件有：</p>
+			<ul>
+				<li>
+					<h4>作用方式</h4>
+					<dl>
+						<dt>添加到 Archive 样式之后</dt>
+						<dd>95% 的情况下使用此选项。将在官方 Archive 样式之后加载。</dd>
+						<dt>完全替换 Archive 样式</dt>
+						<dd>适用于复杂界面，不想保留大部分默认样式时使用。（可将需要保留的部分设为母级界面。）</dd>
+					</dl>
+				</li>
+				<li>
+					<h4>仅限母级</h4>
+					<p class="note">此选项主要用于保持界面列表整洁。如果选择此项，您（及其她用户）将无法直接使用该界面：它仅作为母级被引用。即使公开，其也不会出现在主界面列表中，只会在引用它作为母级的界面说明中列出。这样可以方便地提供组件供她人使用，而不会因无法独立使用而在列表中产生混乱。:)</p>
+				</li>
+				<li>
+					<h4>媒体类型</h4>
+					<p class="note">您可选择多个媒体类型。仅当所用设备支持该媒体类型时，才会加载对应样式表。例如，并非所有屏幕阅读器都会加载“speech”样式表。如果您的设备未加载界面，请改用“all”或“screen”，或提交支持请求以获取帮助。</p>
+					<dl>
+						<dt>all</dt>
+						<dd>大多数情况下使用。适用于所有设备。（某些极老的浏览器不识别“all”，需使用“screen”。）</dd>
+						<dt>screen</dt>
+						<dd>适用于电脑屏幕。（通常也适用于不支持其她媒体类别的设备。）</dd>
+						<dt>handheld</dt>
+						<dd>仅在移动设备和/或小屏幕上加载。</dd>
+						<dt>speech</dt>
+						<dd>仅在屏幕阅读器上加载。</dd>
+						<dt>print</dt>
+						<dd>仅在打印页面时加载。</dd>
+						<dt>braille, embossed, projection, tty, tv</dt>
+						<dd>详见 <a href="http://www.w3.org/TR/CSS2/media.html">W3C 媒体规范</a>。</dd>
+						<dt>only screen and (max-width: 450px)</dt>
+						<dd>适用于 iPhone（否则不会加载 handheld 样式表）。</dd>
+					</dl>
+				</li>
+				<li>
+					<h4>仅限 IE</h4>
+					<p class="note">留空则在所有浏览器上加载界面。选择后，仅在 Internet Explorer 浏览器中加载，可添加 IE 专用覆盖样式。</p>
+					<dl>
+						<dt>IE</dt>
+						<dd>适用于任何版本的 IE 浏览器。</dd>
+						<dt>IE5, IE6, IE7, IE8, IE9</dt>
+						<dd>仅适用于对应版本的 IE 浏览器。</dd>
+						<dt>IE8_or_lower</dt>
+						<dd>适用于 IE8 及以下版本。</dd>
+					</dl>
+				</li>
+			</ul>
+			<h4>与母级界面交互</h4>
+			<p>如果您同时使用母级界面，可为特定母级设置条件，然后创建针对不同浏览器表现不同的界面。例如，您可将大部分 CSS 放在一个母级界面，将 IE 专用样式放在另一个母级界面，将 handheld 媒体样式放在第三个母级界面，将 print 媒体样式放在第四个母级界面。最终界面将根据用户浏览器分别加载各母级！</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '界面条件';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“Skins parents”弹窗的帮助文本。
+ */
+function translateSkinsParentsModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Skins parents') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h3>界面母级</h3>
+			<p>您可以通过将一个站点界面设为另一个的母级来组合和分层多个站点界面。母级界面按顺序加载，以便按该顺序显示所有界面样式。要了解有关界面更多信息，请参阅<a href="/faq/skins-and-archive-interface">界面与界面常见问题</a>。</p>
+			<p>默认情况下，界面将在 Archive 默认样式之后加载。如果您不想如此，可以在“作用方式”菜单中指定将您的界面替换而不是添加到 Archive 默认样式。</p>
+			<h4>加载 Archive 样式组件</h4>
+			<p>如果您创建了替换界面，可能希望将组成当前默认 Archive 站点的所有界面作为母级一并加载。此选项仅在您从“作用方式”菜单中选择“完全替换 Archive 样式”时可用。之后，您可以编辑您的界面并删除不需要的部分。如果您要保留大部分内容，这将更容易操作，因为默认界面数量众多！</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '界面母级';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“Skins wizard font”弹窗的帮助文本。
+ */
+function translateSkinsWizardFontModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Skins wizard font') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<p>默认值为：<code>'Lucida Grande'、'Lucida Sans Unicode'、Verdana、Helvetica、sans-serif、'GNU Unifont'</code></p>
+			<p>在此处输入任意字体名称，如果它已安装在您的计算机上，则可使用。如果您使用多种设备，请指定一些备用字体，名称之间用逗号分隔，以防某设备没有首选字体。</p>
+			<p>对于含有空格的字体名称，可使用单引号或双引号括起，例如 <kbd>"Lucida Grande"</kbd> 或 <kbd>'Lucida Sans Unicode'</kbd>。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '界面向导 字体';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“Skins wizard font size”弹窗的帮助文本。
+ */
+function translateSkinsWizardFontSizeModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Skins wizard font size') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<p>默认值为：<code>100%</code></p>
+			<p>Archive 上的字体大小基于浏览器默认字体大小的百分比。使用小于 100 的数字可缩小 Archive 文本，使用大于 100 的数字可放大文本。输入 100 可保持 Archive 的默认字体大小。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '界面向导 字体大小';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“Skins wizard vertical gap”弹窗的帮助文本。
+ */
+function translateSkinsWizardVerticalGapModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Skins wizard vertical gap') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<p>默认值为：<code>1.1286em</code></p>
+			<p>在此处输入任意数字，该数字将作为作品字体大小的倍数生效。数字越大，段落垂直间距越宽。</p>
+			<p>例如，大多数用户以 15 像素的字体大小查看作品。输入 <kbd>2</kbd> 将生成 30 像素的垂直间距，输入 <kbd>0.5</kbd> 则会产生约 8 像素的垂直间距。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '界面向导 垂直间距';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“Skins wizard accent color”弹窗的帮助文本。
+ */
+function translateSkinsWizardAccentColorModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Skins wizard accent color') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<p>默认值为：<code>#ddd</code></p>
+			<p>替换 Archive 中多个位置使用的灰色，包括表单背景、主导航中的下拉菜单，以及个人中心页面的“同人圈”和“最近作品”部分。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '界面向导 强调色';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专用于翻译“合集名称”帮助弹窗
+ */
+function translateCollectionNameHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Collection name') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>合集名称</h4>
+			<p>合集名称可以在以后更改，但这样会破坏指向该合集的链接。</p>
+			<p>名称只能由 ASCII 字母（a-z、A-Z）、数字和下划线组成，且不能包含空格。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '合集名称';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 "Icon Alt Text" 弹窗。
+ */
+function translateIconAltTextHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const header = container?.querySelector('h4');
+	if (!header || header.textContent !== 'Icon Alt Text') {
+		return;
+	}
+	container.innerHTML = `
+		<h4>图标替代文本</h4>
+		<p>替代文本的作用是在图像无法显示时解释其含义。该功能供关闭图像显示或使用屏幕阅读器的视障用户使用。请勿将替代文本用于标注图片来源！</p>
+		<p>例如，AO3 标志的替代文本为：“Archive of Our Own”。</p>
+	`;
+	container.setAttribute('data-translated-by-custom-function', 'true');
+	const footer = container.nextElementSibling;
+	if (footer) {
+		const footerTitle = footer.querySelector('span.title');
+		if (footerTitle) {
+			footerTitle.textContent = '图标替代文本';
+		}
+
+		const closeButton = footer.querySelector('a.modal-closer');
+		if (closeButton) {
+			closeButton.textContent = '关闭';
+		}
+	}
+}
+
+/**
+ * 专用于翻译“笔名图标注释”帮助弹窗
+ */
+function translatePseudIconCommentHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Pseud icon comment') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<p>您可以在此处填写关于您的图标的额外信息，例如图标制作者的署名。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '笔名图标注释文本';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专用于翻译“审核制合集”帮助弹窗
+ */
+function translateCollectionModeratedHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Collection moderated') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>审核制合集</h4>
+			<p>默认情况下，合集非审核制，这意味着任何注册用户都可以将其作品添加到合集。合集的所有者/管理员仍可在作品发布后拒绝不适当的作品。</p>
+			<p>如果您将合集设置为审核制，所有注册用户仍可发布作品，但在获得管理员或所有者批准之前，作品不会出现在合集内。认证成员投稿将自动通过审核（无需人工操作）。</p>
+			<p>合集的所有者可编辑合集偏好和数据，也可完全删除合集。合集的管理员可批准/邀请成员并添加或拒绝作品。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '合集审核制';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专用于翻译“关闭的合集”帮助弹窗
+ */
+function translateCollectionClosedHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Collection closed') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>关闭的合集</h4>
+			<p>一旦合集关闭，除维护者（所有者和管理员）外，无法再添加作品或书签。如果这是赠文交换或其她活动，请注意，这不会自动根据您在活动设置中设定的任何截止日期触发，必须在此手动设置。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '合集已关闭';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译 /tags/search 页面上“标签搜索结果”帮助文本。
+ */
+function translateTagSearchResultsHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Tag search results help') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>标签搜索结果</h4>
+			<p><span class="canonical">高亮</span>标签为规范标签。</p>
+			<p>最新标签将显示在列表顶部。其余标签按类型和名称字母顺序排序。</p>
+			<p>如果标签过多，请尝试优化搜索，而不是翻页浏览结果。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '标签搜索:结果 帮助';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译挑战注册页面上“选择任意”的帮助弹窗。
+ */
+function translateChallengeAnyTips() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Challenge any') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>选择“任意”</h4>
+			<p>如果您在报名时为某个字段选择“任意”，即表示您同意在该字段上进行无条件匹配——此操作存在潜在风险！请务必确保您真正接受任意内容！即使您在该字段填写了具体选项，“任意”也将覆盖所有已填写内容。</p>
+			<h5>示例</h5>
+			<p>提供“任意”：</p>
+			<ul>
+				<li>您承诺为同人圈“Twin Peaks”提供作品，并为关系字段选择“任意”。</li>
+				<li>用户 Mary Sue 请求创作同人圈“Twin Peaks”，并在关系字段选择“Log Lady/Llama”。</li>
+				<li>您将被匹配，并需创作关于 Llama 和 Log Lady 的史诗般的爱情故事。</li>
+			</ul>
+			<p>请求“任意”（此情况常易混淆！）：</p>
+			<ul>
+				<li>用户 Mary Sue 承诺为同人圈“Twin Peaks”提供作品，并在关系字段选择“Log Lady/Llama”。</li>
+				<li>您请求创作同人圈“Twin Peaks”，并为关系字段选择“任意”。</li>
+				<li>Mary Sue 可能会被分配到您的请求，<strong>且只会为您创作</strong>关于 Log Lady 和 Llama 的史诗故事。</li>
+			</ul>
+			<p>挑战活动管理员可能会选择仅允许在“提供”中使用“任意”选项，或仅开放特定字段使用。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '挑战活动 任意';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译挑战注册页面上“可选标签”的帮助弹窗。
+ */
+function translateOptionalTagsHelp() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+	if (!footerTitle || footerTitle.textContent !== 'Challenge optional tags user') {
+		return;
+	}
+	if (container) {
+		container.innerHTML = `
+			<h4>可选标签</h4>
+			<p>
+			管理员将使用可选标签尝试优化匹配，但必要时可能完全忽略这些标签以完成匹配。此处适合添加冷门或特定标签。
+			请注意：您添加的标签越多，可选标签被忽略的可能性越大，且匹配运行速度越慢，因此请谨慎添加！
+			</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+	footerTitle.textContent = '挑战活动可选标签 用户';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专门用于翻译“章节标题”帮助弹窗。
+ */
+function translateChapterTitleHelpModal() {
+	const container = document.querySelector('#modal div.content.userstuff');
+	const footer = container?.nextElementSibling;
+	const footerTitle = footer?.querySelector('span.title');
+
+	if (!footerTitle || footerTitle.textContent !== 'Chapter title') {
+		return;
+	}
+
+	if (container) {
+		container.innerHTML = `
+			<h4>章节标题</h4>
+			<p>您可以为章节添加标题，但这不是必填项。</p>
+		`;
+		container.setAttribute('data-translated-by-custom-function', 'true');
+	}
+
+	footerTitle.textContent = '章节标题';
+	const closeButton = footer.querySelector('a.modal-closer');
+	if (closeButton) {
+		closeButton.textContent = '关闭';
+	}
+}
+
+/**
+ * 专用翻译函数：翻译“关于 OTW”页面
+ */
+function translateAboutPage() {
+	const mainDiv = document.querySelector('div#main.about');
+	if (!mainDiv) return;
+	const titleElement = mainDiv.querySelector('h2.heading');
+	if (!titleElement || !titleElement.textContent.includes('About the OTW')) {
+		return;
+	}
+	mainDiv.innerHTML = `
+		<h2 class="heading">关于 OTW</h2>
+		<div class="userstuff">
+			<p>再创作组织（OTW）是一个由同人爱好者于 2007 年创立的非营利组织，旨在通过提供多种形式的同人作品和同人文化的访问权限并保存其历史，来服务同人爱好者的利益。我们相信，同人作品具有再创作性，而再创作作品具有合法地位。</p>
+			<p>我们积极且富有创新精神，致力于保护和捍卫我们的作品免受商业剥削和法律挑战。我们通过保护和培育同人爱好者社群、作品、评论、历史及身份认同，同时为所有同人爱好者提供尽可能广泛的同人活动参与途径，从而维护我们的同人经济、价值观和创作表达。</p>
+			<p>Archive of Our Own 采用开源归档技术，为同人作品提供一个非商业、非营利的集中托管平台。欢迎您为我们的 <a href="https://github.com/otwcode/otwarchive">GitHub 代码库</a>做出贡献，相关开放任务清单可在我们的 <a href="https://otwarchive.atlassian.net/browse/AO3">Jira 项目</a>页面查阅。</p>
+			<p>我们的其她主要项目包括：</p>
+			<ul>
+				<li><a href="https://fanlore.org">Fanlore</a>：一个致力于保存再创作同人作品及其衍生同人圈历史的同人维基。</li>
+				<li><a href="https://transformativeworks.org/projects/legal">Legal Advocacy</a>：法律倡导，致力于保护同人作品免受商业剥削和法律挑战，并为其进行辩护。</li>
+				<li><a href="https://opendoors.transformativeworks.org">Open Doors</a>：为面临风险的同人项目提供庇护。</li>
+				<li><a href="https://journal.transformativeworks.org/index.php/twc">Transformative Works and Cultures</a>：再创作作品与文化，一份经同行评审的学术期刊，旨在促进有关同人作品及其实践的学术研究。</li>
+			</ul>
+			<p>您可通过官网 <a href="https://www.transformativeworks.org">transformativeworks.org</a> 了解更多关于 OTW 及其项目的信息，也可以在<a href="https://www.transformativeworks.org/faq">常见问题页面</a>上了解您的资助对 OTW 持续发展和扩展的重要性。如果您有媒体或研究方面的问题，请联系<a href="https://www.transformativeworks.org/contact_us/">通讯团队</a>。</p>
+		</div>
+	`;
+	mainDiv.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专用翻译函数：翻译“捐赠”页面
+ */
+function translateDonatePage() {
+	const mainDiv = document.querySelector('div#main.donate');
+	if (!mainDiv) return;
+	const titleElement = mainDiv.querySelector('h2.heading');
+	if (!titleElement || !titleElement.textContent.includes('Donations')) {
+		return;
+	}
+	mainDiv.innerHTML = `
+		<h2 class="heading">捐赠</h2>
+		<h3 class="heading">支持 AO3 主要有两种方式：捐赠您的时间或资金。</h3>
+		<div class="userstuff">
+			<h3>捐赠时间</h3>
+			<p>
+				<a href="https://www.transformativeworks.org">再创作组织（OTW）</a>是 Archive of Our Own（AO3）的上级组织。我们持续招募志愿者参与<a href="https://www.transformativeworks.org/our-projects">项目开发</a>。若您有意为 AO3 提供志愿服务，可关注以下委员会：无障碍、设计与技术委员会（AD&T）；AO3 文档委员会；政策与滥用委员会；支持团队；标签管理委员会；以及翻译委员会。
+			</p>
+			<p>
+				同时诚邀您为我们的 <a href="https://github.com/otwcode/otwarchive">GitHub 代码库</a>贡献代码，开放任务详见 <a href="https://otwarchive.atlassian.net/browse/AO3">Jira 项目</a>。欢迎浏览我们的<a href="https://www.transformativeworks.org/volunteer">志愿者职位列表</a>，<a href="https://www.transformativeworks.org/you-can-now-subscribe-to-otw-news-by-email">订阅邮件</a>以获取含志愿者招募的全面资讯，并申请符合您资历和兴趣的任何志愿者职位。
+			</p>
+			<h3>捐赠资金</h3>
+			<p>
+				AO3 的日常运营需要持续支出——服务器的电力和带宽——以及随着用户和作品数量的增加，不时购买新服务器等一次性支出。任何<a href="https://donate.transformativeworks.org/otwgive">向 OTW 的捐赠</a>都至关重要。（请放心，我们绝不会将您的 AO3 用户名与财务信息关联。）
+			</p>
+		</div>
+	`;
+	mainDiv.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专用翻译函数：翻译“多元化声明”页面
+ */
+function translateDiversityStatement() {
+	const mainDiv = document.querySelector('div#main.diversity');
+	if (!mainDiv) {
+		return;
+	}
+	const titleElement = mainDiv.querySelector('h2.heading');
+	if (!titleElement || !titleElement.textContent.includes('You are welcome at the Archive of Our Own.')) {
+		return;
+	}
+	mainDiv.innerHTML = `
+		<h2 class="heading">欢迎来到 Archive of Our Own 。</h2>
+		<div class="userstuff">
+			<p>无论您的外表、境遇、立场或世界观如何：只要您喜欢欣赏、创作或评论同人作品，AO3 即为您而建。</p>
+			<p>本站是一个由同人爱好者为同人爱好者打造的永久性全同人圈作品托管平台。无论您以何种方式使用本站，您都是其中的一份子，通过您的使用和<a href="/support">反馈</a>为其注入活力并塑造未来。</p>
+			<p>我们——<a href="/admin_posts">AO3 团队</a>——深知无法在初次尝试时就尽善尽美，也无法让所有人都满意。但我们会努力寻求平衡，郑重考虑并认真对待您的每一条反馈。</p>
+			<p>您可以自由发挥创意，但必须遵守一些<a href="/content">必要的限制</a>，以便为其她用户提供可行性服务。本站致力于保护您的自由表达权及隐私权；详情请阅读我们的<a href="/tos">服务条款</a>。</p>
+			<p>我们明白，要让 AO3 真正实现全同人圈愿景，仍需完善<a href="/admin_posts/295">关键功能</a>：如托管文本形式以外的同人作品、提供多语言界面、增加用户互动方式等。但有了您的支持，我们终将实现目标。</p>
+			<p>我们之所以构建这座档案馆，是因为我们相信持不同观点与主张的人可以齐聚一堂，彼此分享。</p>
+			<p>我们为您而建，期待您成为其中的一员。</p>
+			<br>
+			<p>本文是对 <a href="http://www.dreamwidth.org">Dreamwidth</a> <a href="http://www.dreamwidth.org/legal/diversity">多元化声明</a>的再创作。</p>
+			<p>
+				<a rel="license" href="http://creativecommons.org/licenses/by-sa/3.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by-sa/3.0/88x31.png"></a>
+				<br>
+				本作品采用<a href="http://creativecommons.org/licenses/by-sa/3.0/">知识共享署名-相同方式共享 3.0 未本地化版本</a>许可协议进行许可。
+			</p>
+		</div>
+	`;
+	mainDiv.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专门用于翻译服务条款（TOS）同意提示弹窗。
+ */
+function translateTOSPrompt() {
+	const promptDiv = document.querySelector('div#tos_prompt');
+	if (!promptDiv || promptDiv.hasAttribute('data-translated-by-custom-function')) {
+		return;
+	}
+	const h2Span = promptDiv.querySelector('h2.heading span');
+	if (h2Span) {
+		h2Span.textContent = 'AO3 作品库';
+	}
+	const firstP = promptDiv.querySelector('.agreement p:first-of-type');
+	if (firstP) {
+		firstP.innerHTML = '在 Archive of Our Own（AO3）上，用户可以创建作品、书签、评论、标签及其她<a href="/tos_faq#define_content">内容</a>。您在 AO3 发布的任何信息均可能对公众、AO3 用户及 AO3 工作人员可见。请谨慎分享个人信息，包括但不限于您的姓名、电子邮箱、年龄、所在地、个人关系、性别或性取向、种族或民族背景、宗教或政治观点及其她网站的账户用户名。';
+	}
+	const secondP = promptDiv.querySelector('.agreement p:nth-of-type(2)');
+	if (secondP) {
+		secondP.innerHTML = '想了解更多信息，请查看我们的<a href="/tos">服务条款</a>（包括<a href="/content">内容政策</a>和<a href="/privacy">隐私政策</a>）。';
+	}
+	const tosLabel = promptDiv.querySelector('label[for="tos_agree"]');
+	if (tosLabel) {
+		const originalText = tosLabel.textContent;
+		const yearMatch = originalText.match(/(\d{4})/);
+		if (yearMatch && (originalText.includes('I have read') || originalText.includes('我已阅读'))) {
+			const year = yearMatch[1];
+			tosLabel.textContent = `我已阅读并理解 ${year} 年服务条款，包括内容政策和隐私政策。`;
+		}
+	}
+	const dataLabel = promptDiv.querySelector('label[for="data_processing_agree"]');
+	if (dataLabel) {
+		dataLabel.textContent = '勾选此项即表示您同意在美国及其她司法管辖区为向您提供 AO3 及其相关服务而处理您的个人数据。您确认该司法管辖区的数据隐私法律可能与您所在司法管辖区存在差异。有关您的个人数据将如何被处理的更多信息，请参阅我们的隐私政策。';
+	}
+	const button = promptDiv.querySelector('button#accept_tos');
+	if (button) {
+		button.textContent = '我同意/认可上述条款';
+	}
+	promptDiv.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 翻译各种操作按钮
+ */
+function translateActionButtons() {
+	// Please wait 状态按钮
+	const buttonsToTranslateDisableText = document.querySelectorAll('[data-disable-with="Please wait..."]');
+	buttonsToTranslateDisableText.forEach(button => {
+		button.setAttribute('data-disable-with', '请稍等…');
+	});
+	// 订阅/取消订阅按钮
+	const subscribeButton = document.querySelector('input[name="commit"][value="Subscribe"]');
+	if (subscribeButton) {
+		subscribeButton.value = '订阅';
+	}
+
+	const unsubscribeButton = document.querySelector('input[name="commit"][value="Unsubscribe"]');
+	if (unsubscribeButton) {
+		unsubscribeButton.value = '取消订阅';
+	}
+	// 收藏标签/取消收藏按钮
+	const favoriteTagButton = document.querySelector('input[name="commit"][value="Favorite Tag"]');
+	if (favoriteTagButton) {
+		favoriteTagButton.value = '收藏标签';
+	}
+
+	const unfavoriteTagButton = document.querySelector('input[name="commit"][value="Unfavorite Tag"]');
+	if (unfavoriteTagButton) {
+		unfavoriteTagButton.value = '取消收藏';
+	}
+	const ajaxForms = document.querySelectorAll('form.ajax-create-destroy');
+	ajaxForms.forEach(form => {
+		// 订阅功能
+		if (form.getAttribute('data-create-value') === 'Subscribe') {
+			form.setAttribute('data-create-value', '订阅');
+		}
+		if (form.getAttribute('data-destroy-value') === 'Unsubscribe') {
+			form.setAttribute('data-destroy-value', '取消订阅');
+		}
+		// 收藏标签功能
+		if (form.getAttribute('data-create-value') === 'Favorite Tag') {
+			form.setAttribute('data-create-value', '收藏标签');
+		}
+		if (form.getAttribute('data-destroy-value') === 'Unfavorite Tag') {
+			form.setAttribute('data-destroy-value', '取消收藏');
+		}
+	});
+}
+
+/**
+ * 专用于翻译按钮
+ */
+function translateSortButtons() {
+	const translations = {
+		'Bookmarks': '书签',
+		'Comment Threads': '评论串',
+		'Date': '日期',
+		'Fandom': '同人圈',
+		'Hits': '点击',
+		'Kudos ♥': '点赞',
+		'Prompter': '梗提供者',
+		'Subscriptions': '订阅列表',
+		'Word Count': '字数统计'
+	};
+	const sortButtons = document.querySelectorAll('a[title="sort up"], a[title="sort down"]');
+	sortButtons.forEach(button => {
+		if (button.hasAttribute('data-translated-by-custom-function')) {
+			return;
+		}
+
+		let currentHTML = button.innerHTML;
+		let isTranslated = false;
+		for (const key in translations) {
+			if (currentHTML.includes(key)) {
+				currentHTML = currentHTML.replace(key, translations[key]);
+				isTranslated = true;
+			}
+		}
+
+		const title = button.getAttribute('title');
+		if (title === 'sort up') {
+			button.setAttribute('title', '升序');
+			isTranslated = true;
+		} else if (title === 'sort down') {
+			button.setAttribute('title', '降序');
+			isTranslated = true;
+		}
+
+		if (isTranslated) {
+			button.innerHTML = currentHTML;
+			button.setAttribute('data-translated-by-custom-function', 'true');
+		}
+	});
+}
+
+/**
+ * 专用于翻译 /tag_sets 页面上带有“?”弹窗链接的标题。
+ */
+function translateTagSetsHeading() {
+	const h2 = document.querySelector('h2.heading:has(a[href="/help/tagset-about.html"])');
+	if (!h2 || h2.hasAttribute('data-translated-by-custom-function')) {
+		return;
+	}
+	if (h2.firstChild && h2.firstChild.nodeType === Node.TEXT_NODE) {
+		h2.firstChild.nodeValue = ' AO3 中的标签集 ';
+	}
+	if (h2.lastChild && h2.lastChild.nodeType === Node.TEXT_NODE) {
+		h2.lastChild.nodeValue = '';
+	}
+	h2.setAttribute('data-translated-by-custom-function', 'true');
+}
+
+/**
+ * 专用于翻译搜索结果页面上带有“?”弹窗链接的“找到”标题。
+ */
+function translateFoundResultsHeading() {
+	const h3s = document.querySelectorAll('h3.heading:has(a[href*="-search-results-help.html"])');
+	h3s.forEach(h3 => {
+		if (h3.hasAttribute('data-translated-by-custom-function')) {
+			return;
+		}
+		const textNode = h3.firstChild;
+		if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+			const match = textNode.nodeValue.match(/\s*([\d,]+)\s+Found\s*/);
+			if (match) {
+				const number = match[1];
+				textNode.nodeValue = `找到 ${number} 条结果 `;
+			}
+		}
+		h3.setAttribute('data-translated-by-custom-function', 'true');
+	});
+}
+
+/**
+ * 专门用于翻译作品与书签搜索结果页面上的 H4 标题。
+ */
+function translateSearchResultsHeader() {
+	const h4 = document.querySelector('h2.heading + h4.heading');
+
+	if (!h4 || h4.hasAttribute('data-translated-by-custom-function')) {
+		return;
+	}
+	const originalText = h4.textContent.trim();
+	// 翻译字典
+	const translations = {
+		'title': '标题',
+		'author/artist': '作者/画师',
+		'tags': '标签',
+		'fandoms': '同人圈',
+		'rating': '分级',
+		'archive warnings': 'Archive 预警',
+		'categories': '分类',
+		'characters': '角色',
+		'relationships': '关系',
+		'language': '语言',
+		'word count': '字数',
+		'hits': '点击',
+		'kudos count': '点赞数',
+		'comments count': '评论数',
+		'bookmarks count': '书签数',
+		'revised at': '更新于',
+		'sort by': '排序方式',
+		'bookmarker': '书签创建者',
+		'notes': '注释',
+		'type': '类型',
+		'work language': '作品语言',
+		'date bookmarked': '书签创建日期',
+		'date updated': '更新日期',
+
+		'general audiences': '全年龄',
+		'teen and up audiences': '青少年及以上',
+		'mature': '成人向',
+		'explicit': '限制级',
+		'not rated': '未分级',
+		'creator chose not to use archive warnings': '不使用 Archive 预警',
+		'no archive warnings apply': 'Archive 预警不适用',
+		'graphic depictions of violence': '暴力场景描写',
+		'major character death': '主要角色死亡',
+		'rape/non-con': '强暴/非自愿性行为',
+		'underage sex': '未成年性行为',
+		'f/f': '女/女',
+		'f/m': '女/男',
+		'm/m': '男/男',
+		'gen': '无CP',
+		'multi': '多配对',
+		'other': '其她',
+		'work': '作品',
+		'series': '系列',
+		'external work': '外部作品',
+		'rec': '推荐',
+		'with notes': '含注释',
+		'complete': '已完结',
+		'Complete': '已完结',
+		'in progress': '连载中',
+		'incomplete': '连载中',
+		'no crossovers': '排除跨圈作品',
+		'only crossovers': '仅限跨圈作品',
+		'single chapter': '单个章节',
+
+		'best match': '最佳匹配',
+		'author': '作者',
+		'date posted': '发布日期',
+		'kudos': '点赞',
+		'comments': '评论',
+		'bookmarks': '书签',
+
+		'descending': '降序',
+		'ascending': '升序',
+	};
+
+	const translationKeys = Object.keys(translations).sort((a, b) => b.length - a.length);
+	const translationRegex = new RegExp(`\\b(${translationKeys.join('|').replace(/\//g, '\\/')})\\b`, 'gi');
+
+	let processedText = originalText.replace(translationRegex, (match) => {
+		return translations[match.toLowerCase()] || match;
+	});
+
+	processedText = processedText.replace(/(排序方式：)\s*(.+?)\s*(升序|降序)\s*$/g, '$1$2（$3）');
+	processedText = processedText
+		.replace(/You searched for:/i, '您搜索了：')
+		.replace(/\s*:\s*/g, '：')
+		.replace(/, /g, '，')
+		.replace(/，/g, '，')
+		.replace(/ \/ /g, '/')
+		.replace(/\s*：\s*/g, '：')
+		.replace(/\s*，\s*/g, '，')
+		.replace(/：，/g, '：')
+		.replace(/^您搜索了：，/, '您搜索了：')
+		.trim();
+
+	h4.textContent = processedText;
+	h4.setAttribute('data-translated-by-custom-function', 'true');
+
+	const subnavLink = document.querySelector('ul.navigation.actions a[href*="edit_search=true"]');
+	if (subnavLink) {
+		subnavLink.textContent = '修改搜索设置';
+	}
+
+	const noResultsP = Array.from(document.querySelectorAll('#main > p')).find(p => p.textContent.includes('No results found.'));
+	if (noResultsP) {
+		noResultsP.textContent = '未找到结果。您可以尝试修改搜索设置，使其不那么精确。';
+	}
+}
+
+/**
+ * 翻译 flash notice 提示消息
+ */
+function translateFlashMessages() {
+	document.querySelectorAll('div.flash.notice').forEach(flash => {
+		const originalHTML = flash.innerHTML;
+		const originalText = flash.textContent;
+
+		let newHTML = originalHTML;
+
+		const subscribeMatch = originalHTML.match(/^You are now following (.+?)\. If you'd like to stop receiving email updates, you can unsubscribe from (<a href=".*?">your Subscriptions page<\/a>)\.$/);
+		if (subscribeMatch) {
+			const workTitle = subscribeMatch[1];
+			const linkTag = subscribeMatch[2].replace('>your Subscriptions page<', '>订阅列表<');
+			newHTML = `您已订阅 ${workTitle} 。如果您想停止接收邮件更新提醒，可以在${linkTag}页面取消订阅。`;
+		}
+		else {
+			const unsubscribeMatch = originalHTML.match(/^You have successfully unsubscribed from (.+?)\.$/);
+			if (unsubscribeMatch) {
+				const workTitle = unsubscribeMatch[1];
+				newHTML = `您已成功取消对 ${workTitle} 的订阅。`;
+			}
+		}
+		if (originalText.startsWith('You have successfully removed')) {
+			const match = originalText.match(/You have successfully removed (.+?) from your favorite tags\./);
+			if (match && match[1]) {
+				newHTML = `您已成功将 ${match[1].trim()} 从收藏的标签中移除。`;
+			}
+		}
+		else if (originalHTML.startsWith('You have successfully added')) {
+			const match = originalHTML.match(/^You have successfully added (.+?) to your favorite tags\. You can find them on the <a href="\/">Archive homepage<\/a>\.$/);
+			if (match && match[1]) {
+				newHTML = `您已成功将 ${match[1].trim()} 添加到收藏标签列表。您可以在 <a href="/">Archive 首页</a>上找到它们。`;
+			}
+		}
+		if (newHTML !== originalHTML) {
+			flash.innerHTML = newHTML;
+		}
+	});
+}
+
+/**
+ * 翻译点赞区域
+ */
+function translateKudosSection() {
+	const kudosDiv = document.getElementById('kudos');
+	if (!kudosDiv || kudosDiv.dataset.kudosObserverAttached === 'true') {
+		return;
+	}
+	const translateParagraphContent = (pElement) => {
+		let html = pElement.innerHTML;
+		const originalHtml = html;
+		html = html.replace(/(<a[^>]*>)([\d,]+)\s+more\s+users(<\/a>)/g, '$1$2 位用户$3');
+		html = html.replace(/([\d,]+)\s+guest(s)?/g, '$1 位访客');
+		html = html.replace(/\s+as well as\s+/g, ' ，以及 ');
+		html = html.replace(/(<span id="kudos_more_connector">), and (<\/span>)/g, '$1，和 $2');
+		html = html.replace(/\s+and\s+/g, ' 和 ');
+		html = html.replace(/, /g, '，');
+		html = html.replace(/\s+left kudos on this work!/g, '点赞了此作品！');
+
+		if (html !== originalHtml) {
+			pElement.innerHTML = html;
+		}
+	};
+	const observer = new MutationObserver(() => {
+		const currentP = kudosDiv.querySelector('p.kudos');
+		if (currentP) {
+			translateParagraphContent(currentP);
+		}
+	});
+	observer.observe(kudosDiv, {
+		childList: true,
+		subtree: true
+	});
+	kudosDiv.dataset.kudosObserverAttached = 'true';
+	const initialP = kudosDiv.querySelector('p.kudos');
+	if (initialP) {
+		translateParagraphContent(initialP);
+	}
+}
+
+/**
+ * 翻译统计图表
+ */
+function translateStatsChart() {
+	const chartContainer = document.getElementById('stat_chart');
+	if (!chartContainer || chartContainer.dataset.chartObserverAttached === 'true') {
+		return;
+	}
+
+	const translateSVGText = (svg) => {
+		const textElements = svg.querySelectorAll('text');
+		if (textElements.length === 0) {
+			return false;
+		}
+
+		const translations = {
+			'Hits': '点击量',
+			'Kudos': '点赞数',
+			'Comment Threads': '评论串',
+			'Comment Thread Count': '评论串数',
+			'Bookmarks': '书签',
+			'Subscriptions': '订阅列表',
+			'Word Count': '字数',
+			'Most Recent': '最近发布',
+			'Oldest': '最早发布'
+		};
+
+		const titleRegex = /^(Top|Bottom) Five By (.+)$/;
+		let wordCountElements = [];
+
+		textElements.forEach(textEl => {
+			const originalText = textEl.textContent.trim();
+			if (!originalText) return;
+
+			if (originalText === 'Word') {
+				wordCountElements.push(textEl);
+				return;
+			}
+
+			if (wordCountElements.length > 0) {
+				const cleanedCountText = originalText.replace(/\u2026|\.\.\.$/, '');
+				if ('Count'.startsWith(cleanedCountText)) {
+					const wordEl = wordCountElements.pop();
+					const wordY = parseFloat(wordEl.getAttribute('y'));
+					const countY = parseFloat(textEl.getAttribute('y'));
+					if (Math.abs(wordY - countY) < 20) {
+						wordEl.textContent = '字数';
+						textEl.textContent = '';
+					}
+					return;
+				}
+			}
+
+			const titleMatch = originalText.match(titleRegex);
+			if (titleMatch) {
+				const direction = titleMatch[1] === 'Top' ? '前五' : '后五';
+				const categoryKey = titleMatch[2];
+				const category = translations[categoryKey] || categoryKey;
+				textEl.textContent = `按${category}排名${direction}`;
+				return;
+			}
+
+			if (translations[originalText]) {
+				textEl.textContent = translations[originalText];
+				return;
+			}
+
+			const cleanedText = originalText.replace(/\u2026|\.\.\.$/, '');
+			if (cleanedText === '') {
+				return;
+			}
+
+			if (cleanedText !== originalText) {
+				for (const fullWord in translations) {
+					if (fullWord.startsWith(cleanedText)) {
+						textEl.textContent = translations[fullWord];
+						return;
+					}
+				}
+			}
+		});
+		return true;
+	};
+
+	const observer = new MutationObserver((mutationsList, obs) => {
+		for (const mutation of mutationsList) {
+			if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+				const svg = chartContainer.querySelector('svg');
+				if (svg) {
+					if (translateSVGText(svg)) {
+						obs.disconnect();
+						return;
+					}
+				}
+			}
+		}
+	});
+
+	observer.observe(chartContainer, { childList: true, subtree: true });
+	chartContainer.dataset.chartObserverAttached = 'true';
+
+	const initialSvg = chartContainer.querySelector('svg');
+	if (initialSvg) {
+		if (translateSVGText(initialSvg)) {
+			observer.disconnect();
+		}
+	}
+}
+
+	/**************************************************************************
+	 * WebDAV 云端同步：底层工具类 (加密、压缩、网络客户端)
+	 **************************************************************************/
+
+	/**
+	 * 加密辅助类 (AES-GCM 256 + PBKDF2)
+	 */
+	const SyncCryptoHelper = {
+		async deriveKey(password, salt) {
+			const enc = new TextEncoder();
+			const keyMaterial = await window.crypto.subtle.importKey(
+				"raw", enc.encode(password), { name: "PBKDF2" }, false, ["deriveKey"]
+			);
+			return window.crypto.subtle.deriveKey(
+				{ name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" },
+				keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]
+			);
+		},
+
+		bytesToBase64(bytes) {
+			let binary = '';
+			const CHUNK = 0x8000;
+			for (let i = 0; i < bytes.length; i += CHUNK) {
+				binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+			}
+			return btoa(binary);
+		},
+
+		async encrypt(text, password) {
+			const enc = new TextEncoder();
+			const salt = window.crypto.getRandomValues(new Uint8Array(16));
+			const iv = window.crypto.getRandomValues(new Uint8Array(12));
+			const key = await this.deriveKey(password, salt);
+			const encrypted = await window.crypto.subtle.encrypt(
+				{ name: "AES-GCM", iv: iv }, key, enc.encode(text)
+			);
+
+			return {
+				v: 1,
+				s: this.bytesToBase64(salt),
+				iv: this.bytesToBase64(iv),
+				ct: this.bytesToBase64(new Uint8Array(encrypted))
+			};
+		},
+
+		/**
+		 * 解密：密钥/数据类失败抛带 code 的 Error，供调用方区分提示
+		 */
+		async decrypt(encryptedData, password) {
+			if (!password) {
+				const e = new Error('该数据已加密，但未提供加密密钥');
+				e.code = 'ENC_MISSING_KEY';
+				throw e;
+			}
+			const toBuffer = (str) => {
+				try {
+					return Uint8Array.from(atob(str), c => c.charCodeAt(0));
+				} catch (e) {
+					const err = new Error('文件已损坏或不是有效的加密备份文件');
+					err.code = 'ENC_BAD_DATA';
+					throw err;
+				}
+			};
+			let salt, iv, data;
+			try {
+				salt = toBuffer(encryptedData.s);
+				iv = toBuffer(encryptedData.iv);
+				data = toBuffer(encryptedData.ct);
+			} catch (e) {
+				if (e.code === 'ENC_BAD_DATA') throw e;
+				const err = new Error('文件已损坏或不是有效的加密备份文件');
+				err.code = 'ENC_BAD_DATA';
+				throw err;
+			}
+
+			const key = await this.deriveKey(password, salt);
+
+			try {
+				const decrypted = await window.crypto.subtle.decrypt(
+					{ name: "AES-GCM", iv: iv }, key, data
+				);
+				return new TextDecoder().decode(decrypted);
+			} catch (e) {
+				const err = new Error('密钥不正确，或文件已损坏');
+				err.code = 'ENC_WRONG_KEY';
+				throw err;
+			}
+		}
+	};
+
+	/**
+	 * 压缩辅助类 (Gzip + Base64)
+	 */
+	const SyncCompressionHelper = {
+		async compress(stringData) {
+			if (!stringData) return '';
+			try {
+				const stream = new Blob([stringData]).stream();
+				const compressedReadableStream = stream.pipeThrough(new CompressionStream("gzip"));
+				const compressedResponse = await new Response(compressedReadableStream);
+				const blob = await compressedResponse.blob();
+				return new Promise((resolve) => {
+					const reader = new FileReader();
+					reader.onload = (e) => resolve(e.target.result.split(',')[1]); 
+					reader.readAsDataURL(blob);
+				});
+			} catch (e) {
+				Logger.warn('Sync', 'Gzip 压缩失败，回退为明文', e);
+				return stringData; 
+			}
+		},
+
+		async decompress(base64String) {
+			if (!base64String) return '';
+			try {
+				const binaryString = atob(base64String);
+				const bytes = new Uint8Array(binaryString.length);
+				for (let i = 0; i < binaryString.length; i++) {
+					bytes[i] = binaryString.charCodeAt(i);
+				}
+				const stream = new Blob([bytes]).stream();
+				const decompressedReadableStream = stream.pipeThrough(new DecompressionStream("gzip"));
+				const resp = await new Response(decompressedReadableStream);
+				return await resp.text();
+			} catch (e) {
+				Logger.warn('Sync', 'Gzip 解压失败，尝试作为明文处理', e);
+				return base64String;
+			}
+		}
+	};
+
+	/**
+	 * 共享配置序列化模块（压缩 + 可选加密 + 封包/解包）
+	 */
+	const ConfigSerializer = {
+		async compress(text) { return SyncCompressionHelper.compress(text); },
+		async decompress(b64) { return SyncCompressionHelper.decompress(b64); },
+
+		/**
+		 * 封包：可序列化数据 → 传输/落盘字符串
+		 */
+		async pack(data, key) {
+			const jsonString = JSON.stringify(data);
+			const compressed = await SyncCompressionHelper.compress(jsonString);
+			if (key) {
+				const encryptedObj = await SyncCryptoHelper.encrypt(compressed, key);
+				return JSON.stringify({ ...encryptedObj, cmp: 1 });
+			}
+			return JSON.stringify({ v: 2, compressed: true, data: compressed });
+		},
+
+		/**
+		 * 解包：封包字符串 → 数据
+		 */
+		async unpack(payloadText, key) {
+			let parsed = null;
+			try { parsed = JSON.parse(payloadText); } catch (_) { /* 非 JSON，走纯文本分支 */ }
+			const badFileError = () => {
+				const err = new Error('文件不是有效的配置文件');
+				err.code = 'ENC_BAD_FILE';
+				return err;
+			};
+
+			if (parsed && typeof parsed === 'object') {
+				if (parsed.v === 1 || parsed.ct) {
+					if (!key) {
+						const err = new Error('该数据已加密，但未提供加密密钥');
+						err.code = 'ENC_MISSING_KEY';
+						throw err;
+					}
+					const decryptedStr = await SyncCryptoHelper.decrypt(parsed, key);
+					const jsonStr = parsed.cmp ? await SyncCompressionHelper.decompress(decryptedStr) : decryptedStr;
+					try { return JSON.parse(jsonStr); } catch (e) { throw badFileError(); }
+				}
+				if (parsed.v === 2 && parsed.compressed) {
+					const jsonStr = await SyncCompressionHelper.decompress(parsed.data);
+					try { return JSON.parse(jsonStr); } catch (e) { throw badFileError(); }
+				}
+			}
+			try { return JSON.parse(payloadText); } catch (e) { throw badFileError(); }
+		}
+	};
+
+	// 本地数据自动备份
+	const LOCAL_BACKUP_MAX = 24;
+	const LOCAL_BACKUP_INTERVAL_MS = 60 * 60 * 1000;
+
+	/**
+	 * 本地备份 IndexedDB：与翻译缓存库（AO3TranslatorCacheDB）完全隔离
+	 */
+	const LocalBackupDB = {
+		dbName: 'AO3TranslatorBackupDB',
+		storeName: 'backups',
+		version: 1,
+		db: null,
+		init() {
+			if (this.db) return Promise.resolve(true);
+			return new Promise((resolve) => {
+				if (!window.indexedDB) { resolve(false); return; }
+				const req = indexedDB.open(this.dbName, this.version);
+				req.onupgradeneeded = (ev) => {
+					const db = ev.target.result;
+					if (!db.objectStoreNames.contains(this.storeName)) {
+						db.createObjectStore(this.storeName, { keyPath: 'ts' });
+					}
+				};
+				req.onsuccess = (ev) => { this.db = ev.target.result; resolve(true); };
+				req.onerror = () => { Logger.warn('Backup', '本地备份数据库打开失败', req.error && req.error.message); resolve(false); };
+				req.onblocked = () => resolve(false);
+			});
+		},
+		getAll() {
+			if (!this.db) return Promise.resolve([]);
+			return new Promise((resolve) => {
+				const tx = this.db.transaction([this.storeName], 'readonly');
+				const req = tx.objectStore(this.storeName).getAll();
+				req.onsuccess = () => resolve(req.result || []);
+				req.onerror = () => { Logger.warn('Backup', '读取本地备份列表失败'); resolve([]); };
+			});
+		},
+		get(ts) {
+			if (!this.db) return Promise.resolve(null);
+			return new Promise((resolve) => {
+				const tx = this.db.transaction([this.storeName], 'readonly');
+				const req = tx.objectStore(this.storeName).get(ts);
+				req.onsuccess = () => resolve(req.result || null);
+				req.onerror = () => resolve(null);
+			});
+		},
+		put(record) {
+			if (!this.db) return Promise.resolve();
+			return new Promise((resolve) => {
+				const tx = this.db.transaction([this.storeName], 'readwrite');
+				tx.objectStore(this.storeName).put(record);
+				tx.oncomplete = () => resolve();
+				tx.onerror = () => { Logger.warn('Backup', '写入本地备份失败'); resolve(); };
+			});
+		},
+		delete(ts) {
+			if (!this.db) return Promise.resolve();
+			return new Promise((resolve) => {
+				const tx = this.db.transaction([this.storeName], 'readwrite');
+				tx.objectStore(this.storeName).delete(ts);
+				tx.oncomplete = () => resolve();
+				tx.onerror = () => resolve();
+			});
+		},
+		// 保留最新的 max 份，删除更旧的
+		async prune(max = LOCAL_BACKUP_MAX) {
+			const list = await this.getAll();
+			list.sort((a, b) => b.ts - a.ts);
+			for (const r of list.slice(max)) await this.delete(r.ts);
+		},
+		async latest() {
+			const list = await this.getAll();
+			list.sort((a, b) => b.ts - a.ts);
+			return list[0] || null;
+		}
+	};
+
+	// 备份时间显示：上海时区 YYYY/MM/DD HH:mm:ss（上海 = UTC+8，无夏令时）
+	function formatBackupTime(ts) {
+		const d = new Date(ts + 8 * 60 * 60 * 1000);
+		const p = (n) => String(n).padStart(2, '0');
+		return `${d.getUTCFullYear()}/${p(d.getUTCMonth() + 1)}/${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
+	}
+
+	// 读取当前全部 14 类配置
+	async function getLocalBackupSnapshotData() {
+		const ids = DATA_CATEGORIES.map(c => c.id);
+		return exportAllData(ids);
+	}
+	// 内容指纹
+	async function computeLocalBackupHash(allData) {
+		return sha256(JSON.stringify(allData.data));
+	}
+	// 获取本地备份加密密钥
+	async function getOrCreateLocalBackupKey() {
+		let key = GM_getValue(AO3_LOCAL_BACKUP_ENC_KEY, '');
+		if (!key) {
+			const raw = window.crypto.getRandomValues(new Uint8Array(32));
+			key = SyncCryptoHelper.bytesToBase64(raw);
+			GM_setValue(AO3_LOCAL_BACKUP_ENC_KEY, key);
+			Logger.info('Backup', '已生成本地备份加密密钥');
+		}
+		return key;
+	}
+	async function saveLocalBackup(currentAll = null) {
+		const all = currentAll || await getLocalBackupSnapshotData();
+		const backupKey = await getOrCreateLocalBackupKey();
+		const record = {
+			ts: Date.now(),
+			createdAt: formatBackupTime(Date.now()),
+			hash: await computeLocalBackupHash(all),
+			// 密钥指纹
+			kfp: (await sha256(backupKey)).slice(0, 12),
+			data: await ConfigSerializer.pack(all, backupKey)
+		};
+		await LocalBackupDB.put(record);
+		await LocalBackupDB.prune(LOCAL_BACKUP_MAX);
+		GM_deleteValue('ao3_local_backup_fail_notify');
+		Logger.info('Backup', '本地配置已自动备份', { ts: record.ts });
+		return record;
+	}
+	// 组合备份策略
+	async function maybeLocalBackup(force = false) {
+		if (!LocalBackupDB.db) return null;
+		const currentAll = await getLocalBackupSnapshotData();
+		const hash = await computeLocalBackupHash(currentAll);
+		const latest = await LocalBackupDB.latest();
+		const ageMs = latest ? Date.now() - latest.ts : Infinity;
+		if (force || !latest || ageMs >= LOCAL_BACKUP_INTERVAL_MS || latest.hash !== hash) {
+			return saveLocalBackup(currentAll);
+		}
+		return null;
+	}
+	// 恢复某次备份
+	async function restoreLocalBackup(ts) {
+		const rec = await LocalBackupDB.get(ts);
+		if (!rec) return { success: false, message: '恢复失败：找不到该备份项' };
+		try {
+			let data;
+			const raw = rec.data || '';
+			const key = GM_getValue(AO3_LOCAL_BACKUP_ENC_KEY, '');
+			const keyMissing = !key;
+			const currentKfp = keyMissing ? null : (await sha256(key)).slice(0, 12);
+			if (raw.trim().startsWith('{')) {
+				let envelope = null;
+				try { envelope = JSON.parse(raw); } catch (_) { /* 非法信封 → 走损坏分支 */ }
+				const isEncEnvelope = !!(envelope && typeof envelope === 'object' && (envelope.v === 1 || envelope.ct));
+				try {
+					data = await ConfigSerializer.unpack(raw, key);
+				} catch (e) {
+					if (isEncEnvelope) {
+						const recKfp = rec.kfp || null;
+						if (recKfp) {
+							if (!keyMissing && recKfp === currentKfp) {
+								return { success: false, message: '恢复失败：备份数据无法解密，快照可能已损坏。' };
+							}
+							return { success: false, message: '恢复失败：本地备份密钥已更换或丢失（多见于清除脚本数据、重装脚本或更换脚本管理器），该快照无法解密。' };
+						}
+						return { success: false, message: '恢复失败：无法解密该快照——它可能由已丢失的旧密钥创建（旧版本未记录密钥指纹），或数据已损坏。' };
+					}
+					return { success: false, message: `恢复失败：${e && e.message || String(e)}` };
+				}
+			} else {
+				data = JSON.parse(await ConfigSerializer.decompress(raw));
+			}
+			if (!data || !data.data || typeof data.data !== 'object') return { success: false, message: '恢复失败：备份数据损坏' };
+			try {
+				await maybeLocalBackup(false);
+			} catch (e) {
+				Logger.warn('Backup', '恢复前的保护性备份失败，继续恢复', e);
+			}
+			const res = await importAllData(data, DATA_CATEGORIES.map(c => c.id), 'overwrite', false);
+			Logger.info('Backup', `已从本地备份恢复（ts=${ts}）`);
+			return { success: true, message: (res && res.message) || '' };
+		} catch (e) {
+			Logger.error('Backup', '恢复本地备份失败', e);
+			return { success: false, message: `恢复失败：${e && e.message || String(e)}` };
+		}
+	}
+
+	function openLocalBackupModal() {
+		if (shadowWrapper.querySelector('#ao3-local-backup-modal-overlay')) return;
+		const overlay = document.createElement('div');
+		overlay.id = 'ao3-local-backup-modal-overlay';
+		overlay.className = 'ao3-overlay';
+		const style = document.createElement('style');
+		style.textContent = `
+			// 顶栏标题复刻「查看实时日志」模态框的 .log-modal-title 样式（serif 居中）
+			.log-modal-title { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; font-size: 16px; font-weight: 400; color: var(--ao3-text); font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif CJK SC", serif; white-space: nowrap; pointer-events: none; }
+			.lbp-item { display: flex; justify-content: space-between; align-items: center; padding: 0 16px; height: 45px; position: relative; box-sizing: border-box; }
+			.lbp-item:not(:last-child)::after { content: ''; position: absolute; bottom: 0; left: 16px; right: 16px; height: 1px; background-color: var(--ao3-border); transform: scaleY(0.5); transform-origin: center bottom; }
+			.lbp-item-name { flex: 1; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; }
+			.lbp-item-actions { display: flex; gap: 8px; flex-shrink: 0; }
+			.lbp-item-actions .ao3-icon-btn svg { width: 18px !important; height: 18px !important; }
+			.lbp-empty { color: var(--ao3-text-secondary); font-size: 13px; text-align: center; padding: 20px; }
+		`;
+		overlay.appendChild(style);
+		overlay.insertAdjacentHTML('beforeend', `
+			<div id="ao3-local-backup-modal" class="ao3-modal" style="height: auto;">
+				<div class="ao3-modal-header">
+					<h3 class="log-modal-title">本地数据备份</h3>
+				</div>
+				<div class="ao3-modal-body ao3-custom-scrollbar" id="lbp-container" style="padding: 0; height: 360px;"></div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn" id="lbp-btn-close">关闭</button>
+					<button class="ao3-modal-btn" id="lbp-btn-backup">备份</button>
+				</div>
+			</div>
+		`);
+		shadowWrapper.appendChild(overlay);
+
+		const container = overlay.querySelector('#lbp-container');
+		const RESTORE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-400q-33 0-56.5-23.5T400-480q0-33 23.5-56.5T480-560q33 0 56.5 23.5T560-480q0 33-23.5 56.5T480-400Zm0 280q-139 0-241-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Z"/></svg>';
+
+		const renderList = async () => {
+			container.innerHTML = '';
+			if (!LocalBackupDB.db) await LocalBackupDB.init();
+			const list = await LocalBackupDB.getAll();
+			if (!list || list.length === 0) {
+				container.innerHTML = `<div class="lbp-empty">暂无本地备份</div>`;
+				return;
+			}
+			list.sort((a, b) => b.ts - a.ts);
+			for (const item of list) {
+				const div = document.createElement('div');
+				div.className = 'lbp-item';
+				div.innerHTML = `
+					<div class="lbp-item-name"></div>
+					<div class="lbp-item-actions">
+						<button class="ao3-icon-btn btn-restore" title="恢复">${RESTORE_ICON}</button>
+					</div>
+				`;
+				const nameEl = div.querySelector('.lbp-item-name');
+				nameEl.textContent = item.createdAt || formatBackupTime(item.ts);
+				nameEl.title = nameEl.textContent;
+				div.querySelector('.btn-restore').addEventListener('click', async () => {
+					try {
+						await showCustomConfirm('您确定要从该项配置恢复吗？', '提示', { textAlign: 'center' });
+					} catch (e) { return; }
+					const res = await restoreLocalBackup(item.ts);
+					if (res && res.success === false) {
+						notifyAndLog(res.message, '恢复失败', 'error');
+					}
+					renderList();
+				});
+				container.appendChild(div);
+			}
+		};
+
+		overlay.querySelector('#lbp-btn-close').addEventListener('click', () => overlay.remove());
+		overlay.querySelector('#lbp-btn-backup').addEventListener('click', async () => {
+			try {
+				await saveLocalBackup();
+			} catch (e) {
+				Logger.error('Backup', '手动备份失败', e);
+				notifyAndLog(`备份失败：${e && e.message || String(e)}`, '备份失败', 'error');
+			}
+			renderList();
+		});
+		overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+		renderList();
+	}
+
+	// 自动备份调度
+	const LocalBackupScheduler = {
+		enabled: false,
+		init() {
+			if (!window.indexedDB) { Logger.warn('Backup', '当前环境不支持本地数据备份，已禁用'); return; }
+			LocalBackupDB.init().then((ok) => {
+				if (!ok) { Logger.warn('Backup', '本地备份数据库初始化失败，已禁用'); return; }
+				this.enabled = true;
+				setTimeout(() => { this._tryBackup(); }, 8000);
+				setInterval(() => { this._tryBackup(); }, LOCAL_BACKUP_INTERVAL_MS);
+				this.bindConfigChangeListeners();
+			});
+		},
+		// 自动备份兜底捕获
+		async _tryBackup() {
+			try {
+				await maybeLocalBackup(false);
+			} catch (e) {
+				Logger.error('Backup', '本地自动备份失败', e);
+				const errMsg = e && e.message || String(e);
+				const lastNotified = GM_getValue('ao3_local_backup_fail_notify', null);
+				if (!lastNotified || lastNotified.message !== errMsg || Date.now() - lastNotified.at >= 86400000) {
+					notifyAndLog(`本地自动备份失败：${errMsg}`, '本地备份', 'error');
+					GM_setValue('ao3_local_backup_fail_notify', { message: errMsg, at: Date.now() });
+				}
+			}
+		},
+		bindConfigChangeListeners() {
+			if (typeof GM_addValueChangeListener !== 'function') return;
+			// 监听核心配置键
+			const keys = [
+				CUSTOM_GLOSSARIES_KEY, POST_REPLACE_RULES_KEY, CUSTOM_SERVICES_LIST_KEY,
+				AI_PROFILES_KEY, FORMATTING_PROFILES_KEY, 'ao3_export_templates', 'ao3_fab_actions'
+			];
+			let dirty = false, timer = null;
+			const schedule = () => {
+				dirty = true;
+				clearTimeout(timer);
+				timer = setTimeout(() => {
+					if (!dirty) return;
+					dirty = false;
+					this._tryBackup();
+				}, 5000);
+			};
+			keys.forEach(key => { try { GM_addValueChangeListener(key, () => schedule()); } catch (_) { /* 忽略 */ } });
+		}
+	};
+
+	/**************************************************************************
+	 * WebDAV 通用客户端 - 完整 RFC 4918 核心协议支持
+	 **************************************************************************/
+
+	/**
+	 * WebDAV 错误类
+	 */
+	class WebDAVError extends Error {
+		constructor(code, message, originalError = null) {
+			super(message);
+			this.name = 'WebDAVError';
+			this.code = code;
+			this.status = originalError?.status || 0;
+			this.originalError = originalError;
+		}
+	}
+
+	/**
+	 * 认证处理器 - 仅支持 Basic 认证
+	 */
+	class AuthHandler {
+		constructor(credentials) {
+			this.credentials = credentials;
+		}
+
+		async getAuthorizationHeader(url, method, existingHeaders = {}) {
+			if (existingHeaders.Authorization) return existingHeaders.Authorization;
+			return this.buildBasicAuth();
+		}
+
+		buildBasicAuth() {
+			const { username, password } = this.credentials;
+			const authString = `${username}:${password}`;
+			const bytes = new TextEncoder().encode(authString);
+			const binaryString = Array.from(bytes, byte => String.fromCharCode(byte)).join('');
+			return 'Basic ' + btoa(binaryString);
+		}
+	}
+
+	/**
+	 * WebDAV 服务商能力定义
+	 */
+	const PROVIDER_CAPABILITIES = {
+		'jianguoyun': {
+			name: '坚果云',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: false,
+			supportsLock: false,
+			supportsVersioning: false,
+			supportsConditionalPut: false,
+			supportsCors: false,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: ['jianguoyun.com', 'dav.jianguoyun.com']
+		},
+		'nextcloud': {
+			name: 'Nextcloud / ownCloud',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: true,
+			supportsLock: true,
+			supportsVersioning: true,
+			supportsCors: true,
+			pathEncoding: 'utf8',
+			specialHeaders: { 'OCS-APIRequest': 'true' },
+			detectPatterns: ['nextcloud', 'owncloud']
+		},
+		'yandex': {
+			name: 'Yandex Disk',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: false,
+			supportsLock: false,
+			supportsVersioning: false,
+			supportsCors: false,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: ['webdav.yandex.com', 'yandex.com']
+		},
+		'teracloud': {
+			name: 'Teracloud / InfiniCloud',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: false,
+			supportsLock: false,
+			supportsVersioning: false,
+			supportsCors: false,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: ['teracloud.jp', 'infini-cloud.net']
+		},
+		'koofr': {
+			name: 'Koofr',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: true,
+			supportsLock: false,
+			supportsVersioning: true,
+			supportsCors: true,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: ['koofr.net', 'app.koofr.net']
+		},
+		'pcloud': {
+			name: 'pCloud',
+			supportsPropfind: true,
+			supportsRange: true,
+			supportsChunkedUpload: true,
+			supportsLock: false,
+			supportsVersioning: true,
+			supportsCors: true,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: ['webdav.pcloud.com', 'ewebdav.pcloud.com', 'pcloud.com']
+		},
+		'generic': {
+			name: '通用 WebDAV (RFC 4918)',
+			supportsPropfind: true,
+			supportsRange: false,
+			supportsChunkedUpload: false,
+			supportsLock: false,
+			supportsVersioning: false,
+			supportsCors: false,
+			pathEncoding: 'utf8',
+			specialHeaders: {},
+			detectPatterns: []
+		}
+	};
+
+	// WebDAV 服务商识别
+	function detectWebDavProvider(url) {
+		const lowerUrl = String(url || '').toLowerCase();
+		for (const [id, caps] of Object.entries(PROVIDER_CAPABILITIES)) {
+			if (caps.detectPatterns.some(pattern => lowerUrl.includes(pattern))) return id;
+		}
+		return 'generic';
+	}
+
+	/**
+	 * 服务商适配器接口
+	 */
+	class ProviderAdapter {
+		constructor(capabilities) {
+			this.capabilities = capabilities;
+		}
+
+		prepareRequest(method, path, options) {
+			return options;
+		}
+
+		processResponse(response) {
+			return response;
+		}
+
+		handleError(error) {
+			return error;
+		}
+
+		transformPath(path) {
+			return path;
+		}
+
+		getCapabilities() {
+			return this.capabilities;
+		}
+	}
+
+	// 坚果云适配器
+	class JianGuoYunAdapter extends ProviderAdapter {
+		prepareRequest(method, path, options) {
+			return options;
+		}
+
+		processResponse(response) {
+			if (response.headers?.etag) {
+				response.headers.etag = response.headers.etag.replace(/^["']|["']$/g, '');
+			}
+			return response;
+		}
+
+		handleError(error) {
+			if (error.status === 403 && error.message?.includes('quota')) {
+				return new WebDAVError('QUOTA_EXCEEDED', '存储空间不足', error);
+			}
+			if (error.status === 423) {
+				return new WebDAVError('LOCKED', '文件被锁定，请稍后重试', error);
+			}
+			return error;
+		}
+
+		transformPath(path) {
+			return path;
+		}
+	}
+
+	// Nextcloud 适配器
+	class NextcloudAdapter extends ProviderAdapter {
+		prepareRequest(method, path, options) {
+			return {
+				...options,
+				headers: {
+					...options.headers,
+					'OCS-APIRequest': 'true'
+				}
+			};
+		}
+
+		handleError(error) {
+			if (error.status === 507) {
+				return new WebDAVError('INSUFFICIENT_STORAGE', '服务器存储空间不足', error);
+			}
+			return error;
+		}
+
+		transformPath(path) {
+			// Nextcloud 需要 URL 编码特殊字符但保留斜杠
+			return encodeURI(path).replace(/%2F/g, '/');
+		}
+	}
+
+	// 适配器注册表
+	const ADAPTER_REGISTRY = {
+		'jianguoyun': JianGuoYunAdapter,
+		'nextcloud': NextcloudAdapter,
+		'owncloud': NextcloudAdapter,
+		'yandex': ProviderAdapter,
+		'teracloud': ProviderAdapter,
+		'koofr': ProviderAdapter,
+		'generic': ProviderAdapter
+	};
+
+	/**
+	 * 通用 WebDAV 客户端 - 完整 RFC 4918 核心协议
+	 */
+	class UniversalWebDAVClient {
+		constructor(url, credentials, options = {}) {
+			this.baseUrl = url.endsWith('/') ? url : url + '/';
+			this.credentials = credentials;
+			this.authHandler = new AuthHandler(credentials);
+			this.options = {
+				timeout: 30000,
+				maxRetries: 3,
+				retryPolicy: 'exponential',
+				chunkSize: 10 * 1024 * 1024,
+				maxConcurrency: 3,
+				...options
+			};
+
+			// 自动检测服务商
+			this.providerId = this.detectProvider(url);
+
+			if (this.providerId === 'generic') {
+				this.options.timeout = Math.min(this.options.timeout, 15000);
+				this.options.maxRetries = Math.min(this.options.maxRetries, 1);
+			}
+			
+			this.capabilities = this.resolveCapabilities(options.overrideCapabilities);
+			this.adapter = this.createAdapter();
+
+			Logger.debug('Sync', `WebDAV Client initialized: provider=${this.providerId}`, {
+				supportsCors: this.capabilities.supportsCors
+			});
+
+			if (!this.capabilities.supportsCors) {
+				this.probeTransport();
+			}
+		}
+
+		/**
+		 * 创建目录（MKCOL）。所有请求都走 GM_xmlhttpRequest，无 CORS 预检限制
+		 */
+		async createDirectoryCorsSafe(path) {
+			const dirPath = path.endsWith('/') ? path : path + '/';
+			try {
+				await this.request('MKCOL', dirPath, { ignoreErrors: [405] });
+				return true;
+			} catch (e) {
+				if (e.status === 405) return true;
+				throw e;
+			}
+		}
+
+		/**
+		 * 递归创建目录
+		 */
+		async createDirectoryRecursiveCorsSafe(path) {
+			const parts = path.split('/').filter(Boolean);
+			let currentPath = '';
+			for (const part of parts) {
+				currentPath += '/' + part;
+				await this.createDirectoryCorsSafe(currentPath);
+			}
+			return true;
+		}
+
+		detectProvider(url) {
+			return detectWebDavProvider(url);
+		}
+
+		resolveCapabilities(override) {
+			const base = { ...PROVIDER_CAPABILITIES[this.providerId] };
+			return { ...base, ...override };
+		}
+
+		createAdapter() {
+			const AdapterClass = ADAPTER_REGISTRY[this.providerId] || ProviderAdapter;
+			return new AdapterClass(this.capabilities);
+		}
+
+		/**
+		 * 传输探针：用最小请求头（仅 Authorization）向服务商 base URL 发一次 GET
+		 */
+		probeTransport() {
+			if (this._probeStarted) return this._probePromise;
+			this._probeStarted = true;
+			this._probePromise = (async () => {
+				const url = this.baseUrl;
+				const start = Date.now();
+				let authHeader = '';
+				try {
+					authHeader = await this.authHandler.getAuthorizationHeader(url, 'GET', {});
+				} catch (_) { /* 取认证头失败则用空值继续 */ }
+				try {
+					const result = await new Promise((resolve, reject) => {
+						GM_xmlhttpRequest({
+							method: 'GET',
+							url,
+							headers: { 'Authorization': authHeader },
+							timeout: 10000,
+							onload: (resp) => resolve({ ok: true, status: resp.status }),
+							onerror: (err) => reject({ ok: false, err }),
+							ontimeout: () => reject({ ok: false, err: { message: 'timeout' } })
+						});
+					});
+					Logger.debug('Sync', `[Transport Probe] ${this.providerId} 裸请求可达`, { status: result.status, ms: Date.now() - start });
+				} catch (e) {
+					const raw = (e && e.err) ? e.err : e;
+					Logger.warn('Sync', `[Transport Probe] ${this.providerId} 裸请求失败`, {
+						ms: Date.now() - start,
+						err: {
+							message: raw && (raw.message || raw.code || raw.result || raw.name || raw.type),
+							code: raw && raw.code,
+							result: raw && raw.result,
+							name: raw && raw.name,
+							type: raw && raw.type
+						}
+					});
+				}
+			})();
+			return this._probePromise;
+		}
+
+		// 核心 HTTP 请求
+		async request(method, path, requestOptions = {}) {
+			let { headers = {}, body = null, retryPolicy, timeout, ignoreErrors = [] } = requestOptions;
+			const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+			const fullUrl = this.baseUrl + this.adapter.transformPath(cleanPath);
+			const effectiveTimeout = timeout || this.options.timeout;
+			const policy = retryPolicy || this.options.retryPolicy;
+
+			const finalHeaders = {
+				'Cache-Control': 'no-cache',
+				...headers
+			};
+
+			// 处理特殊方法
+			if (method === 'MKCOL' && body == null) {
+				body = new Uint8Array(0);
+			}
+
+			// 应用适配器预处理
+			const prepared = this.adapter.prepareRequest(method, cleanPath, {
+				headers: finalHeaders,
+				body,
+				url: fullUrl
+			});
+
+			return this.executeWithRetry(async () => {
+				const authHeader = await this.authHandler.getAuthorizationHeader(prepared.url, method, prepared.headers);
+				prepared.headers.Authorization = authHeader;
+
+				// 应用服务商特定头部
+				const caps = this.capabilities;
+				if (caps.specialHeaders) {
+					for (const [key, value] of Object.entries(caps.specialHeaders)) {
+						prepared.headers[key] = typeof value === 'function' ? value() : value;
+					}
+				}
+
+				return this.fetchWithTimeout(prepared.url, {
+					method,
+					headers: prepared.headers,
+					body: prepared.body
+				}, effectiveTimeout);
+			}, policy, ignoreErrors);
+		}
+
+		async executeWithRetry(fn, policy, ignoreErrors = []) {
+			const maxRetries = this.options.maxRetries;
+			let lastError;
+
+			for (let attempt = 0; attempt <= maxRetries; attempt++) {
+				try {
+					return await fn();
+				} catch (error) {
+					if (error.status && ignoreErrors.includes(error.status)) {
+						return { status: error.status, ignored: true };
+					}
+
+					lastError = this.adapter.handleError(error);
+				
+				// 不重试的错误
+				if (error.status >= 400 && error.status < 500 && error.status !== 401 && error.status !== 403 && error.status !== 408 && error.status !== 412 && error.status !== 423 && error.status !== 429) {
+					throw lastError;
+				}
+
+				// 处理 401/403 认证失败
+				if ((error.status === 401 || error.status === 403) && error.response?.status) {
+					throw lastError;
+				}
+
+				if (attempt === maxRetries) {
+					throw lastError || new Error('网络请求失败，重试次数耗尽');
+				}
+
+				// 处理 412 Precondition Failed (ETag 冲突)
+				if (error.status === 412) {
+					throw lastError;
+				}
+
+				// 计算退避时间
+				const delay = this.calculateBackoff(attempt, policy);
+				await this.sleep(delay);
+			}
+		}
+	}
+
+		calculateBackoff(attempt, policy) {
+			switch (policy) {
+				case 'exponential': return Math.min(1000 * Math.pow(2, attempt) + Math.random() * 1000, 30000);
+				case 'linear': return 1000 * (attempt + 1);
+				case 'fixed': return 2000;
+				default: return 1000;
+			}
+		}
+
+		sleep(ms) {
+			return new Promise(resolve => setTimeout(resolve, ms));
+		}
+
+		async fetchWithTimeout(url, init, timeout) {
+			return new Promise((resolve, reject) => {
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+				GM_xmlhttpRequest({
+					method: init.method,
+					url: url,
+					headers: init.headers,
+					data: init.body,
+					timeout: timeout,
+					onload: (response) => {
+						clearTimeout(timeoutId);
+						const processedResponse = this.adapter.processResponse({
+							status: response.status,
+							statusText: response.statusText,
+							responseText: response.responseText,
+							responseHeaders: response.responseHeaders,
+							response: response.response,
+							url: url,
+							headers: this.parseHeaders(response.responseHeaders)
+						});
+
+						if (response.status >= 200 && response.status < 300) {
+							resolve(processedResponse);
+						} else {
+							const error = new Error(
+								`WebDAV Error: ${response.status} ${response.statusText}` +
+								this.bodySnippet(response.responseText)
+							);
+							error.status = response.status;
+							error.response = processedResponse;
+							reject(error);
+						}
+					},
+					onerror: (err) => {
+						clearTimeout(timeoutId);
+						const rawMsg = (err && (err.message || err.code || err.result)) || 'Unknown';
+						const error = new Error(`Network Error: ${init.method} ${url}: ${rawMsg}`);
+						error.status = 0;
+						error.method = init.method;
+						error.url = url;
+						error.code = err?.code;
+						error.rawErrorType = err?.type || err?.name;
+						error.response = { status: 0 };
+						try {
+							if (err && typeof err === 'object') {
+								Logger.warn('Sync', `[Transport] GM_xmlhttpRequest onerror (${init.method} ${url})`, {
+									err: {
+										message: err.message,
+										code: err.code,
+										result: err.result,
+										name: err.name,
+										type: err.type,
+										stack: typeof err.stack === 'string' ? err.stack.slice(0, 300) : undefined
+									}
+								});
+							}
+						} catch (_) { /* 日志失败不阻断请求 */ }
+						reject(error);
+					},
+					ontimeout: () => {
+						clearTimeout(timeoutId);
+						const error = new Error('Request Timeout');
+						error.status = 408;
+						error.response = { status: 408 };
+						reject(error);
+					}
+				});
+			});
+		}
+
+		parseHeaders(rawHeaders) {
+			const headers = {};
+			if (!rawHeaders) return headers;
+			rawHeaders.trim().split(/[\r\n]+/).forEach(line => {
+				const index = line.indexOf(':');
+				if (index > 0) {
+					const key = line.substring(0, index).trim().toLowerCase();
+					const value = line.substring(index + 1).trim();
+					headers[key] = value;
+				}
+			});
+			return headers;
+		}
+
+		/**
+		 * 错误响应体摘要，便于日志定位服务端真实拒绝原因
+		 */
+		bodySnippet(text) {
+			if (!text) return '';
+			const raw = String(text);
+			// 优先取 WebDAV 错误体里的可读 message
+			const msgMatch = raw.match(/<s:message[^>]*>([\s\S]*?)<\/s:message>/i)
+				|| raw.match(/<[^:>]*:message[^>]*>([\s\S]*?)<\/[^:>]*:message>/i);
+			if (msgMatch && msgMatch[1]) {
+				return ' (' + msgMatch[1].replace(/\s+/g, ' ').trim().slice(0, 160) + ')';
+			}
+			const oneLine = raw.replace(/\s+/g, ' ').trim();
+			return oneLine ? ' (' + oneLine.slice(0, 120) + ')' : '';
+		}
+
+		async createDirectory(path, recursive = true) {
+			// 使用 CORS 安全版本
+			if (recursive) {
+				return this.createDirectoryRecursiveCorsSafe(path);
+			}
+			return this.createDirectoryCorsSafe(path);
+		}
+
+		// 文件操作
+		async getFile(path, options = {}) {
+			const { range, etag } = options;
+			const headers = {};
+
+			if (range && this.capabilities.supportsRange) {
+				headers['Range'] = `bytes=${range.start}-${range.end || ''}`;
+			}
+			if (etag) {
+				const rawEtag = String(etag).trim();
+				const isWeak = /^W\//i.test(rawEtag);
+				const opaqueEtag = rawEtag.replace(/^W\//i, '').replace(/^["']|["']$/g, '');
+				headers['If-None-Match'] = isWeak ? `W/"${opaqueEtag}"` : `"${opaqueEtag}"`;
+			}
+
+			try {
+				const response = await this.request('GET', path, { headers });
+				if (!response) return null;
+				
+				if (response.status === 304) return { content: null, etag, notModified: true };
+				
+				return {
+					content: response.responseText,
+					etag: response.headers?.etag?.replace(/^["']|["']$/g, ''),
+					lastModified: response.headers?.['last-modified'],
+					contentType: response.headers?.['content-type']
+				};
+			} catch (e) {
+				if (e.status === 404 || e.status === 409) return null;
+				throw e;
+			}
+		}
+
+		async putFile(path, data, options = {}) {
+			const opts = options || {};
+			const { etag, contentType = 'application/octet-stream' } = opts;
+			const headers = { 'Content-Type': contentType };
+			const supportsConditionalPut = this.capabilities.supportsConditionalPut !== false;
+			if (etag && supportsConditionalPut) {
+				const strongTag = String(etag).replace(/^W\//i, '').replace(/^["']|["']$/g, '');
+				headers['If-Match'] = `"${strongTag}"`;
+			}
+
+			const response = await this.request('PUT', path, {
+				body: data,
+				headers
+			});
+
+			if (!response) throw new Error('PUT 请求未返回响应');
+
+			return {
+				etag: response.headers?.etag?.replace(/^["']|["']$/g, ''),
+				lastModified: response.headers?.['last-modified']
+			};
+		}
+	}
+
+	// 导出保持向后兼容
+	const WebDAVClient = UniversalWebDAVClient;
+
+	/**************************************************************************
+	 * WebDAV 云端同步：状态追踪与三向合并引擎
+	 **************************************************************************/
+
+	/**
+	 * 时间戳追踪器：监听本地配置变更并记录时间
+	 */
+	const SyncTimestampTracker = {
+		KEY: 'ao3_sync_timestamps',
+		_timestamps: {},
+		_listening: false,
+		_paused: false,
+		_pendingFlush: null,
+		_dynamicListeners: null,
+
+		pause() {
+			this._paused = true;
+			if (this._pendingFlush) {
+				clearTimeout(this._pendingFlush);
+				this._pendingFlush = null;
+			}
+		},
+		resume() {
+			this._paused = false;
+			this._timestamps = GM_getValue(this.KEY, { local: {} });
+		},
+
+		init() {
+			this._timestamps = GM_getValue(this.KEY, { local: {} });
+			if (!this._timestamps.local) this._timestamps.local = {};
+			if (this._listening) return;
+
+			// 建立底层 GM Key 到逻辑分类的映射表
+			const KEY_TO_CATEGORY = {
+				'enable_RegExp': 'staticKeys', 'enable_transDesc': 'staticKeys', 'show_fab': 'staticKeys',
+				'transEngine': 'staticKeys', 'translation_display_mode': 'staticKeys', 'from_lang': 'staticKeys',
+				'to_lang': 'staticKeys', 'lang_detector': 'staticKeys', 'lang_detector_fallback': 'staticKeys', 'enable_ui_trans': 'staticKeys',
+				'ao3_log_level': 'staticKeys', 'ao3_log_auto_clear': 'staticKeys', 'ao3_translation_mode': 'staticKeys',
+				'ao3_auto_translate': 'staticKeys', 'hide_whitelist_prompt': 'staticKeys', 'show_status_light': 'uiState',
+				[CUSTOM_GLOSSARIES_KEY]: 'glossaries',
+				[GLOSSARY_METADATA_KEY]: 'glossaries', [ONLINE_GLOSSARY_ORDER_KEY]: 'glossaries',
+				[LAST_SELECTED_GLOSSARY_KEY]: 'glossaries',
+				[POST_REPLACE_RULES_KEY]: 'postReplace',
+				[CUSTOM_SERVICES_LIST_KEY]: 'customServices',
+				[AI_PROFILES_KEY]: 'aiParameters',
+				[FORMATTING_PROFILES_KEY]: 'formatting',
+				'ao3_fab_actions': 'fabActions',
+				'ao3_export_templates': 'exportTemplates',
+				'ao3_cache_auto_cleanup_enabled': 'cacheSettings', 'ao3_cache_max_items': 'cacheSettings', 'ao3_cache_max_days': 'cacheSettings', 'ao3_cache_max_size_bytes': 'cacheSettings',
+				'ao3_export_selection_memory': 'uiState', 'ao3_local_glossary_selected_id': 'uiState', 'ao3_post_replace_selected_id': 'uiState',
+				'ao3_fab_manage_mode': 'uiState', 'ao3_fab_manage_gesture': 'uiState', 'ao3_export_last_format': 'uiState',
+				'ao3_export_last_action': 'uiState', 'ao3_export_selected_formats': 'uiState',
+				'ao3_update_check_interval': 'staticKeys',
+				'custom_url_first_save_done': 'staticKeys',
+				[FORMATTING_SELECTED_ID_KEY]: 'formatting',
+				'ao3_export_selected_templates': 'exportTemplates'
+			};
+
+			if (typeof BLOCKER_KEYS !== 'undefined') {
+				BLOCKER_KEYS.forEach(k => KEY_TO_CATEGORY[k] = 'blockerSettings');
+			}
+
+			// 动态获取分类的辅助函数
+			const getCategory = (key) => {
+				if (KEY_TO_CATEGORY[key]) return KEY_TO_CATEGORY[key];
+				if (key.startsWith('service_collapsed_')) return 'uiState';
+				if (key.startsWith('custom_service_last_action_')) return 'customServices';
+				if (key.startsWith('active_model_for_')) return 'customServices';
+				if (key.endsWith('_keys_string') || key.endsWith('_keys_array') || key.endsWith('_key_index')) return 'apiKeys';
+				if (key.endsWith('_custom_model_mapping') || key.endsWith('_model')) return 'modelSelections';
+				return null;
+			};
+
+			// 监听所有 GM 值的变化
+			const keysToWatch = Object.keys(KEY_TO_CATEGORY);
+
+			keysToWatch.forEach(key => {
+				GM_addValueChangeListener(key, (name, oldVal, newVal, remote) => {
+					if (this._paused) return;
+					if (remote) return;
+					if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
+
+					const category = getCategory(name);
+					if (category) {
+						this._timestamps.local[category] = Date.now();
+						this._saveDebounced();
+					}
+				});
+			});
+
+			this._listenDynamicKeys(getCategory);
+			this._listening = true;
+		},
+
+		/**
+		 * 监听动态键名（自定义服务 / 引擎配置）
+		 */
+		_listenDynamicKeys(getCategory) {
+			const listener = (name, oldVal, newVal, remote) => {
+				if (this._paused) return;
+				if (remote) return;
+				if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
+
+				const category = getCategory(name);
+				if (category) {
+					this._timestamps.local[category] = Date.now();
+					this._saveDebounced();
+				}
+			};
+
+			const dynamicKeys = [];
+			Object.keys(engineMenuConfig).forEach(id => {
+				dynamicKeys.push(`${id}_keys_string`, `${id}_keys_array`, `${id}_key_index`, `${id}_custom_model_mapping`, `service_collapsed_${id}`);
+				if (engineMenuConfig[id].modelGmKey) dynamicKeys.push(engineMenuConfig[id].modelGmKey);
+			});
+			GM_getValue(CUSTOM_SERVICES_LIST_KEY, []).forEach(s => {
+				dynamicKeys.push(`${s.id}_keys_string`, `${s.id}_keys_array`, `${s.id}_key_index`, `${ACTIVE_MODEL_PREFIX_KEY}${s.id}`, `custom_service_last_action_${s.id}`, `service_collapsed_${s.id}`);
+			});
+
+			// 去重：同一 key 重复注册会触发多次回调
+			const uniqueKeys = [...new Set(dynamicKeys)];
+			if (this._dynamicListeners) {
+				for (const listenerId of this._dynamicListeners.values()) {
+					try { GM_removeValueChangeListener(listenerId); } catch (e) { /* 环境不支持注销时忽略，仅个别重复回调 */ }
+				}
+			}
+			this._dynamicListeners = new Map();
+			uniqueKeys.forEach(key => {
+				const listenerId = GM_addValueChangeListener(key, listener);
+				this._dynamicListeners.set(key, listenerId);
+			});
+		},
+
+		/**
+		 * 自定义服务列表变化后重新注册动态键监听
+		 */
+		refreshDynamicListeners() {
+			if (!this._listening) return;
+			this._listenDynamicKeys((key) => {
+				// 复用与 init 相同的分类推导逻辑
+				if (key.startsWith('service_collapsed_')) return 'uiState';
+				if (key.startsWith('custom_service_last_action_')) return 'customServices';
+				if (key.startsWith('active_model_for_')) return 'customServices';
+				if (key.endsWith('_keys_string') || key.endsWith('_keys_array') || key.endsWith('_key_index')) return 'apiKeys';
+				if (key.endsWith('_custom_model_mapping') || key.endsWith('_model')) return 'modelSelections';
+				return null;
+			});
+		},
+
+		_saveDebounced() {
+			clearTimeout(this._pendingFlush);
+			this._pendingFlush = setTimeout(() => {
+				this._pendingFlush = null;
+				GM_setValue(this.KEY, this._timestamps);
+			}, 1000);
+		},
+
+		getTimestamps() {
+			const stored = GM_getValue(this.KEY, { local: {} }).local || {};
+			if (this._timestamps && this._timestamps.local) {
+				return { ...stored, ...this._timestamps.local };
+			}
+			return stored;
+		}
+	};
+
+	/**
+	 * 三向合并引擎 (3-Way Merge)
+	 */
+	const SyncMergeEngine = {
+		// 可条目级合并的类目：冲突时走 merge（并集去重）
+		MERGABLE_CATEGORIES: new Set([
+			'glossaries', 'customServices', 'postReplace', 'formatting',
+			'aiParameters', 'exportTemplates', 'apiKeys', 'blockerSettings'
+		]),
+
+		merge(base, local, remote, timestamps) {
+			const merged = { metadata: local.metadata, data: {} };
+			let hasChangesToLocal = false;
+			let hasChangesToRemote = false;
+			const plan = {};
+			const changedCategoriesToLocal = [];
+
+			const allCategories = new Set([
+				...Object.keys(local.data || {}),
+				...Object.keys(remote.data || {})
+			]);
+
+			for (const category of allCategories) {
+				const bVal = JSON.stringify((base.data || {})[category]);
+				const lVal = JSON.stringify((local.data || {})[category]);
+				const rVal = JSON.stringify((remote.data || {})[category]);
+
+				if (lVal === rVal) {
+					// 两端一致
+					merged.data[category] = local.data[category];
+					plan[category] = 'same';
+				} else if (lVal !== bVal && rVal === bVal) {
+					// 仅本地修改
+					merged.data[category] = local.data[category];
+					hasChangesToRemote = true;
+					plan[category] = 'local';
+				} else if (rVal !== bVal && lVal === bVal) {
+					// 仅云端修改
+					merged.data[category] = remote.data[category];
+					hasChangesToLocal = true;
+					changedCategoriesToLocal.push(category);
+					plan[category] = 'remote';
+				} else {
+					// 冲突：两端都修改了。可合并类目 → merge；其余按时间戳 LWW
+					if (this.MERGABLE_CATEGORIES.has(category)) {
+						merged.data[category] = remote.data[category];
+						hasChangesToLocal = true;
+						hasChangesToRemote = true;
+						changedCategoriesToLocal.push(category);
+						plan[category] = 'merge';
+						Logger.debug('Sync', `冲突解决: 自动合并 [${category}]`);
+						continue;
+					}
+
+					const lTime = timestamps[category] || 0;
+					const rTime = (remote.metadata && remote.metadata.timestamps && remote.metadata.timestamps[category]) || 0;
+
+					if (lTime === 0 && rTime === 0) {
+						merged.data[category] = local.data[category];
+						hasChangesToRemote = true;
+						plan[category] = 'local';
+						timestamps[category] = Date.now();
+						if (typeof SyncTimestampTracker !== 'undefined' && SyncTimestampTracker._timestamps) {
+							SyncTimestampTracker._timestamps.local = SyncTimestampTracker._timestamps.local || {};
+							SyncTimestampTracker._timestamps.local[category] = timestamps[category];
+						}
+						try {
+							GM_setValue(SyncTimestampTracker.KEY, SyncTimestampTracker._timestamps);
+						} catch (e) {
+							Logger.warn('Sync', `补记时间戳写入失败 [${category}]`, e);
+						}
+						Logger.debug('Sync', `冲突解决: 时间戳缺失，默认保留本地 [${category}]`);
+					} else if (lTime >= rTime) {
+						merged.data[category] = local.data[category];
+						hasChangesToRemote = true;
+						plan[category] = 'local';
+						Logger.debug('Sync', `冲突解决: 保留本地 [${category}]`);
+					} else {
+						merged.data[category] = remote.data[category];
+						hasChangesToLocal = true;
+						changedCategoriesToLocal.push(category);
+						plan[category] = 'remote';
+						Logger.debug('Sync', `冲突解决: 采用云端 [${category}]`);
+					}
+				}
+			}
+
+			// 附加最新的时间戳到 metadata 中供下次使用
+			merged.metadata.timestamps = timestamps;
+
+			return { merged, hasChangesToLocal, hasChangesToRemote, plan, changedCategoriesToLocal };
+		}
+	};
+
+	/**************************************************************************
+	 * WebDAV 服务商自动检测与最优配置模块
+	 **************************************************************************/
+	const ProviderAutoDetector = {
+		// 存储键名
+		STORAGE_KEYS: {
+			DETECTED_PROVIDER: 'webdav_detected_provider',
+			DETECTED_URL: 'webdav_detected_url',
+			APPLIED_CONFIG: 'webdav_applied_optimal_config'
+		},
+
+		// 内存缓存：避免每次同步都读取存储
+		_cache: {
+			providerId: null,
+			url: null,
+			applied: false
+		},
+
+		/**
+		 * 服务商最优配置映射表
+		 */
+		OPTIMAL_CONFIGS: {
+			// Basic Auth + 无 CORS + 严格限流 (坚果云、Yandex、Teracloud)
+			'jianguoyun': {
+				name: '坚果云',
+				pathEncoding: 'utf8',
+				chunkSize: '4',
+				concurrency: 2,
+				timeout: 30,
+				retryPolicy: 'exponential',
+				supportsCors: false,
+				conflictResolution: 'lww',
+				validateChecksums: true
+			},
+			'yandex': {
+				name: 'Yandex Disk',
+				pathEncoding: 'utf8',
+				chunkSize: '10',
+				concurrency: 2,
+				timeout: 30,
+				retryPolicy: 'exponential',
+				supportsCors: false,
+				conflictResolution: 'lww',
+				validateChecksums: true
+			},
+			'teracloud': {
+				name: 'Teracloud / InfiniCloud',
+				pathEncoding: 'utf8',
+				chunkSize: '4',
+				concurrency: 2,
+				timeout: 30,
+				retryPolicy: 'exponential',
+				supportsCors: false,
+				conflictResolution: 'lww',
+				validateChecksums: true
+			},
+
+			// Basic Auth + 无 CORS + 无限流 (Koofr)
+			'koofr': {
+				name: 'Koofr',
+				pathEncoding: 'utf8',
+				chunkSize: '10',
+				concurrency: 3,
+				timeout: 30,
+				retryPolicy: 'exponential',
+				supportsCors: false,
+				conflictResolution: 'lww',
+				validateChecksums: true
+			},
+
+			// Basic + 有 CORS + 支持分块 (Nextcloud)
+			'nextcloud': {
+				name: 'Nextcloud / ownCloud',
+				pathEncoding: 'utf8',
+				chunkSize: '10',
+				concurrency: 4,
+				timeout: 30,
+				retryPolicy: 'exponential',
+				supportsCors: true,
+				conflictResolution: 'lww',
+				validateChecksums: true
+			},
+
+			// Basic Auth + CORS + 无限流 (pCloud)
+			'pcloud': {
+				name: 'pCloud',
+				pathEncoding: 'utf8',
+				chunkSize: '10',
+				concurrency: 3,
+				timeout: 30,
+				retryPolicy: 'exponential',
+				supportsCors: true,
+				conflictResolution: 'lww',
+				validateChecksums: true
+			},
+
+			// 兜底配置
+			'generic': {
+				name: '通用 WebDAV (RFC 4918)',
+				pathEncoding: 'utf8',
+				chunkSize: '10',
+				concurrency: 3,
+				timeout: 15,
+				maxRetries: 1,
+				retryPolicy: 'exponential',
+				supportsCors: false,
+				conflictResolution: 'lww',
+				validateChecksums: true
+			}
+		},
+
+		/**
+		 * 从 URL 检测服务商
+		 * 复用现有 detectProvider 逻辑，保持一致性
+		 */
+		detect(url) {
+			return detectWebDavProvider(url);
+		},
+
+		/**
+		 * 判断是否需要重新检测
+		 */
+		shouldReDetect(currentUrl) {
+			// 内存缓存命中：URL 未变且已应用过配置
+			if (this._cache.url === currentUrl && this._cache.applied) {
+				return false;
+			}
+			// 内存缓存未命中：读取存储兜底
+			const lastDetectedUrl = GM_getValue(this.STORAGE_KEYS.DETECTED_URL, '');
+			return !lastDetectedUrl || lastDetectedUrl !== currentUrl;
+		},
+
+		/**
+		 * 获取服务商最优配置
+		 */
+		getOptimalConfig(providerId) {
+			return this.OPTIMAL_CONFIGS[providerId] || this.OPTIMAL_CONFIGS.generic;
+		},
+
+		/**
+		 * 智能合并配置
+		 */
+		applyConfig(currentConfig, optimalConfig) {
+			const appliedFields = [];
+
+			const prevProvider = GM_getValue(this.STORAGE_KEYS.DETECTED_PROVIDER, '');
+			const providerChanged = !!prevProvider && prevProvider !== optimalConfig.providerId;
+
+			const fieldMap = {
+				chunkSize: { optimal: 'chunkSize', storage: 'webdav_chunk_size' },
+				concurrency: { optimal: 'concurrency', storage: 'webdav_concurrency' },
+				timeout: { optimal: 'timeout', storage: 'webdav_timeout' },
+				retryPolicy: { optimal: 'retryPolicy', storage: 'webdav_retry_policy' },
+				conflictResolution: { optimal: 'conflictResolution', storage: 'webdav_conflict_resolution' },
+				validateChecksums: { optimal: 'validateChecksums', storage: 'webdav_validate_checksums' }
+			};
+
+			for (const [configKey, { optimal, storage }] of Object.entries(fieldMap)) {
+				const userValue = GM_getValue(storage, null);
+				const isDefault = userValue === null;
+
+				if ((isDefault || providerChanged) && optimalConfig[optimal] !== undefined) {
+					GM_setValue(storage, optimalConfig[optimal]);
+					appliedFields.push(`${configKey}=${optimalConfig[optimal]}`);
+				}
+			}
+
+			// 记录检测到的服务商
+			GM_setValue(this.STORAGE_KEYS.DETECTED_PROVIDER, optimalConfig.providerId || this.detect(currentConfig.url));
+			GM_setValue(this.STORAGE_KEYS.DETECTED_URL, currentConfig.url);
+			GM_setValue(this.STORAGE_KEYS.APPLIED_CONFIG, JSON.stringify({
+				provider: optimalConfig.name,
+				appliedFields,
+				timestamp: Date.now()
+			}));
+
+			// 日志记录
+			if (appliedFields.length > 0) {
+				Logger.debug('Sync', `[AutoDetect] 应用最优配置: ${optimalConfig.name}`, {
+					provider: optimalConfig.name,
+					appliedFields,
+					reason: '首次检测或 URL 变更'
+				});
+			} else {
+				Logger.debug('Sync', `[AutoDetect] 配置已是最优，无需变更: ${optimalConfig.name}`);
+			}
+
+			return currentConfig;
+		},
+
+		/**
+		 * 主入口：执行自动检测并应用配置
+		 */
+		async runAutoDetection(config) {
+			const url = config.url;
+			if (!url) return config;
+
+			const needDetect = this.shouldReDetect(url);
+			if (!needDetect) {
+				config.provider = GM_getValue(this.STORAGE_KEYS.DETECTED_PROVIDER, 'generic');
+				return config;
+			}
+
+			const providerId = this.detect(url);
+			config.provider = providerId;
+			const optimalConfig = { ...this.getOptimalConfig(providerId), providerId };
+
+			Logger.debug('Sync', `[AutoDetect] 检测到服务商: ${optimalConfig.name} (${providerId})`, {
+				url: this.maskUrl(url),
+				provider: providerId
+			});
+
+			// 应用最优配置（智能合并）
+			const result = this.applyConfig(config, optimalConfig);
+			
+			// 更新内存缓存
+			this._cache.providerId = providerId;
+			this._cache.url = url;
+			this._cache.applied = true;
+			
+			return result;
+		},
+
+		/**
+		 * 脱敏 URL 记录日志
+		 */
+		maskUrl(url) {
+			try {
+				const u = new URL(url);
+				return `${u.protocol}//${u.hostname}${u.pathname}`;
+			} catch (e) {
+				return url;
+			}
+		},
+
+		/**
+		 * 重置检测状态（用于测试或强制重新检测）
+		 */
+		reset() {
+			GM_deleteValue(this.STORAGE_KEYS.DETECTED_PROVIDER);
+			GM_deleteValue(this.STORAGE_KEYS.DETECTED_URL);
+			GM_deleteValue(this.STORAGE_KEYS.APPLIED_CONFIG);
+		}
+	};
+
+	/**************************************************************************
+	 * WebDAV 云端同步：核心流程与自动化调度
+	 **************************************************************************/
+
+	const WebDAVSyncManager = {
+		BASE_SNAPSHOT_KEY: 'ao3_sync_base_snapshot',
+		ROOT_MODE_KEY: 'ao3_sync_root_mode',
+		SYNC_DIR: 'AO3_Translator_Sync',
+		SYNC_FILENAME: 'ao3_sync_data.enc',
+		isSyncing: false,
+		isApplyingRemoteChanges: false,
+		syncLock: 0,
+
+		// 同步文件路径与目录自愈
+		isRootMode() {
+			return GM_getValue(this.ROOT_MODE_KEY, false) === true;
+		},
+		getSyncFilePath() {
+			return this.isRootMode() ? this.SYNC_FILENAME : this.SYNC_DIR + '/' + this.SYNC_FILENAME;
+		},
+		/**
+		 * 确保同步目录可用
+		 */
+		async ensureSyncDirectory(client, traceId) {
+			if (this.isRootMode()) return false;
+			try {
+				await client.createDirectory(this.SYNC_DIR);
+				return true;
+			} catch (e) {
+				GM_setValue(this.ROOT_MODE_KEY, true);
+				Logger.warn('Sync', '服务商不支持建目录，同步文件降级到 WebDAV 根路径', {
+					message: e && (e.message || String(e.status || '')),
+					status: e && e.status
+				}, traceId);
+				return false;
+			}
+		},
+
+		async getConfig() {
+			return {
+				url: GM_getValue('webdav_url', ''),
+				user: GM_getValue('webdav_user', ''),
+				pass: GM_getValue('webdav_pass', ''),
+				encKey: GM_getValue('webdav_enc_key', ''),
+				provider: 'auto',
+				chunkSize: parseInt(GM_getValue('webdav_chunk_size', '10'), 10) * 1024 * 1024,
+				concurrency: parseInt(GM_getValue('webdav_concurrency', '3'), 10),
+				timeout: parseInt(GM_getValue('webdav_timeout', '30'), 10) * 1000,
+				retryPolicy: GM_getValue('webdav_retry_policy', 'exponential'),
+				conflictResolution: GM_getValue('webdav_conflict_resolution', 'lww'),
+				validateChecksums: (() => {
+					const v = GM_getValue('webdav_validate_checksums', 'true');
+					return v === true || v === 'true';
+				})()
+			};
+		},
+
+		// 获取客户端实例
+		async getClient(config) {
+			const credentials = {
+				username: config.user,
+				password: config.pass
+			};
+
+			const clientOptions = {
+				timeout: config.timeout,
+				maxRetries: config.maxRetries ?? 3,
+				retryPolicy: config.retryPolicy,
+				chunkSize: config.chunkSize,
+				maxConcurrency: config.concurrency
+			};
+
+			return new UniversalWebDAVClient(config.url, credentials, clientOptions);
+		},
+
+		/**
+		 * 统一解析远端同步文件内容
+		 */
+		async readRemoteData(parsed, rawContent, encKey) {
+			try {
+				if (!parsed || typeof parsed !== 'object') return JSON.parse(rawContent);
+				if ((parsed.v === 1 || parsed.ct) && !encKey) {
+					const e = new Error('云端数据已加密，但本地未配置同步密钥，无法解密');
+					e.syncKind = 'missingKey';
+					throw e;
+				}
+				return await ConfigSerializer.unpack(rawContent, encKey);
+			} catch (e) {
+				if (e && typeof e === 'object') {
+					if (!e.syncKind && parsed && (parsed.v === 1 || parsed.ct) && encKey) {
+						e.syncKind = 'wrongKey';
+					} else if (!e.syncKind) {
+						e.syncKind = 'format';
+					}
+					e.syncPermanent = true;
+				}
+				throw e;
+			}
+		},
+
+		/**
+		 * 单文件合并同步核心
+		 */
+		async executeMergeSync(client, localData, baseData, config, traceId) {
+			Logger.debug('Sync', '开始单文件合并同步...', null, traceId);
+
+			const remoteFilePath = this.getSyncFilePath();
+			const remoteResponse = await client.getFile(remoteFilePath);
+			const localTimestamps = SyncTimestampTracker.getTimestamps();
+			const noBase = !baseData || Object.keys(baseData.data || {}).length === 0;
+
+			// 云端无数据
+			if (!remoteResponse || !remoteResponse.content) {
+				localData.metadata.timestamps = localTimestamps;
+				return {
+					shouldApplyToLocal: false,
+					categoriesToApply: [],
+					categoriesToMerge: [],
+					shouldUploadToRemote: true,
+					merged: localData,
+					remoteEtag: null,
+					remoteExists: false,
+					remoteMissing: !noBase,
+					plan: {}
+				};
+			}
+
+			const remoteEtag = remoteResponse.etag;
+			let remoteData = null;
+			try {
+				const parsed = JSON.parse(remoteResponse.content);
+				remoteData = await this.readRemoteData(parsed, remoteResponse.content, config.encKey);
+			} catch (e) {
+				Logger.error('Sync', '解析远端数据失败', e, traceId);
+				throw e;
+			}
+
+			// 本地无 base 快照 + 云端已有数据：用户选择方向
+			if (noBase) {
+				return {
+					needsDirection: true,
+					localData,
+					remoteData,
+					remoteEtag,
+					remoteExists: true,
+					plan: {}
+				};
+			}
+
+			// 正常三向合并
+			const mergeResult = SyncMergeEngine.merge(baseData, localData, remoteData, localTimestamps);
+			return {
+				shouldApplyToLocal: mergeResult.hasChangesToLocal,
+				categoriesToApply: mergeResult.changedCategoriesToLocal.filter(c => mergeResult.plan[c] === 'remote'),
+				categoriesToMerge: mergeResult.changedCategoriesToLocal.filter(c => mergeResult.plan[c] === 'merge'),
+				shouldUploadToRemote: mergeResult.hasChangesToRemote,
+				merged: mergeResult.merged,
+				plan: mergeResult.plan,
+				remoteData,
+				remoteEtag,
+				remoteExists: true
+			};
+		},
+
+		/**
+		 * 错误分级：区分永久性错误（无需重试）与瞬时错误（可重试）
+		 */
+		classifySyncError(err, config) {
+			const status = err?.status || 0;
+			// 本地解析/解密/配置类错误（缺密钥、密钥错误、JSON/解压/格式错误）属永久
+			if (err && err.syncPermanent) return { permanent: true, status, kind: err.syncKind };
+			// 永久性错误：配置/认证/格式错误
+			if ([400, 401, 403, 423, 507].includes(status)) return { permanent: true, status };
+			if (status === 404) {
+				// 404：路径不存在 → 目录可能被删，自动重建后重试一次
+				return { permanent: false, status, recreateDir: true };
+			}
+			if (status === 0) return { permanent: false, status };
+			if (status >= 500 && status < 600) return { permanent: false, status };
+			return { permanent: false, status };
+		},
+
+		_failureCategory(err) {
+			const status = err && err.status ? err.status : 0;
+			// 本地加密/密钥/格式类错误：归因 other（配置类），而非 network
+			if (err && err.syncKind) return 'other';
+			const msg = String((err && (err.message || err.reason)) || '').toLowerCase();
+			if (status === 401 || status === 403) return 'auth';
+			if (status === 408 || status === 504 || msg.includes('timeout') || msg.includes('超时')) return 'timeout';
+			if (status === 0) return 'network';
+			return 'other';
+		},
+
+		/**
+		 * 读取 Base 快照
+		 */
+		async getBaseData() {
+			let baseData = { data: {}, url: null };
+			const compressedBase = GM_getValue(this.BASE_SNAPSHOT_KEY);
+			if (!compressedBase) return baseData;
+			try {
+				const parsed = JSON.parse(await SyncCompressionHelper.decompress(compressedBase));
+				if (parsed && parsed.data) {
+					baseData = parsed;
+				} else if (parsed) {
+					baseData = { data: parsed, url: null };
+				}
+			} catch (e) {
+				Logger.warn('Sync', 'Base 快照解析失败，视为不存在', e);
+			}
+			return baseData;
+		},
+
+		/**
+		 * 写入 Base 快照
+		 */
+		async saveBaseSnapshot(data, url) {
+			const normalizedUrl = this.normalizeSyncUrl(url);
+			const payload = JSON.stringify({ data: data, url: normalizedUrl });
+			const compressed = await SyncCompressionHelper.compress(payload);
+			GM_setValue(this.BASE_SNAPSHOT_KEY, compressed);
+		},
+
+		/**
+		 * 规范化 URL 用于 base 标签比对：origin + pathname
+		 */
+		normalizeSyncUrl(url) {
+			try {
+				const u = new URL(url);
+				return u.origin + u.pathname.replace(/\/+$/, '');
+			} catch (e) {
+				return url || '';
+			}
+		},
+
+		/**
+		 * 首次同步方向执行
+		 */
+		async performFirstSyncDirection(client, direction, ctx, config, traceId) {
+			const { remoteData, remoteEtag } = ctx;
+			const allCategories = SYNC_CATEGORIES;
+			let firstSyncConflicts = [];
+
+			// 1. 按方向应用到本地
+			if (direction === 'download') {
+				this.isApplyingRemoteChanges = true;
+				SyncTimestampTracker.pause();
+				try {
+					await importAllData(
+						{ metadata: remoteData.metadata, data: remoteData.data },
+						allCategories,
+						'overwrite',
+						true
+					);
+				} finally {
+					setTimeout(() => {
+						SyncTimestampTracker.resume();
+						this.isApplyingRemoteChanges = false;
+					}, 3000);
+				}
+				Logger.debug('Sync', '首次同步：采用云端覆盖本地 (download)', { categories: allCategories }, traceId);
+			} else if (direction === 'merge') {
+				const mergeCategories = allCategories;
+				this.isApplyingRemoteChanges = true;
+				SyncTimestampTracker.pause();
+				try {
+					const firstSyncRes = await importAllData(
+						{ metadata: remoteData.metadata, data: remoteData.data },
+						mergeCategories,
+						'merge',
+						true
+					);
+					if (firstSyncRes && Array.isArray(firstSyncRes.aiProfileConflicts)) firstSyncConflicts = firstSyncRes.aiProfileConflicts;
+				} finally {
+					setTimeout(() => {
+						SyncTimestampTracker.resume();
+						this.isApplyingRemoteChanges = false;
+					}, 3000);
+				}
+				Logger.debug('Sync', '首次同步：云端与本地合并去重 (merge)', { categories: mergeCategories }, traceId);
+			} else {
+				Logger.debug('Sync', '首次同步：本地覆盖云端 (upload)', null, traceId);
+			}
+			if (firstSyncConflicts.length > 0) {
+				Logger.info('Sync', `同名翻译参数配置内容不一致，已各自留存：${firstSyncConflicts.map(c => `${c.name} → ${c.kept}`).join('、')}`, {
+					category: 'aiParameters',
+					categoryLabel: '翻译参数配置',
+					conflicts: firstSyncConflicts
+				});
+			}
+
+			// 2. 重导出 canonical
+			const canonical = await exportAllData(SYNC_CATEGORIES);
+			canonical.metadata.timestamps = SyncTimestampTracker.getTimestamps();
+
+			// 3. 上传 canonical
+			await this.uploadCanonical(client, canonical, config, remoteEtag, traceId);
+
+			// 4. 写入 Base 快照
+			await this.saveBaseSnapshot(canonical.data, config.url);
+
+			// 5. 记录同步时间
+			const nowStr = getShanghaiTimeString();
+			GM_setValue('webdav_last_sync_time', nowStr);
+
+			return { success: true, time: nowStr, applied: direction !== 'upload', uploaded: true, aiProfileConflicts: firstSyncConflicts };
+		},
+
+		/**
+		 * 构建上传载荷
+		 */
+		async buildUploadPayload(data, encKey) {
+			return ConfigSerializer.pack(data, encKey);
+		},
+
+		/**
+		 * 上传规范化数据到云端（压缩/加密 + PUT + 412 重试一次）
+		 */
+		async uploadCanonical(client, data, config, etag, traceId) {
+			const uploadContent = await this.buildUploadPayload(data, config.encKey);
+
+			const remoteFilePath = this.getSyncFilePath();
+			for (let attempt = 0; attempt < 2; attempt++) {
+				try {
+					await client.putFile(remoteFilePath, uploadContent, etag ? { etag } : {});
+					return;
+				} catch (putErr) {
+					if (putErr.status === 412 && attempt === 0) {
+						Logger.warn('Sync', '上传并发冲突 (412)，重新读取远端 ETag 后重试一次', null, traceId);
+						try {
+							const fresh = await client.getFile(remoteFilePath);
+							if (fresh && fresh.etag) {
+								etag = fresh.etag;
+							} else {
+								// 远端文件已被删除 → 目录可能仍在，直接无条件上传重建
+								etag = null;
+							}
+						} catch (getErr) {
+							// 读取失败：放弃条件上传，交下次同步处理
+							etag = null;
+						}
+						continue;
+					}
+					throw putErr;
+				}
+			}
+		},
+
+		async executeSync(isAuto = false) {
+			// 互斥锁：防止多触发源并发
+			const lockId = ++this.syncLock;
+			let waitCount = 0;
+			while (this.isSyncing && waitCount < 300) {
+				await new Promise(r => setTimeout(r, 100));
+				waitCount++;
+			}
+			if (this.isSyncing) {
+				this.syncLock--;
+				Logger.debug('Sync', '等待同步锁超时，跳过本次触发');
+				return { success: false, reason: '', _silent: true };
+			}
+			this.isSyncing = true;
+			this.syncLock = lockId;
+			let traceId;
+			let config = null;
+
+			try {
+				// 1. 获取基础配置
+				config = await this.getConfig();
+
+				// 2. 必填项校验
+				if (!config.url || !config.user || !config.pass) {
+					return { success: false, reason: isAuto ? '' : '未配置完整的服务器地址、账号或密码' };
+				}
+
+
+				// 3. 自动检测服务商并应用最优配置
+				config = await ProviderAutoDetector.runAutoDetection(config);
+
+				// 4. 创建客户端
+				const client = await this.getClient(config);
+				traceId = Logger.generateTraceId();
+
+				if (!isAuto) Logger.debug('Sync', '开始 WebDAV 同步...', {
+					provider: config.provider
+				}, traceId);
+
+				let retryCount = 0;
+				let lastError = null;
+				let remoteEtag = null;
+				let chosenDirection = null;
+				while (retryCount < 3) {
+					try {
+						// 1. 获取本地全量数据
+						const localData = await exportAllData(SYNC_CATEGORIES);
+
+						// 2. 获取 Base 快照
+						let baseData = await this.getBaseData();
+						const compressedBase = GM_getValue(this.BASE_SNAPSHOT_KEY);
+						const currentUrl = this.normalizeSyncUrl(config.url);
+						if (baseData && baseData.url && currentUrl && baseData.url !== currentUrl) {
+							Logger.debug('Sync', '检测到 WebDAV 服务商变更，作废本地 Base 快照，按首次同步处理', {
+								old: baseData.url,
+								current: currentUrl
+							}, traceId);
+							GM_deleteValue(this.BASE_SNAPSHOT_KEY);
+							GM_deleteValue(this.ROOT_MODE_KEY);
+							baseData.data = {};
+						}
+
+						// 3. 单文件合并同步
+						const mergeResult = await this.executeMergeSync(client, localData, baseData, config, traceId);
+
+						if (mergeResult.needsDirection) {
+							if (isAuto) {
+								if (!GM_getValue('webdav_first_sync_prompted', false)) {
+									GM_setValue('webdav_first_sync_prompted', true);
+									GM_notification({
+										title: 'AO3 Translator 同步',
+										text: '检测到云端已有同步数据，请到 设置→云端同步→同步 选择本次同步方向。'
+									});
+									Logger.debug('Sync', '等待用户选择首次同步方向（自动触发跳过）', null, traceId);
+								}
+								return { success: false, reason: '', _silent: true };
+							}
+
+							if (chosenDirection === null) {
+								try {
+									chosenDirection = await showSyncDirectionDialog();
+								} catch (e) {
+									Logger.debug('Sync', '用户取消首次同步方向选择', null, traceId);
+									return { success: false, reason: '已取消', _silent: true };
+								}
+							}
+
+							const result = await this.performFirstSyncDirection(client, chosenDirection, mergeResult, config, traceId);
+							Logger.debug('Sync', '首次同步完成', { direction: chosenDirection }, traceId);
+							return result;
+						}
+
+						if (mergeResult.remoteMissing) {
+							GM_notification({
+								title: 'AO3 Translator 同步',
+								text: '云端同步文件丢失，已用本机配置重新上传。'
+							});
+							Logger.warn('Sync', '云端同步文件缺失，已自动重传', null, traceId);
+						}
+
+						let finalDataToUpload = mergeResult.merged;
+						let shouldApplyToLocal = mergeResult.shouldApplyToLocal;
+						let shouldUploadToRemote = mergeResult.shouldUploadToRemote;
+						const categoriesToApply = mergeResult.categoriesToApply || [];
+						const categoriesToMerge = mergeResult.categoriesToMerge || [];
+						let aiProfileConflicts = [];
+						let aiProfileRemoteApplied = [];
+						const syncContext = {
+							baseProfiles: (baseData && baseData.data && baseData.data.aiParameters && baseData.data.aiParameters[AI_PROFILES_KEY]) || null,
+							baseServices: (baseData && baseData.data && baseData.data.customServices) || null
+						};
+						const remoteExists = mergeResult.remoteExists === true;
+						if (mergeResult.remoteEtag) remoteEtag = mergeResult.remoteEtag;
+
+						// 4. 应用到本地
+						const totalToApply = categoriesToApply.length + categoriesToMerge.length;
+						if (shouldApplyToLocal && totalToApply > 0) {
+							this.isApplyingRemoteChanges = true;
+							SyncTimestampTracker.pause();
+							try {
+								if (categoriesToApply.length > 0) {
+									const applyRes = await importAllData(
+										{ metadata: localData.metadata, data: mergeResult.remoteData.data },
+										categoriesToApply,
+										'overwrite',
+										true,
+										syncContext
+									);
+									if (applyRes && applyRes.success === false) {
+										throw new Error(applyRes.message || '云端数据导入失败');
+									}
+								}
+								if (categoriesToMerge.length > 0) {
+									const mergeRes = await importAllData(
+										{ metadata: localData.metadata, data: mergeResult.remoteData.data },
+										categoriesToMerge,
+										'merge',
+										true,
+										syncContext
+									);
+									if (mergeRes && mergeRes.success === false) {
+										throw new Error(mergeRes.message || '冲突合并导入失败');
+									}
+									if (mergeRes && Array.isArray(mergeRes.aiProfileConflicts)) aiProfileConflicts = mergeRes.aiProfileConflicts;
+									if (mergeRes && Array.isArray(mergeRes.aiProfileRemoteApplied)) aiProfileRemoteApplied = mergeRes.aiProfileRemoteApplied;
+									Logger.debug('Sync', '冲突自动合并: ' + categoriesToMerge.join(','), null, traceId);
+								}
+							} finally {
+								setTimeout(() => {
+									SyncTimestampTracker.resume();
+									this.isApplyingRemoteChanges = false;
+								}, 3000);
+							}
+
+							if (categoriesToMerge.length > 0) {
+								Logger.info('Sync', `${categoriesToMerge.length} 个冲突分类已自动合并：${categoriesToMerge.join('、')}`);
+							}
+							if (aiProfileRemoteApplied.length > 0) {
+								Logger.info('Sync', `已应用云端参数更新：${aiProfileRemoteApplied.join('、')}`);
+							}
+							if (aiProfileConflicts.length > 0) {
+								Logger.info('Sync', `同名翻译参数配置内容不一致，已各自留存：${aiProfileConflicts.map(c => `${c.name} → ${c.kept}`).join('、')}`, {
+									category: 'aiParameters',
+									categoryLabel: '翻译参数配置',
+									conflicts: aiProfileConflicts
+								});
+							}
+
+							if (categoriesToMerge.length > 0) {
+								finalDataToUpload = await exportAllData(SYNC_CATEGORIES);
+								finalDataToUpload.metadata.timestamps = SyncTimestampTracker.getTimestamps();
+							}
+
+							Logger.debug('Sync', '已将云端更新合并到本地', { remote: categoriesToApply, merged: categoriesToMerge }, traceId);
+							if (isAuto) {
+								const autoConflictText = describeAiProfileConflicts(aiProfileConflicts);
+								GM_notification({ title: 'AO3 Translator 同步', text: `检测到云端配置更新，已自动在后台合并${categoriesToMerge.length > 0 ? `（含 ${categoriesToMerge.length} 个冲突分类自动合并）` : ''}${autoConflictText ? `；${autoConflictText}。参数差异详情请查阅日志` : '。'}` });
+							}
+						}
+
+						// 5. 上传到云端
+						if (shouldUploadToRemote) {
+							const uploadContent = await this.buildUploadPayload(finalDataToUpload, config.encKey);
+							try {
+								if (!remoteExists) {
+									await this.ensureSyncDirectory(client, traceId);
+								}
+								const remoteFilePath = this.getSyncFilePath();
+								await client.putFile(remoteFilePath, uploadContent, remoteEtag ? { etag: remoteEtag } : {});
+								Logger.debug('Sync', '已将本地更新上传至云端', null, traceId);
+							} catch (putErr) {
+								if (putErr.status === 412 && retryCount < 2) {
+									retryCount++;
+									Logger.warn('Sync', '触发并发冲突 (412)，正在重新拉取并合并...', null, traceId);
+									continue;
+								}
+								throw putErr;
+							}
+						}
+
+						// 6. 更新 Base 快照
+						if (shouldApplyToLocal || shouldUploadToRemote || !compressedBase) {
+							await this.saveBaseSnapshot(finalDataToUpload.data, config.url);
+						}
+
+						const nowStr = getShanghaiTimeString();
+
+						if (!shouldApplyToLocal && !shouldUploadToRemote) {
+							Logger.debug('Sync', '本地与云端数据一致，无需同步', null, traceId);
+						} else {
+							GM_setValue('webdav_last_sync_time', nowStr);
+						}
+
+						return {
+							success: true,
+							time: nowStr,
+							applied: shouldApplyToLocal,
+							uploaded: shouldUploadToRemote,
+							mergedCategories: shouldApplyToLocal ? categoriesToMerge : [],
+							aiProfileConflicts: aiProfileConflicts
+						};
+					} catch (err) {
+						lastError = err;
+						const cls = this.classifySyncError(err, config);
+						if (cls.permanent) {
+							throw err;
+						}
+						if (cls.recreateDir) {
+							await this.ensureSyncDirectory(client, traceId);
+						}
+						Logger.warn('Sync', '同步尝试失败 (' + (retryCount + 1) + '/3): ' + err.message, { traceId });
+						retryCount++;
+						if (retryCount >= 3) break;
+						await new Promise(r => setTimeout(r, Math.min(1000 * Math.pow(2, retryCount), 30000) + Math.random() * 500));
+						continue;
+					}
+				}
+				throw lastError || new Error('重试次数耗尽');
+			} catch (error) {
+				Logger.error('Sync', 'WebDAV 同步失败', error, traceId);
+				
+				// 规范化错误：确保所有错误都有 status 和 response
+				const normalizedError = error.status ? error : new Error(error.message || '网络或认证错误');
+				if (!normalizedError.status) normalizedError.status = 0;
+				if (!normalizedError.response) normalizedError.response = { status: normalizedError.status };
+				if (error && error.syncPermanent) normalizedError.syncPermanent = true;
+				if (error && error.syncKind) normalizedError.syncKind = error.syncKind;
+
+				let reason = normalizedError.message || '网络或认证错误';
+				let notifyCategory = null;
+				if (normalizedError.syncKind === 'missingKey') {
+					notifyCategory = 'missingKey';
+					reason = '云端数据已加密，但本地未配置同步密钥：请到 设置→云端同步→同步密钥 填入加密云端数据时使用的密钥；若不再需要该份云端数据，可清空/删除云端 ao3_sync_data.enc 后重新同步。';
+				} else if (normalizedError.syncKind === 'wrongKey') {
+					notifyCategory = 'wrongKey';
+					reason = '同步密钥错误，无法解密云端数据：请核对使用的同步密钥（坚果云需用第三方应用密码、非登录密码），确认与当初加密云端数据时的密钥一致。';
+				} else if (normalizedError.status === 401) {
+					notifyCategory = 'auth401';
+					reason = '认证失败 (401)：请检查账号/密码是否正确（应用密码而非登录密码）';
+				} else if (normalizedError.status === 403) {
+					notifyCategory = 'auth403';
+					if (config && (config.provider === 'generic' || config.provider === 'auto')) {
+						reason = '权限不足 (403)：\n建议：\n1. 确认 WebDAV 路径以 / 结尾（如 /dav/）\n2. 检查账号是否有该路径读写权限\n3. 确认 @connect 已声明该域名';
+					} else if (config && config.provider === 'jianguoyun') {
+						reason = '坚果云 403：请确认使用的是"第三方应用密码"而非登录密码，且账号未超流量限制';
+					} else if (config && config.provider === 'nextcloud') {
+						reason = 'Nextcloud 403：请检查账号权限，或尝试在 Nextcloud 设置中启用 WebDAV';
+					} else {
+						reason = '权限不足 (403)：账号可能无权访问该路径，或存储空间已满';
+					}
+				} else if (normalizedError.status === 400) {
+					reason = '请求格式错误 (400)：可能是服务商不支持当前操作，请检查 WebDAV 地址与权限配置';
+				} else if (normalizedError.status === 404) {
+					reason = '路径不存在 (404)：同步目录可能不存在，将自动重新创建并同步';
+				} else if (normalizedError.status === 423) {
+					reason = '文件被锁定 (423)：请稍后重试';
+				} else if (normalizedError.status === 507) {
+					reason = '存储空间不足 (507)：请清理云端空间';
+				} else if (normalizedError.status === 0 && !normalizedError.syncKind) {
+					notifyCategory = 'network';
+					reason = '网络连接失败：请检查网络，或确认 WebDAV 地址正确，且已在 @connect 中声明该域名';
+				}
+
+				const cls = this.classifySyncError(error, config);
+				try {
+					document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.WEBDAV_SYNC_FAILED, {
+						detail: { category: this._failureCategory(normalizedError), reason }
+					}));
+				} catch (e) { /* 埋点失败不影响同步主流程 */ }
+				return { success: false, reason, permanent: cls.permanent, notifyCategory };
+			} finally {
+				this.isSyncing = false;
+				this.syncLock = 0;
+			}
+		}
+	};
+	/**
+	 * 自动同步调度器 - 统一去抖动调度中心
+	 * 所有同步触发源汇聚于此，统一去重、去抖动、串行执行
+	 */
+	const AutoSyncScheduler = {
+		syncTimer: null,
+		_triggerQueue: Promise.resolve(),
+		_lastTriggerTime: 0,
+		_minInterval: 30000,
+		_cooldownMs: 5 * 60 * 1000,
+		_lastFailTime: 0,
+		_lastFailTimeKey: 'webdav_last_fail_time',
+		_cooldownTriggeredKey: 'webdav_cooldown_notified',
+		_permanentFailCountKey: 'webdav_permanent_fail_count',
+		_permanentFailThreshold: 2,
+		_escalatedCooldownMs: 30 * 60 * 1000,
+		_isAutoDisabled() {
+			const enabled = GM_getValue('webdav_auto_sync_enabled', true);
+			if (String(enabled) === 'false') return true;
+			const intervalStr = GM_getValue('webdav_sync_interval', '60');
+			if (intervalStr === '0') return true;
+			const interval = parseInt(intervalStr, 10);
+			return !isNaN(interval) && interval < 0;
+		},
+
+		// 读取持久化冷却时间
+		_getPersistedFailTime() {
+			return parseInt(GM_getValue(this._lastFailTimeKey, '0'), 10) || 0;
+		},
+
+		// 是否处于升级冷却（永久失败触发）
+		_isEscalatedCooldown() {
+			return GM_getValue(this._cooldownTriggeredKey, false) === true;
+		},
+
+		// 计算当前生效的冷却时长
+		_effectiveCooldownMs() {
+			return this._isEscalatedCooldown() ? this._escalatedCooldownMs : this._cooldownMs;
+		},
+
+		// 记录失败时间（持久化），并处理冷却通知/升级
+		_recordFailure(isPermanent) {
+			this._lastFailTime = Date.now();
+			GM_setValue(this._lastFailTimeKey, this._lastFailTime);
+
+			if (isPermanent) {
+				const count = (parseInt(GM_getValue(this._permanentFailCountKey, '0'), 10) || 0) + 1;
+				GM_setValue(this._permanentFailCountKey, count);
+				if (count >= this._permanentFailThreshold && !this._isEscalatedCooldown()) {
+					GM_setValue(this._cooldownTriggeredKey, true);
+					Logger.warn('Sync', '永久失败升级，自动同步暂停 30 分钟');
+					GM_notification({
+						title: 'AO3 Translator 同步',
+						text: '自动同步已暂停：检测到配置/认证错误，请检查后手动同步。'
+					});
+				}
+			}
+		},
+
+		// 清除失败冷却（成功同步后、用户切换开关时）
+		_clearFailure() {
+			this._lastFailTime = 0;
+			GM_deleteValue(this._lastFailTimeKey);
+			GM_deleteValue(this._permanentFailCountKey);
+			GM_deleteValue(this._cooldownTriggeredKey);
+			GM_deleteValue('webdav_fail_notify_last_at');
+			GM_deleteValue('webdav_fail_notify_category');
+		},
+
+		init() {
+			if (this._initialized) return;
+			this._initialized = true;
+
+			SyncTimestampTracker.init();
+
+			// 恢复持久化冷却状态
+			this._lastFailTime = this._getPersistedFailTime();
+
+			// 1. 监听本地数据变更，统一进入触发队列
+			const originalSaveDebounced = SyncTimestampTracker._saveDebounced;
+			SyncTimestampTracker._saveDebounced = () => {
+				originalSaveDebounced.call(SyncTimestampTracker);
+				this.enqueueTrigger('data-change');
+			};
+
+			// 2. 监听页面隐藏 
+			document.addEventListener('visibilitychange', () => {
+				if (document.visibilityState === 'hidden') {
+					this.enqueueTrigger('visibility-change');
+				}
+			});
+
+			// 3. 初始化定时器
+			this.updateInterval();
+
+			// 4. 初始启动时尝试同步一次
+			setTimeout(() => this.enqueueTrigger('startup'), 5000);
+		},
+
+		updateInterval(triggerImmediate = false) {
+			if (this.syncTimer) {
+				clearInterval(this.syncTimer);
+				this.syncTimer = null;
+			}
+			const intervalStr = GM_getValue('webdav_sync_interval', '60');
+			const interval = parseInt(intervalStr, 10);
+			const enabled = !this._isAutoDisabled();
+
+			// 自动同步关闭：清定时器、清冷却
+			if (!enabled) {
+				this._clearFailure();
+				this.syncTimer = null;
+				return;
+			}
+
+			if (!isNaN(interval) && interval > 0) {
+				this.syncTimer = setInterval(() => {
+					this.enqueueTrigger('periodic');
+				}, interval * 60 * 1000);
+
+				// 用户显式保存有效间隔时立即同步一次
+				if (triggerImmediate) {
+					this.enqueueTrigger('interval-update', true);
+				}
+			}
+		},
+
+		/**
+		 * 统一触发入口：所有同步请求汇聚于此
+		 * @param {string} source - 触发源标识
+		 * @param {boolean} highPriority - 是否高优先级（跳过最小间隔/冷却/总开关限制）
+		 */
+		enqueueTrigger(source, highPriority = false) {
+			const now = Date.now();
+
+			// 自动同步总开关
+			if (!highPriority && this._isAutoDisabled()) {
+				return;
+			}
+
+			// 失败冷却
+			if (!highPriority && this._lastFailTime > 0 && now - this._lastFailTime < this._effectiveCooldownMs()) {
+				return;
+			}
+
+			// 最小间隔限制
+			if (!highPriority && now - this._lastTriggerTime < this._minInterval) {
+				return;
+			}
+
+			// 串行执行：追加到队列尾部
+			this._triggerQueue = this._triggerQueue.then(async () => {
+				if (!highPriority && Date.now() - this._lastTriggerTime < this._minInterval) {
+					return;
+				}
+
+				this._lastTriggerTime = Date.now();
+				Logger.debug('Sync', `[Scheduler] 执行 ${source} 触发的自动同步`);
+
+				try {
+					const result = await WebDAVSyncManager.executeSync(true);
+					if (result && result.success === true && (result.applied || result.uploaded)) {
+						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.WEBDAV_SYNC_COMPLETED));
+					}
+					if (result && result.success === false && !result._silent) {
+						const isPermanent = result.permanent === true;
+						this._recordFailure(isPermanent);
+						if (result.reason) {
+							let notifyText;
+							switch (result.notifyCategory) {
+								case 'missingKey':
+									notifyText = '自动同步失败：云端数据已加密，但本地未配置同步密钥。';
+									break;
+								case 'wrongKey':
+									notifyText = '自动同步失败：同步密钥错误，无法解密云端数据。';
+									break;
+								case 'auth401':
+									notifyText = '自动同步失败：WebDAV 认证失败 (401)。';
+									break;
+								case 'auth403':
+									notifyText = '自动同步失败：权限不足 (403)。';
+									break;
+								case 'network':
+									notifyText = '自动同步失败：网络连接失败。';
+									break;
+								default:
+									notifyText = `自动同步失败：${result.reason}`;
+							}
+							const lastNotifiedAt = parseInt(GM_getValue('webdav_fail_notify_last_at', '0'), 10) || 0;
+							const lastNotifiedCategory = GM_getValue('webdav_fail_notify_category', null);
+							if (Date.now() - lastNotifiedAt >= 21600000 || lastNotifiedCategory !== (result.notifyCategory || 'default')) {
+								GM_notification(notifyText, 'AO3 Translator 同步');
+								GM_setValue('webdav_fail_notify_last_at', Date.now());
+								GM_setValue('webdav_fail_notify_category', result.notifyCategory || 'default');
+							}
+							Logger.warn('Sync', `[Scheduler] ${source} 自动同步失败: ${notifyText}`);
+						}
+					} else if (result && result.success === true) {
+						this._clearFailure();
+					}
+				} catch (err) {
+					this._recordFailure(false);
+					Logger.warn('Sync', `[Scheduler] ${source} 自动同步异常: ${err.message}`);
+				}
+			}).catch(err => {
+				Logger.error('Sync', `[Scheduler] 队列异常: ${err.message}`);
+			});
+		},
+
+		async triggerImmediateAutoSync() {
+			this.enqueueTrigger('legacy', true);
+		}
+	};
 
 	/**************************************************************************
 	 * 作品导出与生成引擎
@@ -2808,7 +10127,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		static async generatePDF(meta, chapters, css, fileNameBase) {
-			Logger.info('Export', '正在准备 PDF 打印视图，请在弹出的系统对话框中选择“另存为 PDF”...');
+			notifyAndLog('正在准备 PDF 打印视图，请在弹出的系统对话框中选择“另存为 PDF”...', '导出', 'info');
 
 			const htmlContent = `
 				<!DOCTYPE html>
@@ -2881,7 +10200,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 								clearTimeout(Logger.saveTimer);
 								Logger.saveTimer = null;
 								try {
-									GM_setValue('ao3_log_history', Logger._prune(Logger.history, Logger.config.maxPersist));
+									GM_setValue('ao3_log_history', Logger._buildPersistData());
 								} catch (e) {}
 							}
 
@@ -2922,9 +10241,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		static async executeExport() {
 			const formats = GM_getValue('ao3_export_selected_formats', ['html']);
 			if (formats.length === 0) return;
-			
-			Logger.info('Export', '正在提取网页内容，请稍候...');
-			
+
 			const meta = AO3DOMParser.extractMetadata();
 			const chapters = AO3DOMParser.extractChapters();
 			
@@ -2956,9 +10273,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (format === 'epub') await this.generateEPUB(meta, chapters, css, fileNameBase);
 					else if (format === 'pdf') await this.generatePDF(meta, chapters, css, fileNameBase);
 					else if (format === 'html') this.generateHTML(meta, chapters, css, fileNameBase);
+					Analytics.exportCreated(format, 'success');
 				} catch (e) {
 					Logger.error('Export', `导出 ${format.toUpperCase()} 失败`, e);
 					notifyAndLog(`导出 ${format.toUpperCase()} 失败: ${e.message}`, '错误', 'error');
+					Analytics.exportCreated(format, 'failure');
 				}
 			}
 		}
@@ -3233,7 +10552,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 */
 	const DATA_CATEGORIES =[
 		{ id: 'staticKeys', label: '通用设置' },
-		{ id: 'uiState', label: '界面位置' },
+		{ id: 'uiState', label: '界面偏好' },
 		{ id: 'apiKeys', label: 'API Key' },
 		{ id: 'glossaries', label: '术语表配置' },
 		{ id: 'postReplace', label: '后处理替换' },
@@ -3244,8 +10563,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		{ id: 'formatting', label: '文章格式方案' },
 		{ id: 'fabActions', label: '悬浮按钮操作' },
 		{ id: 'exportTemplates', label: '作品导出模板' },
-		{ id: 'cacheSettings', label: '缓存清理策略' }
+		{ id: 'cacheSettings', label: '缓存清理策略' },
+		{ id: 'webdavConfig', label: '云端同步配置' }
 	];
+
+	const SYNC_CATEGORIES = DATA_CATEGORIES.filter(c => c.id !== 'webdavConfig').map(c => c.id);
 
 	// 页面配置缓存
 	let pageConfig = {};
@@ -3371,7 +10693,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 	const debounce = (func, delay) => {
 		let timeout;
-		return (...args) => {
+		return function(...args) {
 			clearTimeout(timeout);
 			timeout = setTimeout(() => func.apply(this, args), delay);
 		};
@@ -3388,6 +10710,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const RETRACT_MARGIN = 10;
 		const SNAP_THRESHOLD = 40;
 		const LONG_PRESS_DURATION = 500;
+		const KEYBOARD_MIN_HEIGHT = 120;
+		const KEYBOARD_CLOSE_SETTLE_MS = 250;
 
 		let isPointerDown = false;
 		let isDragging = false;
@@ -3397,30 +10721,66 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let fabSize = { width: 0, height: 0 };
 		let longPressTimer = null;
 		let hasLongPressed = false;
-
-		// 用于触控设备的 2 秒自动贴边倒计时
 		let autoSnapTimer = null;
-		// 记录最后一次交互的设备类型 ('touch' 或 'mouse')
 		let lastPointerType = 'mouse';
-
-		// 用于双击检测的变量
 		let clickTimer = null;
 		let clickCount = 0;
-
 		let lastWinWidth = document.documentElement.clientWidth;
 		let maxWinHeight = window.innerHeight;
+		let keyboardState = 'closed';
+		let keyboardTimer = null;
+		let lastWidthChangeAt = 0;
+		let preKeyboardPos = null;
 
-		// 动态检测移动端键盘弹起状态
-		const isMobileKeyboardState = () => {
-			const winW = document.documentElement.clientWidth;
-			const currentH = window.innerHeight;
-			return lastPointerType === 'touch' &&
-				   (Math.abs(winW - lastWinWidth) < 5) &&
-				   (currentH < maxWinHeight * 0.80);
+		const getVisualViewport = () => (typeof window.visualViewport !== 'undefined') ? window.visualViewport : null;
+		const isTouchCapable = () =>
+			(window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+			(typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+		const noteViewportHeight = (h) => { if (typeof h === 'number' && h > maxWinHeight) maxWinHeight = h; };
+		const isBottomObstructed = () => {
+			if (window.innerHeight < maxWinHeight - 2) return true;
+			const vv = getVisualViewport();
+			return !!(vv && vv.height > 0 && vv.height < window.innerHeight - 2);
 		};
+		const getBottomObstructionHeight = () => {
+			const vv = getVisualViewport();
+			const currentH = window.innerHeight;
+			if (vv && vv.height > 0) {
+				return Math.max(0, maxWinHeight - (vv.offsetTop + vv.height));
+			}
+			return Math.max(0, maxWinHeight - currentH);
+		};
+		const isKeyboardObstructed = () => isMobileKeyboardState() && getBottomObstructionHeight() >= KEYBOARD_MIN_HEIGHT;
+		const isEditableFocused = () => {
+			const el = getDeepActiveElement();
+			if (!el || !el.tagName) return false;
+			return el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT';
+		};
+		const isMobileKeyboardState = () => isTouchCapable() && isBottomObstructed();
 
 		const limitNumber = (num, min, max) => Math.max(min, Math.min(num, max));
-		const savePosition = debounce((pos) => GM_setValue(FAB_POSITION_KEY, pos), 500);
+		const getPositionFromStorage = () => {
+			const raw = GM_getValue(FAB_POSITION_KEY);
+			if (!raw || typeof raw !== 'object') return null;
+			const winW = document.documentElement.clientWidth;
+			const baseH = Math.max(maxWinHeight, window.innerHeight);
+			if (typeof raw.xRatio === 'number' && typeof raw.yRatio === 'number') {
+				return { x: raw.xRatio * winW, y: raw.yRatio * baseH };
+			}
+			if (typeof raw.x === 'number' && typeof raw.y === 'number') {
+				return { x: raw.x, y: raw.y };
+			}
+			return null;
+		};
+		const savePosition = debounce((pos) => {
+			const winW = document.documentElement.clientWidth;
+			const baseH = Math.max(maxWinHeight, window.innerHeight);
+			GM_setValue(FAB_POSITION_KEY, {
+				xRatio: winW > 0 ? pos.x / winW : 0,
+				yRatio: baseH > 0 ? pos.y / baseH : 0,
+				x: pos.x, y: pos.y
+			});
+		}, 500);
 
 		const updateFabSize = () => {
 			const rect = fabContainer.getBoundingClientRect();
@@ -3465,7 +10825,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		// 处理触控模式下，点击外部区域立刻贴边的逻辑
 		const handleOutsideClickForSnap = (e) => {
 			// 如果点击的是悬浮球本身，或者设置面板内部，则不处理
-			if (fabContainer.contains(e.target) || (panelLogic.panel && panelLogic.panel.contains(e.target))) {
+			const path = e.composedPath();
+			if (path.includes(fabContainer) || (panelLogic.panel && path.includes(panelLogic.panel))) {
 				return;
 			}
 			// 点击了外部，立刻清除倒计时并强制贴边
@@ -3474,8 +10835,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		};
 
 		// 核心位置判定逻辑
-		const snapDecision = (forceRetract = false) => {
+		const snapDecision = (forceRetract = false, useTransition = true) => {
 			if (isDragging) return;
+			// 键盘级遮挡期间不贴边：避免贴到键盘下方；地址栏等小遮挡不受影响
+			if (isKeyboardObstructed()) return;
 			window.removeEventListener('mousemove', checkMouseLeave);
 
 			// 最高优先级：面板打开时，绝对不允许贴边
@@ -3485,10 +10848,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			const winW = document.documentElement.clientWidth;
-			const currentH = window.innerHeight;
-			if (currentH > maxWinHeight) maxWinHeight = currentH;
+			noteViewportHeight(window.innerHeight);
 
-			const effectiveH = isMobileKeyboardState() ? maxWinHeight : currentH;
+			// 统一全高坐标系：贴边计算始终基于历史最大高度
+			const effectiveH = maxWinHeight;
 			const currentPos = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
 
 			const dist = {
@@ -3533,7 +10896,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			if (shouldSnap || forceRetract) {
-				setPosition(finalPos, true);
+				setPosition(finalPos, useTransition);
 				savePosition(finalPos);
 			}
 		};
@@ -3548,7 +10911,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			fabContainer.classList.remove('snapped');
 
 			const winW = document.documentElement.clientWidth;
-			const winH = window.innerHeight;
+			const winH = maxWinHeight;
 			const currentPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
 			let newPos = { ...currentPos };
 
@@ -3560,6 +10923,34 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			else if (currentPos.y > winH - fabSize.height) newPos.y = winH - fabSize.height - RETRACT_MARGIN;
 
 			setPosition(newPos, true);
+			// 键盘弹起时，激活后仍保持可见
+			if (isMobileKeyboardState()) repositionForKeyboard();
+		};
+
+		// 键盘弹起时的临时位移
+		const repositionForKeyboard = () => {
+			if (isDragging) return;
+			const obstruction = getBottomObstructionHeight();
+			if (obstruction < KEYBOARD_MIN_HEIGHT) return;
+			const vv = getVisualViewport();
+			const currentH = window.innerHeight;
+			const visibleBottom = (vv && vv.height > 0) ? (vv.offsetTop + vv.height) : currentH;
+			const pos = { x: parseFloat(fabContainer.style.left || 0), y: parseFloat(fabContainer.style.top || 0) };
+			if (pos.y + fabSize.height <= visibleBottom) return;
+			if (!preKeyboardPos) preKeyboardPos = { ...pos };
+			const newY = Math.max(RETRACT_MARGIN, visibleBottom - fabSize.height - RETRACT_MARGIN);
+			if (Math.abs(newY - pos.y) > 1) setPosition({ x: pos.x, y: newY }, true);
+		};
+
+		// 键盘收起后的归位：恢复临时位移前的位置，回到全高坐标系并贴边
+		const restoreAfterKeyboard = () => {
+			if (preKeyboardPos) {
+				setPosition(preKeyboardPos, true);
+				preKeyboardPos = null;
+			}
+			updateFabSize();
+			snapDecision(true);
+			if (statusLightController) statusLightController.updateDirection();
 		};
 
 		// 启动 2 秒自动贴边倒计时
@@ -3678,14 +11069,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				fabContainer.classList.remove('dragging');
 
 				const winW = document.documentElement.clientWidth;
-				const winH = window.innerHeight;
+				const winH = maxWinHeight;
 				let finalPos = { x: parseFloat(fabContainer.style.left), y: parseFloat(fabContainer.style.top) };
 				finalPos.x = limitNumber(finalPos.x, 0, winW - fabSize.width);
 				finalPos.y = limitNumber(finalPos.y, 0, winH - fabSize.height);
 				setPosition(finalPos);
 				savePosition(finalPos);
-
-				snapDecision();
+				preKeyboardPos = null;
+				snapDecision(false, false);
+				if (isMobileKeyboardState()) repositionForKeyboard();
 			}
 		};
 
@@ -3755,37 +11147,88 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			handleFabAction(action);
 		});
 
-		const onResize = debounce(() => {
-			const currentHeight = window.innerHeight;
+		// 键盘状态机入口
+		const handleViewportChange = () => {
+			const currentH = window.innerHeight;
+			const winW = document.documentElement.clientWidth;
+			const widthChanged = Math.abs(winW - lastWinWidth) > 5;
+			const grew = currentH > maxWinHeight;
+			if (widthChanged) lastWidthChangeAt = Date.now();
 
-			if (currentHeight > maxWinHeight) {
-				maxWinHeight = currentHeight;
-			}
+			noteViewportHeight(currentH);
+			lastWinWidth = winW;
 
-			if (isMobileKeyboardState()) {
+			if (widthChanged || grew || !isTouchCapable() || (Date.now() - lastWidthChangeAt < 300)) {
+				maxWinHeight = currentH;
+				if (keyboardTimer) { clearTimeout(keyboardTimer); keyboardTimer = null; }
+				keyboardState = 'closed';
+				preKeyboardPos = null;
+				updateFabSize();
+				snapDecision(true);
+				if (statusLightController) statusLightController.updateDirection();
 				return;
 			}
 
-			updateFabSize();
-			snapDecision(true);
-			if (statusLightController) statusLightController.updateDirection();
-		}, 200);
+			const obstructed = isBottomObstructed();
+			let nextState = keyboardState;
+			if (keyboardState === 'closing') {
+			} else if (obstructed) {
+				nextState = (keyboardState === 'open' || keyboardState === 'opening') ? 'open' : 'opening';
+			} else {
+				nextState = (keyboardState === 'open' || keyboardState === 'opening') ? 'closing' : 'closed';
+			}
 
+			if (nextState === keyboardState) {
+				if (obstructed) repositionForKeyboard();
+				return;
+			}
+			keyboardState = nextState;
+			if (keyboardTimer) { clearTimeout(keyboardTimer); keyboardTimer = null; }
+
+			if (keyboardState === 'opening') {
+				repositionForKeyboard();
+			} else if (keyboardState === 'closing') {
+				keyboardTimer = setTimeout(() => {
+					keyboardTimer = null;
+					if (isBottomObstructed()) {
+						keyboardState = 'open';
+						repositionForKeyboard();
+					} else {
+						keyboardState = 'closed';
+						restoreAfterKeyboard();
+					}
+				}, KEYBOARD_CLOSE_SETTLE_MS);
+			}
+		};
+
+		const onResize = debounce(handleViewportChange, 200);
 		window.addEventListener('resize', onResize);
+
+		const vvForListen = getVisualViewport();
+		if (vvForListen && typeof vvForListen.addEventListener === 'function') {
+			vvForListen.addEventListener('resize', debounce(handleViewportChange, 120), { passive: true });
+		}
 
 		const initializePosition = () => {
 			updateFabSize();
-			let initialPosition = GM_getValue(FAB_POSITION_KEY);
+			const winW = document.documentElement.clientWidth;
+			const winH = Math.max(maxWinHeight, window.innerHeight);
+			let initialPosition = getPositionFromStorage();
 			if (!initialPosition) {
-				const winW = document.documentElement.clientWidth;
-				const winH = window.innerHeight;
 				initialPosition = {
 					x: winW - fabSize.width / 2,
 					y: winH * 0.75 - fabSize.height / 2
 				};
 			}
 			setPosition(initialPosition);
-			setTimeout(() => snapDecision(true), 100);
+			setTimeout(() => {
+				if (isMobileKeyboardState()) {
+					keyboardState = 'open';
+					repositionForKeyboard();
+				} else if (!isEditableFocused()) {
+					snapDecision(true);
+				}
+			}, 100);
 		};
 
 		initializePosition();
@@ -3960,21 +11403,27 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		'ao3_blocker_adv_char',
 		'ao3_blocker_adv_lang',
 		'ao3_blocker_adv_scope_rel',
-		'ao3_blocker_adv_scope_char',
-		'ao3_blocker_current_view',
-		'ao3_blocker_current_sub_view'
+		'ao3_blocker_adv_scope_char'
 	];
+
+	/**
+	 * WebDAV 同步配置的手动导入/导出键清单
+	 */
+	const WEBDAV_CONFIG_KEYS = ['webdav_url','webdav_user','webdav_pass','webdav_enc_key',
+		'webdav_auto_sync_enabled','webdav_sync_interval','webdav_chunk_size',
+		'webdav_concurrency','webdav_timeout','webdav_retry_policy','webdav_conflict_resolution',
+		'webdav_validate_checksums'];
 
 	/**
 	 * 聚合用户配置数据，支持按需导出
 	 */
 	async function exportAllData(selectedCategories = null) {
-		const categories = selectedCategories || DATA_CATEGORIES.map(c => c.id);
+		const categories = selectedCategories || SYNC_CATEGORIES;
 		const isSelected = (id) => categories.includes(id);
 
 		const allData = {
 			metadata: {
-				exportFormatVersion: "1.3",
+				exportFormatVersion: "1.4",
 				scriptVersion: GM_info.script.version,
 				exportDate: getShanghaiTimeString(),
 				selectedCategories: categories
@@ -3986,10 +11435,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			allData.data.staticKeys = {};
 			const keys =[
 				'enable_RegExp', 'enable_transDesc', 'show_fab', 'transEngine',
-				'translation_display_mode', 'ao3_glossary_last_action',
-				'from_lang', 'to_lang', 'lang_detector', 'enable_ui_trans',
+				'translation_display_mode',
+				'from_lang', 'to_lang', 'lang_detector', 'lang_detector_fallback', 'enable_ui_trans',
 				'ao3_log_level', 'ao3_log_auto_clear', 'custom_url_first_save_done',
-				'ao3_translation_mode', 'ao3_auto_translate', 'show_status_light', 'hide_whitelist_prompt'
+				'ao3_translation_mode', 'ao3_auto_translate', 'hide_whitelist_prompt',
+				'ao3_update_check_interval'
 			];
 			for (const key of keys) {
 				const value = GM_getValue(key);
@@ -4000,7 +11450,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		if (isSelected('apiKeys')) {
 			allData.data.apiKeys = {};
 			const builtInServices = Object.keys(engineMenuConfig)
-				.filter(id => id !== 'google_translate' && id !== 'bing_translator' && id !== ADD_NEW_CUSTOM_SERVICE_ID);
+				.filter(id => !isSimpleTranslationEngine(id) && id !== ADD_NEW_CUSTOM_SERVICE_ID);
 			for (const serviceId of builtInServices) {
 				const apiKey = GM_getValue(`${serviceId}_keys_string`);
 				if (apiKey !== undefined) allData.data.apiKeys[`${serviceId}_keys_string`] = apiKey;
@@ -4054,7 +11504,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		if (isSelected('glossaries')) {
 			allData.data.glossaries = {
 				customGlossaries: GM_getValue(CUSTOM_GLOSSARIES_KEY),
-				metadata: GM_getValue(GLOSSARY_METADATA_KEY),
+				metadata: (() => {
+					const meta = GM_getValue(GLOSSARY_METADATA_KEY, {});
+					const enabledOnly = {};
+					for (const [url, m] of Object.entries(meta)) {
+						if (m && typeof m === 'object') enabledOnly[url] = { enabled: m.enabled };
+						else enabledOnly[url] = m;
+					}
+					return enabledOnly;
+				})(),
 				onlineOrder: GM_getValue(ONLINE_GLOSSARY_ORDER_KEY,[]),
 				lastSelected: GM_getValue(LAST_SELECTED_GLOSSARY_KEY)
 			};
@@ -4068,12 +11526,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		if (isSelected('aiParameters')) {
 			allData.data.aiParameters = {};
-
-			const uiStateKeys = ['ao3_ai_param_last_action'];
-			for (const key of uiStateKeys) {
-				const value = GM_getValue(key);
-				if (value !== undefined) allData.data.aiParameters[key] = value;
-			}
 
 			const profiles = GM_getValue(AI_PROFILES_KEY);
 			if (profiles && Array.isArray(profiles) && profiles.length > 0) {
@@ -4093,22 +11545,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			allData.data.uiState = {
-				fabPosition: GM_getValue('ao3_fab_position'),
-				panelPosition: GM_getValue('ao3_panel_position'),
-				panelHasOpened: GM_getValue('panel_has_been_opened_once'),
 				exportSelection: GM_getValue('ao3_export_selection_memory'),
 				localGlossarySelectedId: GM_getValue('ao3_local_glossary_selected_id'),
-				localGlossaryEditMode: GM_getValue('ao3_local_glossary_edit_mode'),
 				postReplaceSelectedId: GM_getValue('ao3_post_replace_selected_id'),
-				postReplaceEditMode: GM_getValue('ao3_post_replace_edit_mode'),
 				fabManageMode: GM_getValue('ao3_fab_manage_mode'),
 				fabManageGesture: GM_getValue('ao3_fab_manage_gesture'),
-				formattingLastProp: GM_getValue('formatting_last_prop'),
-				logModalFilter: GM_getValue('ao3_log_modal_filter'),
 				exportLastFormat: GM_getValue('ao3_export_last_format'),
 				exportLastAction: GM_getValue('ao3_export_last_action'),
-				hasSwitchedToFullPageOnce: GM_getValue('has_switched_to_full_page_once'),
-				cacheManageMode: GM_getValue('ao3_cache_manage_mode'),
+				exportFormats: GM_getValue('ao3_export_selected_formats'),
+				show_status_light: GM_getValue('show_status_light'),
 				serviceCollapsedStates: collapsedStates
 			};
 		}
@@ -4145,8 +11590,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			allData.data.cacheSettings = {
 				autoCleanupEnabled: GM_getValue('ao3_cache_auto_cleanup_enabled', true),
 				maxItems: GM_getValue('ao3_cache_max_items'),
-				maxDays: GM_getValue('ao3_cache_max_days')
+				maxDays: GM_getValue('ao3_cache_max_days'),
+				maxSizeBytes: GM_getValue('ao3_cache_max_size_bytes')
 			};
+		}
+
+		if (isSelected('webdavConfig')) {
+			allData.data.webdavConfig = {};
+			for (const key of WEBDAV_CONFIG_KEYS) {
+				const value = GM_getValue(key);
+				if (value !== undefined) allData.data.webdavConfig[key] = value;
+			}
 		}
 		return allData;
 	}
@@ -4164,6 +11618,113 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) return false;
 		}
 		return true;
+	}
+
+	const AI_PARAM_LOG_LABELS = {
+		system_prompt: 'System Prompt',
+		user_prompt: 'User Prompt',
+		temperature: 'Temperature',
+		reasoning_effort: '推理深度',
+		para_mode: '标记方式',
+		chunk_size: '每次翻译文本量',
+		para_limit: '每次翻译段落数',
+		request_rate: '平均每秒请求数',
+		request_capacity: '最大突发请求数',
+		lazy_load_margin: '懒加载参数设置',
+		validation_thresholds: '占位符校验阈值',
+		batch_mode: '批次大小'
+	};
+
+	function normalizeAiServiceUrl(url) {
+		const raw = String(url || '').trim();
+		if (!raw) return '';
+		try {
+			const parsed = new URL(raw);
+			const port = parsed.port ? `:${parsed.port}` : '';
+			return `${parsed.protocol}//${parsed.hostname}${port}${parsed.pathname.replace(/\/+$/, '')}`.toLowerCase();
+		} catch (e) {
+			return raw.replace(/\/+$/, '').toLowerCase();
+		}
+	}
+
+	function collectAiServiceUrlMap(extraLists) {
+		const map = new Map();
+		const lists = [GM_getValue(CUSTOM_SERVICES_LIST_KEY, [])];
+		(extraLists || []).forEach(list => lists.push(list));
+		lists.forEach(list => {
+			if (!Array.isArray(list)) return;
+			list.forEach(service => {
+				if (!service || typeof service.id !== 'string' || !service.url) return;
+				const key = normalizeAiServiceUrl(service.url);
+				if (key) map.set(service.id, key);
+			});
+		});
+		return map;
+	}
+
+	function aiServiceIdentity(serviceIds, urlMap) {
+		return (serviceIds || []).map(id => {
+			const url = urlMap && urlMap.get(id);
+			return url ? `url:${url}` : `id:${id}`;
+		}).sort().join('|');
+	}
+
+	function aiProfileIdentityKey(profile, urlMap) {
+		return `${String((profile && profile.name) || '').trim()}\u0001${aiServiceIdentity(profile && profile.services, urlMap)}`;
+	}
+
+	function resolveAiProfileServiceIds(serviceIds, serviceIdMap, urlMap, localServices) {
+		const localIdByUrl = new Map();
+		const localIds = new Set();
+		(localServices || []).forEach(service => {
+			if (!service || typeof service.id !== 'string') return;
+			localIds.add(service.id);
+			if (!service.url) return;
+			const key = normalizeAiServiceUrl(service.url);
+			if (key && !localIdByUrl.has(key)) localIdByUrl.set(key, service.id);
+		});
+		return (serviceIds || []).map(id => {
+			if (serviceIdMap && serviceIdMap.has(id)) return serviceIdMap.get(id);
+			if (localIds.has(id)) return id;
+			const url = urlMap && urlMap.get(id);
+			if (url && localIdByUrl.has(url)) return localIdByUrl.get(url);
+			return id;
+		});
+	}
+
+	function formatAiParamValue(key, value) {
+		if (value === undefined) return '未设置';
+		if (value === null) return '空';
+		if (key === 'reasoning_effort') return REASONING_LEVEL_LABELS[value] || String(value);
+		if (key === 'para_mode') return value === 'json' ? 'JSON 数组' : (value === '%%' ? '分隔符' : String(value));
+		if (key === 'batch_mode') return value === 'fixed' ? '固定' : (value === 'dynamic' ? '动态' : String(value));
+		const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+		return text.length > 40 ? `${text.slice(0, 40)}…` : text;
+	}
+
+	function diffAiProfileParams(localParams, remoteParams) {
+		const local = localParams || {};
+		const remote = remoteParams || {};
+		const diffs = {};
+		const keys = Array.from(new Set([...Object.keys(local), ...Object.keys(remote)])).sort();
+		keys.forEach(key => {
+			if (JSON.stringify(local[key]) === JSON.stringify(remote[key])) return;
+			const label = AI_PARAM_LOG_LABELS[key] || key;
+			if (key === 'system_prompt' || key === 'user_prompt') {
+				diffs[label] = '内容有修改';
+				return;
+			}
+			diffs[label] = `${formatAiParamValue(key, local[key])} → ${formatAiParamValue(key, remote[key])}`;
+		});
+		return diffs;
+	}
+
+	function describeAiProfileConflicts(conflicts) {
+		if (!conflicts || conflicts.length === 0) return '';
+		if (conflicts.length === 1) {
+			return `有 1 项同名翻译参数配置内容不一致，已各自留存（${conflicts[0].name}、${conflicts[0].kept}）`;
+		}
+		return `有 ${conflicts.length} 项同名翻译参数配置内容不一致，已各自留存`;
 	}
 
 	function generateUniqueName(desiredName, existingNames) {
@@ -4191,7 +11752,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	/**
 	 * 导入用户配置数据，支持按需导入及智能合并/覆盖模式
 	 */
-	async function importAllData(jsonData, selectedCategories, importMode) {
+	async function importAllData(jsonData, selectedCategories, importMode, isSync = false, syncContext = null) {
 		if (!jsonData || typeof jsonData !== 'object' || !jsonData.data || typeof jsonData.data !== 'object') {
 			return { success: false, message: "文件格式无效或文件已损坏：缺少核心 'data' 模块。" };
 		}
@@ -4203,7 +11764,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		const fileMetadata = jsonData.metadata || {};
 		const fileFormatVersion = parseFloat(fileMetadata.exportFormatVersion || "1.0");
-		const currentScriptSupportedVersion = 1.3;
+		const currentScriptSupportedVersion = 1.4;
 
 		if (fileFormatVersion > currentScriptSupportedVersion) {
 			try {
@@ -4223,6 +11784,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let importLog =[];
 
 		const serviceIdMap = new Map();
+		let aiProfileConflicts = [];
+		let aiProfileRemoteApplied = [];
 
 		// 1. 自定义服务
 		if (isSelected('customServices')) {
@@ -4261,8 +11824,16 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 								const localApiKey = GM_getValue(`${matchedService.id}_keys_string`, '');
 								const mergedKey = mergeApiKeys(localApiKey, importedApiKey);
 								GM_setValue(`${matchedService.id}_keys_string`, mergedKey);
-								GM_setValue(`${matchedService.id}_keys_array`, mergedKey.split(', '));
+								GM_setValue(`${matchedService.id}_keys_array`, parseKeysToArray(mergedKey));
+								const oldIndexKey = `${importedService.id}_key_index`;
+								if (!localApiKey && data.apiKeys[oldIndexKey] !== undefined) {
+									GM_setValue(`${matchedService.id}_key_index`, data.apiKeys[oldIndexKey]);
+								}
+								clampKeyIndex(matchedService.id);
 							}
+						}
+						if (importedService.selectedModel !== undefined) {
+							GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${matchedService.id}`, importedService.selectedModel);
 						}
 						mergedCount++;
 					} else {
@@ -4293,13 +11864,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							const apiKeyVal = data.apiKeys[oldKeyName] || importedService.apiKey;
 							if (apiKeyVal !== undefined) {
 								GM_setValue(`${newServiceId}_keys_string`, apiKeyVal);
-								const keysArray = apiKeyVal.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+								const keysArray = parseKeysToArray(apiKeyVal);
 								GM_setValue(`${newServiceId}_keys_array`, keysArray);
 							}
 							const oldIndexKey = `${importedService.id}_key_index`;
 							if (data.apiKeys[oldIndexKey] !== undefined) {
 								GM_setValue(`${newServiceId}_key_index`, data.apiKeys[oldIndexKey]);
 							}
+							clampKeyIndex(newServiceId);
 						}
 
 						existingServices.push(newServiceConfig);
@@ -4346,7 +11918,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		// 3. 内置服务 API Keys
 		if (isSelected('apiKeys') && data.apiKeys) {
-			const builtInServices = Object.keys(engineMenuConfig).filter(id => !id.startsWith('custom_') && id !== 'add_new_custom');
+			const builtInServices = Object.keys(engineMenuConfig).filter(id => !isSimpleTranslationEngine(id) && id !== 'add_new_custom');
 			let keysUpdated = false;
 
 			if (isOverwrite) {
@@ -4362,16 +11934,22 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				if (value !== undefined && isBuiltInKey) {
 					if (isOverwrite) {
 						GM_setValue(key, value);
-						GM_setValue(key.replace('_keys_string', '_keys_array'), value.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean));
+						GM_setValue(key.replace('_keys_string', '_keys_array'), parseKeysToArray(value));
 						keysUpdated = true;
+						const importedIndexKey = key.replace('_keys_string', '_key_index');
+						if (data.apiKeys[importedIndexKey] !== undefined) {
+							GM_setValue(importedIndexKey, data.apiKeys[importedIndexKey]);
+						}
+						clampKeyIndex(key.replace('_keys_string', ''));
 					} else {
 						const localValue = GM_getValue(key, '');
 						const mergedKey = mergeApiKeys(localValue, value);
 						if (mergedKey !== localValue) {
 							GM_setValue(key, mergedKey);
-							GM_setValue(key.replace('_keys_string', '_keys_array'), mergedKey.split(', '));
+							GM_setValue(key.replace('_keys_string', '_keys_array'), parseKeysToArray(mergedKey));
 							keysUpdated = true;
 						}
+						clampKeyIndex(key.replace('_keys_string', ''));
 					}
 				}
 			}
@@ -4405,14 +11983,27 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			if (g.local || g.forbidden) {
 				const existingLocal = GM_getValue(CUSTOM_GLOSSARIES_KEY,[]);
-				existingLocal.push({
-					id: `local_migrated_${Date.now()}`,
-					name: '默认',
-					sensitive: g.local || '',
-					insensitive: '',
-					forbidden: g.forbidden || '',
-					enabled: true
-				});
+				const emptyDefault = !isOverwrite && existingLocal.find(local =>
+					local.name === '默认' &&
+					(local.sensitive || '').trim() === '' &&
+					(local.insensitive || '').trim() === '' &&
+					(local.forbidden || '').trim() === ''
+				);
+				if (emptyDefault) {
+					emptyDefault.sensitive = g.local || '';
+					emptyDefault.insensitive = '';
+					emptyDefault.forbidden = g.forbidden || '';
+					emptyDefault.enabled = true;
+				} else {
+					existingLocal.push({
+						id: `local_migrated_${Date.now()}`,
+						name: '默认',
+						sensitive: g.local || '',
+						insensitive: '',
+						forbidden: g.forbidden || '',
+						enabled: true
+					});
+				}
 				GM_setValue(CUSTOM_GLOSSARIES_KEY, existingLocal);
 				importLog.push("旧版术语表已迁移");
 			}
@@ -4423,6 +12014,23 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				let localAdded = 0;
 				
 				g.customGlossaries.forEach(importedLocal => {
+					const emptySameName = !isOverwrite && existingLocal.find(local =>
+						local.name === importedLocal.name &&
+						(local.sensitive || '').trim() === '' &&
+						(local.insensitive || '').trim() === '' &&
+						(local.forbidden || '').trim() === ''
+					);
+					if (emptySameName) {
+						emptySameName.sensitive = importedLocal.sensitive || '';
+						emptySameName.insensitive = importedLocal.insensitive || '';
+						emptySameName.forbidden = importedLocal.forbidden || '';
+						emptySameName.enabled = importedLocal.enabled !== false;
+						if (data.uiState && data.uiState.localGlossarySelectedId === importedLocal.id) {
+							data.uiState._mappedLocalId = emptySameName.id;
+						}
+						return;
+					}
+
 					const isDuplicate = !isOverwrite && existingLocal.some(local => 
 						local.sensitive === importedLocal.sensitive && 
 						local.insensitive === importedLocal.insensitive && 
@@ -4453,27 +12061,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				if (localAdded > 0) importLog.push(`新增 ${localAdded} 个本地术语表`);
 			}
 
-			if (g.importedGlossaries) {
-				const existingImported = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-				const mergedImported = isOverwrite ? g.importedGlossaries : { ...existingImported, ...g.importedGlossaries };
-				GM_setValue(IMPORTED_GLOSSARY_KEY, mergedImported);
-			}
-
 			if (g.metadata || g.onlineMetadata) {
 				const importedMeta = g.metadata || g.onlineMetadata;
 				const existingMeta = GM_getValue(GLOSSARY_METADATA_KEY, {});
-				
-				if (isOverwrite) {
-					GM_setValue(GLOSSARY_METADATA_KEY, importedMeta);
-				} else {
-					for (const [url, meta] of Object.entries(importedMeta)) {
-						if (existingMeta[url] && existingMeta[url].enabled !== undefined) {
-							meta.enabled = existingMeta[url].enabled;
-						}
-						existingMeta[url] = meta;
-					}
-					GM_setValue(GLOSSARY_METADATA_KEY, existingMeta);
+				for (const [url, meta] of Object.entries(importedMeta)) {
+					const enabled = (meta && typeof meta === 'object') ? meta.enabled : meta;
+					existingMeta[url] = { ...(existingMeta[url] || {}), enabled: enabled };
 				}
+				GM_setValue(GLOSSARY_METADATA_KEY, existingMeta);
 			}
 
 			if (g.onlineOrder && Array.isArray(g.onlineOrder)) {
@@ -4486,6 +12081,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, [...currentOrder, ...newItems]);
 				}
 			}
+			if (g.lastSelected) GM_setValue(LAST_SELECTED_GLOSSARY_KEY, g.lastSelected);
+		invalidateGlossaryCache();
 		}
 
 		// 6. 替换规则
@@ -4568,7 +12165,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				'custom_ai_system_prompt', 'custom_ai_user_prompt', 'custom_ai_temperature',
 				'custom_ai_chunk_size', 'custom_ai_para_limit', 'custom_ai_request_rate',
 				'custom_ai_request_capacity', 'custom_ai_lazy_load_margin',
-				'custom_ai_validation_thresholds', 'ao3_ai_param_last_action'
+				'custom_ai_validation_thresholds'
 			];
 
 			for (const key of legacyKeys) {
@@ -4584,13 +12181,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			const importedProfiles = data.aiParameters[AI_PROFILES_KEY];
 			if (importedProfiles && Array.isArray(importedProfiles)) {
-				if (serviceIdMap.size > 0) {
-					importedProfiles.forEach(profile => {
-						if (profile.services && Array.isArray(profile.services)) {
-							profile.services = profile.services.map(oldId => serviceIdMap.get(oldId) || oldId);
-						}
-					});
-				}
+				const localServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
+				const serviceUrlMap = collectAiServiceUrlMap([data.customServices, syncContext && syncContext.baseServices]);
+
+				importedProfiles.forEach(profile => {
+					if (profile && Array.isArray(profile.services)) {
+						profile.services = resolveAiProfileServiceIds(profile.services, serviceIdMap, serviceUrlMap, localServices);
+					}
+				});
 
 				if (isOverwrite) {
 					GM_setValue(AI_PROFILES_KEY, importedProfiles);
@@ -4598,22 +12196,51 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				} else {
 					const currentProfiles = GM_getValue(AI_PROFILES_KEY,[]);
 					const existingNames = currentProfiles.map(p => p.name);
+					const baseProfiles = (syncContext && Array.isArray(syncContext.baseProfiles)) ? syncContext.baseProfiles : null;
 					let addedCount = 0;
 
 					importedProfiles.forEach(importedProfile => {
-						const isDuplicate = currentProfiles.some(p => deepEqual(p.params, importedProfile.params));
-						
-						if (!isDuplicate) {
+						const identityKey = aiProfileIdentityKey(importedProfile, serviceUrlMap);
+						const localMatch = currentProfiles.find(p => aiProfileIdentityKey(p, serviceUrlMap) === identityKey);
+
+						if (!localMatch) {
 							let finalName = generateUniqueName(importedProfile.name, existingNames);
 							existingNames.push(finalName);
 
 							importedProfile.id = `profile_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 							importedProfile.name = finalName;
-							importedProfile.isProtected = false; 
-							
+							importedProfile.isProtected = false;
+
 							currentProfiles.push(importedProfile);
 							addedCount++;
+							return;
 						}
+
+						if (deepEqual(localMatch.params, importedProfile.params)) return;
+
+						const baseMatch = baseProfiles ? baseProfiles.find(p => aiProfileIdentityKey(p, serviceUrlMap) === identityKey) : null;
+						const localChanged = baseMatch ? !deepEqual(baseMatch.params, localMatch.params) : true;
+						const remoteChanged = baseMatch ? !deepEqual(baseMatch.params, importedProfile.params) : true;
+
+						if (baseMatch && !localChanged && remoteChanged) {
+							if (importedProfile.params && typeof importedProfile.params === 'object') localMatch.params = importedProfile.params;
+							aiProfileRemoteApplied.push(localMatch.name);
+							return;
+						}
+
+						if (baseMatch && localChanged && !remoteChanged) return;
+
+						const diffs = diffAiProfileParams(localMatch.params, importedProfile.params);
+						let finalName = generateUniqueName(importedProfile.name, existingNames);
+						existingNames.push(finalName);
+
+						importedProfile.id = `profile_imp_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+						importedProfile.name = finalName;
+						importedProfile.isProtected = false;
+
+						currentProfiles.push(importedProfile);
+						addedCount++;
+						aiProfileConflicts.push({ name: localMatch.name, kept: finalName, diffs: diffs });
 					});
 					GM_setValue(AI_PROFILES_KEY, currentProfiles);
 					if (addedCount > 0) importLog.push(`新增 ${addedCount} 个 AI 参数配置`);
@@ -4622,33 +12249,24 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		// 8. UI 状态
+		invalidateConfigFingerprint();
 		if (isSelected('uiState') && data.uiState) {
-			if (data.uiState.fabPosition) GM_setValue('ao3_fab_position', data.uiState.fabPosition);
-			if (data.uiState.panelPosition) GM_setValue('ao3_panel_position', data.uiState.panelPosition);
-
-			if (data.uiState.panelHasOpened !== undefined) GM_setValue('panel_has_been_opened_once', data.uiState.panelHasOpened);
 			if (data.uiState.exportSelection) GM_setValue('ao3_export_selection_memory', data.uiState.exportSelection);
 
 			if (data.uiState._mappedLocalId) GM_setValue('ao3_local_glossary_selected_id', data.uiState._mappedLocalId);
 			else if (data.uiState.localGlossarySelectedId) GM_setValue('ao3_local_glossary_selected_id', data.uiState.localGlossarySelectedId);
 
-			if (data.uiState.localGlossaryEditMode) GM_setValue('ao3_local_glossary_edit_mode', data.uiState.localGlossaryEditMode);
-
 			if (data.uiState._mappedReplaceId) GM_setValue('ao3_post_replace_selected_id', data.uiState._mappedReplaceId);
 			else if (data.uiState.postReplaceSelectedId) GM_setValue('ao3_post_replace_selected_id', data.uiState.postReplaceSelectedId);
-
-			if (data.uiState.postReplaceEditMode) GM_setValue('ao3_post_replace_edit_mode', data.uiState.postReplaceEditMode);
 
 			if (data.uiState.fabManageMode) GM_setValue('ao3_fab_manage_mode', data.uiState.fabManageMode);
 			if (data.uiState.fabManageGesture) GM_setValue('ao3_fab_manage_gesture', data.uiState.fabManageGesture);
 
-			if (data.uiState.formattingLastProp) GM_setValue('formatting_last_prop', data.uiState.formattingLastProp);
-			if (data.uiState.logModalFilter) GM_setValue('ao3_log_modal_filter', data.uiState.logModalFilter);
 			if (data.uiState.exportLastFormat) GM_setValue('ao3_export_last_format', data.uiState.exportLastFormat);
 			if (data.uiState.exportLastAction) GM_setValue('ao3_export_last_action', data.uiState.exportLastAction);
-			if (data.uiState.hasSwitchedToFullPageOnce !== undefined) GM_setValue('has_switched_to_full_page_once', data.uiState.hasSwitchedToFullPageOnce);
+			if (data.uiState.exportFormats) GM_setValue('ao3_export_selected_formats', data.uiState.exportFormats);
 
-			if (data.uiState.cacheManageMode) GM_setValue('ao3_cache_manage_mode', data.uiState.cacheManageMode);
+			if (data.uiState.show_status_light !== undefined) GM_setValue('show_status_light', data.uiState.show_status_light);
 
 			if (data.uiState.serviceCollapsedStates) {
 				for (const [sId, isCollapsed] of Object.entries(data.uiState.serviceCollapsedStates)) {
@@ -4791,7 +12409,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							const existingNames = currentTemplates[format].map(t => t.name);
 							
 							importedTemplates[format].forEach(importedTpl => {
-								// 跳过默认模板的导入，防止覆盖内置默认模板
 								if (importedTpl.isProtected) return;
 								
 								// 通过 CSS 内容比对去重
@@ -4821,15 +12438,32 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (cData.autoCleanupEnabled !== undefined) GM_setValue('ao3_cache_auto_cleanup_enabled', cData.autoCleanupEnabled);
 			if (cData.maxItems !== undefined) GM_setValue('ao3_cache_max_items', cData.maxItems);
 			if (cData.maxDays !== undefined) GM_setValue('ao3_cache_max_days', cData.maxDays);
+			if (cData.maxSizeBytes !== undefined) GM_setValue('ao3_cache_max_size_bytes', cData.maxSizeBytes);
 			importLog.push("缓存清理策略已导入");
+		}
+
+		if (isSelected('webdavConfig') && data.webdavConfig && !isSync) {
+			for (const key of WEBDAV_CONFIG_KEYS) {
+				if (data.webdavConfig[key] !== undefined) GM_setValue(key, data.webdavConfig[key]);
+			}
+			// 让自动同步开关/间隔立即生效
+			if (typeof AutoSyncScheduler !== 'undefined') AutoSyncScheduler.updateInterval();
+			importLog.push('WebDAV 同步配置已导入');
 		}
 
 		// 统一激活所有数据和状态
 		SettingsSyncManager.syncAll();
 
-		// 强制重置迁移版本号，并对导入的旧数据执行升级
-		GM_setValue('ao3_migration_version', 0);
-		runDataMigration();
+		if (typeof SyncTimestampTracker !== 'undefined' && SyncTimestampTracker.refreshDynamicListeners) {
+			SyncTimestampTracker.refreshDynamicListeners();
+		}
+
+		if (!isSync) {
+			GM_setValue('ao3_migration_version', 0);
+			runDataMigration();
+		} else {
+			routineCleanup();
+		}
 
 		const newMode = GM_getValue('ao3_translation_mode', 'unit');
 		const newTransDesc = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
@@ -4839,36 +12473,19 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.MODE_CHANGED, { detail: { mode: newMode } }));
 		}
 
-		// 14. 后台同步在线术语表
 		let syncSummary = "";
-		if (isSelected('glossaries')) {
-			const importedUrls = Object.keys(
-				data.glossaries?.importedGlossaries ||
-				data.glossaries?.metadata ||
-				data.glossaries?.onlineMetadata ||
-				{}
-			);
 
-			if (importedUrls.length > 0) {
-				setTimeout(async () => {
-					let successCount = 0;
-					for (const url of importedUrls) {
-						const res = await importOnlineGlossary(url, { silent: true });
-						if (res.success) successCount++;
-						await sleep(500); 
-					}
-					if (successCount > 0) {
-						Logger.info('Data', `后台同步了 ${successCount} 个在线术语表`);
-					}
-				}, 1000);
-				
-				syncSummary = `\n已触发 ${importedUrls.length} 个在线术语表的后台同步。`;
+		if (isSelected('glossaries')) {
+			const onlineUrls = Object.keys(GM_getValue(GLOSSARY_METADATA_KEY, {}));
+			if (onlineUrls.length > 0) {
+				scheduleSilentGlossaryRefresh(onlineUrls);
+				if (!isSync) syncSummary = `\n已触发 ${onlineUrls.length} 个在线术语表的后台同步。`;
 			}
 		}
 
 		const modeText = isOverwrite ? "覆盖" : "合并";
 		const finalMessage = importLog.length > 0 ? `${modeText}导入完成：${importLog.join('，')}。` : "数据导入完成。";
-		return { success: true, message: finalMessage + syncSummary };
+		return { success: true, message: finalMessage + syncSummary, aiProfileConflicts: aiProfileConflicts, aiProfileRemoteApplied: aiProfileRemoteApplied };
 	}
 
 	/**
@@ -4880,16 +12497,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			...GM_getValue(CUSTOM_SERVICES_LIST_KEY, []).map(s => s.id)
 		];
 		for (const serviceId of new Set(allServiceIds)) {
-			if (serviceId === 'google_translate' || serviceId === 'bing_translator' || serviceId === ADD_NEW_CUSTOM_SERVICE_ID) continue;
+			if (isSimpleTranslationEngine(serviceId) || serviceId === ADD_NEW_CUSTOM_SERVICE_ID) continue;
 			const stringKey = `${serviceId}_keys_string`;
 			const arrayKey = `${serviceId}_keys_array`;
 			const keysString = GM_getValue(stringKey);
 			if (typeof keysString === 'string') {
-				const keysArray = keysString.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+				const keysArray = parseKeysToArray(keysString);
 				GM_setValue(arrayKey, keysArray);
 			}
+			clampKeyIndex(serviceId);
 		}
-		Logger.info('System', 'API Keys 格式化校验完成');
+		Logger.debug('System', 'API Keys 格式化校验完成');
 	}
 
 	/**
@@ -5069,9 +12687,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 				<div class="settings-group static-label" id="api-key-group">
 					<div class="input-wrapper">
-						<input type="text" id="setting-input-apikey" class="settings-control settings-input" spellcheck="false">
+						<input type="text" id="setting-input-apikey" class="settings-control settings-input expandable-input" spellcheck="false">
 						<label for="setting-input-apikey" class="settings-label">设置 API Key</label>
-						<button id="setting-btn-apikey-save" class="settings-action-button-inline">保存</button>
+						
 					</div>
 				</div>
 
@@ -5088,8 +12706,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						<option value="export_manage">作品导出与生成</option>
 						<option value="cache_manage">翻译缓存管理项</option>
 						<option value="fab_manage">悬浮按钮操作项</option>
-						<option value="data_sync">数据导入与导出</option>
+						<option value="analytics">数据统计与分析</option>
 						<option value="debug_mode">调试模式与日志</option>
+						<option value="webdav_sync">云端同步配置项</option>
+						<option value="data_sync">数据导入与导出</option>
+						<option value="update_check">插件更新检测项</option>
 					</select>
 					<label for="setting-glossary-actions" class="settings-label">更多功能</label>
 				</div>
@@ -5097,8 +12718,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				<div id="editable-section-debug-mode" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
 					<div class="settings-group static-label settings-group-select">
 						<select id="setting-log-level" class="settings-control settings-select custom-styled-select">
-							<option value="ALL">ALL</option>
-							<option value="INFO">INFO</option>
+						<option value="DEBUG">DEBUG</option>
+						<option value="INFO">INFO</option>
 							<option value="WARN">WARN</option>
 							<option value="ERROR">ERROR</option>
 							<option value="OFF">OFF</option>
@@ -5119,9 +12740,132 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					</div>
 				</div>
 
-				<div id="data-sync-actions-container" class="data-sync-actions-container" style="display: none;">
-					<button id="btn-import-data" class="data-sync-action-btn">数据导入</button>
-					<button id="btn-export-data" class="data-sync-action-btn">数据导出</button>
+				<div id="editable-section-update-check" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group static-label settings-group-select">
+						<select id="setting-update-check-interval" class="settings-control settings-select custom-styled-select">
+							<option value="daily">每天</option>
+							<option value="weekly">每周</option>
+							<option value="monthly">每月</option>
+							<option value="never">从不</option>
+						</select>
+						<label for="setting-update-check-interval" class="settings-label">更新检查间隔</label>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<div id="btn-update-now" class="settings-control settings-select pseudo-select">立即更新</div>
+						<span class="settings-label">手动更新</span>
+					</div>
+				</div>
+
+				<div id="editable-section-analytics" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group static-label settings-group-select">
+						<select id="setting-analytics-opt" class="settings-control settings-select custom-styled-select">
+							<option value="joined">启用</option>
+							<option value="left">禁用</option>
+						</select>
+						<label for="setting-analytics-opt" class="settings-label">数据统计与分析</label>
+					</div>
+					<div id="analytics-id-row" class="settings-group static-label" style="display: none;">
+						<div class="input-wrapper">
+							<input type="text" id="setting-analytics-id" class="settings-control settings-input" readonly spellcheck="false" autocomplete="off">
+							<label for="setting-analytics-id" class="settings-label">验证 ID</label>
+							<button id="btn-copy-analytics-id" class="settings-action-button-inline" type="button">复制</button>
+						</div>
+					</div>
+					<div id="analytics-secret-row" class="settings-group static-label" style="display: none;">
+						<div class="input-wrapper">
+							<input type="text" id="setting-analytics-secret" class="settings-control settings-input" placeholder="自定义，若留空则不设置密钥" spellcheck="false" autocomplete="off">
+							<label for="setting-analytics-secret" class="settings-label">验证密钥</label>
+							<button id="btn-analytics-secret-save" class="settings-action-button-inline" type="button">保存</button>
+						</div>
+					</div>
+					<div id="aot-dashboard-link" class="settings-group static-label settings-group-select" style="display: none;">
+						<div id="btn-open-aot-dashboard" class="settings-control settings-select pseudo-select">查看 AOT Analytics</div>
+						<span class="settings-label">AOT Analytics</span>
+					</div>
+				</div>
+
+				<div id="data-sync-actions-container" class="data-sync-actions-container" style="display: none; flex-direction: column; gap: 16px; width: 100%; align-items: stretch; padding: 0; margin: 0; justify-content: flex-start;">
+					<div class="settings-group static-label">
+						<div class="input-wrapper">
+							<input type="text" id="setting-export-enc-key" class="settings-control settings-input" placeholder="自定义，若留空则不加密" spellcheck="false">
+							<label for="setting-export-enc-key" class="settings-label">加密密钥</label>
+							<button id="btn-export-enc-key-save" class="settings-action-button-inline">保存</button>
+						</div>
+					</div>
+					<div class="settings-group static-label settings-group-select">
+						<div id="btn-open-local-backup" class="settings-control settings-select pseudo-select">查看本地备份</div>
+						<span class="settings-label">本地数据备份</span>
+					</div>
+					<div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; margin-top: -10px; margin-bottom: -10px;">
+						<button id="btn-import-data" class="data-sync-action-btn">数据导入</button>
+						<button id="btn-export-data" class="data-sync-action-btn">数据导出</button>
+					</div>
+				</div>
+
+				<div id="editable-section-webdav-sync" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
+					<div class="settings-group static-label settings-group-select">
+						<select id="webdav-action-select" class="settings-control settings-select custom-styled-select">
+							<option value="url">接口地址</option>
+							<option value="user">账户名称</option>
+							<option value="pass">应用密码</option>
+							<option value="encKey">同步密钥</option>
+							<option value="autoSync">自动同步</option>
+						</select>
+						<label for="webdav-action-select" class="settings-label">配置项</label>
+					</div>
+
+					<div id="webdav-container-url" class="settings-group static-label">
+						<div class="input-wrapper">
+							<input type="text" id="setting-webdav-url" class="settings-control settings-input" placeholder="https://example.com/dav/" spellcheck="false">
+							<label for="setting-webdav-url" class="settings-label">WebDAV 地址</label>
+							<button class="settings-action-button-inline" data-field="url">保存</button>
+						</div>
+					</div>
+
+					<div id="webdav-container-user" class="settings-group static-label" style="display: none;">
+						<div class="input-wrapper">
+							<input type="text" id="setting-webdav-user" class="settings-control settings-input" placeholder="Username" spellcheck="false">
+							<label for="setting-webdav-user" class="settings-label">账户名称</label>
+							<button class="settings-action-button-inline" data-field="user">保存</button>
+						</div>
+					</div>
+
+					<div id="webdav-container-pass" class="settings-group static-label" style="display: none;">
+						<div class="input-wrapper">
+							<input type="text" id="setting-webdav-pass" class="settings-control settings-input" placeholder="密码" spellcheck="false">
+							<label for="setting-webdav-pass" class="settings-label">应用密码</label>
+							<button class="settings-action-button-inline" data-field="pass">保存</button>
+						</div>
+					</div>
+
+					<div id="webdav-container-encKey" class="settings-group static-label" style="display: none;">
+						<div class="input-wrapper">
+							<input type="text" id="setting-webdav-enc-key" class="settings-control settings-input" placeholder="自定义，若留空则不加密" spellcheck="false">
+							<label for="setting-webdav-enc-key" class="settings-label">同步密钥</label>
+							<button class="settings-action-button-inline" data-field="encKey">保存</button>
+						</div>
+					</div>
+
+					<div id="webdav-container-autoSync" class="settings-group static-label settings-group-select" style="display: none;">
+						<select id="setting-webdav-auto-sync-enabled" class="settings-control settings-select custom-styled-select">
+							<option value="true">启用</option>
+							<option value="false">禁用</option>
+						</select>
+						<label for="setting-webdav-auto-sync-enabled" class="settings-label">自动同步状态</label>
+					</div>
+
+					<div id="webdav-container-interval" class="settings-group static-label" style="display: none;">
+						<div class="input-wrapper">
+							<input type="number" id="setting-webdav-interval" class="settings-control settings-input" placeholder="配置变更立即同步；此间隔仅定期检查云端更新" spellcheck="false">
+							<label for="setting-webdav-interval" class="settings-label">定期检查间隔 (分钟)</label>
+							<button class="settings-action-button-inline" data-field="autoSync">保存</button>
+						</div>
+					</div>
+
+					<div id="webdav-actions-container" class="online-glossary-details" style="margin-top: -10px; margin-bottom: -10px;">
+						<span id="webdav-sync-status" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">最后同步时间：暂无</span>
+						<button id="btn-webdav-sync-now" class="data-sync-action-btn">同步</button>
+					</div>
 				</div>
 
 				<div id="editable-section-ai-settings" class="editable-section" style="display: none; flex-direction: column; gap: 16px;">
@@ -5141,6 +12885,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							<option value="user_prompt">User Prompt</option>
 							<option value="temperature">Temperature</option>
 							<option value="reasoning_effort">推理深度</option>
+							<option value="para_mode">段落标记</option>
 							<option value="chunk_size">每次翻译文本量</option>
 							<option value="para_limit">每次翻译段落数</option>
 							<option value="request_rate">平均每秒请求数</option>
@@ -5240,18 +12985,25 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							</select>
 							<label for="setting-cache-auto-cleanup-enabled" class="settings-label">自动清理状态</label>
 						</div>
-						<div class="settings-group static-label">
+						<div class="settings-group static-label cache-auto-param">
 							<div class="input-wrapper">
-								<input type="number" id="setting-input-cache-max-items" class="settings-control settings-input" placeholder="100000" spellcheck="false">
+								<input type="number" id="setting-input-cache-max-items" class="settings-control settings-input" placeholder="500000" spellcheck="false">
 								<label for="setting-input-cache-max-items" class="settings-label">最大缓存条目</label>
 								<button id="setting-btn-cache-max-items-save" class="settings-action-button-inline">保存</button>
 							</div>
 						</div>
-						<div class="settings-group static-label">
+						<div class="settings-group static-label cache-auto-param">
 							<div class="input-wrapper">
 								<input type="number" id="setting-input-cache-max-days" class="settings-control settings-input" placeholder="30" spellcheck="false">
 								<label for="setting-input-cache-max-days" class="settings-label">超过 n 天未访问</label>
 								<button id="setting-btn-cache-max-days-save" class="settings-action-button-inline">保存</button>
+							</div>
+						</div>
+						<div class="settings-group static-label cache-auto-param">
+							<div class="input-wrapper">
+								<input type="number" id="setting-input-cache-max-size" class="settings-control settings-input" placeholder="512" spellcheck="false">
+								<label for="setting-input-cache-max-size" class="settings-label">最大缓存大小 (MB)</label>
+								<button id="setting-btn-cache-max-size-save" class="settings-action-button-inline">保存</button>
 							</div>
 						</div>
 					</div>
@@ -5296,12 +13048,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					<div class="settings-group settings-group-select">
 						<select id="setting-lang-detector" class="settings-control settings-select custom-styled-select">
 							<option value="franc">Franc</option>
-							<option value="microsoft">Microsoft</option>
 							<option value="google">Google</option>
 							<option value="tencent">Tencent</option>
 							<option value="baidu">Baidu</option>
 						</select>
 						<label for="setting-lang-detector" class="settings-label">语言检测引擎</label>
+					</div>
+					<div class="settings-group settings-group-select">
+						<select id="setting-lang-detector-fallback" class="settings-control settings-select custom-styled-select">
+							<option value="baidu">Baidu</option>
+							<option value="tencent">Tencent</option>
+							<option value="google">Google</option>
+							<option value="-">Auto</option>
+						</select>
+						<label for="setting-lang-detector-fallback" class="settings-label">语言检测回退</label>
 					</div>
 				</div>
 
@@ -5329,24 +13089,24 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					<div id="local-edit-container-translation" style="display: none;">
 						<div class="settings-group static-label">
 							<div class="input-wrapper">
-								<input type="text" id="setting-input-local-sensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
+								<input type="text" id="setting-input-local-sensitive" class="settings-control settings-input expandable-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
 								<label for="setting-input-local-sensitive" class="settings-label">区分大小写</label>
-								<button id="setting-btn-local-sensitive-save" class="settings-action-button-inline">保存</button>
+								
 							</div>
 						</div>
 						<div class="settings-group static-label">
 							<div class="input-wrapper">
-								<input type="text" id="setting-input-local-insensitive" class="settings-control settings-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
+								<input type="text" id="setting-input-local-insensitive" class="settings-control settings-input expandable-input" placeholder="原文1：译文1，原文2：译文2" spellcheck="false">
 								<label for="setting-input-local-insensitive" class="settings-label">不区分大小写</label>
-								<button id="setting-btn-local-insensitive-save" class="settings-action-button-inline">保存</button>
+								
 							</div>
 						</div>
 					</div>
 					<div id="local-edit-container-forbidden" class="settings-group static-label" style="display: none;">
 						<div class="input-wrapper">
-							<input type="text" id="setting-input-local-forbidden" class="settings-control settings-input" placeholder="原文1，原文2，原文3，原文4" spellcheck="false">
+							<input type="text" id="setting-input-local-forbidden" class="settings-control settings-input expandable-input" placeholder="原文1，原文2，原文3，原文4" spellcheck="false">
 							<label for="setting-input-local-forbidden" class="settings-label">区分大小写</label>
-							<button id="setting-btn-local-forbidden-save" class="settings-action-button-inline">保存</button>
+							
 						</div>
 					</div>
 				</div>
@@ -5403,9 +13163,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					</div>
 					<div id="post-replace-container-settings" class="settings-group static-label" style="display: none;">
 						<div class="input-wrapper">
-							<input type="text" id="setting-input-post-replace" class="settings-control settings-input" placeholder="译文1：替换1，译文2：替换2" spellcheck="false">
+							<input type="text" id="setting-input-post-replace" class="settings-control settings-input expandable-input" placeholder="译文1：替换1，译文2：替换2" spellcheck="false">
 							<label for="setting-input-post-replace" class="settings-label">译文后处理替换</label>
-							<button id="setting-btn-post-replace-save" class="settings-action-button-inline">保存</button>
+							
 						</div>
 					</div>
 				</div>
@@ -5534,7 +13294,24 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			btnOpenStyleEditor: panel.querySelector('#btn-open-style-editor'),
 			exportActionsContainer: panel.querySelector('#export-actions-container'),
 			btnExportFormatChoose: panel.querySelector('#btn-export-format-choose'),
-			btnExportExecute: panel.querySelector('#btn-export-execute')
+			btnExportExecute: panel.querySelector('#btn-export-execute'),
+			// WebDAV 同步相关
+			webdavSection: panel.querySelector('#editable-section-webdav-sync'),
+			webdavActionSelect: panel.querySelector('#webdav-action-select'),
+			webdavContainerUrl: panel.querySelector('#webdav-container-url'),
+			webdavContainerUser: panel.querySelector('#webdav-container-user'),
+			webdavContainerPass: panel.querySelector('#webdav-container-pass'),
+			webdavContainerEncKey: panel.querySelector('#webdav-container-encKey'),
+			webdavContainerAutoSync: panel.querySelector('#webdav-container-autoSync'),
+			webdavContainerInterval: panel.querySelector('#webdav-container-interval'),
+			webdavAutoSyncEnabled: panel.querySelector('#setting-webdav-auto-sync-enabled'),
+			webdavUrl: panel.querySelector('#setting-webdav-url'),
+			webdavUser: panel.querySelector('#setting-webdav-user'),
+			webdavPass: panel.querySelector('#setting-webdav-pass'),
+			webdavEncKey: panel.querySelector('#setting-webdav-enc-key'),
+			webdavInterval: panel.querySelector('#setting-webdav-interval'),
+			webdavSyncNowBtn: panel.querySelector('#btn-webdav-sync-now'),
+			webdavStatus: panel.querySelector('#webdav-sync-status'),
 		};
 	}
 
@@ -5630,6 +13407,178 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
+	 * 密钥失败提示模态框
+	 */
+	function showKeyRetryModal(lines) {
+		if (shadowWrapper.querySelector('#ao3-key-retry-overlay')) {
+			return Promise.resolve('ok');
+		}
+		const message = (Array.isArray(lines) ? lines : [lines]).join('\n');
+		return new Promise((resolve) => {
+			const overlay = document.createElement('div');
+			overlay.id = 'ao3-key-retry-overlay';
+			overlay.className = 'ao3-overlay';
+
+			const style = document.createElement('style');
+			style.textContent = `
+				.ao3-key-retry-body { padding: 20px 16px; font-size: 14px; line-height: 1.6; color: var(--ao3-text); white-space: pre-wrap; text-align: center; }
+				.ao3-key-retry-body p { margin: 0; }
+			`;
+			overlay.appendChild(style);
+
+			const modal = document.createElement('div');
+			modal.id = 'ao3-key-retry-modal';
+			modal.className = 'ao3-modal';
+			modal.innerHTML = `
+				<div class="ao3-modal-header"><h3>提示</h3></div>
+				<div class="ao3-key-retry-body">${message.split('\n').map(line => `<p>${line}</p>`).join('')}</div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn cancel">好的</button>
+					<button class="ao3-modal-btn confirm">重试</button>
+				</div>
+			`;
+
+			overlay.appendChild(modal);
+			shadowWrapper.appendChild(overlay);
+
+			const done = (action) => {
+				overlay.remove();
+				resolve(action);
+			};
+			modal.querySelector('.cancel').addEventListener('click', () => done('ok'));
+			modal.querySelector('.confirm').addEventListener('click', () => done('retry'));
+			overlay.addEventListener('click', (e) => {
+				if (e.target === overlay) done('ok');
+			});
+		});
+	}
+
+	/**
+	 * 更新提示模态框
+	 */
+	function showUpdateModal({ current, latest }) {
+		if (shadowWrapper.querySelector('#ao3-update-overlay')) return;
+
+		const overlay = document.createElement('div');
+		overlay.id = 'ao3-update-overlay';
+		overlay.className = 'ao3-overlay';
+
+		const style = document.createElement('style');
+		style.textContent = `
+			#ao3-update-modal .ao3-custom-confirm-body { padding: 20px 16px; font-size: 14px; line-height: 1.6; color: var(--ao3-text); text-align: center; white-space: pre-wrap; }
+			#ao3-update-modal .ao3-custom-confirm-body p { margin: 0; }
+		`;
+		overlay.appendChild(style);
+
+		const modal = document.createElement('div');
+		modal.id = 'ao3-update-modal';
+		modal.className = 'ao3-modal';
+		modal.innerHTML = `
+			<div class="ao3-modal-header"><h3>更新提示</h3></div>
+			<div class="ao3-custom-confirm-body"><p>检测到 AOT 新版本：${current} -> ${latest}</p><p>请问是否需要更新？</p></div>
+			<div class="ao3-modal-footer">
+				<button class="ao3-modal-btn" id="ao3-update-later">暂不更新</button>
+				<button class="ao3-modal-btn" id="ao3-update-log">更新日志</button>
+				<button class="ao3-modal-btn" id="ao3-update-now">立即更新</button>
+			</div>`;
+		overlay.appendChild(modal);
+		shadowWrapper.appendChild(overlay);
+
+		modal.querySelector('#ao3-update-later').addEventListener('click', () => overlay.remove());
+		modal.querySelector('#ao3-update-log').addEventListener('click', () => {
+			window.open('https://github.com/V-Lipset/ao3-chinese/releases/latest', '_blank');
+		});
+		modal.querySelector('#ao3-update-now').addEventListener('click', () => {
+			window.open(GM_info.script.updateURL || 'https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js', '_blank');
+			overlay.remove();
+		});
+		overlay.addEventListener('click', (e) => {
+			if (e.target === overlay) overlay.remove();
+		});
+	}
+
+	/**
+	 * 首次同步方向选择对话框
+	 */
+	let _pendingSyncDirectionReject = null;
+	function dismissPendingSyncDirectionModal() {
+		const overlay = shadowWrapper.querySelector('#ao3-sync-direction-overlay');
+		if (overlay) overlay.remove();
+		if (_pendingSyncDirectionReject) {
+			const reject = _pendingSyncDirectionReject;
+			_pendingSyncDirectionReject = null;
+			reject(new Error('User cancelled by closing panel.'));
+		}
+	}
+
+	function showSyncDirectionDialog() {
+		return new Promise((resolve, reject) => {
+			if (shadowWrapper.querySelector('#ao3-sync-direction-overlay')) {
+				return reject(new Error('已有同步方向选择框正在显示中。'));
+			}
+
+			const overlay = document.createElement('div');
+			overlay.id = 'ao3-sync-direction-overlay';
+			overlay.className = 'ao3-overlay';
+
+			const style = document.createElement('style');
+			style.textContent = `
+				#ao3-sync-direction-modal .ao3-custom-confirm-body { padding: 20px 16px; font-size: 14px; line-height: 1.6; color: var(--ao3-text); text-align: center; white-space: pre-wrap; }
+				#ao3-sync-direction-modal .ao3-custom-confirm-body p { margin: 0; }
+			`;
+			overlay.appendChild(style);
+
+			const modal = document.createElement('div');
+			modal.id = 'ao3-sync-direction-modal';
+			modal.className = 'ao3-modal';
+
+			modal.innerHTML = `
+				<div class="ao3-modal-header"><h3>数据同步</h3></div>
+				<div class="ao3-custom-confirm-body"><p>检测到本机缺少与当前云端的同步记录</p><p>请选择本次同步方向</p></div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn" id="ao3-sync-download">云端覆盖本地</button>
+					<button class="ao3-modal-btn" id="ao3-sync-upload">本地上传云端</button>
+					<button class="ao3-modal-btn" id="ao3-sync-merge">数据去重合并</button>
+				</div>`;
+
+			overlay.appendChild(modal);
+			shadowWrapper.appendChild(overlay);
+
+			_pendingSyncDirectionReject = reject;
+			const timeoutId = setTimeout(() => {
+				cleanup();
+				reject(new Error('User cancelled by timeout.'));
+			}, 5 * 60 * 1000);
+
+			const cleanup = () => {
+				overlay.remove();
+				if (_pendingSyncDirectionReject === reject) _pendingSyncDirectionReject = null;
+				clearTimeout(timeoutId);
+			};
+
+			modal.querySelector('#ao3-sync-download').addEventListener('click', () => {
+				cleanup();
+				resolve('download');
+			});
+			modal.querySelector('#ao3-sync-upload').addEventListener('click', () => {
+				cleanup();
+				resolve('upload');
+			});
+			modal.querySelector('#ao3-sync-merge').addEventListener('click', () => {
+				cleanup();
+				resolve('merge');
+			});
+
+			overlay.addEventListener('click', (e) => {
+				if (e.target === overlay) {
+					cleanup();
+					reject(new Error('User cancelled by clicking overlay.'));
+				}
+			});
+		});
+	}
+
+	/**
 	 * 打开实时日志可视化模态框
 	 */
 	function openLogModal() {
@@ -5641,7 +13590,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		const style = document.createElement('style');
 		style.textContent = `
-			.log-modal-title { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; font-size: 16px; font-weight: 600; color: var(--ao3-text); white-space: nowrap; pointer-events: none; }
+			.log-modal-title { position: absolute; left: 50%; transform: translateX(-50%); margin: 0; font-size: 16px; font-weight: 400; color: var(--ao3-text); font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif CJK SC", serif; white-space: nowrap; pointer-events: none; }
 			.log-filter-wrapper { position: absolute; right: 16px; width: 72px; z-index: 10; }
 			.log-filter-wrapper .settings-control { height: 22px !important; line-height: 22px !important; font-size: 11px !important; padding: 0 16px 0 6px !important; border-radius: 4px !important; border-color: var(--ao3-border) !important; background-color: transparent !important; }
 			.log-filter-wrapper .settings-control:hover, .log-filter-wrapper .settings-control:focus, .log-filter-wrapper.dropdown-active .settings-control { border-color: var(--ao3-border) !important; background-color: transparent !important; box-shadow: none !important; }
@@ -5673,7 +13622,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			.log-level-INFO { color: #2196F3; font-weight: 600; }
 			.log-level-WARN { color: #FF9800; font-weight: 600; }
 			.log-level-ERROR { color: #F44336; font-weight: 600; }
-			@media (prefers-color-scheme: dark) { .log-level-INFO { color: #64b5f6; } .log-level-WARN { color: #ffb74d; } .log-level-ERROR { color: #e57373; } }
+			.log-level-DEBUG { color: #757575; font-weight: 600; }
+			@media (prefers-color-scheme: dark) { .log-level-INFO { color: #64b5f6; } .log-level-WARN { color: #ffb74d; } .log-level-ERROR { color: #e57373; } .log-level-DEBUG { color: #BDBDBD; } }
 			.log-entry-content { word-break: break-word; }
 			.log-entry-data { font-size: 12px; color: var(--ao3-text-secondary); background: var(--ao3-hover-bg); padding: 6px; border-radius: 4px; margin-top: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
 		`;
@@ -5688,8 +13638,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					<h3 class="log-modal-title">日志</h3>
 					<div class="settings-group settings-group-select log-filter-wrapper">
 						<select id="log-filter-level" class="settings-control settings-select custom-styled-select small-select">
-							<option value="ALL">ALL</option>
-							<option value="INFO">INFO</option>
+						<option value="DEBUG">DEBUG</option>
+						<option value="INFO">INFO</option>
 							<option value="WARN">WARN</option>
 							<option value="ERROR">ERROR</option>
 							<option value="OFF">OFF</option>
@@ -5713,23 +13663,26 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const closeBtn = overlay.querySelector('#log-btn-cancel');
 		const copyBtn = overlay.querySelector('#log-btn-copy');
 		const exportBtn = overlay.querySelector('#log-btn-export');
-		
-		const WEIGHTS = { 'ALL': 0, 'INFO': 1, 'WARN': 2, 'ERROR': 3, 'OFF': 99 };
-		const savedFilter = GM_getValue('ao3_log_modal_filter', Logger.config.level);
-		filterSelect.value = savedFilter;
+		const savedFilter = GM_getValue('ao3_log_modal_filter', DEFAULT_CONFIG.GENERAL.log_level);
+		filterSelect.value = savedFilter === 'ALL' ? 'DEBUG' : savedFilter;
 
 		const escapeHTML = (str) => {
 			return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 		};
 
+		const passesFilter = (level) => (LOG_LEVEL_WEIGHTS[level] ?? 0) >= (LOG_LEVEL_WEIGHTS[filterSelect.value] ?? 0);
+
 		const renderEntry = (entry) => {
 			const div = document.createElement('div');
 			div.className = 'log-entry';
+			div.dataset.level = entry.level;
+			div.dataset.module = entry.module;
 			const dataStr = entry.data ? `<div class="log-entry-data">${escapeHTML(JSON.stringify(entry.data, null, 2))}</div>` : '';
+			const levelBadge = entry.count > 1 ? `[${escapeHTML(entry.level)}]×${entry.count}` : `[${escapeHTML(entry.level)}]`;
 			div.innerHTML = `
 				<div class="log-entry-header">
 					<span class="log-time">[${escapeHTML(entry.timestamp)}]</span>
-					<span class="log-level-${escapeHTML(entry.level)}">[${escapeHTML(entry.level)}]</span>
+					<span class="log-level-${escapeHTML(entry.level)}">${levelBadge}</span>
 					<span class="log-module">[${escapeHTML(entry.module)}]</span>
 					${entry.traceId ? `<span class="log-trace" style="color: #4CAF50;">[${escapeHTML(entry.traceId)}]</span>` : ''}
 				</div>
@@ -5742,8 +13695,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let currentRenderId = 0;
 		function startRendering() {
 			container.innerHTML = '';
-			const filterWeight = WEIGHTS[filterSelect.value] ?? 1;
-			const filteredHistory = Logger.history.filter(entry => (WEIGHTS[entry.level] ?? 1) >= filterWeight);
+			const filteredHistory = Logger.history.filter(entry => passesFilter(entry.level));
 			
 			const myRenderId = ++currentRenderId;
 			const chunkSize = 50;
@@ -5776,8 +13728,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		const onLogAdded = (e) => {
 			const entry = e.detail;
-			const filterWeight = WEIGHTS[filterSelect.value] ?? 1;
-			if ((WEIGHTS[entry.level] ?? 1) >= filterWeight) {
+			if (passesFilter(entry.level)) {
+				if (entry._collapsed) {
+					const rows = container.querySelectorAll('.log-entry');
+					for (let i = rows.length - 1; i >= 0; i--) {
+						if (rows[i].dataset.level === entry.level && rows[i].dataset.module === entry.module) {
+							const badge = rows[i].querySelector('.log-level-' + entry.level);
+							if (badge) badge.textContent = entry.count > 1 ? `[${entry.level}]×${entry.count}` : `[${entry.level}]`;
+							const time = rows[i].querySelector('.log-time');
+							if (time) time.textContent = `[${entry.timestamp}]`;
+							return;
+						}
+					}
+					return;
+				}
 				const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
 				container.appendChild(renderEntry(entry));
 				if (isAtBottom) container.scrollTop = container.scrollHeight;
@@ -5799,8 +13763,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		});
 
 		copyBtn.addEventListener('click', () => {
-			const filterWeight = WEIGHTS[filterSelect.value] ?? 1;
-			const filteredLogs = Logger.history.filter(entry => (WEIGHTS[entry.level] ?? 1) >= filterWeight);
+			const filteredLogs = Logger.history.filter(entry => passesFilter(entry.level));
 
 			const logText = JSON.stringify(filteredLogs, null, 2);
 
@@ -5812,7 +13775,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}).catch((err) => {
 				copyBtn.textContent = '×';
 				setTimeout(() => { copyBtn.textContent = originalText; }, 1500);
-				console.error('复制日志失败:', err);
 			});
 		});
 
@@ -5825,6 +13787,89 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		overlay.addEventListener('click', (e) => {
 			if (e.target === overlay) cleanup();
 		});
+	}
+
+	/**
+	 * 打开扩展编辑器模态框
+	 */
+	function openEditorForField(input) {
+		input.blur();
+		const wrapper = input.closest('.input-wrapper');
+		const labelEl = wrapper ? wrapper.querySelector('.settings-label') : null;
+		const label = labelEl ? labelEl.textContent : '编辑内容';
+		const raw = input.tagName === 'TEXTAREA' || input.dataset.editorRaw === 'true';
+		openExpandedEditorModal(input, label, { raw });
+	}
+
+	function openExpandedEditorModal(inputElement, labelName, opts = {}) {
+		if (shadowWrapper.querySelector('#ao3-expanded-editor-overlay')) return;
+		if (inputElement.disabled) return;
+
+		const isTextarea = inputElement.tagName === 'TEXTAREA' || opts.raw === true;
+		const originalValue = inputElement.value;
+
+		let editorValue = originalValue;
+		if (!isTextarea && originalValue) {
+			const tokens = tokenizeQuoteAware(originalValue.replace(/[，]/g, ','), [',']);
+			editorValue = tokens.map(t => t.value).join('\n');
+		}
+
+		const overlay = document.createElement('div');
+		overlay.id = 'ao3-expanded-editor-overlay';
+		overlay.className = 'ao3-overlay';
+
+		overlay.insertAdjacentHTML('beforeend', `
+			<div id="ao3-expanded-editor-modal" class="ao3-modal" style="height: 60vh;">
+				<div class="ao3-modal-header">
+					<h3>${labelName}</h3>
+				</div>
+				<div class="ao3-modal-body" style="padding: 0; display: flex; flex-direction: column;">
+					<textarea id="ee-textarea" class="style-editor-textarea ao3-custom-scrollbar" spellcheck="false" style="padding: 16px; font-family: inherit; font-size: 14px; line-height: 1.6;"></textarea>
+				</div>
+				<div class="ao3-modal-footer">
+					<button class="ao3-modal-btn" id="ee-btn-cancel">取消</button>
+					<button class="ao3-modal-btn" id="ee-btn-confirm">保存</button>
+				</div>
+			</div>
+		`);
+		shadowWrapper.appendChild(overlay);
+
+		const textarea = overlay.querySelector('#ee-textarea');
+		textarea.value = editorValue;
+		textarea.focus();
+		textarea.setSelectionRange(editorValue.length, editorValue.length);
+
+		const cleanup = () => overlay.remove();
+
+		overlay.querySelector('#ee-btn-cancel').addEventListener('click', cleanup);
+		overlay.querySelector('#ee-btn-confirm').addEventListener('click', () => {
+			let finalValue = textarea.value;
+			
+			if (!isTextarea) {
+				finalValue = finalValue.split('\n').map(line => line.trim()).filter(Boolean).join('，');
+			}
+
+			if (finalValue !== originalValue) {
+				inputElement.value = finalValue;
+				inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+				inputElement.dispatchEvent(new Event('change', { bubbles: true }));
+
+				const wrapper = inputElement.closest('.input-wrapper');
+				if (wrapper) {
+					const saveBtn = wrapper.querySelector('.settings-action-button-inline');
+					if (saveBtn) {
+						saveBtn.click();
+					} else {
+						inputElement.dispatchEvent(new Event('blur', { bubbles: true }));
+					}
+				} else {
+					inputElement.dispatchEvent(new Event('blur', { bubbles: true }));
+				}
+			}
+			cleanup();
+		});
+
+		overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
 	}
 
 	/**
@@ -5999,7 +14044,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				const div = document.createElement('div');
 				div.className = 'lib-item';
 				div.innerHTML = `
-					<div class="lib-item-name" title="${item.name}">${item.name}</div>
+					<div class="lib-item-name"></div>
 					<div class="lib-item-actions">
 						<button class="ao3-icon-btn btn-import" title="导入">
 							${SVG_ICONS.download}
@@ -6007,12 +14052,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					</div>
 				`;
 
+				const nameEl = div.querySelector('.lib-item-name');
+				const itemName = item.name || '';
+				nameEl.textContent = itemName;
+				nameEl.title = itemName;
+
 				const importBtn = div.querySelector('.btn-import');
 				importBtn.addEventListener('click', async () => {
 					importBtn.innerHTML = SVG_ICONS.spinner;
 					importBtn.querySelector('svg').style.animation = 'ao3-spin 1s linear infinite';
 					importBtn.disabled = true;
-					const res = await importOnlineGlossary(item.url, { silent: true });
+					const res = await importOnlineGlossary(item.url, { silent: true, metaOverrides: { feedback: item.feedback } });
 
 					if (res.success) {
 						importBtn.innerHTML = SVG_ICONS.success;
@@ -6031,12 +14081,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		};
 
 		const fetchLibraryData = (force = false) => {
-			const CACHE_DATA_KEY = 'ao3_online_library_cache_data';
-			const CACHE_TIME_KEY = 'ao3_online_library_cache_time';
 			const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-			
-			const cachedData = GM_getValue(CACHE_DATA_KEY);
-			const cachedTime = GM_getValue(CACHE_TIME_KEY, 0);
+
+			const cachedData = GM_getValue(GLOSSARY_INDEX_CACHE_KEY);
+			const cachedTime = GM_getValue(GLOSSARY_INDEX_CACHE_TIME_KEY, 0);
 			const now = Date.now();
 
 			if (!force && cachedData && (now - cachedTime < ONE_DAY_MS)) {
@@ -6063,8 +14111,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					try {
 						let text = responseText.trim();
 						allGlossaries = JSON.parse(text);
-						GM_setValue(CACHE_DATA_KEY, text);
-						GM_setValue(CACHE_TIME_KEY, now);
+						GM_setValue(GLOSSARY_INDEX_CACHE_KEY, text);
+						GM_setValue(GLOSSARY_INDEX_CACHE_TIME_KEY, now);
 						renderList(searchInput.value.trim());
 					} catch (e) {
 						handleFetchError('解析术语库数据失败', cachedData);
@@ -6143,13 +14191,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			.ao3-search-highlight { background-color: rgba(255, 255, 0, 0.4); color: inherit; border-radius: 2px; }
 			.ao3-search-highlight.active { background-color: rgba(255, 255, 0, 0.8); font-weight: bold; color: #000; }
 			.gv-loading-container { display: flex; justify-content: center; align-items: center; width: 100%; flex: 1; flex-direction: column; gap: 10px; height: 360px; }
-			.lib-loading-container svg { width: 32px; height: 32px; fill: rgba(150, 150, 150, 0.5); animation: ao3-spin 1s linear infinite; }
+			.gv-loading-container svg { width: 32px; height: 32px; fill: rgba(150, 150, 150, 0.5); animation: ao3-spin 1s linear infinite; }
+			@keyframes ao3-spin { to { transform: rotate(360deg); } }
 			.gv-error-text { color: var(--ao3-text-secondary); font-size: 13px; text-align: center; padding: 20px; }
 		`;
 		overlay.appendChild(style);
 
-		const rightBtnText = '反馈'; 
-		
 		overlay.insertAdjacentHTML('beforeend', `
 			<div id="ao3-glossary-view-modal" class="ao3-modal" style="height: 60vh;">
 				<div class="ao3-modal-header">
@@ -6175,7 +14222,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				<div class="ao3-modal-footer">
 					<button class="ao3-modal-btn" id="gv-btn-cancel">关闭</button>
 					<button class="ao3-modal-btn" id="gv-btn-visit">访问</button>
-					<button class="ao3-modal-btn" id="gv-btn-action">${rightBtnText}</button>
+					<button class="ao3-modal-btn" id="gv-btn-action">反馈</button>
 				</div>
 			</div>
 		`);
@@ -6188,8 +14235,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const btnNext = overlay.querySelector('#gv-btn-next');
 		const btnAction = overlay.querySelector('#gv-btn-action');
 		const btnVisit = overlay.querySelector('#gv-btn-visit');
-		
+
 		const parsedUrls = parseGlossaryUrl(url);
+
+		const parsedMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {})[url] || {};
+		const cleanup = () => overlay.remove();
+
+		if (parsedMetadata.visibility === false) {
+			showCustomConfirm('此术语表暂未开放预览。', '提示', { textAlign: 'center', singleButton: true, confirmText: '确认' }).catch(() => {});
+			cleanup();
+			return;
+		}
 
 		if (btnVisit) {
 			if (!parsedUrls) {
@@ -6201,9 +14257,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				});
 			}
 		}
-		
+
 		let rawText = '';
-		let parsedMetadata = {};
 		let matches =[];
 		let currentMatchIndex = -1;
 
@@ -6265,37 +14320,23 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 		};
 
-		const cleanup = () => overlay.remove();
-
-		const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
-		const cachedText = rawTextCache[url];
+		const cachedText = getCachedRawText(url);
 
 		const handleLoadedText = (text) => {
 			rawText = text;
 			container.style.padding = '12px 16px';
 			container.style.display = 'block';
-			
-			const allMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-			parsedMetadata = allMetadata[url] || {};
-			
-			if (parsedMetadata.visibility === false) {
-				showCustomConfirm('此术语表暂未开放预览。', '提示', { textAlign: 'center', singleButton: true, confirmText: '确认' }).catch(() => {});
-				cleanup();
-				return;
-			}
 			container.innerHTML = escapeHTML(rawText);
 		};
 
-		if (cachedText) {
+		if (cachedText !== null) {
 			handleLoadedText(cachedText);
 		} else {
 			const separator = url.includes('?') ? '&' : '?';
 			fetchWithFallback(url + separator + 't=' + Date.now(), { timeout: 5000 })
 				.then(({ responseText }) => {
 					const text = responseText;
-					const newCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
-					newCache[url] = text;
-					GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, newCache);
+					setCachedRawText(url, text);
 					handleLoadedText(text);
 				})
 				.catch((err) => {
@@ -6327,85 +14368,105 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(); });
 
 		btnAction.addEventListener('click', async () => {
-			const originalBtnText = btnAction.textContent;
+			const normalizeFeedback = (value) => {
+				if (typeof value !== 'string' || !value.trim()) return '';
+				let v = value.trim();
+				if (/^mailto:/i.test(v)) v = v.slice('mailto:'.length).trim();
+				return v;
+			};
 
-			// 1. 获取反馈值（优先级 1 & 2）
-			let feedbackValue = parsedMetadata.feedback;
-			
-			if (!feedbackValue) {
-				const CACHE_DATA_KEY = 'ao3_online_library_cache_data';
-				const cachedData = GM_getValue(CACHE_DATA_KEY);
-				if (cachedData) {
+			// 反馈渠道解析：
+			// 优先级 1 = 词表元数据（含在线库索引导入固化的 feedback）；
+			// 优先级 2 = 在线库索引缓存兜底（旧版本导入的词表可能只在索引里声明了反馈）
+			const resolveFeedbackValue = () => {
+				const fromMeta = normalizeFeedback(parsedMetadata.feedback);
+				if (fromMeta) return fromMeta;
+				const cachedIndex = GM_getValue(GLOSSARY_INDEX_CACHE_KEY);
+				if (cachedIndex) {
 					try {
-						const allGlossaries = JSON.parse(cachedData);
-						const matchedGlossary = allGlossaries.find(g => g.url === url);
-						if (matchedGlossary && matchedGlossary.feedback) {
-							feedbackValue = matchedGlossary.feedback;
-						}
+						const allGlossaries = JSON.parse(cachedIndex);
+						const matched = allGlossaries.find(g => g.url === url);
+						if (matched) return normalizeFeedback(matched.feedback);
 					} catch (e) {
 						Logger.warn('System', '解析在线术语库缓存失败', e);
 					}
 				}
-			}
+				return '';
+			};
 
-			// 辅助函数：执行 GitHub Issues 机制
-			const tryGitHubIssues = async () => {
-				if (parsedUrls && parsedUrls.feedbackUrl) {
-					const syncStatus = GitHubStatusManager.getSync(parsedUrls.owner, parsedUrls.repo);
-					
-					if (syncStatus === true) {
-						window.open(parsedUrls.feedbackUrl, '_blank');
-						return true;
-					} else if (syncStatus === null) {
-						let newTab = window.open('about:blank', '_blank');
-						btnAction.textContent = '检测中...';
-						btnAction.disabled = true;
-						
-						const canUse = await GitHubStatusManager.check(parsedUrls.owner, parsedUrls.repo);
-						
-						btnAction.textContent = originalBtnText;
-						btnAction.disabled = false;
-
-						if (canUse) {
-							newTab.location.href = parsedUrls.feedbackUrl;
-							return true;
-						} else {
-							newTab.close();
-							return false;
-						}
-					}
+			// 统一外链打开：http(s) 走 window.open；mailto 用锚点点击
+			const openExternalUrl = (targetUrl) => {
+				if (/^https?:\/\//i.test(targetUrl)) {
+					window.open(targetUrl, '_blank', 'noopener');
+					return;
 				}
+				const a = document.createElement('a');
+				a.href = targetUrl;
+				a.rel = 'noopener noreferrer';
+				a.click();
+			};
+
+			const openIssueAfterCheck = async (issueUrl, owner, repo) => {
+				const gestureTab = window.open('about:blank', '_blank');
+				const originalBtnText = btnAction.textContent;
+				btnAction.textContent = '检测中...';
+				btnAction.disabled = true;
+				let canUse;
+				try {
+					canUse = await GitHubStatusManager.check(owner, repo);
+				} finally {
+					btnAction.textContent = originalBtnText;
+					btnAction.disabled = false;
+				}
+				if (canUse) {
+					if (gestureTab) gestureTab.location.href = issueUrl;
+					else window.open(issueUrl, '_blank');
+					return true;
+				}
+				if (gestureTab) gestureTab.close();
 				return false;
 			};
 
-			// 2. 动作路由分发
-			const isGitHubLink = feedbackValue && /^https?:\/\/github\.com\//i.test(feedbackValue);
-
-			if (!feedbackValue || isGitHubLink) {
-				// 分支 A：触发 GitHub Issues 机制（优先级 3）
-				const issueSuccess = await tryGitHubIssues();
-				
-				if (!issueSuccess) {
-					if (isGitHubLink) {
-						// 选项 1（降级打开链接）
-						window.open(feedbackValue, '_blank');
-					} else {
-						// 完全没有反馈方式
-						showCustomConfirm('该术语表维护者暂未提供反馈方式。', '提示', { textAlign: 'center', singleButton: true, confirmText: '确认' }).catch(() => {});
-					}
+			// 含 /issues 的显式链接直接打开；裸 GitHub 链接（主页/仓库页，如索引里大量 https://github.com/{用户}）
+			// 先走自动派生 Issues 页，失败（Issues 未启用/无法确认）再降级打开显式链接；邮箱与其她 http(s) 维持直接打开。
+			const feedback = resolveFeedbackValue();
+			if (feedback) {
+				const isHttp = /^https?:\/\//i.test(feedback);
+				const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(feedback);
+				if (isEmail) {
+					openExternalUrl(`mailto:${feedback}`);
+					return;
 				}
-			} else if (/^https?:\/\//i.test(feedbackValue)) {
-				// 分支 B：普通网页链接（非 GitHub）
-				window.open(feedbackValue, '_blank');
-			} else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(feedbackValue)) {
-				// 分支 C：标准邮箱地址
-				window.location.href = `mailto:${feedbackValue}`;
-			} else {
-				// 分支 D：其它纯文本
-				showCustomConfirm(`该术语表维护者提供的反馈方式如下：\n\n${feedbackValue}\n\n您可点击 “确定” 将其复制到剪贴板。`, '提示', { textAlign: 'center' })
-					.then(() => navigator.clipboard.writeText(feedbackValue))
+				if (isHttp) {
+					const isGithubLink = /^https?:\/\/(?:www\.)?github\.com\//i.test(feedback);
+					const isGithubIssuesLink = /^https?:\/\/(?:www\.)?github\.com\/[^/]+\/[^/]+\/issues(\/|$|\?|#)/i.test(feedback);
+					// 裸 GitHub 链接且词表可解析出仓库 → 自动派生 Issues 优先，失败降级显式链接
+					if (isGithubLink && !isGithubIssuesLink && parsedUrls && parsedUrls.feedbackUrl) {
+						const opened = await openIssueAfterCheck(parsedUrls.feedbackUrl, parsedUrls.owner, parsedUrls.repo);
+						if (opened) return;
+						openExternalUrl(feedback);
+						return;
+					}
+					openExternalUrl(feedback);
+					return;
+				}
+				// 纯文本：展示并复制
+				showCustomConfirm(`该术语表维护者提供的反馈方式如下：\n\n${feedback}\n\n您可点击 “确定” 将其复制到剪贴板。`, '提示', { textAlign: 'center' })
+					.then(() => navigator.clipboard.writeText(feedback))
 					.catch(() => {});
+				return;
 			}
+
+			// 无显式反馈：自动派生 GitHub Issues 入口（可用性检测后打开）
+			if (parsedUrls && parsedUrls.feedbackUrl) {
+				const opened = await openIssueAfterCheck(parsedUrls.feedbackUrl, parsedUrls.owner, parsedUrls.repo);
+				if (!opened) {
+					showCustomConfirm('该术语表通过 GitHub Issues 收集反馈，但当前检测到该仓库未启用 Issues（或暂时无法确认）。\n\n您可以：\n1. 稍后重试；\n2. 点击「访问」按钮前往仓库页面直接反馈。', '反馈不可用', { textAlign: 'center', confirmText: '知道了' }).catch(() => {});
+				}
+				return;
+			}
+
+			showCustomConfirm('该术语表维护者暂未提供反馈方式。', '提示', { textAlign: 'center', singleButton: true, confirmText: '确认' }).catch(() => {});
 		});
 	}
 
@@ -6432,7 +14493,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let pendingServiceData = {};
 
 		const getServices = () => GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
-		const setServices = (services) => GM_setValue(CUSTOM_SERVICES_LIST_KEY, services);
+		const setServices = (services) => {
+			GM_setValue(CUSTOM_SERVICES_LIST_KEY, services);
+			if (typeof SyncTimestampTracker !== 'undefined' && SyncTimestampTracker.refreshDynamicListeners) {
+				SyncTimestampTracker.refreshDynamicListeners();
+			}
+		};
 
 		const ensureServiceExists = () => {
 			if (!isPendingCreation) return currentServiceId;
@@ -6457,6 +14523,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			if (field === 'apiKey') {
 				GM_setValue(`${serviceId}_keys_string`, value);
+				const keysArray = parseKeysToArray(value);
+				GM_setValue(`${serviceId}_keys_array`, keysArray);
+				GM_deleteValue(`${serviceId}_key_index`);
 			} else {
 				const services = getServices();
 				const serviceIndex = services.findIndex(s => s.id === serviceId);
@@ -6465,8 +14534,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					setServices(services);
 				}
 			}
+			invalidateConfigFingerprint();
 			return serviceId;
 		};
+
 
 		const saveAndSyncCustomServiceField = (field, value) => {
 			const serviceId = saveServiceField(field, value);
@@ -6490,7 +14561,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		const fetchModelsForService = async (serviceId, url) => {
 			const serviceName = (getServices().find(s => s.id === serviceId) || {}).name || '新服务';
 			try {
-				const apiKey = (GM_getValue(`${serviceId}_keys_array`, [])[0] || '').trim();
+				const apiKey = findFirstActiveKey(GM_getValue(`${serviceId}_keys_array`, []));
 
 				const modelsUrl = url.replace(/\/chat\/?(completions)?\/?$/, '') + '/models';
 				const headers = { 'Accept': 'application/json' };
@@ -6587,26 +14658,37 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			apiKeyGroup.style.display = 'none';
 
 			const createInputSection = (id, label, placeholder, value, fieldName) => {
+				let lastSavedValue = value;
 				const section = document.createElement('div');
 				section.className = 'settings-group static-label';
+				const isExpandable = fieldName === 'apiKey';
+				const expandClass = isExpandable ? ' expandable-input' : '';
+				const buttonHtml = isExpandable
+					? ``
+					: `<button class="settings-action-button-inline">保存</button>`;
+				
 				section.innerHTML = `
                     <div class="input-wrapper">
-                        <input type="text" id="${id}" class="settings-control settings-input" placeholder="${placeholder}" spellcheck="false">
+                        <input type="text" id="${id}" class="settings-control settings-input${expandClass}" placeholder="${placeholder}" spellcheck="false">
                         <label for="${id}" class="settings-label">${label}</label>
-                        <button class="settings-action-button-inline">保存</button>
+                        ${buttonHtml}
                     </div>
                 `;
 				const input = section.querySelector('input');
 				input.value = value;
-				section.querySelector('button').addEventListener('click', async () => {
+				const saveFieldValue = async () => {
 					const trimmedValue = input.value.trim();
+
+					if (trimmedValue === lastSavedValue) return;
+
 					if (fieldName === 'url' && trimmedValue && !trimmedValue.startsWith('http')) {
 						notifyAndLog('接口地址格式不正确，必须以 http 或 https 开头。', '保存失败', 'error');
 						return;
 					}
 					saveAndSyncCustomServiceField(fieldName, trimmedValue);
+					lastSavedValue = trimmedValue;
 
-					if (fieldName === 'url') {
+					if (fieldName === 'url' && trimmedValue) {
 						const hideWhitelistPrompt = GM_getValue('hide_whitelist_prompt', false);
 						if (!hideWhitelistPrompt) {
 							const confirmationMessage = `您正在添加一个自定义翻译服务接口地址。\n为了保护您的浏览器安全，油猴脚本要求您为这个新地址手动授权。\n您需要将刚才输入的接口地址域名添加到 AO3 Translator 的 “域名白名单” 中。\n点击 “确定” ，将跳转到一份图文版操作教程；点击 “取消” ，则不会进行跳转。\n是否跳转到教程页面？`;
@@ -6620,7 +14702,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							} catch (e) { }
 						}
 					}
-				});
+				};
+				{ const _b = section.querySelector('button'); if (_b) _b.addEventListener('click', () => saveFieldValue()); }
+				input.addEventListener('change', saveFieldValue);
 				return section;
 			};
 
@@ -6657,14 +14741,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				section.className = 'settings-group static-label';
 				section.innerHTML = `
                     <div class="input-wrapper">
-                        <input type="text" id="custom-service-models-input" class="settings-control settings-input" placeholder="model 1，model 2，model 3" spellcheck="false">
+                        <input type="text" id="custom-service-models-input" class="settings-control settings-input expandable-input" placeholder="model 1，model 2，model 3" spellcheck="false">
                         <label for="custom-service-models-input" class="settings-label">模型 ID</label>
-                        <button class="settings-action-button-inline">保存</button>
+                        
                     </div>
                 `;
 				const input = section.querySelector('input');
 				input.value = modelsRaw;
-				section.querySelector('button').addEventListener('click', () => {
+				const saveModels = () => {
 					const rawValue = input.value;
 					const normalizedModels = rawValue.replace(/[，]/g, ',').split(',').map(m => m.trim()).filter(Boolean);
 					const serviceId = saveServiceField('models', normalizedModels);
@@ -6672,7 +14756,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					SettingsSyncManager.syncUI();
 					triggerModelFetchIfReady(serviceId);
 					editorDiv.dataset.mode = 'select';
-				});
+				};
+				{ const _b = section.querySelector('button'); if (_b) _b.addEventListener('click', () => saveModels()); }
+				input.addEventListener('change', saveModels);
 				editorDiv.appendChild(section);
 			} else {
 				const section = document.createElement('div');
@@ -6704,6 +14790,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						renderModelEditor(service);
 					} else {
 						GM_setValue(`${ACTIVE_MODEL_PREFIX_KEY}${currentServiceId}`, select.value);
+						invalidateConfigFingerprint();
 					}
 				});
 				editorDiv.appendChild(section);
@@ -6797,6 +14884,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					GM_setValue('transEngine', 'google_translate');
 				}
 
+				invalidateConfigFingerprint();
+
 				SettingsSyncManager.syncUI();
 			}
 		};
@@ -6818,11 +14907,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		if (services.length !== servicesToKeep.length) {
 			GM_setValue(CUSTOM_SERVICES_LIST_KEY, servicesToKeep);
+			invalidateConfigFingerprint();
 			const currentEngine = GM_getValue('transEngine');
 			const isCurrentEngineRemoved = !servicesToKeep.some(s => s.id === currentEngine);
 
 			if (isCurrentEngineRemoved && currentEngine && currentEngine.startsWith('custom_')) {
 				GM_setValue('transEngine', 'google_translate');
+			}
+
+			for (const removed of services) {
+				if (!servicesToKeep.some(s => s.id === removed.id)) {
+					GM_deleteValue(`${removed.id}_keys_string`);
+					GM_deleteValue(`${removed.id}_keys_array`);
+					GM_deleteValue(`${removed.id}_key_index`);
+				}
 			}
 		}
 	}
@@ -6879,11 +14977,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		if (isTraditional) {
 			allServices = [
 				{ id: 'google_translate', name: engineMenuConfig['google_translate'].displayName },
-				{ id: 'bing_translator', name: engineMenuConfig['bing_translator'].displayName }
+				{ id: 'bing_translator', name: engineMenuConfig['bing_translator'].displayName },
+				{ id: 'tencent_translator', name: engineMenuConfig['tencent_translator'].displayName }
 			];
 		} else {
 			const builtInServices = Object.keys(engineMenuConfig).filter(id =>
-				id !== 'google_translate' && id !== 'bing_translator' && id !== 'add_new_custom'
+				!isSimpleTranslationEngine(id) && id !== 'add_new_custom'
 			);
 			const customServices = GM_getValue(CUSTOM_SERVICES_LIST_KEY, []);
 			allServices = [
@@ -7046,7 +15145,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				ghostItem.classList.remove('drag-placeholder');
 				ghostItem.style.cssText = `width: ${itemRect.width}px; height: ${itemRect.height}px; top: ${itemRect.top}px; left: ${itemRect.left}px; background-color: ${bgColor};`;
 
-				document.body.appendChild(ghostItem);
+				const ghostRoot = ulElement.getRootNode();
+				const ghostContainer = (ghostRoot && ghostRoot.host) ? ghostRoot : document.body;
+				ghostContainer.appendChild(ghostItem);
 				dragItem.classList.add('drag-placeholder');
 				document.body.classList.add('ao3-dragging-active');
 
@@ -7310,12 +15411,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				'post_replace': 'editable-section-post-replace',
 				'lang_detect': 'editable-section-lang-detect',
 				'debug_mode': 'editable-section-debug-mode',
+				'update_check': 'editable-section-update-check',
+				'analytics': 'editable-section-analytics',
 				'blocker_manage': 'editable-section-blocker',
 				'formatting': 'editable-section-formatting',
 				'export_manage': 'editable-section-export-manage',
 				'cache_manage': 'editable-section-cache-manage',
 				'fab_manage': 'editable-section-fab-manage',
-				'data_sync': 'data-sync-actions-container'
+				'data_sync': 'data-sync-actions-container',
+				'webdav_sync': 'editable-section-webdav-sync',
 			};
 
 			this.initCoreEvents();
@@ -7367,6 +15471,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					servicesMod.customManager.cancelPending();
 				}
 				cleanupAllEmptyCustomServices();
+				dismissPendingSyncDirectionModal();
 
 				this.panel.style.display = 'none';
 				if (this.onPanelCloseCallback) this.onPanelCloseCallback();
@@ -7383,8 +15488,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			
 			if (!hasBeenOpened) {
 				savedPos = { x: (window.innerWidth - panelWidth) / 2, y: (window.innerHeight - panelHeight) / 2 };
-				GM_setValue('ao3_panel_position', savedPos);
-				GM_setValue('panel_has_been_opened_once', true);
+
+				if (this.panel.style.display === 'flex') {
+					GM_setValue('ao3_panel_position', savedPos);
+					GM_setValue('panel_has_been_opened_once', true);
+				}
 			} else if (!savedPos || this.isDragging) {
 				savedPos = { x: this.panel.offsetLeft, y: this.panel.offsetTop };
 			}
@@ -7519,11 +15627,31 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			// 10. 页面失去焦点时自动失焦当前输入框
 			document.addEventListener('visibilitychange', () => {
 				if (document.visibilityState === 'hidden' && this.panel.style.display === 'flex') {
-					if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
-						document.activeElement.blur();
+					const ae = getDeepActiveElement();
+					if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) {
+						ae.blur();
 					}
 				}
 			});
+
+			// 12. 长文本：点击输入框直接展开编辑器
+			this.panel.addEventListener('click', (e) => {
+				const il = e.target.closest('.expandable-input');
+				if (!il || (il.tagName !== 'INPUT' && il.tagName !== 'TEXTAREA')) return;
+				e.preventDefault(); e.stopPropagation();
+				openEditorForField(il);
+			});
+			// 13. 长文本输入框统一设为只读(点击即进编辑器)
+			this.panel.querySelectorAll('.expandable-input').forEach(el => el.setAttribute('readonly', ''));
+			const _ro = new MutationObserver((muts) => {
+				for (const m of muts) for (const n of m.addedNodes) {
+					if (n && n.nodeType === 1) {
+						if (n.matches && n.matches('.expandable-input')) n.setAttribute('readonly', '');
+						if (n.querySelectorAll) n.querySelectorAll('.expandable-input').forEach(el => el.setAttribute('readonly', ''));
+					}
+				}
+			});
+			_ro.observe(this.panel, { childList: true, subtree: true });
 		}
 	}
 
@@ -7685,11 +15813,18 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				group.className = 'settings-group static-label';
 				let displayLabel = config.getInputLabel ? config.getInputLabel() : (config.inputLabel || config.label);
 
+				// 判断是否为需要展开的长文本字段并注入展开按钮
+				const isExpandable = !config.isRange && !['ao3_blocker_stats_update', 'ao3_blocker_stats_crossover'].includes(config.keys[0]);
+				const expandClass = isExpandable ? ' expandable-input' : '';
+				const blockerBtnHtml = isExpandable
+					? ``
+					: `<button class="settings-action-button-inline">保存</button>`;
+
 				group.innerHTML = `
 					<div class="input-wrapper">
-						<input type="text" id="input-blocker-val" class="settings-control settings-input" placeholder="${config.ph}" spellcheck="false">
+						<input type="text" id="input-blocker-val" class="settings-control settings-input${expandClass}" placeholder="${config.ph}" spellcheck="false">
 						<label for="input-blocker-val" class="settings-label">${displayLabel}</label>
-						<button class="settings-action-button-inline">保存</button>
+						${blockerBtnHtml}
 					</div>
 				`;
 				const input = group.querySelector('input');
@@ -7707,7 +15842,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					input.value = GM_getValue(config.keys[0], DEFAULT_CONFIG.BLOCKER[defaultKey] || '');
 				}
 
-				group.querySelector('button').addEventListener('click', () => {
+				const saveBlockerValue = () => {
 					const val = input.value.trim();
 					if (config.isRange) {
 						const defaultKeyMin = config.keys[0].replace('ao3_blocker_', '');
@@ -7726,7 +15861,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					}
 					this.updateLabel(input);
 					SettingsSyncManager.syncBlocker('full');
-				});
+				};
+				{ const _b = group.querySelector('button'); if (_b) _b.addEventListener('click', () => saveBlockerValue()); }
+				input.addEventListener('change', saveBlockerValue);
 
 				this.inputArea.appendChild(group);
 				this.updateLabel(input);
@@ -7775,8 +15912,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			this.btnMaxItemsSave = this.$('#setting-btn-cache-max-items-save');
 			this.inputMaxDays = this.$('#setting-input-cache-max-days');
 			this.btnMaxDaysSave = this.$('#setting-btn-cache-max-days-save');
+			this.inputMaxSize = this.$('#setting-input-cache-max-size');
+			this.btnMaxSizeSave = this.$('#setting-btn-cache-max-size-save');
 			this.autoCleanupSelect = this.$('#setting-cache-auto-cleanup-enabled');
 			this.countDisplay = this.$('#cache-count-display');
+			this.autoParamRows = this.container.querySelectorAll('.cache-auto-param');
 
 			this.CACHE_MANAGE_MODE_KEY = 'ao3_cache_manage_mode';
 		}
@@ -7805,13 +15945,22 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				let lastCleanupStr = '从未';
 				if (lastCleanup > 0) {
 					const date = new Date(lastCleanup);
-					lastCleanupStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+					const pad = (n) => String(n).padStart(2, '0');
+					lastCleanupStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 				}
 				this.countDisplay.textContent = `已缓存：${count.toLocaleString()} 项，上次清理：${lastCleanupStr}`;
 			} catch (e) {
 				Logger.error('System', '获取缓存统计失败', e);
 				this.countDisplay.textContent = '已缓存：统计失败';
 			}
+		}
+
+		/**
+		 * 自动清理禁用时隐藏 3 个参数行
+		 */
+		updateAutoParamsVisibility() {
+			const enabled = GM_getValue('ao3_cache_auto_cleanup_enabled', true);
+			this.autoParamRows.forEach(el => { el.style.display = enabled ? '' : 'none'; });
 		}
 
 		initEvents() {
@@ -7824,15 +15973,19 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					this.manualContainer.style.display = 'none';
 					this.autoContainer.style.display = 'flex';
 					this.autoCleanupSelect.value = GM_getValue('ao3_cache_auto_cleanup_enabled', true) ? 'true' : 'false';
-					this.inputMaxItems.value = GM_getValue('ao3_cache_max_items', 100000);
+					this.inputMaxItems.value = GM_getValue('ao3_cache_max_items', 500000);
 					this.inputMaxDays.value = GM_getValue('ao3_cache_max_days', 30);
+					this.inputMaxSize.value = Math.round(GM_getValue('ao3_cache_max_size_bytes', 512 * 1024 * 1024) / (1024 * 1024));
 					this.updateLabel(this.inputMaxItems);
 					this.updateLabel(this.inputMaxDays);
+					this.updateLabel(this.inputMaxSize);
+					this.updateAutoParamsVisibility();
 				}
 			});
 
 			this.autoCleanupSelect.addEventListener('change', () => {
 				GM_setValue('ao3_cache_auto_cleanup_enabled', this.autoCleanupSelect.value === 'true');
+				this.updateAutoParamsVisibility();
 			});
 
 			this.btnMaxItemsSave.addEventListener('click', () => {
@@ -7843,6 +15996,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			this.btnMaxDaysSave.addEventListener('click', () => {
 				const val = parseInt(this.inputMaxDays.value, 10);
 				if (!isNaN(val) && val > 0) GM_setValue('ao3_cache_max_days', val);
+			});
+
+			this.btnMaxSizeSave.addEventListener('click', () => {
+				// 面板单位为 MB，存储为字节
+				const val = parseInt(this.inputMaxSize.value, 10);
+				if (!isNaN(val) && val > 0) GM_setValue('ao3_cache_max_size_bytes', val * 1024 * 1024);
 			});
 
 			this.btnClearCurrent.addEventListener('click', async () => {
@@ -7895,6 +16054,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				});
 
 				if (texts.size === 0) {
+					Logger.info('System', '清理当前页缓存：页面无已翻译内容，无需清理');
 					this.btnClearCurrent.textContent = '无缓存可清理';
 					setTimeout(() => this.btnClearCurrent.textContent = originalText, 2000);
 					return;
@@ -7902,11 +16062,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 				const textHashes = await Promise.all(Array.from(texts).map(t => sha256(t)));
 				const deletedCount = await TranslationCacheDB.deleteByTextHashes(textHashes);
-				
+
 				if (deletedCount > 0) {
 					GM_setValue('ao3_cache_last_cleanup_time', Date.now());
+					Logger.info('System', `清理当前页缓存完成：删除 ${deletedCount} 项`);
 					this.btnClearCurrent.textContent = `成功清除 ${deletedCount} 项缓存`;
 				} else {
+					Logger.info('System', '清理当前页缓存：无匹配缓存被删除');
 					this.btnClearCurrent.textContent = '无缓存可清理';
 				}
 				
@@ -7921,6 +16083,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						this.btnClearAll.textContent = '清理中...';
 						await TranslationCacheDB.clear();
 						GM_setValue('ao3_cache_last_cleanup_time', Date.now());
+						Logger.info('System', '清理全部翻译缓存完成');
 						this.btnClearAll.textContent = '清理成功';
 						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
 						setTimeout(() => this.btnClearAll.textContent = originalText, 2000);
@@ -7991,11 +16154,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			if (profile.isTraditional) {
-				['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort'].forEach(val => {
+				['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort', 'para_mode'].forEach(val => {
 					const opt = this.paramSelect.querySelector(`option[value="${val}"]`);
 					if (opt) { opt.style.display = 'none'; opt.hidden = true; opt.disabled = true; }
 				});
-				if (['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort', 'delete_profile'].includes(currentVal)) {
+				if (['system_prompt', 'user_prompt', 'temperature', 'reasoning_effort', 'para_mode', 'delete_profile'].includes(currentVal)) {
 					currentVal = 'chunk_size'; GM_setValue(this.LAST_PARAM_KEY, 'chunk_size');
 				}
 			} else {
@@ -8047,7 +16210,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				system_prompt: { type: 'textarea', label: 'System Prompt', autoSave: true },
 				user_prompt: { type: 'textarea', label: 'User Prompt', autoSave: true },
 				temperature: { type: 'number', label: 'Temperature', attrs: { min: 0, max: 2, step: 0.1 }, hint: ' (0-2)', validation: { min: 0, max: 2, step: 0.1 }, defaultKey: 'temperature' },
-				reasoning_effort: { type: 'select', label: '推理深度', options: [{ value: 'default', text: 'Default' }, { value: 'low', text: 'Low' }, { value: 'medium', text: 'Medium' }, { value: 'high', text: 'High' }], defaultKey: 'reasoning_effort' },
+				reasoning_effort: { type: 'select', label: '推理深度', options: REASONING_LEVELS.map(v => ({ value: v, text: REASONING_LEVEL_LABELS[v] })), defaultKey: 'reasoning_effort' },
+				para_mode: { type: 'select', label: '标记方式', options: [{ value: 'json', text: 'JSON 数组' }, { value: '%%', text: '分隔符' }], defaultKey: 'para_mode' },
 				chunk_size: { type: 'number', label: '每次翻译文本量', attrs: { min: 100, step: 100 }, validation: { min: 100, step: 100 }, defaultKey: 'chunk_size' },
 				para_limit: { type: 'number', label: '每次翻译段落数', attrs: { min: 1, step: 1 }, validation: { min: 1, step: 1 }, defaultKey: 'para_limit' },
 				request_rate: { type: 'number', label: '平均每秒请求数', attrs: { min: 0.1, step: 0.1 }, hint: ' (req/s)', validation: { min: 0.1, step: 0.1 }, defaultKey: 'request_rate' },
@@ -8059,23 +16223,51 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const config = paramConfig[paramType];
 			if (!config) return;
 
+			if (paramType === 'para_limit') {
+				const modeSection = document.createElement('div');
+				modeSection.className = 'settings-group static-label settings-group-select';
+				const modeSelect = document.createElement('select');
+				modeSelect.className = 'settings-control settings-select custom-styled-select';
+				[['fixed', '固定'], ['dynamic', '动态']].forEach(([v, t]) => {
+					const option = document.createElement('option'); option.value = v; option.textContent = t; modeSelect.appendChild(option);
+				});
+				modeSelect.id = 'ai-param-input-batch-mode';
+				modeSelect.value = profile.params.batch_mode || 'fixed';
+				modeSelect.addEventListener('change', () => {
+					const prevBatch = profile.params.batch_mode;
+					profile.params.batch_mode = modeSelect.value;
+					ProfileManager.saveProfile(profile);
+					if (String(prevBatch) !== String(modeSelect.value)) bumpConfigCounter('translation_param', 'batch_mode');
+					this.renderParamEditor();
+				});
+				const modeLabel = document.createElement('label'); modeLabel.className = 'settings-label'; modeLabel.htmlFor = modeSelect.id; modeLabel.textContent = '批次大小';
+				modeSection.appendChild(modeSelect);
+				modeSection.appendChild(modeLabel);
+				this.inputArea.appendChild(modeSection);
+				this.updateLabel(modeSelect);
+
+				if (modeSelect.value === 'dynamic') return;
+			}
+
 			const section = document.createElement('div');
 			const inputId = `ai-param-input-${paramType}`;
 			let inputElement;
 
 			const saveValue = () => {
+				const prevVal = profile.params[paramType];
 				let val = inputElement.value;
 				if (config.type !== 'select') {
 					const validationResult = this.validateAiParam(val, config);
 					if (!validationResult.valid) {
 						const defaultValue = BASE_AI_PARAMS[config.defaultKey];
-						GM_notification({ title: '参数设置错误', text: `${validationResult.message}\n已自动重置为默认值：${defaultValue}。` });
+						Logger.info('Settings', `参数 ${paramType} 输入非法（${validationResult.message}），已自动重置为默认值：${defaultValue}。`);
 						val = defaultValue; inputElement.value = val;
 					} else { val = validationResult.value; }
 				}
 				profile.params[paramType] = val;
 				ProfileManager.saveProfile(profile);
 				this.updateLabel(inputElement);
+				if (String(prevVal) !== String(val)) bumpConfigCounter('translation_param', paramType);
 				if (paramType === 'lazy_load_margin') document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.LAZY_LOAD_MARGIN_CHANGED));
 			};
 
@@ -8090,7 +16282,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				section.className = 'settings-group static-label';
 				const inputWrapper = document.createElement('div'); inputWrapper.className = 'input-wrapper';
 				inputElement = document.createElement(config.type === 'textarea' ? 'textarea' : 'input');
-				inputElement.className = 'settings-control settings-input'; inputElement.setAttribute('spellcheck', 'false');
+				inputElement.className = 'settings-control settings-input' + (config.type === 'textarea' ? ' expandable-input' : '');
+				if (config.type === 'textarea') inputElement.setAttribute('readonly', '');
+				
+				inputElement.setAttribute('spellcheck', 'false');
 				if (config.type !== 'textarea') inputElement.type = config.type;
 				if (config.attrs) Object.entries(config.attrs).forEach(([k, v]) => inputElement.setAttribute(k, v));
 				inputElement.value = profile.params[paramType];
@@ -8169,6 +16364,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		constructor(controller) {
 			super(controller, 'editable-section-local-manage');
 			this.select = this.$('#setting-local-glossary-select');
+			this.select.dataset.sortable = 'true';
 			this.modeSelect = this.$('#setting-local-edit-mode');
 			this.containerName = this.$('#local-edit-container-name');
 			this.containerTranslation = this.$('#local-edit-container-translation');
@@ -8178,8 +16374,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			this.insensitiveInput = this.$('#setting-input-local-insensitive');
 			this.forbiddenInput = this.$('#setting-input-local-forbidden');
 			
-			this.SELECTED_ID_KEY = 'ao3_local_glossary_selected_id';
-			this.EDIT_MODE_KEY = 'ao3_local_glossary_edit_mode';
+			this.SELECTED_ID_KEY = LOCAL_GLOSSARY_SELECTED_ID_KEY;
+			this.EDIT_MODE_KEY = LOCAL_GLOSSARY_EDIT_MODE_KEY;
 		}
 
 		onInit() { this.initEvents(); }
@@ -8278,6 +16474,21 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				}
 			});
 
+			// 拖拽排序：按新顺序回写并重建选项
+			this.select.addEventListener('ao3-dropdown-reorder', (e) => {
+				const newOrder = e.detail.newOrder;
+				const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
+				const map = new Map(glossaries.map(g => [g.id, g]));
+				const reordered = newOrder.map(id => map.get(id)).filter(Boolean);
+				if (reordered.length !== glossaries.length) return;
+				const saved = this.select.value;
+				GM_setValue(CUSTOM_GLOSSARIES_KEY, reordered);
+				this.populateSelect();
+				this.select.value = saved;
+				invalidateGlossaryCache();
+				SettingsSyncManager.syncGlossary(false);
+			});
+
 			this.select.addEventListener('change', () => {
 				if (this.select.value === 'create_new') {
 					const glossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
@@ -8308,9 +16519,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			});
 
 			this.$('#setting-btn-local-glossary-save-name').addEventListener('click', () => this.saveContent('name', this.nameInput));
-			this.$('#setting-btn-local-sensitive-save').addEventListener('click', () => this.saveContent('sensitive', this.sensitiveInput));
-			this.$('#setting-btn-local-insensitive-save').addEventListener('click', () => this.saveContent('insensitive', this.insensitiveInput));
-			this.$('#setting-btn-local-forbidden-save').addEventListener('click', () => this.saveContent('forbidden', this.forbiddenInput));
+			this.sensitiveInput.addEventListener('change', () => this.saveContent('sensitive', this.sensitiveInput));
+			this.insensitiveInput.addEventListener('change', () => this.saveContent('insensitive', this.insensitiveInput));
+			this.forbiddenInput.addEventListener('change', () => this.saveContent('forbidden', this.forbiddenInput));
 		}
 	}
 
@@ -8322,6 +16533,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			super(controller, 'editable-section-online-manage');
 			this.urlInput = this.$('#setting-input-glossary-import-url');
 			this.select = this.$('#setting-select-glossary-manage');
+			this.select.dataset.sortable = 'true';
 			this.detailsContainer = this.$('#online-glossary-details-container');
 			this.infoText = this.$('#online-glossary-info');
 			this.deleteBtn = this.$('#online-glossary-delete-btn');
@@ -8338,17 +16550,21 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		onShow() { this.populateSelect(); }
 		onSync() { if (this.container.style.display === 'flex') this.populateSelect(); }
 
-		populateSelect() {
+		populateSelect(dispatchChange = true) {
 			const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
 			const urls = Object.keys(metadata);
+			const order = GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []);
+			const urlSet = new Set(urls);
+			const orderedUrls = order.filter(u => urlSet.has(u));
+			urlSet.forEach(u => { if (!orderedUrls.includes(u)) orderedUrls.push(u); });
 			const lastSelectedUrl = GM_getValue(LAST_SELECTED_GLOSSARY_KEY, null);
 			this.select.innerHTML = '';
-			if (urls.length === 0) {
+			if (orderedUrls.length === 0) {
 				this.select.innerHTML = '<option value="" disabled selected>暂无术语表</option>';
 				this.select.disabled = true;
 				this.detailsContainer.style.display = 'none';
 			} else {
-				urls.forEach(url => {
+				orderedUrls.forEach(url => {
 					const name = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
 					const option = document.createElement('option'); 
 					option.value = url; 
@@ -8359,13 +16575,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					this.select.appendChild(option);
 				});
 				this.select.disabled = false;
-				this.select.value = (lastSelectedUrl && urls.includes(lastSelectedUrl)) ? lastSelectedUrl : urls[0];
+				this.select.value = (lastSelectedUrl && orderedUrls.includes(lastSelectedUrl)) ? lastSelectedUrl : orderedUrls[0];
 			}
-			this.select.dispatchEvent(new Event('change'));
+			if (dispatchChange) this.select.dispatchEvent(new Event('change'));
 			this.updateLabel(this.select);
 			this.resetDeleteButton();
 		}
-
 		resetDeleteButton() {
 			this.deleteBtn.textContent = '删除';
 			this.deleteBtn.removeAttribute('data-confirming');
@@ -8393,12 +16608,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				}
 			});
 
+			// 拖拽排序：按新顺序写回并重建
+			this.select.addEventListener('ao3-dropdown-reorder', (e) => {
+				GM_setValue(ONLINE_GLOSSARY_ORDER_KEY, e.detail.newOrder);
+				const saved = this.select.value;
+				this.populateSelect(false);
+				if (saved && [...this.select.options].some(o => o.value === saved)) this.select.value = saved;
+				invalidateGlossaryCache();
+			});
+
 			this.$('#setting-btn-glossary-import-save').addEventListener('click', async () => {
 				const url = this.urlInput.value.trim();
 				if (url) {
 					const result = await importOnlineGlossary(url);
 					if (result.success) {
-						invalidateGlossaryCache();
 						GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
 						this.populateSelect();
 					}
@@ -8429,8 +16652,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						delete allGlossaries[urlToRemove]; delete allMetadata[urlToRemove];
 						GM_setValue(IMPORTED_GLOSSARY_KEY, allGlossaries); GM_setValue(GLOSSARY_METADATA_KEY, allMetadata);
 
-						const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
-						if (rawTextCache[urlToRemove]) { delete rawTextCache[urlToRemove]; GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, rawTextCache); }
+						removeCachedRawText(urlToRemove);
 
 						const parsedUrls = parseGlossaryUrl(urlToRemove);
 						if (parsedUrls) {
@@ -8457,14 +16679,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		constructor(controller) {
 			super(controller, 'editable-section-post-replace');
 			this.select = this.$('#setting-post-replace-select');
+			this.select.dataset.sortable = 'true';
 			this.modeSelect = this.$('#setting-post-replace-edit-mode');
 			this.containerName = this.$('#post-replace-container-name');
 			this.containerSettings = this.$('#post-replace-container-settings');
 			this.nameInput = this.$('#setting-post-replace-name');
 			this.contentInput = this.$('#setting-input-post-replace');
 			
-			this.SELECTED_ID_KEY = 'ao3_post_replace_selected_id';
-			this.EDIT_MODE_KEY = 'ao3_post_replace_edit_mode';
+			this.SELECTED_ID_KEY = POST_REPLACE_SELECTED_ID_KEY;
+			this.EDIT_MODE_KEY = POST_REPLACE_EDIT_MODE_KEY;
 		}
 
 		onInit() { this.initEvents(); }
@@ -8475,6 +16698,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (rules.length === 0) {
 				rules.push({ id: `replace_${Date.now()}`, name: '默认', content: '', enabled: true });
 				GM_setValue(POST_REPLACE_RULES_KEY, rules);
+				invalidateConfigFingerprint();
 				isInitializedDefault = true;
 			}
 			this.reloadEditor(GM_getValue(this.SELECTED_ID_KEY), isInitializedDefault ? 'settings' : GM_getValue(this.EDIT_MODE_KEY, 'settings'));
@@ -8539,6 +16763,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						const currentState = rules[index].enabled !== false;
 						rules[index].enabled = !currentState;
 						GM_setValue(POST_REPLACE_RULES_KEY, rules);
+						invalidateConfigFingerprint();
 						SettingsSyncManager.syncGlossary(false);
 						
 						const btn = e.detail.button;
@@ -8552,6 +16777,21 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				}
 			});
 
+			// 拖拽排序：按新顺序回写并重建选项
+			this.select.addEventListener('ao3-dropdown-reorder', (e) => {
+				const newOrder = e.detail.newOrder;
+				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
+				const map = new Map(rules.map(r => [r.id, r]));
+				const reordered = newOrder.map(id => map.get(id)).filter(Boolean);
+				if (reordered.length !== rules.length) return;
+				const saved = this.select.value;
+				GM_setValue(POST_REPLACE_RULES_KEY, reordered);
+				this.populateSelect();
+				this.select.value = saved;
+				invalidateConfigFingerprint();
+				SettingsSyncManager.syncGlossary(false);
+			});
+
 			this.select.addEventListener('change', () => {
 				if (this.select.value === 'create_new') {
 					const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
@@ -8559,6 +16799,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					const newId = `replace_${Date.now()}`;
 					rules.push({ id: newId, name: `规则 ${maxNum + 1}`, content: '', enabled: true });
 					GM_setValue(POST_REPLACE_RULES_KEY, rules);
+					invalidateConfigFingerprint();
 					this.reloadEditor(newId, 'name'); SettingsSyncManager.syncGlossary(false);
 				} else {
 					this.reloadEditor(this.select.value);
@@ -8572,6 +16813,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							let rules = GM_getValue(POST_REPLACE_RULES_KEY, []).filter(r => r.id !== this.select.value);
 							if (rules.length === 0) rules.push({ id: `replace_${Date.now()}`, name: '默认', content: '', enabled: true });
 							GM_setValue(POST_REPLACE_RULES_KEY, rules);
+							invalidateConfigFingerprint();
 							const nextId = rules[0].id;
 							GM_setValue(this.SELECTED_ID_KEY, nextId); GM_setValue(this.EDIT_MODE_KEY, 'name');
 							this.reloadEditor(nextId, 'name'); SettingsSyncManager.syncGlossary(false);
@@ -8588,15 +16830,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				const index = rules.findIndex(r => r.id === id);
 				if (index === -1 || rules[index].name === newName) return;
 				rules[index].name = newName; GM_setValue(POST_REPLACE_RULES_KEY, rules);
+				invalidateConfigFingerprint();
 				this.reloadEditor(id, this.modeSelect.value); SettingsSyncManager.syncGlossary(false);
 			});
 
-			this.$('#setting-btn-post-replace-save').addEventListener('click', () => {
+			this.contentInput.addEventListener('change', () => {
 				const id = this.select.value; if (!id) return;
 				const rules = GM_getValue(POST_REPLACE_RULES_KEY, []);
 				const index = rules.findIndex(r => r.id === id);
 				if (index === -1 || rules[index].content === this.contentInput.value) return;
 				rules[index].content = this.contentInput.value; GM_setValue(POST_REPLACE_RULES_KEY, rules);
+				invalidateConfigFingerprint();
 				this.reloadEditor(id, this.modeSelect.value); SettingsSyncManager.syncGlossary(false);
 			});
 		}
@@ -8700,12 +16944,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			this.fromLangSelect.addEventListener('change', () => {
 				GM_setValue('from_lang', this.fromLangSelect.value);
+				if (_ConfigMemo) _ConfigMemo.invalidate();
 				this.updateSwapButtonState();
 				this.controller.syncAllModules();
 			});
 
 			this.toLangSelect.addEventListener('change', () => {
 				GM_setValue('to_lang', this.toLangSelect.value);
+				if (_ConfigMemo) _ConfigMemo.invalidate();
 				this.controller.syncAllModules();
 			});
 
@@ -8804,7 +17050,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				this.detailsToggleContainer.style.display = 'flex';
 				this.customContainer.style.display = 'flex';
 			} else {
-				const isSimple = engineId === 'google_translate' || engineId === 'bing_translator';
+				const isSimple = isSimpleTranslationEngine(engineId);
 				if (!isSimple) {
 					this.detailsToggleContainer.style.display = 'flex';
 					this.renderBuiltInModelUI(engineId);
@@ -8842,7 +17088,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const config = engineMenuConfig[engineId];
 			const apiConfig = CONFIG.TRANS_ENGINES[engineId];
 			if (!config || !apiConfig) return;
-			const apiKey = (GM_getValue(`${engineId}_keys_array`, [])[0] || '').trim();
+			const apiKey = findFirstActiveKey(GM_getValue(`${engineId}_keys_array`, []));
 			if (!apiKey) { notifyAndLog(`请先设置 ${config.displayName} 的 API Key。`, '获取失败', 'error'); this.renderBuiltInModelUI(engineId); return; }
 
 			let baseUrl = apiConfig.url_api || apiConfig.url;
@@ -8883,6 +17129,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 				const newMapping = {}; models.forEach(m => newMapping[m] = m);
 				GM_setValue(`${engineId}_custom_model_mapping`, newMapping);
+				invalidateConfigFingerprint();
 				GM_setValue(config.modelGmKey, models.includes(originalValue) ? originalValue : models[0]);
 
 				this.renderBuiltInModelUI(engineId);
@@ -8917,21 +17164,25 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (this.isEditingBuiltInModel) {
 				this.modelGroup.className = 'settings-group static-label';
 				const wrapper = document.createElement('div'); wrapper.className = 'input-wrapper';
-				const input = document.createElement('input'); input.type = 'text'; input.className = 'settings-control settings-input';
+				const input = document.createElement('input'); input.type = 'text'; 
+
+				input.className = 'settings-control settings-input expandable-input';
+				
 				input.value = stringifyModelObject(currentMapping).replace(/\n/g, ' ');
 				input.placeholder = "'ID 1': '名称 1', 'ID 2': '名称 2'"; input.spellcheck = false;
+				input.dataset.editorRaw = 'true';
+				input.setAttribute('readonly', '');
 
 				const label = document.createElement('label'); label.className = 'settings-label'; label.textContent = '编辑模型 ID';
-				const saveBtn = document.createElement('button'); saveBtn.className = 'settings-action-button-inline'; saveBtn.textContent = '保存';
-
-				saveBtn.addEventListener('click', () => {
+				input.addEventListener('change', () => {
 					const newMapping = parseModelString(input.value);
 					if (Object.keys(newMapping).length === 0) GM_deleteValue(customMappingKey);
 					else GM_setValue(customMappingKey, newMapping);
+					invalidateConfigFingerprint();
 					this.isEditingBuiltInModel = false; this.renderBuiltInModelUI(engineId);
 				});
 
-				wrapper.appendChild(input); wrapper.appendChild(label); wrapper.appendChild(saveBtn);
+				wrapper.appendChild(input); wrapper.appendChild(label);
 				this.modelGroup.appendChild(wrapper); this.updateLabel(input);
 			} else {
 				this.modelGroup.className = 'settings-group settings-group-select';
@@ -8950,8 +17201,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				select.addEventListener('change', () => {
 					if (select.value === 'FETCH_MODELS_INLINE') this.fetchModelsForBuiltIn(engineId);
 					else if (select.value === 'EDIT_MODELS_INLINE') { this.isEditingBuiltInModel = true; this.renderBuiltInModelUI(engineId); }
-					else if (select.value === 'RESET_MODELS_INLINE') { GM_deleteValue(customMappingKey); this.renderBuiltInModelUI(engineId); }
-					else GM_setValue(config.modelGmKey, select.value);
+					else if (select.value === 'RESET_MODELS_INLINE') { GM_deleteValue(customMappingKey); this.renderBuiltInModelUI(engineId); invalidateConfigFingerprint(); }
+					else { GM_setValue(config.modelGmKey, select.value); if (_ConfigMemo) _ConfigMemo.invalidate(); }
 				});
 
 				const label = document.createElement('label'); label.htmlFor = 'setting-trans-model'; label.className = 'settings-label'; label.textContent = '使用模型';
@@ -8968,7 +17219,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (!serviceIdToUpdate) return;
 
 			GM_setValue(`${serviceIdToUpdate}_keys_string`, value);
-			const keysArray = value.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+			const keysArray = parseKeysToArray(value);
 			GM_setValue(`${serviceIdToUpdate}_keys_array`, keysArray);
 			GM_deleteValue(`${serviceIdToUpdate}_key_index`);
 		}
@@ -8988,12 +17239,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					this.updateUiForEngine(newEngine);
 				} else {
 					GM_setValue('transEngine', newEngine);
+					if (_ConfigMemo) _ConfigMemo.invalidate();
 					this.updateUiForEngine(newEngine);
 					this.isEditingBuiltInModel = false;
 				}
 			});
 
-			this.apiKeySaveBtn.addEventListener('click', () => this.saveApiKey());
+			if (this.apiKeyInput) {
+				this.apiKeyInput.addEventListener('change', () => this.saveApiKey());
+			}
 
 			this.detailsToggleContainer.addEventListener('click', () => {
 				const engineId = this.engineSelect.value;
@@ -9024,22 +17278,29 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		constructor(controller) {
 			super(controller, 'editable-section-lang-detect');
 			this.select = this.$('#setting-lang-detector');
+			this.fallbackSelect = this.$('#setting-lang-detector-fallback');
 		}
 
 		onInit() {
 			this.select.addEventListener('change', () => {
 				GM_setValue('lang_detector', this.select.value);
 			});
+			this.fallbackSelect.addEventListener('change', () => {
+				GM_setValue('lang_detector_fallback', this.fallbackSelect.value);
+			});
 		}
 
 		onShow() {
 			this.select.value = GM_getValue('lang_detector', DEFAULT_CONFIG.GENERAL.lang_detector);
+			this.fallbackSelect.value = GM_getValue('lang_detector_fallback', DEFAULT_CONFIG.GENERAL.lang_detector_fallback);
 			this.updateLabel(this.select);
+			this.updateLabel(this.fallbackSelect);
 		}
 
 		onSync() {
 			if (this.container.style.display === 'flex') {
 				this.select.value = GM_getValue('lang_detector', DEFAULT_CONFIG.GENERAL.lang_detector);
+				this.fallbackSelect.value = GM_getValue('lang_detector_fallback', DEFAULT_CONFIG.GENERAL.lang_detector_fallback);
 			}
 		}
 	}
@@ -9076,6 +17337,162 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
+	 * 插件更新提示模块：更新检查间隔
+	 */
+	class UpdateCheckModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-update-check');
+			this.intervalSelect = this.$('#setting-update-check-interval');
+			this.updateNowBtn = this.$('#btn-update-now');
+		}
+
+		onInit() {
+			this.intervalSelect.addEventListener('change', () => {
+				GM_setValue('ao3_update_check_interval', this.intervalSelect.value);
+				if (this.intervalSelect.value !== 'never') {
+					GM_setValue('ao3_update_last_check', 0);
+				}
+			});
+			// 手动更新：新标签页打开 @updateURL
+			this.updateNowBtn.addEventListener('click', () => {
+				window.open(GM_info.script.updateURL || 'https://cdn.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/local.user.js', '_blank');
+			});
+		}
+
+		onShow() {
+			this.intervalSelect.value = GM_getValue('ao3_update_check_interval', 'weekly');
+			this.updateLabel(this.intervalSelect);
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.intervalSelect.value = GM_getValue('ao3_update_check_interval', 'weekly');
+			}
+		}
+	}
+
+	/**
+	 * 埋点模块
+	 */
+	class AnalyticsSettingsModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-analytics');
+			this.optSelect = this.$('#setting-analytics-opt');
+			this.idRow = this.$('#analytics-id-row');
+			this.idInput = this.$('#setting-analytics-id');
+			this.copyBtn = this.$('#btn-copy-analytics-id');
+			this.secretRow = this.$('#analytics-secret-row');
+			this.secretInput = this.$('#setting-analytics-secret');
+			this.secretSaveBtn = this.$('#btn-analytics-secret-save');
+			this.dashRow = this.$('#aot-dashboard-link');
+			this.openDashBtn = this.$('#btn-open-aot-dashboard');
+		}
+
+		onInit() {
+			this.optSelect.addEventListener('change', () => {
+				const joined = this.optSelect.value === 'joined';
+				if (!joined) {
+					Analytics.reportOptOut();
+					Analytics.rotateInstallId();
+				}
+				Analytics.setEnabled(joined);
+				if (joined && Analytics.authSecret()) {
+					Analytics.pushAuthSecret(Analytics.authSecret()).then((result) => {
+						if (result.ok) Logger.info('Analytics', '验证密钥已自动同步');
+						else Logger.info('Analytics', `验证密钥自动同步失败: ${result.error}`);
+					});
+				}
+				this.refreshAnalyticsIdRow();
+				Logger.debug('Analytics', joined ? '已启用：数据统计与分析' : '已禁用：数据统计与分析');
+			});
+			this.copyBtn.addEventListener('click', () => this.copyId());
+			this.secretSaveBtn.addEventListener('click', () => this.saveSecret());
+			this.openDashBtn.addEventListener('click', () => {
+				try { window.open('https://aot-analytics-dashboard.pages.dev', '_blank', 'noopener'); }
+				catch (e) { Logger.debug('Analytics', `打开 AOT 面板失败: ${e.message}`); }
+			});
+		}
+
+		// 保存验证密钥：先本地暂存当前值用于按钮反馈，成功后由 pushAuthSecret 写入 GM 存储。
+		async saveSecret() {
+			const next = this.secretInput.value.trim();
+			const original = this.secretSaveBtn.textContent;
+			const settle = (ok, message) => {
+				this.secretSaveBtn.textContent = ok ? '✓' : '×';
+				setTimeout(() => { this.secretSaveBtn.textContent = original; }, 1500);
+				if (!ok && message) notifyAndLog(message, '操作失败', 'error');
+			};
+			this.secretSaveBtn.disabled = true;
+			try {
+				const result = await Analytics.pushAuthSecret(next);
+				if (result.ok) {
+					this.secretInput.value = Analytics.authSecret();
+					updateInputLabel(this.secretInput);
+					settle(true);
+				} else if (result.error === 'bad_secret') {
+					settle(false, '服务端已设有不同的验证密钥：请先在输入框填入当前密钥保存，再改为新密钥。');
+				} else if (result.error === 'unauthorized') {
+					settle(false, '验证密钥同步失败：该验证 ID 尚未产生数据或已禁用数据统计与分析。');
+				} else {
+					settle(false, `验证密钥同步失败（${result.error}），稍后重试。`);
+				}
+			} finally {
+				this.secretSaveBtn.disabled = false;
+			}
+		}
+
+		copyId() {
+			const id = Analytics.installId();
+			if (!id) return;
+			const original = this.copyBtn.textContent;
+			const settle = (ok) => {
+				this.copyBtn.textContent = ok ? '✓' : '×';
+				setTimeout(() => { this.copyBtn.textContent = original; }, 1500);
+			};
+			const fallback = () => {
+				if (!this.idInput) { settle(false); return; }
+				try {
+					this.idInput.removeAttribute('readonly');
+					this.idInput.select();
+					const ok = document.execCommand('copy');
+					this.idInput.setAttribute('readonly', 'readonly');
+					settle(ok);
+				} catch (e) { settle(false); }
+			};
+			if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+				navigator.clipboard.writeText(id).then(() => settle(true)).catch(() => fallback());
+			} else fallback();
+		}
+
+		refreshAnalyticsIdRow() {
+			const joined = Analytics.enabled();
+			if (this.idRow) this.idRow.style.display = joined ? 'block' : 'none';
+			if (this.secretRow) this.secretRow.style.display = joined ? 'block' : 'none';
+			if (this.dashRow) this.dashRow.style.display = joined ? 'block' : 'none';
+			if (this.idInput) {
+				const id = joined ? Analytics.installId() : '';
+				this.idInput.value = id;
+				if (id) this.idInput.classList.add('has-value');
+				else this.idInput.classList.remove('has-value');
+			}
+			if (this.secretInput) {
+				this.secretInput.value = joined ? Analytics.authSecret() : '';
+				updateInputLabel(this.secretInput);
+			}
+		}
+
+		onShow() {
+			this.optSelect.value = Analytics.enabled() ? 'joined' : 'left';
+			this.updateLabel(this.optSelect);
+			this.refreshAnalyticsIdRow();
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') this.onShow();
+		}
+	}
+
+	/**
 	 * 备份、合并与导入导出模块
 	 */
 	class DataSyncModule extends BaseSettingsModule {
@@ -9083,11 +17500,19 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			super(controller, 'data-sync-actions-container');
 			this.importBtn = this.$('#btn-import-data');
 			this.exportBtn = this.$('#btn-export-data');
+			this.exportEncKeyInput = this.$('#setting-export-enc-key');
+			this.exportEncKeySaveBtn = this.$('#btn-export-enc-key-save');
+			this.localBackupBtn = this.$('#btn-open-local-backup');
 		}
 
 		onInit() {
 			this.importBtn.addEventListener('click', () => this.handleImport());
 			this.exportBtn.addEventListener('click', () => this.handleExport());
+			this.localBackupBtn.addEventListener('click', () => openLocalBackupModal());
+			this.exportEncKeyInput.value = GM_getValue(AO3_EXPORT_ENC_KEY, '');
+			this.exportEncKeySaveBtn.addEventListener('click', () => {
+				GM_setValue(AO3_EXPORT_ENC_KEY, this.exportEncKeyInput.value.trim());
+			});
 		}
 
 		handleExport = async () => {
@@ -9095,8 +17520,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				const availableItems = DATA_CATEGORIES.map(cat => ({ ...cat, checked: true, disabled: false }));
 				const selectionResult = await createSelectionModal('数据导出', availableItems, 'export', 'ao3_export_selection_memory');
 				const data = await exportAllData(selectionResult.ids);
+				const encKey = GM_getValue(AO3_EXPORT_ENC_KEY, '');
 				const dateStr = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Shanghai' }).replace(/:/g, '-').replace(' ', '_');
-				saveFile(JSON.stringify(data, null, 2), `AO3-Translator-Config-${dateStr}.json`, 'application/json');
+				const content = encKey ? await ConfigSerializer.pack(data, encKey) : JSON.stringify(data, null, 2);
+				saveFile(content, `AO3-Translator-Config-${dateStr}.json`, 'application/json');
 			} catch (e) {
 				if (e.message !== 'User cancelled') notifyAndLog(`导出失败: ${e.message}`, '操作失败', 'error');
 			}
@@ -9109,7 +17536,26 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				const reader = new FileReader();
 				reader.onload = async (event) => {
 					try {
-						const jsonData = JSON.parse(event.target.result);
+						let jsonData = null;
+						for (;;) {
+							const encKey = GM_getValue(AO3_EXPORT_ENC_KEY, '');
+							try {
+								jsonData = await ConfigSerializer.unpack(event.target.result, encKey);
+								break;
+							} catch (e) {
+								if (e && (e.code === 'ENC_MISSING_KEY' || e.code === 'ENC_WRONG_KEY')) {
+									const lines = e.code === 'ENC_MISSING_KEY' ? [
+										'该备份文件已加密，请填写加密密钥。'
+									] : [
+										'使用已保存的加密密钥解密失败：',
+										'密钥不正确，或文件已损坏。'
+									];
+									if (await showKeyRetryModal(lines) !== 'retry') throw new Error('User cancelled');
+									continue;
+								}
+								throw e;
+							}
+						}
 						if (!jsonData.data) throw new Error("文件缺少 data 字段");
 
 						const hasData = (catId, allData) => {
@@ -9123,14 +17569,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							switch (catId) {
 								case 'staticKeys': case 'apiKeys': case 'modelSelections': case 'aiParameters': case 'blockerSettings':
 									return data ? Object.keys(data).length > 0 : false;
-								case 'uiState': return data ? !!(data.fabPosition || data.panelPosition) : false;
+								case 'uiState': return data ? !!(data.exportSelection || data.localGlossarySelectedId || data.postReplaceSelectedId || data.fabManageMode || data.fabManageGesture || data.exportLastFormat || data.exportLastAction || data.exportFormats || data.serviceCollapsedStates) : false;
 								case 'customServices': return data ? Array.isArray(data) && data.length > 0 : false;
-								case 'glossaries': return data ? (hasContent(data.customGlossaries) || hasContent(data.importedGlossaries) || hasContent(data.local) || hasContent(data.forbidden) || hasContent(data.onlineMetadata)) : false;
+								case 'glossaries': return data ? (hasContent(data.customGlossaries) || hasContent(data.metadata) || hasContent(data.onlineMetadata) || hasContent(data.onlineOrder) || hasContent(data.local) || hasContent(data.forbidden)) : false;
 								case 'postReplace': return (data && (hasContent(data.postReplaceRules) || hasContent(data.postReplaceString) || hasContent(data.postReplace))) || (allData.glossaries && (hasContent(allData.glossaries.postReplaceRules) || hasContent(allData.glossaries.postReplaceString) || hasContent(allData.glossaries.postReplace)));
 								case 'formatting': return data ? Object.keys(data).length > 0 : false;
 								case 'fabActions': return data ? Object.keys(data).length > 0 : false;
 								case 'exportTemplates': return data ? data.templates && Object.keys(data.templates).length > 0 : false;
-								case 'cacheSettings': return data ? data.maxItems !== undefined || data.maxDays !== undefined : false;
+								case 'cacheSettings': return data ? data.autoCleanupEnabled !== undefined || data.maxItems !== undefined || data.maxDays !== undefined || data.maxSizeBytes !== undefined : false;
+								case 'webdavConfig': return data ? Object.keys(data).length > 0 : false;
 								default: return false;
 							}
 						};
@@ -9147,6 +17594,29 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						if (selectionResult && selectionResult.ids.length > 0) {
 							const result = await importAllData(jsonData, selectionResult.ids, selectionResult.mode);
 							Logger.info('Data', result.message);
+							if (result.aiProfileConflicts && result.aiProfileConflicts.length > 0) {
+								notifyAndLog(`${result.message} ${describeAiProfileConflicts(result.aiProfileConflicts)}。参数差异详情请查阅日志`, '导入完成');
+							}
+
+							const importedWebdav = selectionResult.ids.includes('webdavConfig') && jsonData.data?.webdavConfig;
+							if (importedWebdav) {
+								const wdUrl = GM_getValue('webdav_url', '');
+								const wdUser = GM_getValue('webdav_user', '');
+								const wdPass = GM_getValue('webdav_pass', '');
+								const wdComplete = wdUrl && wdUser && wdPass;
+								if (!wdComplete) {
+									notifyAndLog('已导入 WebDAV 配置，但连接信息不完整，请在 设置→云端同步 补齐后手动同步。', '提示', 'warn');
+								} else {
+									const syncRes = await WebDAVSyncManager.executeSync(false);
+									if (syncRes.success) {
+										notifyAndLog('WebDAV 配置已导入并完成同步。', '同步成功');
+										if (typeof AutoSyncScheduler !== 'undefined') AutoSyncScheduler._clearFailure();
+									} else if (syncRes._silent) {
+									} else {
+										notifyAndLog(`WebDAV 配置已导入，但同步失败：${syncRes.reason}`, '同步错误', 'error');
+									}
+								}
+							}
 						}
 					} catch (err) {
 						if (err.message !== 'User cancelled') notifyAndLog(`导入失败: ${err.message}`, '导入错误', 'error');
@@ -9156,6 +17626,277 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			};
 			input.click();
 		};
+	}
+
+	/**
+	 * WebDAV 云端同步模块
+	 */
+	class WebDAVSyncModule extends BaseSettingsModule {
+		constructor(controller) {
+			super(controller, 'editable-section-webdav-sync');
+			this.actionSelect = this.$('#webdav-action-select');
+
+			this.containers = {
+				url: this.$('#webdav-container-url'),
+				user: this.$('#webdav-container-user'),
+				pass: this.$('#webdav-container-pass'),
+				encKey: this.$('#webdav-container-encKey'),
+				autoSync: this.$('#webdav-container-autoSync')
+			};
+
+			this.inputs = {
+				url: this.$('#setting-webdav-url'),
+				user: this.$('#setting-webdav-user'),
+				pass: this.$('#setting-webdav-pass'),
+				encKey: this.$('#setting-webdav-enc-key'),
+				autoSync: this.$('#setting-webdav-interval')
+			};
+
+			// 自动同步状态开关
+			this.selects = {
+				autoSyncEnabled: this.$('#setting-webdav-auto-sync-enabled')
+			};
+			this.intervalContainer = this.$('#webdav-container-interval');
+			this.autoSyncEnabledSelect = this.selects.autoSyncEnabled;
+
+			this.syncNowBtn = this.$('#btn-webdav-sync-now');
+			this.statusText = this.$('#webdav-sync-status');
+
+			this.LAST_ACTION_KEY = 'ao3_webdav_last_action';
+		}
+
+		onInit() {
+			this.initEvents();
+			AutoSyncScheduler.init();
+			const intervalStr = GM_getValue('webdav_sync_interval', '60');
+			if (intervalStr === '0') {
+				GM_setValue('webdav_auto_sync_enabled', false);
+				GM_setValue('webdav_sync_interval', '60');
+				AutoSyncScheduler.updateInterval();
+			}
+		}
+
+		onShow() {
+			this.actionSelect.value = GM_getValue(this.LAST_ACTION_KEY, 'url');
+			this.renderInput();
+			this.loadStatus();
+			this.updateActionContainers();
+		}
+
+		onSync() {
+			if (this.container.style.display === 'flex') {
+				this.renderInput();
+				this.loadStatus();
+				this.updateActionContainers();
+			}
+		}
+
+		loadStatus() {
+			const lastSync = GM_getValue('webdav_last_sync_time', '');
+			this.statusText.textContent = lastSync ? `最后同步时间：${lastSync}` : '最后同步时间：暂无';
+		}
+
+		updateActionContainers() {
+			const action = this.actionSelect.value;
+
+			Object.values(this.containers).forEach(c => {
+				if (c) c.style.display = 'none';
+			});
+			if (this.intervalContainer) {
+				this.intervalContainer.style.display = 'none';
+			}
+
+			// 显示当前选中的容器
+			if (this.containers[action]) {
+				this.containers[action].style.display = 'block';
+			}
+
+			// 自动同步选中时：状态开关常显，间隔 group 随开关联动
+			if (action === 'autoSync') {
+				const enabled = this.getAutoSyncEnabled();
+				if (this.intervalContainer) {
+					this.intervalContainer.style.display = enabled ? 'block' : 'none';
+				}
+			}
+		}
+
+		// 读取自动同步开关状态
+		getAutoSyncEnabled() {
+			const val = GM_getValue('webdav_auto_sync_enabled', true);
+			return String(val) !== 'false';
+		}
+
+		renderInput() {
+			const action = this.actionSelect.value;
+
+			// 加载对应的值
+			const gmKeys = {
+				url: 'webdav_url',
+				user: 'webdav_user',
+				pass: 'webdav_pass',
+				encKey: 'webdav_enc_key',
+				autoSync: 'webdav_sync_interval'
+			};
+
+			// 处理输入框
+			if (this.inputs[action]) {
+				const key = gmKeys[action];
+				const defaultVal = action === 'autoSync' ? '60' : '';
+				this.inputs[action].value = GM_getValue(key, defaultVal);
+				this.updateLabel(this.inputs[action]);
+			}
+
+			// 处理选择器
+			for (const [name, select] of Object.entries(this.selects)) {
+				if (select) {
+					if (name === 'autoSyncEnabled') {
+						select.value = this.getAutoSyncEnabled() ? 'true' : 'false';
+					}
+					this.updateLabel(select);
+				}
+			}
+		}
+
+	saveField(field, quiet = false) {
+			const gmKeys = {
+				url: 'webdav_url',
+				user: 'webdav_user',
+				pass: 'webdav_pass',
+				encKey: 'webdav_enc_key',
+				autoSync: 'webdav_sync_interval'
+			};
+
+			if (this.inputs[field]) {
+				const key = gmKeys[field];
+				const value = this.inputs[field].value.trim();
+				GM_setValue(key, value);
+
+				if (field === 'autoSync') {
+					// 间隔输入：仅自动同步启用时有效；≤0 静默回填 60
+					const num = parseInt(value, 10);
+					if (!isNaN(num) && num <= 0) {
+						GM_setValue(key, '60');
+						this.inputs[field].value = '60';
+						this.updateLabel(this.inputs[field]);
+					}
+					AutoSyncScheduler.updateInterval(!quiet);
+				}
+			} else if (field === 'autoSyncEnabled' && this.selects[field]) {
+				const enabled = this.selects[field].value === 'true';
+				GM_setValue('webdav_auto_sync_enabled', enabled);
+				AutoSyncScheduler.updateInterval();
+				if (!quiet) Logger.debug('Sync', `自动同步已${enabled ? '启用' : '禁用'}`);
+				this.updateActionContainers();
+			}
+		}
+
+		async handleManualSync() {
+			// 1. 并发检查 - 静默返回，防止重复点击
+			if (WebDAVSyncManager.isSyncing) {
+				return;
+			}
+			
+			// 2. 保存当前正在显示的输入框的值
+			const currentAction = this.actionSelect.value;
+			this.saveField(currentAction, true);
+
+			for (const [name, select] of Object.entries(this.selects)) {
+				this.saveField(name, true);
+			}
+
+			const url = GM_getValue('webdav_url', '');
+			const user = GM_getValue('webdav_user', '');
+			const pass = GM_getValue('webdav_pass', '');
+
+			if (!url) {
+				notifyAndLog('请填写 WebDAV 接口地址。', '提示', 'error');
+				return;
+			}
+
+			if (!user || !pass) {
+				notifyAndLog('请完整填写 WebDAV 接口地址、账户名称及应用密码。', '提示', 'error');
+				return;
+			}
+
+			const originalText = this.syncNowBtn.textContent;
+			this.syncNowBtn.textContent = '同步中...';
+			this.syncNowBtn.disabled = true;
+
+			try {
+				let result = await WebDAVSyncManager.executeSync(false);
+				let keyErrorDismissed = false;
+				while (result && result.success === false && !result._silent &&
+				       (result.notifyCategory === 'missingKey' || result.notifyCategory === 'wrongKey')) {
+					const lines = result.notifyCategory === 'missingKey'
+						? ['云端数据已加密，但本地未配置同步密钥，无法解密。']
+						: ['同步密钥错误，无法解密云端数据。'];
+					if (await showKeyRetryModal(lines) !== 'retry') { keyErrorDismissed = true; break; }
+					result = await WebDAVSyncManager.executeSync(false);
+				}
+
+				if (result.success) {
+					let msg = 'WebDAV 同步成功！';
+					if (result.applied) {
+						msg += ' 已拉取云端最新配置。';
+						this.statusText.textContent = `最后同步时间：${result.time}`;
+					} else if (result.uploaded) {
+						msg += ' 已将本地配置上传至云端。';
+						this.statusText.textContent = `最后同步时间：${result.time}`;
+					} else {
+						msg += ' 本地与云端数据一致。';
+					}
+					if (result.mergedCategories && result.mergedCategories.length > 0) {
+						msg += `（含 ${result.mergedCategories.length} 个冲突分类自动合并）`;
+					}
+					if (result.aiProfileConflicts && result.aiProfileConflicts.length > 0) {
+						msg += ' ' + describeAiProfileConflicts(result.aiProfileConflicts);
+						if (result.aiProfileConflicts.length > 1) msg += '。参数差异详情请查阅日志';
+					}
+					notifyAndLog(msg, '同步成功');
+				} else if (result._silent) {
+				} else if (keyErrorDismissed) {
+					Logger.warn('Sync', `同步已取消：${result.reason}`);
+				} else {
+					notifyAndLog(`WebDAV 同步失败: ${result.reason}`, '同步错误', 'error');
+				}
+			} catch (err) {
+				notifyAndLog(`同步异常: ${err.message}`, '错误', 'error');
+			} finally {
+				this.syncNowBtn.disabled = false;
+				this.syncNowBtn.textContent = originalText;
+			}
+		}
+
+		initEvents() {
+			this.actionSelect.addEventListener('change', () => {
+				GM_setValue(this.LAST_ACTION_KEY, this.actionSelect.value);
+				this.renderInput();
+				this.updateActionContainers();
+			});
+
+			this.syncNowBtn.addEventListener('click', () => this.handleManualSync());
+
+			document.addEventListener(CUSTOM_EVENTS.WEBDAV_SYNC_COMPLETED, () => {
+				if (this.container.style.display === 'flex') this.loadStatus();
+			});
+
+			// 绑定所有内联保存按钮
+			this.container.querySelectorAll('.settings-action-button-inline').forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					const field = e.target.dataset.field;
+					if (field) {
+						this.saveField(field);
+					}
+				});
+			});
+
+			// 选择器变化保存
+			for (const [name, select] of Object.entries(this.selects)) {
+				if (select) {
+					select.addEventListener('change', () => this.saveField(name));
+				}
+			}
+		}
 	}
 
 	/**
@@ -9192,7 +17933,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (this.valueContainer.dataset.renderedProp === prop) {
 				if (prop === 'profileName') {
 					const input = this.valueContainer.querySelector('#fmt-profile-rename-input');
-					if (input && document.activeElement !== input) input.value = currentProfile.name;
+					if (input && getDeepActiveElement() !== input) input.value = currentProfile.name;
 				} else {
 					const select = this.valueContainer.querySelector('#fmt-value-select');
 					if (select) select.value = currentProfile.params[prop];
@@ -9257,7 +17998,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 						createSelectionModal('生效区域', items, 'export', null)
 							.then(res => {
+								const prevIds = JSON.stringify(currentProfile.params.indentElements || []);
 								currentProfile.params.indentElements = res.ids; FormattingManager.saveProfile(currentProfile); applyFormatting();
+								if (prevIds !== JSON.stringify(res.ids)) bumpConfigCounter('format', 'indentElements');
 							}).catch(() => {});
 					});
 				} else if (prop === 'fontSize') {
@@ -9271,7 +18014,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				}
 
 				select.addEventListener('change', (e) => {
+					const prevVal = currentProfile.params[prop];
 					currentProfile.params[prop] = e.target.value; FormattingManager.saveProfile(currentProfile); applyFormatting();
+					if (String(prevVal) !== String(e.target.value)) bumpConfigCounter('format', prop);
 					if (prop === 'indent' && extraWrapper) extraWrapper.style.display = e.target.value !== 'original' ? 'block' : 'none';
 				});
 
@@ -9491,12 +18236,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		controller.registerModule('editable-section-post-replace', new PostReplaceModule(controller));
 		controller.registerModule('editable-section-lang-detect', new LangDetectModule(controller));
 		controller.registerModule('editable-section-debug-mode', new DebugModeModule(controller));
+		controller.registerModule('editable-section-update-check', new UpdateCheckModule(controller));
+		controller.registerModule('editable-section-analytics', new AnalyticsSettingsModule(controller));
 		controller.registerModule('data-sync-actions-container', new DataSyncModule(controller));
 		controller.registerModule('editable-section-formatting', new FormattingModule(controller));
 		controller.registerModule('editable-section-export-manage', new ExportModule(controller));
 		controller.registerModule('editable-section-fab-manage', new FabManageModule(controller));
 		controller.registerModule('global-general', new GeneralSettingsModule(controller));
 		controller.registerModule('global-services', new TranslationServiceModule(controller));
+		controller.registerModule('editable-section-webdav-sync', new WebDAVSyncModule(controller));
 
 		// 3. 执行首次数据同步
 		controller.syncAllModules();
@@ -9590,12 +18338,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let expectedCloseQuote = "";
 		let lastOp = null;
 
-		const quotePairs = {
-			'"': '"',
-			"'": "'",
-			'“': '”',
-			'‘': '’'
-		};
+		const quotePairs = QUOTE_PAIRS;
 
 		for (let i = 0; i < str.length; i++) {
 			let char = str[i];
@@ -10075,6 +18818,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		if (window.getComputedStyle(blurb).display === 'none') {
 			return;
 		}
+		
+		// 记录阻断埋点
+		Analytics.featureUsed('content_blocked', 'blocker', {});
+		bumpUsageCounter(ANALYTICS_KEY_USAGE_BLOCK_HITS);
 
 		if (!BlockerCache.showReasons) {
 			blurb.classList.add('ao3-blocker-hidden');
@@ -10208,6 +18955,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		},
 		'bing_translator': {
 			displayName: '微软翻译',
+			modelGmKey: null,
+			requiresApiKey: false
+		},
+		'tencent_translator': {
+			displayName: '腾讯翻译',
 			modelGmKey: null,
 			requiresApiKey: false
 		},
@@ -10729,21 +19481,147 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	const TRADITIONAL_REQUEST_TIMEOUT = 30000;
 
 	/**
-	 * JSON 提取器
+	 * 通用 JSON 修复解析
 	 */
-	function extractJson(text) {
-		if (!text || typeof text !== 'string') return null;
-		const start = text.indexOf('{');
-		const end = text.lastIndexOf('}');
-		if (start > -1 && end > -1 && end > start) {
-			try {
-				return JSON.parse(text.substring(start, end + 1));
-			} catch (e) {
-				Logger.warn('Translation', 'JSON 解析失败', { textSnippet: text.substring(start, Math.min(start + 100, end)) });
-				return null;
+	function tryParseJson(text) {
+		if (typeof text !== 'string') return null;
+		try { return JSON.parse(text); } catch (e) { /* 原样失败，进入修复 */ }
+
+		let cur = text;
+		for (const fix of [
+			(s) => s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ''),
+			(s) => s.replace(/,(\s*[}\]])/g, '$1')
+		]) {
+			const next = fix(cur);
+			if (next === cur) continue;
+			try { return JSON.parse(next); } catch (e) { cur = next; }
+		}
+		return null;
+	}
+
+	/**
+	 * 前向括号配对
+	 */
+	function balancedForward(str, start) {
+		if (start < 0) return null;
+		let depth = 0;
+		let inString = false;
+		let escaped = false;
+		for (let i = start; i < str.length; i++) {
+			const c = str[i];
+			if (inString) {
+				if (escaped) escaped = false;
+				else if (c === '\\') escaped = true;
+				else if (c === '"') inString = false;
+				continue;
+			}
+			if (c === '"') { inString = true; continue; }
+			if (c === '{' || c === '[') depth++;
+			else if (c === '}' || c === ']') {
+				depth--;
+				if (depth === 0) return str.substring(start, i + 1);
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * 反向括号配对
+	 */
+	function balancedBackward(str, close) {
+		if (close < 0) return null;
+		let depth = 1;
+		let inString = false;
+		for (let i = close - 1; i >= 0; i--) {
+			const c = str[i];
+			if (c === '"') {
+				if (inString) {
+					let backslashes = 0;
+					for (let j = i - 1; j >= 0 && str[j] === '\\'; j--) backslashes++;
+					if (backslashes % 2 === 0) inString = false;
+				} else {
+					inString = true;
+				}
+				continue;
+			}
+			if (inString) continue;
+			if (c === '}' || c === ']') depth++;
+			else if (c === '{' || c === '[') {
+				depth--;
+				if (depth === 0) return str.substring(i, close + 1);
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * 形态感知提取
+	 */
+	function tryExtractTranslations(content) {
+		const candidates = [];
+		const text = String(content || '').trim();
+		if (!text) return null;
+
+		candidates.push(text);
+		const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+		if (fence && fence[1]) candidates.push(fence[1].trim());
+		candidates.push(balancedForward(text, text.search(/[{\[]/)));
+		candidates.push(balancedBackward(text, Math.max(text.lastIndexOf('}'), text.lastIndexOf(']'))));
+
+		for (const cand of candidates) {
+			if (!cand || cand.length < 2) continue;
+			const json = tryParseJson(cand);
+			if (json === null) continue;
+			const items = normalizeTranslations(json);
+			if (items) return items;
+		}
+		return null;
+	}
+
+	/**
+	 * 段落标记分隔符协议（%% 模式）
+	 */
+	const BATCH_SEPARATOR_LINE_PATTERN = /\r?\n[ \t]*%%[ \t]*\r?\n/;
+
+	function tryExtractSeparatedTranslations(content, expectedCount) {
+		const text = String(content || '').replace(/[\u200B\u200C\u200D\uFEFF]/g, '').trim();
+		if (!text) return null;
+		const parts = text.split(BATCH_SEPARATOR_LINE_PATTERN).map(t => t.trim());
+		return parts.length === expectedCount ? parts : null;
+	}
+
+	/**
+	 * 契约归一化
+	 */
+	function normalizeTranslations(json) {
+		if (!json || typeof json !== 'object') return null;
+		const items = Array.isArray(json) ? json
+			: Array.isArray(json.translations) ? json.translations
+			: (json.trans !== undefined || json.text !== undefined) && json.id !== undefined ? [json]
+			: null;
+		if (!items || items.length === 0) return null;
+		const list = items.map(normalizeItem).filter(Boolean);
+		return list.length ? list : null;
+	}
+
+	/**
+	 * 单条条目归一
+	 */
+	function normalizeItem(item, pos) {
+		if (!item || typeof item !== 'object') return null;
+		const raw = item.trans ?? item.text;
+		if (raw === undefined || typeof raw === 'object') return null;
+		const cleaned = String(item.id ?? '').replace(/\D/g, '');
+		const n = cleaned ? Number(cleaned) : NaN;
+		return { id: Number.isInteger(n) ? n : pos, text: String(raw) };
+	}
+
+	/**
+	 * 报错内容片段
+	 */
+	function makeSnippet(text, len = 120) {
+		const s = String(text || '').replace(/\s+/g, ' ').trim();
+		return s.length > len ? s.slice(0, len) + '…' : s;
 	}
 
 	/**
@@ -10755,14 +19633,16 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const toLangName = LANG_CODE_TO_NAME[toLang] || toLang;
 
 			const params = ProfileManager.getParamsByEngine(engineId);
-			
+			const paraMode = normalizeParaMode(params.para_mode);
+
 			// 1. 基础 Prompt 替换
 			let finalSystemPrompt = params.system_prompt
 				.replace(/\{fromLangName\}/g, fromLangName)
 				.replace(/\{toLangName\}/g, toLangName);
 
-			// 2. 获取底层系统指令并注入目标语言示例
-			const directives = getSystemDirectives().replace(/\{exampleOutput\}/g, generatePromptExample(toLang));
+			// 2. 获取底层系统指令并按标记模式分叉：json 注入每语言示例；%% 分支无 {exampleOutput} 槽，替换为空
+			const directives = getSystemDirectives(paraMode)
+				.replace(/\{exampleOutput\}/g, generatePromptExample(toLang));
 
 			// 3. 变量注入与防误删兜底
 			if (finalSystemPrompt.includes('{systemDirectives}')) {
@@ -10771,14 +19651,26 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				finalSystemPrompt = `${finalSystemPrompt.trim()}\n\n${directives}`;
 			}
 
-			// 4. 构建 JSON 输入数组
-			const inputArray = paragraphs.map((p, i) => ({
-				id: i,
-				text: p.innerHTML
-			}));
-			const numberedText = JSON.stringify(inputArray, null, 2);
+			// 4. 构建输入文本：json → 编号 JSON 数组；%% → 独立行分隔符拼接（单段无分隔符）
+			let numberedText;
+			if (paraMode === '%%') {
+				numberedText = paragraphs.length === 1
+					? paragraphs[0].innerHTML
+					: paragraphs.map(p => p.innerHTML).join('\n\n%%\n\n');
+			} else {
+				const inputArray = paragraphs.map((p, i) => ({
+					id: i,
+					text: p.innerHTML
+				}));
+				numberedText = JSON.stringify(inputArray, null, 2);
+			}
 
-			let finalUserPrompt = params.user_prompt
+			let userPromptTemplate = params.user_prompt;
+			if (paraMode === '%%' && userPromptTemplate === BASE_AI_PARAMS.user_prompt) {
+				userPromptTemplate = 'Translate the following text to {toLangName} (translate only, no explanations):\n\n{numberedText}';
+			}
+
+			let finalUserPrompt = userPromptTemplate
 				.replace(/\{toLangName\}/g, toLangName)
 				.replace(/\{numberedText\}/g, numberedText);
 
@@ -10786,7 +19678,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				systemPrompt: finalSystemPrompt,
 				userPrompt: finalUserPrompt,
 				temperature: params.temperature,
-				reasoningEffort: params.reasoning_effort
+				reasoningEffort: normalizeReasoningEffort(params.reasoning_effort)
 			};
 		}
 	};
@@ -10837,7 +19729,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					break;
 				default:
 					userFriendlyError = `发生未知 API 错误 (代码: ${response.status})。`;
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 			}
 
@@ -10855,13 +19747,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 					if (!url) {
 						const error = new Error(`服务 "${this.provider.name}" 未配置接口地址 (API Host)。`);
-						error.type = 'auth_error';
+						error.type = 'bad_request';
 						return reject(error);
 					}
-
-					Logger.info('Network', `发起请求: ${this.provider.name}`, {
-						model: this.provider.selectedModel
-					}, reqId);
 
 					safeRequest({
 						method: 'POST',
@@ -10903,9 +19791,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							} else {
 								const err = this._normalizeError(res, responseData);
 								if (this.usedApiKey) err.usedKey = this.usedApiKey;
-								
-								// 单 Key 或无 Key 场景下，遇到鉴权错误直接升级为致命错误，中断重试
-								if (err.type === 'auth_error' && this.totalKeys <= 1) {
+							err.status = res.status;
+							err.totalKeys = this.totalKeys;
+								if (err.type === 'auth_error' && (err.status === 401 || err.status === 403) && this.totalKeys <= 1) {
 									err.originalType = 'auth_error';
 									err.type = 'fatal_error';
 								}
@@ -10957,10 +19845,58 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				temperature: payload.temperature,
 			};
 
-			if (payload.reasoningEffort && payload.reasoningEffort !== 'default') {
-				requestData.reasoning_effort = payload.reasoningEffort;
+			const model = this.provider.selectedModel;
+			const fam = classifyOpenAIReasoningFamily(model);
+			const level = normalizeReasoningEffort(payload.reasoningEffort);
+			const caps = resolveReasoningCaps(this.provider.id, model);
+			const degrade = payload.reasoningDegrade || 0;
+
+			if (payload.reasoningOffLadder && payload.reasoningOffForm) {
+				requestData[payload.reasoningOffForm.field] = payload.reasoningOffForm.value;
+				return JSON.stringify(requestData);
+			}
+
+			// 推理参数降级
+			if (degrade >= 2 || (degrade === 1 && level !== 'none')) {
+				// 完全省略：不发任何推理参数；o/gpt5 家族仍需删 temperature
+				if (fam === 'o' || fam === 'gpt5') delete requestData.temperature;
+				return JSON.stringify(requestData);
+			}
+			if (degrade === 1) {
+				// none 首档（厂商 toggle off）被拒 → 换 reasoning_effort:'none' 形态再试
+				if (caps && caps.toggle) requestData.reasoning_effort = 'none';
+				else if (fam === 'o' || fam === 'gpt5') delete requestData.temperature;
+				return JSON.stringify(requestData);
+			}
+
+			// 已知模型能力（精确模型 ID / 内置厂商 / 品牌前缀）：
+			if (caps) {
+				if (caps.uncontrollable) return JSON.stringify(requestData);
+				if (level === 'none') {
+					const explicitNone = caps.effortByLevel && caps.effortByLevel.none;
+					if (caps.toggle) requestData[caps.toggle.field] = caps.toggle.off;
+					if (explicitNone) requestData.reasoning_effort = explicitNone;
+					else if ((caps.defaultThinking ?? 'on') !== 'off') requestData.reasoning_effort = 'none';
+				} else if (level !== 'default') {
+					if (caps.toggle) requestData[caps.toggle.field] = caps.toggle.on;
+					const effort = caps.effortByLevel && caps.effortByLevel[level];
+					if (effort) requestData.reasoning_effort = effort;
+					delete requestData.temperature;
+				}
+				return JSON.stringify(requestData);
+			}
+
+			if (fam === 'o' || fam === 'gpt5') {
 				delete requestData.temperature;
-			} else if (this.provider.selectedModel && (this.provider.selectedModel.startsWith('o1') || this.provider.selectedModel.startsWith('o3'))) {
+				if (fam === 'gpt5' && level === 'none') {
+					requestData.reasoning_effort = 'none';
+				} else if (level !== 'none' && level !== 'default') {
+					requestData.reasoning_effort = level;
+				}
+			} else if (level === 'none') {
+				if (looksLikeReasoningModel(model)) requestData.reasoning_effort = 'none';
+			} else if (level !== 'default') {
+				requestData.reasoning_effort = level;
 				delete requestData.temperature;
 			}
 
@@ -10995,7 +19931,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					} else {
 						userFriendlyError = `错误的请求 (400)：请求的格式或参数有误。`;
 					}
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 				case 401:
 					userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key。`;
@@ -11007,12 +19943,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					break;
 				case 404:
 					userFriendlyError = `资源未找到 (404)：请求的 API 端点不存在。`;
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 				case 429:
 					if (apiErrorCode === 'insufficient_quota') {
 						userFriendlyError = `账户余额不足 (429)：您的 ${this.provider.name} 账户已用尽信用点数或达到支出上限。请前往服务官网检查您的账单详情。`;
-						error.type = 'auth_error';
+						error.type = 'quota_error';
 					} else {
 						userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
 						error.type = 'rate_limit';
@@ -11032,7 +19968,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					break;
 				default:
 					userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 			}
 
@@ -11060,7 +19996,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		_buildBody(payload) {
-			let maxTokens = 4096;
+			const level = normalizeReasoningEffort(payload.reasoningEffort);
+			const budget = THINKING_BUDGET_BY_LEVEL[level];
 			const requestData = {
 				model: this.provider.selectedModel,
 				system: payload.systemPrompt,
@@ -11068,16 +20005,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				temperature: payload.temperature,
 			};
 
-			if (payload.reasoningEffort && payload.reasoningEffort !== 'default') {
-				let budget = 4096;
-				if (payload.reasoningEffort === 'low') budget = 2048;
-				if (payload.reasoningEffort === 'high') budget = 8192;
+			if (!payload.omitReasoning && budget > 0) {
 				requestData.thinking = { type: 'enabled', budget_tokens: budget };
-				maxTokens = budget + 4096;
+				requestData.max_tokens = budget + 4096;
 				delete requestData.temperature;
+			} else {
+				requestData.max_tokens = 4096;
 			}
 
-			requestData.max_tokens = maxTokens;
 			return JSON.stringify(requestData);
 		}
 
@@ -11110,7 +20045,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			switch (apiErrorType) {
 				case 'invalid_request_error':
 					userFriendlyError = `无效请求 (${res.status})：请求的格式或参数有误。如果问题持续，可能是模型名称不受支持或已更新。`;
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 				case 'authentication_error':
 					userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key。`;
@@ -11122,11 +20057,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					break;
 				case 'not_found_error':
 					userFriendlyError = `资源未找到 (404)：请求的 API 端点或模型不存在。`;
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 				case 'request_too_large':
 					userFriendlyError = `请求内容过长 (413)：发送的文本量超过了 API 的单次请求上限。`;
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 				case 'rate_limit_error':
 					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
@@ -11146,7 +20081,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					} else {
 						userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
 					}
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 			}
 
@@ -11164,16 +20099,18 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		_buildBody(payload) {
+			const level = normalizeReasoningEffort(payload.reasoningEffort);
+			const budget = THINKING_BUDGET_BY_LEVEL[level];
 			const requestData = {
 				systemInstruction: { role: "user", parts:[{ text: payload.systemPrompt }] },
 				contents:[{ role: "user", parts:[{ text: payload.userPrompt }] }],
 				generationConfig: { temperature: payload.temperature, candidateCount: 1 }
 			};
 
-			if (payload.reasoningEffort && payload.reasoningEffort !== 'default') {
-				let budget = 4096;
-				if (payload.reasoningEffort === 'low') budget = 2048;
-				if (payload.reasoningEffort === 'high') budget = 8192;
+			if (payload.omitReasoning) {
+			} else if (level === 'none') {
+				requestData.generationConfig.thinkingConfig = { thinkingBudget: 0 };
+			} else if (budget > 0) {
 				requestData.generationConfig.thinkingConfig = {
 					includeThoughts: true,
 					thinkingBudget: budget
@@ -11220,7 +20157,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			switch (res.status) {
 				case 400:
 					userFriendlyError = `请求格式错误 (400)：您的国家/地区可能不支持 Gemini API 的免费套餐，请在 Google AI Studio 中启用结算。`;
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 				case 401:
 				case 403:
@@ -11233,7 +20170,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					break;
 				default:
 					userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
-					error.type = 'auth_error';
+					error.type = 'bad_request';
 					break;
 			}
 
@@ -11253,15 +20190,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 					if (!modelId) {
 						const error = new Error(`服务 "${this.provider.name}" 未选择任何模型。`);
-						error.type = 'auth_error';
+						error.type = 'bad_request';
 						return reject(error);
 					}
 
 					const finalUrl = this.provider.apiHost.replace('{model}', modelId) + (apiKey ? `?key=${apiKey}` : '');
 					const headers = await this._buildHeaders();
 					const body = this._buildBody(payload);
-
-					Logger.info('Network', '发起请求: Google AI', { model: modelId }, reqId);
 
 					safeRequest({
 						method: 'POST',
@@ -11302,9 +20237,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							} else {
 								const err = this._normalizeError(res, responseData);
 								if (this.usedApiKey) err.usedKey = this.usedApiKey;
+							err.status = res.status;
+							err.totalKeys = this.totalKeys;
 								
 								// 单 Key 或无 Key 场景下，遇到鉴权错误直接升级为致命错误，中断重试
-								if (err.type === 'auth_error' && this.totalKeys <= 1) {
+								if (err.type === 'auth_error' && (err.status === 401 || err.status === 403) && this.totalKeys <= 1) {
 									err.originalType = 'auth_error';
 									err.type = 'fatal_error';
 								}
@@ -11341,19 +20278,19 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						error.type = 'auth_error'; break;
 					case '1113':
 						userFriendlyError = `账户余额不足 (${businessErrorCode})：您的 ${this.provider.name} 账户已欠费，请前往 Zhipu AI 官网充值。`;
-						error.type = 'auth_error'; break;
+						error.type = 'quota_error'; break;
 					case '1301':
 						userFriendlyError = `内容安全策略阻止 (${businessErrorCode})：因含有敏感内容，请求被 Zhipu AI 安全策略阻止。`;
-						error.type = 'auth_error'; error.type = 'content_error'; break;
+						error.type = 'content_error'; break;
 					case '1302': case '1303':
 						error.message = `请求频率过高 (${businessErrorCode})：已超出 API 的速率限制。\n\n原始错误信息：\n${apiErrorMessage}`;
 						error.type = 'rate_limit'; return error;
 					case '1304':
 						userFriendlyError = `调用次数超限 (${businessErrorCode})：已达到当日调用次数限额，请联系 Zhipu AI 客服。`;
-						error.type = 'auth_error'; break;
+						error.type = 'quota_error'; break;
 					default:
 						userFriendlyError = `发生未知的业务错误 (代码: ${businessErrorCode})。`;
-						error.type = 'auth_error'; break;
+						error.type = 'bad_request'; break;
 				}
 			} else {
 				return super._normalizeError(res, responseData);
@@ -11372,13 +20309,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			switch (res.status) {
 				case 400: case 422:
 					userFriendlyError = `请求格式或参数错误 (${res.status})：请检插件是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
-					error.type = 'auth_error'; break;
+					error.type = 'bad_request'; break;
 				case 401:
 					userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key 是否正确填写。`;
 					error.type = 'auth_error'; break;
 				case 402:
 					userFriendlyError = `账户余额不足 (402)：您的 ${this.provider.name} 账户余额不足。请前往 DeepSeek 官网充值。`;
-					error.type = 'auth_error'; break;
+					error.type = 'quota_error'; break;
 				case 429:
 					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
 					error.type = 'rate_limit'; break;
@@ -11410,7 +20347,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					} else {
 						userFriendlyError = `请求参数错误 (400)：请检查插件版本或配置。`;
 					}
-					error.type = 'auth_error'; break;
+					error.type = 'bad_request'; break;
 				case 401:
 					userFriendlyError = `API Key 无效 (401)：请在设置面板中检查您的 ${this.provider.name} API Key。`;
 					error.type = 'auth_error'; break;
@@ -11428,7 +20365,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					error.type = 'server_overloaded'; break;
 				default:
 					userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
-					error.type = 'auth_error'; break;
+					error.type = 'bad_request'; break;
 			}
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
 			return error;
@@ -11442,19 +20379,19 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const error = new Error();
 
 			switch (res.status) {
-				case 400: userFriendlyError = `请求无效 (400)：请求语法错误。请检查请求格式。`; error.type = 'auth_error'; break;
+				case 400: userFriendlyError = `请求无效 (400)：请求语法错误。请检查请求格式。`; error.type = 'bad_request'; break;
 				case 401: userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key。`; error.type = 'auth_error'; break;
 				case 403: userFriendlyError = `权限被拒绝 (403)：您的网络或 API Key 无权访问所请求的资源。`; error.type = 'auth_error'; break;
-				case 404: userFriendlyError = `资源未找到 (404)：请求的模型或端点不存在。请检查模型名称或接口地址。`; error.type = 'auth_error'; break;
-				case 413: userFriendlyError = `请求内容过长 (413)：发送的文本量超过了限制。请尝试减少单次翻译的文本量。`; error.type = 'auth_error'; break;
-				case 422: userFriendlyError = `无法处理的实体 (422)：请求格式正确但包含语义错误。`; error.type = 'auth_error'; break;
-				case 424: userFriendlyError = `依赖失败 (424)：依赖请求失败（可能是 Remote MCP 认证问题）。`; error.type = 'auth_error'; break;
+				case 404: userFriendlyError = `资源未找到 (404)：请求的模型或端点不存在。请检查模型名称或接口地址。`; error.type = 'bad_request'; break;
+				case 413: userFriendlyError = `请求内容过长 (413)：发送的文本量超过了限制。请尝试减少单次翻译的文本量。`; error.type = 'bad_request'; break;
+				case 422: userFriendlyError = `无法处理的实体 (422)：请求格式正确但包含语义错误。`; error.type = 'bad_request'; break;
+				case 424: userFriendlyError = `依赖失败 (424)：依赖请求失败（可能是 Remote MCP 认证问题）。`; error.type = 'bad_request'; break;
 				case 429: userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`; error.type = 'rate_limit'; break;
 				case 498: userFriendlyError = `Flex Tier 容量超限 (498)：当前 Flex Tier 已满。`; error.type = 'server_overloaded'; break;
 				case 500: userFriendlyError = `服务器内部错误 (500)：${this.provider.name} 服务器发生通用错误。`; error.type = 'server_overloaded'; break;
 				case 502: userFriendlyError = `网关错误 (502)：上游服务器响应无效。`; error.type = 'server_overloaded'; break;
 				case 503: userFriendlyError = `服务不可用 (503)：服务器正在维护或过载。`; error.type = 'server_overloaded'; break;
-				default: userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`; error.type = 'auth_error'; break;
+				default: userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`; error.type = 'bad_request'; break;
 			}
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
 			return error;
@@ -11468,14 +20405,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const error = new Error();
 
 			switch (res.status) {
-				case 400: userFriendlyError = `请求无效 (400)：请求参数有误。请检查模型名称或输入格式。`; error.type = 'auth_error'; break;
+				case 400: userFriendlyError = `请求无效 (400)：请求参数有误。请检查模型名称或输入格式。`; error.type = 'bad_request'; break;
 				case 401: userFriendlyError = `认证失败 (401)：API Key 无效或缺失。请在设置面板中检查您的 ${this.provider.name} API Key。`; error.type = 'auth_error'; break;
-				case 402: userFriendlyError = `需要付款 (402)：账户余额不足或需要充值。`; error.type = 'auth_error'; break;
+				case 402: userFriendlyError = `需要付款 (402)：账户余额不足或需要充值。`; error.type = 'quota_error'; break;
 				case 403: userFriendlyError = `权限被拒绝 (403)：无权访问该资源。`; error.type = 'auth_error'; break;
-				case 404: userFriendlyError = `资源未找到 (404)：请求的模型或端点不存在。`; error.type = 'auth_error'; break;
+				case 404: userFriendlyError = `资源未找到 (404)：请求的模型或端点不存在。`; error.type = 'bad_request'; break;
 				case 408: userFriendlyError = `请求超时 (408)：服务器处理请求超时。`; error.type = 'timeout'; break;
 				case 409: userFriendlyError = `请求冲突 (409)：资源状态冲突。`; error.type = 'server_overloaded'; break;
-				case 422: userFriendlyError = `无法处理的实体 (422)：请求格式正确但包含语义错误（如无效的模型参数）。`; error.type = 'auth_error'; break;
+				case 422: userFriendlyError = `无法处理的实体 (422)：请求格式正确但包含语义错误（如无效的模型参数）。`; error.type = 'bad_request'; break;
 				case 429: userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`; error.type = 'rate_limit'; break;
 				default:
 					if (res.status >= 500) {
@@ -11483,7 +20420,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						error.type = 'server_overloaded';
 					} else {
 						userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`;
-						error.type = 'auth_error';
+						error.type = 'bad_request';
 					}
 					break;
 			}
@@ -11501,19 +20438,22 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			switch (res.status) {
 				case 400: case 422:
 					userFriendlyError = `请求格式或参数错误 (${res.status})：请检查插件是否为最新版本。如果问题持续，可能是 API 服务端出现问题。`;
-					error.type = 'auth_error'; break;
+					error.type = 'bad_request'; break;
 				case 401:
 					userFriendlyError = `API Key 无效或认证失败 (401)：请在设置面板中检查您的 ${this.provider.name} API Key 是否正确填写。`;
 					error.type = 'auth_error'; break;
 				case 402:
 					userFriendlyError = `需要付费 (402)：您的 ${this.provider.name} 账户已达到消费上限或需要充值。请检查您的账户账单设置。`;
+					error.type = 'quota_error'; break;
+				case 403:
+					userFriendlyError = `权限被拒绝 (403)：您的网络或 API Key 无权访问所请求的资源。`;
 					error.type = 'auth_error'; break;
-				case 403: case 413:
-					userFriendlyError = `请求内容过长 (${res.status})：发送的文本量超过了模型的上下文长度限制。请尝试翻译更短的文本段落。`;
-					error.type = 'auth_error'; break;
+				case 413:
+					userFriendlyError = `请求内容过长 (413)：发送的文本量超过了模型的上下文长度限制。请尝试翻译更短的文本段落。`;
+					error.type = 'bad_request'; break;
 				case 404:
 					userFriendlyError = `模型或接口地址不存在 (404)：您选择的模型名称可能已失效，或接口地址不正确。请尝试在设置面板中切换至其她模型或检查接口地址。`;
-					error.type = 'auth_error'; break;
+					error.type = 'bad_request'; break;
 				case 429:
 					userFriendlyError = `请求频率过高 (429)：已超出 API 的速率限制。`;
 					error.type = 'rate_limit'; break;
@@ -11550,7 +20490,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				case 'groq_ai': return new GroqClient(provider);
 				case 'together_ai': return new TogetherClient(provider);
 				case 'cerebras_ai': return new CerebrasClient(provider);
-				case 'modelscope_ai': return new TogetherClient(provider); // ModelScope 沿用 Together 的错误逻辑
+				case 'modelscope_ai': return new TogetherClient(provider);
 				case 'openai':
 				case 'openai-compatible':
 					return new OpenAICompatibleClient(provider);
@@ -11619,69 +20559,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			} finally {
 				this.authPromise = null;
 			}
-		}
-	};
-
-	/**
-	 * 解析 JWT Token 获取过期时间
-	 */
-	function getJwtExpiration(token) {
-		try {
-			const base64Url = token.split('.')[1];
-			const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-			const jsonPayload = atob(base64);
-			return JSON.parse(jsonPayload).exp * 1000;
-		} catch (e) {
-			return 0;
-		}
-	}
-
-	/**
-	 * 微软翻译鉴权辅助对象
-	 */
-	const BingTranslateHelper = {
-		authPromise: null,
-		getToken: async function () {
-			if (this.authPromise) return this.authPromise;
-			const now = Date.now();
-			const savedToken = GM_getValue('bing_access_token');
-			if (savedToken) {
-				const exp = getJwtExpiration(savedToken);
-				if (exp > now + 60000) {
-					return savedToken;
-				}
-			}
-			this.authPromise = this.fetchToken();
-			try {
-				const newToken = await this.authPromise;
-				return newToken;
-			} finally {
-				this.authPromise = null;
-			}
-		},
-		fetchToken: function () {
-			return new Promise((resolve, reject) => {
-				GM_xmlhttpRequest({
-					method: "GET",
-					url: "https://edge.microsoft.com/translate/auth",
-					headers: {
-						"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-					},
-					onload: (response) => {
-						if (response.status === 200 && response.responseText) {
-							const token = response.responseText;
-							GM_setValue('bing_access_token', token);
-							resolve(token);
-						} else {
-							reject(new Error("Failed to fetch Bing token"));
-						}
-					},
-					onerror: (err) => reject(err)
-				});
-			});
-		},
-		clearToken: function () {
-			GM_deleteValue('bing_access_token');
 		}
 	};
 
@@ -11756,109 +20633,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 	};
 
-    /**
-	 * 通用批处理队列
-	 */
-	class BatchQueue {
-		constructor(processor, options = {}) {
-			this.processor = processor;
-			this.interval = options.interval || 200;
-			this.limit = options.limit || 20;
-			this.queue = [];
-			this.timer = null;
-		}
-
-		add(item) {
-			return new Promise((resolve, reject) => {
-				this.queue.push({ item, resolve, reject });
-				if (this.queue.length >= this.limit) {
-					this.flush();
-				} else if (!this.timer) {
-					this.timer = setTimeout(() => this.flush(), this.interval);
-				}
-			});
-		}
-
-		async flush() {
-			if (this.timer) {
-				clearTimeout(this.timer);
-				this.timer = null;
-			}
-			if (this.queue.length === 0) return;
-
-			const currentBatch = this.queue.splice(0, this.limit);
-			const items = currentBatch.map(t => t.item);
-
-			try {
-				const results = await this.processor(items);
-				currentBatch.forEach((task, index) => { task.resolve(results && results[index] ? results[index] : null); });
-			} catch (error) {
-				currentBatch.forEach(task => task.reject(error));
-			}
-		}
-	}
-
-	/**
-	 * 获取微软翻译 API 的认证 Token
-	 */
-	async function apiMsAuth() {
-		return new Promise((resolve) => {
-			GM_xmlhttpRequest({
-				method: "GET",
-				url: "https://edge.microsoft.com/translate/auth",
-				onload: (res) => resolve(res.responseText),
-				onerror: () => resolve("")
-			});
-		});
-	}
-
-	/**
-	 * 微软语言检测批处理
-	 */
-	async function handleMicrosoftBatchDetect(texts) {
-		Logger.info('Network', `语言检测 (Microsoft): 批量处理 ${texts.length} 段`);
-		const token = await apiMsAuth();
-		if (!token) return Array(texts.length).fill(null);
-		return new Promise((resolve) => {
-			GM_xmlhttpRequest({
-				method: "POST",
-				url: "https://api-edge.cognitive.microsofttranslator.com/detect?api-version=3.0",
-				headers: {
-					"Content-Type": "application/json",
-					"Authorization": `Bearer ${token}`
-				},
-				data: JSON.stringify(texts.map(t => ({ Text: t.substring(0, LANG_DETECT_MAX_LENGTH) }))),
-				onload: (res) => {
-					try {
-						const data = JSON.parse(res.responseText);
-						if (Array.isArray(data)) {
-							const results = data.map(item => item.language);
-							resolve(results);
-						} else {
-							Logger.error('Network', '语言检测 (Microsoft) 解析失败', data);
-							resolve(Array(texts.length).fill(null));
-						}
-					} catch (e) {
-						Logger.error('Network', '语言检测 (Microsoft) JSON 错误', e);
-						resolve(Array(texts.length).fill(null));
-					}
-				},
-				onerror: (e) => {
-					Logger.error('Network', '语言检测 (Microsoft) 网络错误', e);
-					resolve(Array(texts.length).fill(null));
-				}
-			});
-		});
-	}
-
-	const msBatchQueue = new BatchQueue(handleMicrosoftBatchDetect, { interval: 200, limit: 20 });
-
-	/**
-	 * 微软语言检测入口函数
-	 */
-	async function apiMicrosoftLangdetect(text) {
-		return msBatchQueue.add(text);
-	}
 
 	/**
 	 * Google 语言检测
@@ -11867,7 +20641,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		return new Promise((resolve) => {
 			const sample = text.substring(0, LANG_DETECT_MAX_LENGTH);
 			const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=${encodeURIComponent(sample)}`;
-			Logger.info('Network', `语言检测 (Google GTX)`);
 			GM_xmlhttpRequest({
 				method: "GET",
 				url: url,
@@ -11894,7 +20667,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 */
 	function apiBaiduLangdetect(text) {
 		return new Promise((resolve) => {
-			Logger.info('Network', `语言检测 (Baidu)`);
 			GM_xmlhttpRequest({
 				method: "POST",
 				url: "https://fanyi.baidu.com/langdetect",
@@ -11923,18 +20695,28 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 */
 	function apiTencentLangdetect(text) {
 		return new Promise((resolve) => {
-			Logger.info('Network', `语言检测 (Tencent)`);
 			GM_xmlhttpRequest({
 				method: "POST",
 				url: "https://transmart.qq.com/api/imt",
-				headers: { "Content-Type": "application/json" },
+				headers: {
+					"Content-Type": "application/json",
+					"Host": "transmart.qq.com",
+					"Origin": "https://transmart.qq.com",
+					"Referer": "https://transmart.qq.com/"
+				},
 				data: JSON.stringify({
-					header: { fn: "text_analysis", client_key: "browser-chrome-110.0.0-Mac OS-df4bd4c5-a65d-44b2-a40f-42f34f3535f2-1677486696487" },
+					header: { fn: "text_analysis", session: "", client_key: TencentClientKey.get(), user: "" },
 					text: text.substring(0, LANG_DETECT_MAX_LENGTH)
 				}),
 				onload: (res) => {
 					try {
 						const data = JSON.parse(res.responseText);
+						if (data && data.header && data.header.ret_code && data.header.ret_code !== 'succ') {
+							Logger.warn('Network', '语言检测 (Tencent) 会话失效，轮换 client_key', { retCode: data.header.ret_code });
+							TencentClientKey.rotate();
+							resolve("");
+							return;
+						}
 						const detected = (data && data.language) ? data.language : "";
 						resolve(detected);
 					} catch (e) {
@@ -11960,12 +20742,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		'pol': 'pl', 'nld': 'nl', 'tur': 'tr', 'ind': 'id', 'msa': 'ms',
 		'swe': 'sv', 'dan': 'da', 'fin': 'fi', 'ell': 'el', 'ces': 'cs',
 		'ron': 'ro', 'hun': 'hu', 'ukr': 'uk', 'cat': 'ca', 'hrv': 'hr',
-		'srp': 'hr', 'slk': 'sk', 'slv': 'sl', 'bul': 'bg', 'heb': 'he',
+		'srp': 'sr', 'slk': 'sk', 'slv': 'sl', 'bul': 'bg', 'heb': 'he',
 		'fas': 'fa', 'urd': 'ur', 'tam': 'ta', 'tel': 'te', 'kan': 'kn',
 		'mal': 'ml', 'mar': 'mr', 'pan': 'pa', 'guj': 'gu', 'swh': 'sw',
-		'zul': 'zu', 'afr': 'sw', 'sqi': 'hr', 'mkd': 'bg', 'lit': 'lt',
-		'lav': 'lv', 'est': 'et', 'isl': 'is', 'gle': 'is', 'mya': 'my',
-		'khm': 'my', 'lao': 'my', 'sin': 'si', 'amh': 'my', 'som': 'sw',
+		'zul': 'zu', 'afr': 'af', 'sqi': 'sq', 'gle': 'ga', 'mkd': 'mk',
+		'khm': 'km', 'lao': 'lo', 'amh': 'am', 'som': 'so',
+		'mya': 'my', 'sin': 'si',
+		'lit': 'lt', 'lav': 'lv', 'est': 'et', 'isl': 'is',
 		'yue': 'zh-TW', 'wuu': 'zh-CN', 'hak': 'zh-CN', 'nan': 'zh-TW'
 	};
 
@@ -11990,39 +20773,60 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			return mapped;
 		},
 
+		async _detectWithEngine(strategy, text) {
+			if (strategy === "franc") {
+				return this.detectWithFranc(text);
+			}
+			if (strategy === "google") {
+				return apiGoogleLangdetect(text);
+			}
+			if (strategy === "baidu") {
+				return apiBaiduLangdetect(text);
+			}
+			if (strategy === "tencent") {
+				return apiTencentLangdetect(text);
+			}
+			return apiGoogleLangdetect(text);
+		},
+
 		async detect(text) {
 			if (!text || !text.trim()) return "auto";
-			
+
 			const cached = LanguageDetectionCache.get(text);
 			if (cached) {
+				Logger.debug('System', '语言检测命中缓存', { lang: cached });
 				return cached;
 			}
 
 			const strategy = GM_getValue("lang_detector", DEFAULT_CONFIG.GENERAL.lang_detector);
+			const fallback = GM_getValue("lang_detector_fallback", DEFAULT_CONFIG.GENERAL.lang_detector_fallback);
+			const startTime = Date.now();
 
-			let detectedLang = "und";
+			// 1. 主引擎检测
+			let detectedLang = await this._detectWithEngine(strategy, text);
 
-			if (strategy === "franc") {
-				detectedLang = await this.detectWithFranc(text);
-				if (detectedLang === 'und') {
-					Logger.warn('Network', 'Franc 特征不足，触发回退', { fallbackTo: 'microsoft' });
-					detectedLang = await apiMicrosoftLangdetect(text);
+			// 2. 主引擎无结果（und/空）→ 按可达性回退链
+			if (!detectedLang || detectedLang === 'und') {
+				if (fallback && fallback !== '-' && fallback !== strategy) {
+					Logger.warn('Network', '语言检测主引擎无结果，触发回退', { from: strategy, to: fallback });
+					detectedLang = await this._detectWithEngine(fallback, text);
 				}
-			} else if (strategy === "google") {
-				detectedLang = await apiGoogleLangdetect(text);
-			} else if (strategy === "baidu") {
-				detectedLang = await apiBaiduLangdetect(text);
-			} else if (strategy === "tencent") {
-				detectedLang = await apiTencentLangdetect(text);
-			} else {
-				detectedLang = await apiMicrosoftLangdetect(text);
 			}
 
+			// 3. 归一化并落缓存；仍无可用结果回退 'auto'
 			const finalLang = normalizeLanguageCode(detectedLang);
 			if (finalLang && finalLang !== 'und') {
 				LanguageDetectionCache.set(text, finalLang);
+				Logger.info('System', '语言检测完成', {
+					engine: strategy,
+					fallback: (fallback && fallback !== '-' && fallback !== strategy) ? fallback : null,
+					durationMs: Date.now() - startTime,
+					result: finalLang
+				});
 				return finalLang;
 			}
+
+			Logger.warn('System', '语言检测无结果，回退 auto', { engine: strategy, durationMs: Date.now() - startTime });
 			return "auto";
 		}
 	};
@@ -12066,16 +20870,19 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				} catch (error) {
 					// 1. 处理 Key 状态黑名单
 					if (error.usedKey) {
-						if (error.type === 'auth_error' || error.originalType === 'auth_error') {
+						if ((error.type === 'auth_error' || error.originalType === 'auth_error') && (error.status === 401 || error.status === 403)) {
 							KeyBlacklistManager.markDead(error.usedKey);
 							keySwitchCount++;
 						} else if (error.type === 'rate_limit') {
 							KeyBlacklistManager.markRateLimited(error.usedKey);
+						} else if (error.type === 'quota_error') {
+							keySwitchCount++;
 						}
 					}
 
 					// 2. 致命错误直接抛出
 					if (error.type === 'fatal_error') throw error;
+					if (error.type === 'quota_error' && (error.totalKeys || 1) <= 1) throw error;
 
 					// 3. 防止死循环安全阀
 					if (keySwitchCount > 20) {
@@ -12094,7 +20901,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					}
 
 					// 5. 只有非 Key 级错误，才消耗常规的 attempt 计数
-					const isKeyError = error.usedKey && (error.type === 'auth_error' || error.originalType === 'auth_error' || error.type === 'rate_limit');
+					const isKeyError = error.usedKey && (error.type === 'rate_limit' || error.type === 'quota_error' || ((error.type === 'auth_error' || error.originalType === 'auth_error') && (error.status === 401 || error.status === 403)));
 					if (!isKeyError) attempt++;
 
 					if (attempt >= maxRetries) throw error;
@@ -12132,9 +20939,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		
 		const engineName = getValidEngineName();
 		const toLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
-		const fromLang = knownFromLang || 'auto';
+		const fromLang = normalizeDetectFromLang(knownFromLang || 'auto');
 		
 		const resourceManager = new ResourceManager(engineName);
+
+		let reasoningDegrade = 0;
 
 		// 包装成单次请求任务
 		const singleRequestTask = async (attempt) => {
@@ -12166,22 +20975,83 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				});
 				return { contentArray: innerContents, reasoning: '', meta: { durationMs: result.durationMs } };
 			}
-			
+
+			// 传统引擎：腾讯翻译（失败自动降级 Bing）
+			if (engineName === 'tencent_translator') {
+				try {
+					const result = await _handleTencentRequest(CONFIG.TRANS_ENGINES.tencent_translator, paragraphs, fromLang, toLang, reqId);
+					return { contentArray: result.snippets, reasoning: '', meta: { durationMs: result.durationMs } };
+				} catch (error) {
+					if (isCancelled() || error.type === 'fatal_error' || error.type === 'user_cancelled') throw error;
+					Logger.warn('Translation', '腾讯翻译失败，降级到 Bing', { reason: error.message, reqId });
+					const bingResult = await _handleBingRequest(CONFIG.TRANS_ENGINES.bing_translator, paragraphs, fromLang, toLang, reqId);
+					return {
+						contentArray: bingResult.snippets,
+						reasoning: '',
+						meta: { durationMs: bingResult.durationMs, degradedFrom: 'tencent' }
+					};
+				}
+			}
+
 			// LLM 引擎
 			const provider = getProviderById(engineName);
 			if (!provider) {
-				const error = new Error(`未能找到服务 "${engineName}" 的配置信息。`);
+				const error = new Error(`未能找到服务 “${engineName}” 的配置信息。`);
 				error.type = 'auth_error';
 				throw error;
 			}
 
 			// 1. 构建纯净的 Payload
 			const payload = PromptBuilder.build(paragraphs, fromLang, toLang, engineName);
-			
+			const reasoningOffLadder = provider.isCustom
+				&& normalizeReasoningEffort(payload.reasoningEffort) === 'none'
+				&& !resolveReasoningCaps(provider.id, provider.selectedModel)
+				&& classifyOpenAIReasoningFamily(provider.selectedModel) === 'other';
+			if (reasoningOffLadder) {
+				payload.reasoningOffLadder = true;
+				payload.reasoningOffForm = reasoningOffFormById(readReasoningOffFormId(provider, provider.selectedModel));
+			}
+			if (reasoningDegrade >= 1 && !reasoningOffLadder) payload.omitReasoning = true;
+			payload.reasoningDegrade = reasoningDegrade;
+
 			// 2. 实例化 Client 并请求
 			const client = ApiClientFactory.create(provider);
-			const result = await client.translate(payload, reqId);
-			
+			let result;
+			let probeBudget = GENERIC_THINKING_OFF_FORMS.length;
+			while (true) {
+				try {
+					result = await client.translate(payload, reqId);
+					break;
+				} catch (err) {
+					const paramRejected = isReasoningParamRejected(err);
+					const probeRejected = reasoningOffLadder && payload.reasoningOffForm && probeBudget > 0
+						&& (paramRejected || err.status === 400 || err.status === 422);
+					if (probeRejected) {
+						probeBudget -= 1;
+						const nextId = nextReasoningOffFormId(payload.reasoningOffForm.id);
+						writeReasoningOffFormId(provider, provider.selectedModel, nextId, paramRejected);
+						payload.reasoningOffForm = reasoningOffFormById(nextId);
+						if (!payload.reasoningOffForm) payload.reasoningDegrade = 2;
+						continue;
+					}
+					if (reasoningDegrade < 2 && isReasoningParamRejected(err)) {
+						reasoningDegrade += 1;
+						payload.omitReasoning = true;
+						payload.reasoningDegrade = reasoningDegrade;
+						result = await client.translate(payload, reqId);
+						break;
+					}
+					throw err;
+				}
+			}
+			if (reasoningOffLadder && payload.reasoningOffForm && result) {
+				if (result.reasoning && String(result.reasoning).trim()) {
+					writeReasoningOffFormId(provider, provider.selectedModel, nextReasoningOffFormId(payload.reasoningOffForm.id));
+				} else {
+					writeReasoningOffFormId(provider, provider.selectedModel, payload.reasoningOffForm.id);
+				}
+			}
+
 			// 3. 返回富结果对象
 			return { ...result };
 		};
@@ -12223,35 +21093,71 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			return results;
 		}
 
-		const fromLang = knownFromLang || 'auto';
+		const fromLang = normalizeDetectFromLang(knownFromLang || 'auto');
 		const toLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
 		const engineName = getValidEngineName();
 
 		// 2. 缓存查询
+		const preparedRules = await getPreparedGlossaryRules();
 		const cacheKeys = await Promise.all(contentToTranslate.map(async (p) => {
 			const scopeId = getScopeId(p.original);
 			const textContent = p.original.textContent.trim();
-			const context = textContent.length < SHORT_TEXT_CONTEXT_THRESHOLD
+			const context = shouldIncludeContext(p.original, textContent.length)
 				? getLightweightCacheContext(p.original)
 				: null;
-			return buildStableCacheKey(p.content, fromLang, toLang, scopeId, context);
+			const perTextHitHash = computePerTextHits(collectTextNodeValues(p.original), preparedRules).fingerprint;
+			return buildStableCacheKey(p.content, fromLang, toLang, scopeId, context, perTextHitHash);
 		}));
 
+		const legacyMode = GM_getValue('ao3_cache_legacy_key_mode', false) === true;
+		let legacyKeys = null;
+		if (legacyMode) {
+			legacyKeys = await Promise.all(contentToTranslate.map(async (p) => {
+				const scopeId = getScopeId(p.original);
+				const textContent = p.original.textContent.trim();
+				const context = shouldIncludeContext(p.original, textContent.length)
+					? getLightweightCacheContext(p.original)
+					: null;
+				return buildLegacyCacheKey(p.content, fromLang, toLang, scopeId, context);
+			}));
+		}
+
 		const cachedResults = await TranslationCacheDB.get(cacheKeys);
+
+		const legacyResults = (legacyMode && legacyKeys)
+			? await TranslationCacheDB.get(legacyKeys)
+			: null;
+
+		const currentEntryCfg = await _ConfigMemo.getEntryCfg();
+		const cfgGenAtRead = await _ConfigMemo.getSemantic();
+		const entryCfgAtRead = currentEntryCfg;
 
 		const misses =[];
 		const hits = new Map();
 		const hitKeysToUpdate =[];
 		const now = Date.now();
+		const maxDays = parseInt(GM_getValue('ao3_cache_max_days', 30), 10);
+		const refreshGapMs = Math.min(24 * 60 * 60 * 1000,
+			Math.max(1 * 60 * 60 * 1000, (isNaN(maxDays) || maxDays <= 0 ? 30 : maxDays) * 6 * 60 * 60 * 1000));
+		let cacheSavedChars = 0;
 
 		for (let i = 0; i < contentToTranslate.length; i++) {
 			const p = contentToTranslate[i];
 			const key = cacheKeys[i];
-			const cached = cachedResults[i];
+			let cached = cachedResults[i];
+
+			if (!cached && legacyResults && legacyResults[i]) {
+				cached = legacyResults[i];
+			}
+
+			if (cached && cached.entryCfg !== undefined && cached.entryCfg !== currentEntryCfg) {
+				cached = null;
+			}
 
 			if (cached) {
 				hits.set(p.id, cached.translatedText);
-				if (now - cached.timestamp > 24 * 60 * 60 * 1000) {
+				cacheSavedChars += (p.original.textContent || '').length;
+				if (now - cached.timestamp > refreshGapMs) {
 					hitKeysToUpdate.push(key);
 				}
 			} else {
@@ -12260,7 +21166,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 
 		if (hitKeysToUpdate.length > 0) {
-			TranslationCacheDB.updateTimestamps(hitKeysToUpdate);
+			await TranslationCacheDB.updateTimestamps(hitKeysToUpdate);
 		}
 
 		const resultsMap = new Map();
@@ -12270,155 +21176,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		// 3. 处理未命中的段落
 		if (misses.length > 0) {
-			const preparedRules = await getPreparedGlossaryRules();
-			const pm = new PlaceholderManager();
-			const preprocessedMisses =[];
-
-			TimeSlicer.reset();
-			for (let i = 0; i < misses.length; i++) {
-				if (isCancelled()) throw createCancellationError();
-				const p = misses[i].p;
-				const processedNode = _preprocessParagraph(p.original, preparedRules, pm, engineName);
-				TextNormalizer.normalizeNode(processedNode);
-				preprocessedMisses.push(processedNode);
-				await TimeSlicer.yieldIfNeeded();
-			}
-
-			Logger.info('Translation', '任务开始', {
-				engine: engineName,
-				paragraphs: misses.length,
-				placeholders: pm.placeholders.size,
-				cacheHits: hits.size,
-				cacheMisses: misses.length
-			}, reqId);
-
-			// 获取富结果对象
-			const response = await requestRemoteTranslation(preprocessedMisses, {
+			await translateMissesWithDescend(misses, resultsMap, preparedRules, engineName, {
 				isCancelled,
 				knownFromLang: fromLang,
 				reqId,
-				skipRateLimit
+				skipRateLimit,
+				createCancellationError,
+				cfgGenAtRead,
+				entryCfgAtRead
 			});
-
-			const meta = response.meta || {};
-			const reasoningText = response.reasoning || '';
-
-			// 统一日志打印
-			Logger.info('Translation', '翻译解析成功', { 
-				duration: `${meta.durationMs || 0}ms`, 
-				model: meta.model || 'N/A',
-				usage: meta.promptTokens ? `${meta.promptTokens} -> ${meta.completionTokens}` : 'N/A'
-			}, reqId);
-
-			if (reasoningText && reasoningText.trim()) {
-				console.groupCollapsed(`%c[Reasoning] [${reqId}] Thought Process`, 'color: #9c27b0; font-weight: bold;');
-				console.log('%cBasic Info:\n\n', 'color: #2196F3; font-weight: bold;', JSON.stringify({
-					reqId, engine: engineName, model: meta.model, paragraphs: misses.length, durationMs: meta.durationMs
-				}, null, 2));
-				console.log('%cThought Content:\n\n%c' + reasoningText, 'color: #FFC107; font-weight: bold;', 'color: inherit;');
-				console.groupEnd();
-			}
-
-			const parsedMisses = new Map();
-
-			if (engineName === 'google_translate' || engineName === 'bing_translator') {
-				// 传统引擎
-				const contentArray = response.contentArray;
-				if (!Array.isArray(contentArray) || contentArray.length !== misses.length) {
-					const err = new Error(`传统翻译引擎返回的数组长度不匹配 (预期: ${misses.length}, 实际: ${contentArray ? contentArray.length : 'undefined'})`);
-					err.type = 'validation_failed';
-					throw err;
-				}
-				contentArray.forEach((text, index) => {
-					if (text) parsedMisses.set(index, String(text).trim());
-				});
-			} else {
-				// LLM 引擎：JSON 结构化解析
-				let combinedTranslation = response.content.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
-				combinedTranslation = pm.normalize(combinedTranslation);
-				
-				const jsonObj = extractJson(combinedTranslation);
-				
-				if (!jsonObj || !Array.isArray(jsonObj.translations)) {
-					const err = new Error('AI 未返回有效的 JSON 格式数据');
-					err.type = 'validation_failed';
-					throw err;
-				}
-
-				jsonObj.translations.forEach(item => {
-					if (item && item.id !== undefined && item.trans !== undefined) {
-						parsedMisses.set(parseInt(item.id, 10), String(item.trans).trim());
-					}
-				});
-
-				if (parsedMisses.size !== misses.length) {
-					const err = new Error(`AI 返回的 JSON 数组长度与输入不一致 (预期: ${misses.length}, 实际: ${parsedMisses.size})`);
-					err.type = 'validation_failed';
-					throw err;
-				}
-			}
-
-			// 校验占位符
-			const defaults = CONFIG.SERVICE_CONFIG[engineName]?.VALIDATION || CONFIG.SERVICE_CONFIG.default.VALIDATION;
-			const params = ProfileManager.getParamsByEngine(engineName);
-			const parts = (params.validation_thresholds || '').split(/[,，]/).map(s => parseFloat(s.trim()));
-			const isValid = parts.length >= 4 && !parts.some(isNaN);
-			
-			const baseThresholds = {
-				absolute_loss: isValid ? parts[0] : defaults.absolute_loss,
-				proportional_loss: isValid ? parts[1] : defaults.proportional_loss,
-				proportional_trigger_count: isValid ? parts[2] : defaults.proportional_trigger_count,
-				catastrophic_loss: isValid ? parts[3] : defaults.catastrophic_loss
-			};
-			const currentChunkSize = params.chunk_size;
-			const currentParaLimit = params.para_limit;
-
-			// 统一将译文合并为字符串进行校验
-			let textForValidation = '';
-			if (engineName === 'google_translate' || engineName === 'bing_translator') {
-				textForValidation = response.contentArray.join(' ');
-			} else {
-				textForValidation = response.content;
-			}
-
-			const preprocessedText = preprocessedMisses.map(p => p.innerHTML).join(' ');
-			const validation = pm.validate(preprocessedText, textForValidation, baseThresholds, currentChunkSize, currentParaLimit);
-
-			if (!validation.isValid) {
-				Logger.warn('Translation', `占位符校验失败: ${validation.errorReason}`, { totalLoss: validation.totalLoss }, reqId);
-				const err = new Error(`占位符校验失败 (${validation.errorReason})`);
-				err.type = 'validation_failed';
-				throw err;
-			}
-
-			// 还原、清理并存入缓存
-			const entriesToSave =[];
-			TimeSlicer.reset();
-			for (let i = 0; i < misses.length; i++) {
-				if (isCancelled()) throw createCancellationError();
-				const miss = misses[i];
-				let translatedContent = parsedMisses.get(i);
-				
-				if (translatedContent) {
-					translatedContent = pm.restore(translatedContent);
-					let cleaned = AdvancedTranslationCleaner.clean(translatedContent || miss.p.content);
-					cleaned = applyPostTranslationReplacements(cleaned);
-					
-					resultsMap.set(miss.p.id, cleaned);
-					
-					entriesToSave.push({
-						hashKey: miss.key,
-						textHash: await sha256(miss.p.content),
-						translatedText: cleaned,
-						timestamp: Date.now()
-					});
-				}
-				await TimeSlicer.yieldIfNeeded();
-			}
-
-			if (entriesToSave.length > 0) {
-				await TranslationCacheDB.put(entriesToSave);
-			}
 		} else {
 			Logger.info('Translation', '任务完成 (命中缓存)', {
 				engine: engineName,
@@ -12444,32 +21210,403 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 		}
 
+		finalResults.cacheHits = hits.size;
+		finalResults.cacheSavedChars = cacheSavedChars;
+
 		return finalResults;
+	}
+
+
+	/**
+	 * 二分下探翻译
+	 * @param {Array} misses - { p, key, index } 列表
+	 * @param {Map} resultsMap - 共享结果容器
+	 * @param {Object} preparedRules - 术语规则
+	 * @param {string} engineName
+	 * @param {number} depth
+	 * @returns {Promise<void>}
+	 */
+	async function translateMissesWithDescend(misses, resultsMap, preparedRules, engineName, {
+		isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError, cfgGenAtRead, entryCfgAtRead
+	}, depth = 0) {
+		if (misses.length === 0) return;
+		if (isCancelled()) throw createCancellationError();
+
+		// 基础路径：单段或已达最大深度（≤16 段原子批）
+		if (misses.length <= 1 || depth >= 4) {
+			await translateSingleBatch(misses, resultsMap, preparedRules, engineName, {
+				isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError, cfgGenAtRead, entryCfgAtRead
+			});
+			return;
+		}
+
+		try {
+			await translateSingleBatch(misses, resultsMap, preparedRules, engineName, {
+				isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError, cfgGenAtRead, entryCfgAtRead
+			});
+		} catch (e) {
+			if (e && e.type === 'validation_failed') {
+				if (e.lostIndices && e.lostIndices.size > 0 && e.lostIndices.size < misses.length) {
+					Logger.warn('Translation', `占位符校验失败，定位性重译 (批 ${misses.length} → 重译 ${e.lostIndices.size} 段)`, { reqId, reason: e.message });
+					const affected = misses.filter((_, i) => e.lostIndices.has(i));
+					const targeted = await Promise.allSettled([
+						translateMissesWithDescend(affected, resultsMap, preparedRules, engineName, {
+							isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError
+						}, depth + 1)
+					]);
+					const rejectedTargeted = targeted.filter(r => r.status === 'rejected');
+					if (rejectedTargeted.length > 0 && rejectedTargeted.length === targeted.length) {
+						const first = rejectedTargeted[0].reason;
+						if (first && first.type !== 'user_cancelled') throw first;
+					}
+					return;
+				}
+				Logger.warn('Translation', `占位符校验失败，二分下探重试 (批 ${misses.length} → 2×${Math.ceil(misses.length/2)})`, { reqId, reason: e.message });
+				const half = Math.ceil(misses.length / 2);
+				const left = misses.slice(0, half);
+				const right = misses.slice(half);
+				const results = await Promise.allSettled([
+					translateMissesWithDescend(left, resultsMap, preparedRules, engineName, {
+						isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError
+					}, depth + 1),
+					translateMissesWithDescend(right, resultsMap, preparedRules, engineName, {
+						isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError
+					}, depth + 1)
+				]);
+				const rejected = results.filter(r => r.status === 'rejected');
+				if (rejected.length > 0 && rejected.length === results.length) {
+					const first = rejected[0].reason;
+					if (first && first.type !== 'user_cancelled') throw first;
+				}
+			} else {
+				throw e;
+			}
+		}
+	}
+
+	/**
+	 * 翻译单批（含预处理/请求/解析/校验/还原/写缓存）
+	 */
+	async function translateSingleBatch(misses, resultsMap, preparedRules, engineName, {
+		isCancelled, knownFromLang, reqId, skipRateLimit, createCancellationError, cfgGenAtRead, entryCfgAtRead
+	}) {
+		const pm = new PlaceholderManager();
+		const preprocessedMisses = [];
+
+		TimeSlicer.reset();
+		for (let i = 0; i < misses.length; i++) {
+			if (isCancelled()) throw createCancellationError();
+			const p = misses[i].p;
+			const processedNode = _preprocessParagraph(p.original, preparedRules, pm);
+			TextNormalizer.normalizeNode(processedNode);
+			preprocessedMisses.push(processedNode);
+			await TimeSlicer.yieldIfNeeded();
+		}
+
+		Logger.info('Translation', '任务开始', {
+			engine: engineName,
+			paragraphs: misses.length,
+			placeholders: pm.placeholders.size,
+			cacheMisses: misses.length
+		}, reqId);
+
+		const response = await requestRemoteTranslation(preprocessedMisses, {
+			isCancelled,
+			knownFromLang,
+			reqId,
+			skipRateLimit
+		});
+
+		const meta = response.meta || {};
+		const reasoningText = response.reasoning || '';
+
+		Logger.info('Translation', '翻译解析成功', {
+			duration: `${meta.durationMs || 0}ms`,
+			model: meta.model || 'N/A',
+			usage: meta.promptTokens ? `${meta.promptTokens} -> ${meta.completionTokens}` : 'N/A'
+		}, reqId);
+
+		if (reasoningText && reasoningText.trim()) {
+			console.groupCollapsed(`%c[Reasoning] [${reqId}] Thought Process`, 'color: #9c27b0; font-weight: bold;');
+			console.log('%cBasic Info:\n\n', 'color: #2196F3; font-weight: bold;', JSON.stringify({
+				reqId, engine: engineName, model: meta.model, paragraphs: misses.length, durationMs: meta.durationMs
+			}, null, 2));
+			console.log('%cThought Content:\n\n%c' + reasoningText, 'color: #FFC107; font-weight: bold;', 'color: inherit;');
+			console.groupEnd();
+		}
+
+		const parsedMisses = new Map();
+
+		if (isSimpleTranslationEngine(engineName)) {
+			const contentArray = response.contentArray;
+			if (!Array.isArray(contentArray) || contentArray.length !== misses.length) {
+				const err = new Error(`传统翻译引擎返回的数组长度不匹配 (预期: ${misses.length}, 实际: ${contentArray ? contentArray.length : 'undefined'})`);
+				err.type = 'validation_failed';
+				throw err;
+			}
+			contentArray.forEach((text, index) => {
+				if (text) parsedMisses.set(index, String(text).trim());
+			});
+		} else {
+			let combinedTranslation = response.content.replace(/[\u200B\u200C\u200D\uFEFF]/g, '');
+			combinedTranslation = pm.normalize(combinedTranslation);
+
+			const paraMode = normalizeParaMode(ProfileManager.getParamsByEngine(engineName).para_mode);
+
+			if (paraMode === '%%') {
+				// %% 分隔符协议
+				const parts = tryExtractSeparatedTranslations(combinedTranslation, misses.length);
+				if (parts) {
+					parts.forEach((t, i) => { if (t) parsedMisses.set(i, t); });
+				} else if (misses.length === 1 && combinedTranslation.trim()) {
+					Logger.warn('Translation', '%% 分隔译文单段批段数不匹配，采用整文兜底', { reqId });
+					parsedMisses.set(0, combinedTranslation.trim());
+				} else {
+					const segCount = combinedTranslation.split(BATCH_SEPARATOR_LINE_PATTERN).length;
+					const err = new Error(`%% 分隔译文段数不匹配 (预期: ${misses.length}, 实际: ${segCount})（内容片段：${makeSnippet(combinedTranslation)}）`);
+					err.type = 'validation_failed';
+					throw err;
+				}
+			} else {
+				const translations = tryExtractTranslations(combinedTranslation);
+
+				if (!translations) {
+					if (misses.length === 1 && combinedTranslation.trim()) {
+						Logger.warn('Translation', 'AI 未返回结构化 JSON，采用单段纯文本兜底', { reqId });
+						parsedMisses.set(0, combinedTranslation.trim());
+					}
+					if (parsedMisses.size === 0) {
+						const err = new Error(`AI 未返回有效的 JSON 格式数据（内容片段：${makeSnippet(combinedTranslation)}）`);
+						err.type = 'validation_failed';
+						throw err;
+					}
+				} else {
+					const n = misses.length;
+					const zeroBased = translations.every(it => it.id >= 0 && it.id < n);
+					const oneBased = translations.every(it => it.id >= 1 && it.id <= n);
+					const shift = zeroBased || !oneBased ? 0 : -1;
+					const slots = new Array(n).fill(undefined);
+					let duplicated = 0;
+					for (const it of translations) {
+						const idx = it.id + shift;
+						if (idx < 0 || idx >= n) continue;
+						if (slots[idx] !== undefined) { duplicated++; continue; }
+						slots[idx] = it.text.trim();
+					}
+					if (duplicated > 0) {
+						Logger.warn('Translation', `AI 返回重复段落 id ${duplicated} 处，取先到者`, { reqId });
+					}
+					slots.forEach((t, i) => { if (t !== undefined) parsedMisses.set(i, t); });
+				}
+			}
+
+			for (let i = 0; i < misses.length; i++) {
+				if (!parsedMisses.has(i)) {
+					const err = new Error(`AI 返回的结果缺少段落 ${i} 的译文（内容片段：${makeSnippet(combinedTranslation)}）`);
+					err.type = 'validation_failed';
+					throw err;
+				}
+			}
+		}
+
+		// 校验占位符
+		const defaults = CONFIG.SERVICE_CONFIG[engineName]?.VALIDATION || CONFIG.SERVICE_CONFIG.default.VALIDATION;
+		const params = ProfileManager.getParamsByEngine(engineName);
+		const parts = (params.validation_thresholds || '').split(/[,，]/).map(s => parseFloat(s.trim()));
+		const isValid = parts.length >= 4 && !parts.some(isNaN);
+
+		const baseThresholds = {
+			absolute_loss: isValid ? parts[0] : defaults.absolute_loss,
+			proportional_loss: isValid ? parts[1] : defaults.proportional_loss,
+			proportional_trigger_count: isValid ? parts[2] : defaults.proportional_trigger_count,
+			catastrophic_loss: isValid ? parts[3] : defaults.catastrophic_loss
+		};
+		const currentChunkSize = params.chunk_size;
+		const currentParaLimit = params.para_limit;
+
+		let textForValidation = '';
+		if (isSimpleTranslationEngine(engineName)) {
+			textForValidation = response.contentArray.join(' ');
+		} else {
+			textForValidation = response.content;
+		}
+
+		const preprocessedText = preprocessedMisses.map(p => p.innerHTML).join(' ');
+
+		const entriesToSave = [];
+		const currentEntryCfg = await _ConfigMemo.getEntryCfg();
+		const currentCfgGen = await _ConfigMemo.getSemantic();
+		const cacheable = (cfgGenAtRead === undefined || cfgGenAtRead === currentCfgGen)
+			&& (entryCfgAtRead === undefined || entryCfgAtRead === currentEntryCfg);
+
+		const validation = pm.validate(preprocessedText, textForValidation, baseThresholds, currentChunkSize, currentParaLimit);
+
+		if (!validation.isValid) {
+			Logger.warn('Translation', `占位符校验失败: ${validation.errorReason}`, { totalLoss: validation.totalLoss }, reqId);
+			const lostIndices = new Set();
+			TimeSlicer.reset();
+			for (let i = 0; i < misses.length; i++) {
+				if (isCancelled()) throw createCancellationError();
+				const miss = misses[i];
+				const translatedContent = parsedMisses.get(i);
+				const isGood = translatedContent
+					? pm.checkParagraphPlaceholders(preprocessedMisses[i].innerHTML, pm.normalize(translatedContent)).ok
+					: false;
+
+				if (isGood) {
+					let restored = pm.restore(pm.normalize(translatedContent));
+					let cleaned = AdvancedTranslationCleaner.clean(restored || miss.p.content);
+					cleaned = applyPostTranslationReplacements(cleaned);
+					resultsMap.set(miss.p.id, cleaned);
+					if (cacheable) {
+						const sizeBytes = new TextEncoder().encode(cleaned).length + ENTRY_OVERHEAD_BYTES;
+						entriesToSave.push({
+							hashKey: miss.key,
+							textHash: await sha256(miss.p.content),
+							translatedText: cleaned,
+							timestamp: Date.now(),
+							hitCount: 1,
+							sizeBytes,
+							shortText: miss.p.content.length < SHORT_TEXT_CONTEXT_THRESHOLD,
+							entryCfg: currentEntryCfg,
+							cfgGen: currentCfgGen
+						});
+					}
+				} else {
+					lostIndices.add(i);
+				}
+				await TimeSlicer.yieldIfNeeded();
+			}
+
+			if (entriesToSave.length > 0) {
+				await TranslationCacheDB.put(entriesToSave);
+				TranslationCacheDB.pruneBySize().catch(err => Logger.warn('System', '增量缓存淘汰失败', err));
+			}
+
+			const err = new Error(`占位符校验失败 (${validation.errorReason})`);
+			err.type = 'validation_failed';
+			if (lostIndices.size > 0 && lostIndices.size < misses.length) {
+				err.lostIndices = lostIndices;
+				Logger.warn('Translation', `占位符校验失败且可定位，重译 ${lostIndices.size}/${misses.length} 段`, { reqId });
+			} else {
+				Logger.warn('Translation', `占位符校验失败且无法定位，回退二分下探`, { reqId });
+			}
+			throw err;
+		}
+		TimeSlicer.reset();
+		for (let i = 0; i < misses.length; i++) {
+			if (isCancelled()) throw createCancellationError();
+			const miss = misses[i];
+			let translatedContent = parsedMisses.get(i);
+
+			if (translatedContent) {
+				translatedContent = pm.restore(pm.normalize(translatedContent));
+				let cleaned = AdvancedTranslationCleaner.clean(translatedContent || miss.p.content);
+				cleaned = applyPostTranslationReplacements(cleaned);
+
+				resultsMap.set(miss.p.id, cleaned);
+
+				if (cacheable) {
+					const sizeBytes = new TextEncoder().encode(cleaned).length + ENTRY_OVERHEAD_BYTES;
+					entriesToSave.push({
+						hashKey: miss.key,
+						textHash: await sha256(miss.p.content),
+						translatedText: cleaned,
+						timestamp: Date.now(),
+						hitCount: 1,
+						sizeBytes,
+						shortText: miss.p.content.length < SHORT_TEXT_CONTEXT_THRESHOLD,
+						entryCfg: currentEntryCfg,
+						cfgGen: currentCfgGen
+					});
+				}
+			}
+			await TimeSlicer.yieldIfNeeded();
+		}
+
+		if (entriesToSave.length > 0) {
+			await TranslationCacheDB.put(entriesToSave);
+			TranslationCacheDB.pruneBySize().catch(err => Logger.warn('System', '增量缓存淘汰失败', err));
+		}
 	}
 
 	/**
 	 * API Key 黑名单管理器（页面生命周期内有效）
 	 */
 	const KeyBlacklistManager = {
-		blacklist: new Map(),
+		GM_KEY: 'api_key_blacklist',
 		BAN_DURATION_429: 10000,
+		DEAD_TTL: 24 * 60 * 60 * 1000,
 
+		_read() {
+			try {
+				return JSON.parse(GM_getValue(this.GM_KEY, '{}')) || {};
+			} catch {
+				return {};
+			}
+		},
+		_write(map) {
+			GM_setValue(this.GM_KEY, JSON.stringify(map));
+		},
 		markDead(key) {
-			this.blacklist.set(key, { dead: true });
-			Logger.warn('Network', `API Key 已失效 (401/402/403)，本次页面生命周期内不再使用`, { keyMasked: key.substring(0, 8) + '...' });
+			const m = this._read();
+			const cur = m[key] || {};
+			m[key] = { ...cur, dead: true, deadUntil: Date.now() + this.DEAD_TTL };
+			this._write(m);
+			Logger.warn('Network', `API Key 已失效 (401/402/403)，本次页面生命周期及 24h 内不再使用`, { keyMasked: key.substring(0, 8) + '...' });
 		},
 		markRateLimited(key) {
-			this.blacklist.set(key, { banUntil: Date.now() + this.BAN_DURATION_429 });
+			const m = this._read();
+			m[key] = { ...(m[key] || {}), banUntil: Date.now() + this.BAN_DURATION_429 };
+			this._write(m);
 			Logger.warn('Network', `API Key 触发限流 (429)，冻结 10 秒`, { keyMasked: key.substring(0, 8) + '...' });
 		},
 		getStatus(key) {
-			const status = this.blacklist.get(key);
+			const status = this._read()[key];
 			if (!status) return 'ACTIVE';
-			if (status.dead) return 'DEAD';
+			if (status.dead) {
+				if (Date.now() >= status.deadUntil) return 'ACTIVE';
+				return 'DEAD';
+			}
 			if (status.banUntil && Date.now() < status.banUntil) return 'COOLING';
 			return 'ACTIVE';
+		},
+		getCoolingRemaining(key) {
+			const status = this._read()[key];
+			if (status && status.banUntil) return Math.max(0, status.banUntil - Date.now());
+			return 0;
 		}
 	};
+
+	/**
+	 * 统一 keys_string → keys_array 解析（全角→半角、trim、去空）
+	 */
+	function parseKeysToArray(str) {
+		if (typeof str !== 'string') return [];
+		return str.replace(/[，]/g, ',').split(',').map(k => k.trim()).filter(Boolean);
+	}
+
+	/**
+	 * 越界安全：index 超长→重置；数组为空→删 index
+	 */
+	function clampKeyIndex(serviceId) {
+		const arrayKey = `${serviceId}_keys_array`;
+		const indexKey = `${serviceId}_key_index`;
+		const len = (GM_getValue(arrayKey, []) || []).length;
+		if (len === 0) { GM_deleteValue(indexKey); return; }
+		const idx = GM_getValue(indexKey, 0);
+		if (!Number.isInteger(idx) || idx < 0 || idx >= len) GM_deleteValue(indexKey);
+	}
+
+	/**
+	 * 从 keys 数组里找第一个 ACTIVE（不含锁、不推进 index），供模型列表/探测用
+	 */
+	function findFirstActiveKey(keys) {
+		for (const k of keys) {
+			if (KeyBlacklistManager.getStatus(k) === 'ACTIVE') return k;
+		}
+		return '';
+	}
 
 	/**
 	 * 为指定服务获取下一个可用的 API Key
@@ -12520,24 +21657,30 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		try {
 			const indexKey = `${serviceId}_key_index`;
-			const startIndex = GM_getValue(indexKey, 0);
-			let currentIndex = startIndex;
+			// 越界防护：对 index 做无符号取模，永不越界读 undefined
+			const startIndex = (GM_getValue(indexKey, 0) || 0) >>> 0;
+			let currentIndex = startIndex % keys.length;
 			let attempts = 0;
 			let minWaitTime = Infinity;
 
 			// 轮询寻找可用 Key
 			while (attempts < keys.length) {
 				const candidateKey = keys[currentIndex];
+				if (!candidateKey) {
+					currentIndex = (currentIndex + 1) % keys.length;
+					attempts++;
+					continue;
+				}
 				const status = KeyBlacklistManager.getStatus(candidateKey);
 
 				if (status === 'ACTIVE') {
 					GM_setValue(indexKey, (currentIndex + 1) % keys.length);
-					Logger.info('Network', `API Key 调度: ${provider.name}`, { keyIndex: currentIndex + 1 });
+					Logger.debug('Network', `API Key 调度: ${provider.name}`, { keyIndex: (currentIndex + 1) % keys.length });
 					return { key: candidateKey, index: currentIndex, totalKeys: keys.length };
 				}
 
 				if (status === 'COOLING') {
-					const remaining = KeyBlacklistManager.blacklist.get(candidateKey).banUntil - Date.now();
+					const remaining = KeyBlacklistManager.getCoolingRemaining(candidateKey);
 					if (remaining < minWaitTime) minWaitTime = remaining;
 				}
 
@@ -12548,7 +21691,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			// 所有 Key 都不可用
 			const allDead = keys.every(k => KeyBlacklistManager.getStatus(k) === 'DEAD');
 			if (allDead) {
-				const error = new Error(`所有 ${provider.name} 的 API Key 均已失效，请检查更新。`);
+				const error = new Error(`${provider.name} 的所有 API Key 均已失效，请检查更新。`);
 				error.type = 'fatal_error';
 				throw error;
 			}
@@ -12609,13 +21752,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			[sourceTexts, fromLang, toLang], "te"
 		]);
 
-		Logger.info('Network', '发起请求: 谷歌翻译', {
-			url: engineConfig.url_api,
-			from: fromLang,
-			to: toLang,
-			paragraphs: paragraphs.length
-		}, reqId);
-
 		const startTime = Date.now();
 		const res = await new Promise((resolve, reject) => {
 			safeRequest({
@@ -12647,26 +21783,88 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
+	 * 处理对腾讯翻译接口的特定请求流程
+	 */
+	async function _handleTencentRequest(engineConfig, paragraphs, fromLang, toLang, reqId = 'Unknown') {
+		const tencentFrom = (fromLang === 'auto' || Object.prototype.hasOwnProperty.call(TENCENT_LANG_CODE_MAP, fromLang))
+			? (TENCENT_LANG_CODE_MAP[fromLang] || 'auto')
+			: 'auto';
+		const tencentTo = TENCENT_LANG_CODE_MAP[toLang] || toLang;
+		if (toLang !== 'auto' && !Object.prototype.hasOwnProperty.call(TENCENT_LANG_CODE_MAP, toLang)) {
+			const e = new Error(`腾讯翻译暂不支持目标语言: ${toLang}`);
+			e.type = 'api_error';
+			throw e;
+		}
+		const sourceTexts = paragraphs.map(p => nodeToPlainText(p));
+		const requestBody = {
+			header: {
+				fn: "auto_translation",
+				session: "",
+				client_key: TencentClientKey.get(),
+				user: ""
+			},
+			type: "plain",
+			model_category: "normal",
+			source: { text_list: sourceTexts, lang: tencentFrom },
+			target: { lang: tencentTo }
+		};
+
+		const startTime = Date.now();
+		const res = await new Promise((resolve, reject) => {
+			safeRequest({
+				method: "POST",
+				url: engineConfig.url_api,
+				headers: {
+					'Content-Type': 'application/json',
+					'Host': 'transmart.qq.com',
+					'Origin': 'https://transmart.qq.com',
+					'Referer': 'https://transmart.qq.com/zh-CN/index',
+					'user-agent': "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+				},
+				data: JSON.stringify(requestBody),
+				responseType: 'json',
+				timeout: TRADITIONAL_REQUEST_TIMEOUT,
+				onload: resolve,
+				onerror: () => reject(Object.assign(new Error('网络请求错误'), { type: 'network' })),
+				ontimeout: () => reject(Object.assign(new Error('请求超时'), { type: 'timeout' }))
+			}, reqId);
+		});
+
+		const duration = Date.now() - startTime;
+		if (res.status !== 200) {
+			TencentClientKey.rotate();
+			const e = new Error(`腾讯翻译 API 错误 (代码: ${res.status}): ${res.statusText}`);
+			e.type = res.status === 429 ? 'rate_limit' : 'api_error';
+			throw e;
+		}
+		const responseData = res.response;
+		if (!responseData || !Array.isArray(responseData.auto_translation)) {
+			TencentClientKey.rotate();
+			const e = new Error('腾讯翻译响应结构无效');
+			e.type = 'invalid_json';
+			throw e;
+		}
+		if (responseData.header && responseData.header.ret_code && responseData.header.ret_code !== 'succ') {
+			Logger.warn('Network', '腾讯翻译会话失效，轮换 client_key', { retCode: responseData.header.ret_code, reqId });
+			TencentClientKey.rotate();
+			const e = new Error(`腾讯翻译会话失效: ${responseData.header.ret_code}`);
+			e.type = 'api_error';
+			throw e;
+		}
+		return {
+			snippets: responseData.auto_translation.map(t => (t != null ? String(t) : '').replace(/^\s+|\s+$/g, '').replace(/\n/g, '<br>')),
+			durationMs: duration
+		};
+	}
+
+	/**
 	 * 处理对微软翻译接口的特定请求流程
 	 */
 	async function _handleBingRequest(engineConfig, paragraphs, fromLang, toLang, reqId = 'Unknown') {
-		const token = await BingTranslateHelper.getToken();
-		const bingFrom = BING_LANG_CODE_MAP[fromLang] || fromLang;
+		const bingFrom = fromLang === 'auto' ? '' : (BING_LANG_CODE_MAP[fromLang] || fromLang);
 		const bingTo = BING_LANG_CODE_MAP[toLang] || toLang;
-		let url = `${engineConfig.url_api}&to=${bingTo}`;
-		if (bingFrom !== 'auto-detect') {
-			url += `&from=${bingFrom}`;
-		}
-		const requestBody = JSON.stringify(paragraphs.map(p => ({
-			text: p.innerHTML
-		})));
-
-		Logger.info('Network', '发起请求: 微软翻译', {
-			url: url,
-			from: bingFrom,
-			to: bingTo,
-			paragraphs: paragraphs.length
-		}, reqId);
+		const url = `${engineConfig.url_api}?from=${encodeURIComponent(bingFrom)}&to=${encodeURIComponent(bingTo)}&isEnterpriseClient=false`;
+		const requestBody = JSON.stringify(paragraphs.map(p => nodeToPlainText(p)));
 
 		const startTime = Date.now();
 
@@ -12676,7 +21874,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				url: url,
 				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`,
 					"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 				},
 				data: requestBody,
@@ -12684,15 +21881,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				timeout: TRADITIONAL_REQUEST_TIMEOUT,
 				onload: async (res) => {
 					const duration = Date.now() - startTime;
-					if (res.status === 401) {
-						Logger.warn('Network', '微软翻译 Token 过期，清理 Token 并触发重试', null, reqId);
-						BingTranslateHelper.clearToken();
-						const e = new Error('Bing Token Expired');
-						e.type = 'auth_error';
-						e.noRetry = false;
-						reject(e);
-						return;
-					}
 					if (res.status !== 200) {
 						const e = new Error(`Microsoft API Error: ${res.status} ${res.statusText}`);
 						e.type = res.status === 429 ? 'rate_limit' : 'api_error';
@@ -12707,7 +21895,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						return;
 					}
 					resolve({
-						snippets: responseData.map(item => item.translations[0].text),
+						snippets: responseData.map(item => (item.translations?.[0]?.text ?? '').replace(/^\s+|\s+$/g, '').replace(/\n/g, '<br>')),
 						durationMs: duration
 					});
 				},
@@ -12730,146 +21918,25 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 **************************************************************************/
 
 	/**
-	 * 在DOM节点内查找一个由多部分文本组成的、无序但邻近的序列
+	 * 无序多词匹配时，两个组成部分之间允许的最大间隙长度
 	 */
-	function findUnorderedDOMSequence(rootNode, rule) {
-		const { parts: partsWithForms, isGeneral } = rule;
-		const HTML_TAG_PLACEHOLDER = '\u0001';
-		const ALLOWED_SEPARATORS_REGEX = /^[\s\u0001-－﹣—–]*$/;
-		const WORD_CHAR_REGEX = /[a-zA-Z0-9]/;
-		const MAX_DISTANCE_FACTOR = 2.5;
-		const MAX_DISTANCE_BASE = 30;
+	const MAX_ALLOWED_GAP_LENGTH = 30;
 
-		const textMap = [];
-		let normalizedText = '';
-
-		const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, {
-			acceptNode: (node) => {
-				if (node.parentElement.closest('[data-glossary-applied="true"]')) {
-					return NodeFilter.FILTER_REJECT;
-				}
-				return NodeFilter.FILTER_ACCEPT;
-			}
-		});
-
-		let node;
-		while ((node = walker.nextNode())) {
-			if (node.nodeType === Node.TEXT_NODE) {
-				const nodeValue = node.nodeValue;
-				for (let i = 0; i < nodeValue.length; i++) {
-					textMap.push({ node: node, offset: i });
-				}
-				normalizedText += nodeValue;
-			} else if (node.nodeType === Node.ELEMENT_NODE) {
-				if (['EM', 'STRONG', 'B', 'I', 'U', 'SPAN', 'CODE'].includes(node.tagName)) {
-					textMap.push({ node: node, offset: -1 });
-					normalizedText += HTML_TAG_PLACEHOLDER;
-				}
-			}
-		}
-
-		if (!normalizedText.trim()) return null;
-
-		const searchText = isGeneral ? normalizedText.toLowerCase() : normalizedText;
-		const originalTermLength = partsWithForms.map(p => p[0]).join(' ').length;
-		const maxDistance = Math.max(originalTermLength * MAX_DISTANCE_FACTOR, MAX_DISTANCE_BASE);
-
-		const partPositions = partsWithForms.map(partSet => {
-			const positions = [];
-			for (const form of partSet) {
-				const term = isGeneral ? form.toLowerCase() : form;
-				let lastIndex = -1;
-				while ((lastIndex = searchText.indexOf(term, lastIndex + 1)) !== -1) {
-					positions.push({ start: lastIndex, end: lastIndex + term.length });
-				}
-			}
-			return positions;
-		});
-
-		if (partPositions.some(p => p.length === 0)) {
-			return null;
-		}
-
-		function getCombinations(arr) {
-			if (arr.length === 1) {
-				return arr[0].map(item => [item]);
-			}
-			const result = [];
-			const allCasesOfRest = getCombinations(arr.slice(1));
-			for (let i = 0; i < allCasesOfRest.length; i++) {
-				for (let j = 0; j < arr[0].length; j++) {
-					result.push([arr[0][j]].concat(allCasesOfRest[i]));
-				}
-			}
-			return result;
-		}
-
-		const allCombinations = getCombinations(partPositions);
-
-		for (const combination of allCombinations) {
-			combination.sort((a, b) => a.start - b.start);
-
-			const overallStart = combination[0].start;
-			const overallEnd = combination[combination.length - 1].end;
-
-			if (overallEnd - overallStart > maxDistance) {
-				continue;
-			}
-
-			let isValid = true;
-			for (let i = 0; i < combination.length - 1; i++) {
-				const betweenText = normalizedText.substring(combination[i].end, combination[i + 1].start);
-				if (!ALLOWED_SEPARATORS_REGEX.test(betweenText)) {
-					isValid = false;
-					break;
-				}
-			}
-
-			if (isValid) {
-				const prevChar = normalizedText[overallStart - 1];
-				const nextChar = normalizedText[overallEnd];
-
-				let startBoundaryOK = !prevChar || !WORD_CHAR_REGEX.test(prevChar);
-				if (!startBoundaryOK) {
-					const strBefore = normalizedText.substring(0, overallStart);
-					if (PlaceholderConfig.endBoundaryRegex.test(strBefore)) {
-						startBoundaryOK = true;
-					}
-				}
-
-				let endBoundaryOK = !nextChar || !WORD_CHAR_REGEX.test(nextChar);
-				if (!endBoundaryOK) {
-					const remainingStr = normalizedText.substring(overallEnd);
-					if (PlaceholderConfig.startBoundaryRegex.test(remainingStr)) {
-						endBoundaryOK = true;
-					}
-				}
-
-				if (startBoundaryOK && endBoundaryOK) {
-					const startMapping = textMap[overallStart];
-					const endMapping = textMap[overallEnd - 1];
-					if (startMapping && endMapping) {
-						return {
-							startNode: startMapping.node,
-							startOffset: startMapping.offset,
-							endNode: endMapping.node,
-							endOffset: endMapping.offset + 1
-						};
-					}
-				}
-			}
-		}
-
-		return null;
+	/**
+	 * 预处理单个段落 DOM 节点：先正则/字面量策略，再 DOM 策略
+	 */
+	function _preprocessParagraph(p, preparedRules, pm) {
+		const clone = p.cloneNode(true);
+		const { domRules, executionPlan } = preparedRules;
+		_applyRegexRules(clone, executionPlan, pm);
+		_applyDomRules(clone, domRules, pm);
+		return clone;
 	}
 
 	/**
-	 * 预处理单个段落 DOM 节点，应用所有术语表规则并替换为占位符
+	 * 正则/字面量策略：按 executionPlan 逐文本节点替换匹配为占位符
 	 */
-	function _preprocessParagraph(p, preparedRules, pm, engineName) {
-		const clone = p.cloneNode(true);
-		const { domRules, executionPlan } = preparedRules;
-
+	function _applyRegexRules(clone, executionPlan, pm) {
 		// 1. 正则规则处理
 		if (executionPlan && executionPlan.length > 0) {
 			const walker = document.createTreeWalker(clone, NodeFilter.SHOW_TEXT, {
@@ -12920,7 +21987,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						}
 
 						const placeholder = pm.create(finalValue, rule, matchedText);
-						fragment.appendChild(document.createTextNode(placeholder));
+						bumpUsageCounter(ANALYTICS_KEY_USAGE_GLOSSARY_HITS);
+
+						// 空格垫补逻辑
+						const prevChar = matchIndex > 0 ? text[matchIndex - 1] : '';
+						const nextChar = matchIndex + matchedText.length < text.length ? text[matchIndex + matchedText.length] : '';
+
+						let paddedPlaceholder = placeholder;
+						if (/[a-zA-Z0-9]/.test(prevChar)) paddedPlaceholder = ' ' + paddedPlaceholder;
+						if (/[a-zA-Z0-9]/.test(nextChar)) paddedPlaceholder = paddedPlaceholder + ' ';
+
+						fragment.appendChild(document.createTextNode(paddedPlaceholder));
 
 						if (matchIndex + matchedText.length < text.length) {
 							fragment.appendChild(document.createTextNode(text.substring(matchIndex + matchedText.length)));
@@ -12938,6 +22015,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 		}
 
+		}
+
+	/**
+	 * DOM 策略：跨节点文本匹配 + 词形，替换为占位符
+	 */
+	function _applyDomRules(clone, domRules, pm) {
 		// 2. DOM 规则处理
 		if (domRules.length > 0) {
 			let plainText = '';
@@ -12973,17 +22056,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (plainText.length > 0) {
 				const used = new Uint8Array(plainText.length);
 				const allMatches =[];
+				const lowerPlainText = plainText.toLowerCase();
 
 				for (const rule of domRules) {
-					const searchText = rule.isGeneral ? plainText.toLowerCase() : plainText;
-					
+					const searchText = rule.isGeneral ? lowerPlainText : plainText;
 					if (rule.isUnordered) {
 						const numParts = rule.parts.length;
 						const instances =[];
 						let missingPart = false;
 						
 						for (let pIdx = 0; pIdx < numParts; pIdx++) {
-							const forms = Array.from(rule.parts[pIdx]).sort((a, b) => b.length - a.length);
+							const forms = rule.parts[pIdx];
 							let foundAny = false;
 							for (const form of forms) {
 								const formStr = rule.isGeneral ? form.toLowerCase() : form;
@@ -13019,7 +22102,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 								if (nextInst.start < currentEnd) continue;
 								
 								const gap = plainText.substring(currentEnd, nextInst.start);
-								if (!/^[\s\u0001-－﹣—–]*$/.test(gap)) break;
+
+								if (gap.length > MAX_ALLOWED_GAP_LENGTH) break;
+
+								if (!/^[\s\u0001\-－﹣—–]*$/.test(gap)) break;
 								
 								chain.push(nextInst);
 								seenParts.add(nextInst.partIndex);
@@ -13043,7 +22129,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							}
 						}
 					} else {
-						const firstForms = Array.from(rule.parts[0]).sort((a, b) => b.length - a.length);
+						const firstForms = rule.parts[0];
 						
 						for (const firstForm of firstForms) {
 							const formStr = rule.isGeneral ? firstForm.toLowerCase() : firstForm;
@@ -13077,13 +22163,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 										let sepLen = 0;
 										while (currentI + sepLen < plainText.length) {
 											const c = plainText[currentI + sepLen];
-											if (/[\s\u0001-－﹣—–]/.test(c)) sepLen++;
+											if (/[\s\u0001\-－﹣—–]/.test(c)) sepLen++;
 											else break;
 										}
 										if (sepLen === 0) { matchedAll = false; break; }
 										currentI += sepLen;
 										
-										const forms = Array.from(rule.parts[pIdx]).sort((a, b) => b.length - a.length);
+										const forms = rule.parts[pIdx];
 										let foundForm = null;
 										for (const form of forms) {
 											const fStr = rule.isGeneral ? form.toLowerCase() : form;
@@ -13134,6 +22220,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						const endMap = textMap[endIdx];
 						
 						if (startMap && endMap && startMap.node && endMap.node) {
+							// 1. 在 range.extractContents() 破坏 DOM 之前，先安全读取前后字符
+							const prevChar = (startMap.offset > 0 && startMap.node.nodeValue) 
+								? startMap.node.nodeValue[startMap.offset - 1] 
+								: '';
+							const nextChar = (endMap.offset + 1 < endMap.node.nodeValue.length && endMap.node.nodeValue) 
+								? endMap.node.nodeValue[endMap.offset + 1] 
+								: '';
+
+							// 2. 提取节点内容
 							const range = document.createRange();
 							range.setStart(startMap.node, startMap.offset);
 							range.setEnd(endMap.node, endMap.offset + 1);
@@ -13143,10 +22238,17 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							tempDiv.appendChild(contents);
 							const originalHTML = tempDiv.innerHTML;
 							
+							// 3. 生成占位符
 							const finalValue = match.rule.type === 'forbidden' ? originalHTML : match.rule.replacement;
 							const placeholder = pm.create(finalValue, match.rule, originalHTML);
+							bumpUsageCounter(ANALYTICS_KEY_USAGE_GLOSSARY_HITS);
 							
-							range.insertNode(document.createTextNode(placeholder));
+							// 4. 智能垫补空格逻辑
+							let paddedPlaceholder = placeholder;
+							if (/[a-zA-Z0-9]/.test(prevChar)) paddedPlaceholder = ' ' + paddedPlaceholder;
+							if (/[a-zA-Z0-9]/.test(nextChar)) paddedPlaceholder = paddedPlaceholder + ' ';
+
+							range.insertNode(document.createTextNode(paddedPlaceholder));
 						}
 					}
 				}
@@ -13154,7 +22256,6 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 		}
 
-		return clone;
 	}
 
 	/**
@@ -13164,6 +22265,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		constructor() {
 			this.placeholders = new Map();
 			this.placeholderCache = new Map();
+			this.counter = PlaceholderConfig.startAt - 1;
 			this.BASE_CHUNK = 1600;
 			this.BASE_PARA = 8;
 		}
@@ -13172,10 +22274,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			if (this.placeholderCache.has(finalValue)) {
 				return this.placeholderCache.get(finalValue);
 			}
-			let placeholder;
-			do {
-				placeholder = PlaceholderConfig.generate();
-			} while (this.placeholders.has(placeholder));
+			const placeholder = `${PlaceholderConfig.prefix}${++this.counter}${PlaceholderConfig.suffix}`;
 
 			this.placeholderCache.set(finalValue, placeholder);
 			this.placeholders.set(placeholder, { value: finalValue, rule, originalHTML });
@@ -13187,7 +22286,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			try {
 				const fuzzyRegex = PlaceholderConfig.fuzzyRegex;
 				return translatedText.replace(fuzzyRegex, (match, digits) => {
-					const standardPlaceholder = PlaceholderConfig.prefix + digits;
+					const standardPlaceholder = PlaceholderConfig.placeholderFor(digits);
 					return this.placeholders.has(standardPlaceholder) ? standardPlaceholder : match;
 				});
 			} catch (e) {
@@ -13220,12 +22319,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			let hasUnknownPlaceholders = false;
 			const fuzzyRegex = PlaceholderConfig.fuzzyRegex;
 			fuzzyRegex.lastIndex = 0;
+			const naturalTokens = this._collectNaturalTokens(preprocessedText);
 			let match;
 			while ((match = fuzzyRegex.exec(normalizedTranslatedText)) !== null) {
-				const suspected = PlaceholderConfig.prefix + match[1];
+				const suspected = PlaceholderConfig.placeholderFor(match[1]);
 				if (this.placeholders.has(suspected)) {
 					actualCounts[suspected]++;
-				} else {
+				} else if (!naturalTokens.has(suspected)) {
 					hasUnknownPlaceholders = true;
 				}
 			}
@@ -13258,6 +22358,50 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			return { isValid: true, errorReason: null, totalLoss };
+		}
+
+		/**
+		 * 收集预处理原文中"天然存在"的 z<n>
+		 */
+		_collectNaturalTokens(text) {
+			const tokens = new Set();
+			const regex = PlaceholderConfig.fuzzyRegex;
+			regex.lastIndex = 0;
+			let m;
+			while ((m = regex.exec(text)) !== null) tokens.add(PlaceholderConfig.placeholderFor(m[1]));
+			return tokens;
+		}
+
+		/**
+		 * 单段占位符校验
+		 */
+		checkParagraphPlaceholders(preprocessedHtml, normalizedTranslatedText) {
+			if (this.placeholders.size === 0) return { ok: true, loss: 0, unknown: false };
+			const text = String(normalizedTranslatedText || '');
+			let loss = 0;
+
+			for (const [placeholder] of this.placeholders) {
+				const expected = preprocessedHtml.split(placeholder).length - 1;
+				if (expected === 0) continue;
+				const escaped = placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+				const re = new RegExp(escaped, 'g');
+				let actual = 0;
+				let m;
+				while ((m = re.exec(text)) !== null) actual++;
+				if (actual < expected) loss += (expected - actual);
+			}
+
+			let unknown = false;
+			const fuzzyRegex = PlaceholderConfig.fuzzyRegex;
+			fuzzyRegex.lastIndex = 0;
+			const naturalTokens = this._collectNaturalTokens(preprocessedHtml);
+			let fm;
+			while ((fm = fuzzyRegex.exec(text)) !== null) {
+				const suspected = PlaceholderConfig.placeholderFor(fm[1]);
+				if (!this.placeholders.has(suspected) && !naturalTokens.has(suspected)) { unknown = true; break; }
+			}
+
+			return { ok: loss === 0 && !unknown, loss, unknown };
 		}
 
 		restore(normalizedTranslatedText) {
@@ -13303,9 +22447,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
                             finalHTML = tempDiv.innerHTML;
                         }
 					}
-					processedText = processedText.replace(regex, finalHTML);
+					processedText = processedText.replace(regex, () => finalHTML);
 				} else {
-					processedText = processedText.replace(regex, replacement);
+					processedText = processedText.replace(regex, () => replacement);
 				}
 			}
 			return processedText;
@@ -13401,7 +22545,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			// 过滤在屏幕上不占据实际物理像素的节点
 			const rect = el.getBoundingClientRect();
-			if (rect.width === 0 || rect.height === 0) return true;
+			if (rect.width === 0 || rect.height === 0) {
+				// 如果 overflow 为 hidden，则内容确实被裁剪不可见
+				if (style.overflow === 'hidden' || style.overflowX === 'hidden' || style.overflowY === 'hidden') {
+					return true;
+				}
+			}
 
 			return false;
 		}
@@ -13639,7 +22788,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		createBatch(queueManager) {
 			if (queueManager.size === 0) return { batchNodes:[], reason: 'empty', batchLang: 'auto' };
 
-			const { chunkSize, paragraphLimit } = this.config.getLimits();
+			const { chunkSize, paragraphLimit, batchMode } = this.config.getLimits();
+			const effectiveParaLimit = batchMode === 'dynamic' ? DYNAMIC_BATCH_PARA_CAP : paragraphLimit;
 			const batchNodes =[];
 			let currentChars = 0;
 			let reason = 'underfilled';
@@ -13677,7 +22827,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				batchNodes.push(queueManager.pop());
 				currentChars += node.unit.textContent.length;
 
-				if (batchNodes.length >= paragraphLimit || currentChars >= chunkSize) {
+				if (batchNodes.length >= effectiveParaLimit || currentChars >= chunkSize) {
 					reason = 'full';
 					break;
 				}
@@ -13827,6 +22977,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			this.onRetryCallback = options.onRetry;
 			this.onActiveStateChange = options.onActiveStateChange;
 			this.onErrorCallback = options.onError;
+			this.onUnitSettled = options.onUnitSettled || null;
 			this.containerLang = options.containerLang || "auto";
 			this.useObserver = options.useObserver !== false;
 
@@ -13840,7 +22991,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					const params = ProfileManager.getParamsByEngine(engine);
 					return {
 						chunkSize: params.chunk_size,
-						paragraphLimit: params.para_limit
+						paragraphLimit: params.para_limit,
+						batchMode: params.batch_mode || 'fixed'
 					};
 				}
 			});
@@ -13934,7 +23086,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const newMargin = this._getRootMargin();
 			if (newMargin === this.currentRootMargin) return;
 			
-			Logger.info('Translation', `懒加载范围已动态更新: ${this.currentRootMargin} -> ${newMargin}`);
+			Logger.debug('Translation', `懒加载范围已动态更新: ${this.currentRootMargin} -> ${newMargin}`);
 			this.currentRootMargin = newMargin;
 			
 			// 1. 销毁旧的观察者
@@ -14059,6 +23211,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				el.dataset.translationState = 'translating';
 			});
 
+			let tpStart = 0;
 			try {
 				const validUnits = batch.filter(el => el.tagName !== 'HR' && el.textContent.trim());
 				const reqId = `Batch-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
@@ -14066,11 +23219,22 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				let results = new Map();
 
 				if (validUnits.length > 0) {
+					tpStart = Date.now();
 					results = await translateParagraphs(validUnits, {
 						isCancelled: this.isCancelled,
 						knownFromLang: batchLang,
 						reqId: reqId,
 						skipRateLimit: true
+					});
+					const tpErrorCount = [...results.values()].filter(r => r && r.status !== 'success').length;
+					const cacheHits = (results && typeof results.cacheHits === 'number') ? results.cacheHits : 0;
+					const cacheSavedChars = (results && typeof results.cacheSavedChars === 'number') ? results.cacheSavedChars : 0;
+					const totalChars = validUnits.reduce((acc, u) => acc + (u.textContent ? u.textContent.length : 0), 0);
+					Analytics.accumulateUsage({ chars: totalChars, cacheSavedChars, cacheHits, cacheTotal: validUnits.length, latencyMs: Date.now() - tpStart });
+					Analytics.trackTranslation('page_translation', {
+						outcome: tpErrorCount > 0 ? 'partial' : 'success',
+						latency_ms: Date.now() - tpStart,
+						detected_source_lang: batchLang
 					});
 				}
 
@@ -14082,20 +23246,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 					if (el.tagName === 'HR') {
 						el.dataset.translationState = 'translated';
-						this.pendingNodes.delete(el);
+						this._settleUnit(el);
 						continue;
 					}
 
 					const res = results.get(el);
 					if (res) {
 						this.renderer.applyResult(el, res, this.onRetryCallback);
-						this.pendingNodes.delete(el);
+						this._settleUnit(el);
 						if (res.status !== 'success') {
 							this.hasError = true;
 						}
 					} else {
 						this.renderer.applyResult(el, { status: 'error', content: '底层异常：翻译结果丢失' }, this.onRetryCallback);
-						this.pendingNodes.delete(el);
+						this._settleUnit(el);
 						this.hasError = true;
 					}
 					await TimeSlicer.yieldIfNeeded();
@@ -14103,6 +23267,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 			} catch (e) {
 				if (this.isCancelled() || e.type === 'user_cancelled') return;
+				// 埋点：批次翻译失败
+				if (tpStart > 0) {
+					Analytics.trackTranslation('page_translation', {
+						outcome: 'failure',
+						latency_ms: Date.now() - tpStart,
+						error_type: e.type || 'unknown'
+					});
+				}
 
 				// 二分降级策略
 				if (batchNodes.length > 1 && e.type !== 'fatal_error' && e.type !== 'auth_error') {
@@ -14132,7 +23304,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				for (const node of batchNodes) {
 					if (node.unit.dataset.translationState !== 'translating') continue;
 					this.renderer.applyResult(node.unit, { status: 'error', content: e.message }, this.onRetryCallback);
-					this.pendingNodes.delete(node.unit);
+					this._settleUnit(node.unit);
 				}
 			} finally {
 				this.inFlightBatches--;
@@ -14145,6 +23317,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const engineName = getValidEngineName();
 			const params = ProfileManager.getParamsByEngine(engineName);
 			return params.lazy_load_margin;
+		}
+
+		/**
+		 * 单元结算：移出待处理集合并通知外部
+		 */
+		_settleUnit(el) {
+			this.pendingNodes.delete(el);
+			if (this.onUnitSettled) {
+				try {
+					this.onUnitSettled(el);
+				} catch (e) {
+					Logger.error('Translation', 'onUnitSettled 回调执行失败', e);
+				}
+			}
 		}
 
 		_finish() {
@@ -14808,8 +23994,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					}
 				};
 
-				// 传递 detectedLang 给标签引擎
-				runTagsTranslationEngine(tagsElement, isCancelled, detectedLang, false)
+				// 标签与简介共用同一作品语言（标签提取子集与作品语言一致），检测结果传标签引擎
+				runTagsTranslationEngine(tagsElement, isCancelled, { knownFromLang: detectedLang })
 					.then(() => {
 						tagsFinished = true;
 					})
@@ -14843,7 +24029,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						const hasFailedTags = tagsElement.querySelector('[data-translation-state="error"]');
 						if (hasFailedTags) {
 							tagsFinished = false;
-							runTagsTranslationEngine(tagsElement, isCancelled, detectedLang, false)
+							runTagsTranslationEngine(tagsElement, isCancelled, { knownFromLang: detectedLang })
 								.then(() => {
 									tagsFinished = true;
 								})
@@ -14887,7 +24073,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					const { detectedLang } = await LanguageDetectionManager.processContainer(containerElement, rule, 'unit');
 					containerElement.dataset.detectedLang = detectedLang;
 
-					await runTagsTranslationEngine(containerElement, isCancelled, detectedLang, false);
+					await runTagsTranslationEngine(containerElement, isCancelled, { knownFromLang: detectedLang });
 					if (isCancelled()) return;
 					onDone();
 				} catch (error) {
@@ -14974,14 +24160,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	/**
 	 * 标签区域翻译引擎协调者 (流程编排与 API 调度)
 	 */
-	async function runTagsTranslationEngine(containerElement, isCancelled, knownFromLang = 'auto', skipTargetLanguage = false) {
+	async function runTagsTranslationEngine(containerElement, isCancelled, { knownFromLang = 'auto' } = {}) {
 		if (isCancelled()) return null;
-
-		const targetLang = GM_getValue('to_lang', DEFAULT_CONFIG.GENERAL.to_lang);
-		if (skipTargetLanguage && knownFromLang === targetLang) {
-			containerElement.dataset.translationState = 'skipped';
-			return containerElement;
-		}
 
 		const tagElements = extractTagsToTranslate(containerElement);
 		if (tagElements.length === 0) return containerElement;
@@ -14996,12 +24176,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			el.dataset.translationState = 'translating';
 		});
 
+		let tpStart = 0;
 		try {
+			tpStart = Date.now();
 			const reqId = 'Tags-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-			const translationResults = await translateParagraphs(nodesToTranslate, { 
-				isCancelled, 
-				reqId, 
-				knownFromLang 
+			const translationResults = await translateParagraphs(nodesToTranslate, {
+				isCancelled,
+				reqId,
+				knownFromLang
 			});
 
 			if (isCancelled()) return null;
@@ -15013,12 +24195,28 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					renderTagTranslation(parentLink, result);
 				}
 			});
+			// 埋点：标签翻译健康（每 provider 冷却窗口一条；M3 起带 cache_hit）
+			const tagCacheHits = (translationResults && typeof translationResults.cacheHits === 'number') ? translationResults.cacheHits : 0;
+			const tagCacheSavedChars = (translationResults && typeof translationResults.cacheSavedChars === 'number') ? translationResults.cacheSavedChars : 0;
+			const tagCharsCount = nodesToTranslate.reduce((acc, u) => acc + (u.textContent ? u.textContent.length : 0), 0);
+			Analytics.accumulateUsage({ chars: tagCharsCount, cacheSavedChars: tagCacheSavedChars, cacheHits: tagCacheHits, cacheTotal: nodesToTranslate.length, latencyMs: Date.now() - tpStart });
+			Analytics.trackTranslation('tag_translation', {
+				outcome: 'success',
+				latency_ms: Date.now() - tpStart,
+				detected_source_lang: knownFromLang
+			});
 			return containerElement;
 
 		} catch (error) {
 			if (isCancelled() || error.type === 'user_cancelled') return null;
+			// 埋点：标签翻译失败
+			Analytics.trackTranslation('tag_translation', {
+				outcome: 'failure',
+				latency_ms: Date.now() - tpStart,
+				error_type: error.type || 'unknown'
+			});
 			tagElements.forEach(el => el.dataset.translationState = 'error');
-			throw error; 
+			throw error;
 		}
 	}
 
@@ -15182,17 +24380,18 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (!stateManager.isActive) return;
 
 					await Promise.all(entries.map(async (entry) => {
-						if (entry.isIntersecting) {
-							const container = entry.target;
-							if (container.dataset.translationState) return;
+						if (!entry.isIntersecting) return;
+						const container = entry.target;
+						if (container.dataset.translationState) return;
 
-							container.dataset.translationState = 'processing';
-							containerObserver.unobserve(container);
+						container.dataset.translationState = 'processing';
+						containerObserver.unobserve(container);
 
+						const detectionTaskId = Symbol('container-detection');
+						try {
 							const rule = JSON.parse(container.dataset.translationRule || '{}');
-							
+
 							// 1. 语言检测
-							const detectionTaskId = Symbol('container-detection');
 							taskManager.startTask(detectionTaskId);
 							const { detectedLang, shouldSkip } = await LanguageDetectionManager.processContainer(container, rule, 'full_page');
 							container.dataset.detectedLang = detectedLang;
@@ -15214,6 +24413,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							} else {
 								this.processContent(container, detectedLang);
 							}
+						} catch (e) {
+							// 检测/路由抛异常时容器必须落终态，否则永久停留在 processing 且无法被重新扫描
+							taskManager.endTask(detectionTaskId);
+							Logger.error('Translation', '容器处理流程异常，标记为 error', e);
+							if (stateManager.isActive) container.dataset.translationState = 'error';
 						}
 					}));
 				}, { rootMargin });
@@ -15234,14 +24438,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			processTags(container, detectedLang) {
 				const taskId = Symbol('tag-task');
 				taskManager.startTask(taskId);
-				
-				runTagsTranslationEngine(container, () => !stateManager.isActive, detectedLang, true)
+
+				runTagsTranslationEngine(container, () => !stateManager.isActive, { knownFromLang: detectedLang })
 					.then(() => { if (stateManager.isActive) container.dataset.translationState = 'translated'; })
-					.catch(e => { 
-						if (stateManager.isActive) { 
-							container.dataset.translationState = 'error'; 
-							taskManager.addError(taskId); 
-						} 
+					.catch(e => {
+						if (stateManager.isActive) {
+							container.dataset.translationState = 'error';
+							taskManager.addError(taskId);
+						}
 					})
 					.finally(() => { taskManager.endTask(taskId); });
 			},
@@ -15270,6 +24474,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						globalEngine.addUnits([titleRecord.tempDiv]);
 					}
 					container.dataset.translationState = 'queued';
+					promoteContainerIfDone(container);
 				} else {
 					container.dataset.translationState = 'skipped';
 				}
@@ -15281,11 +24486,13 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					let unitsBatch = [];
 					if (!globalEngine) return;
 
+					let extractedCount = 0;
 					for await (const unit of globalEngine.normalizer.generateUnits(container)) {
 						if (!stateManager.isActive) return;
 						unit.dataset.detectedLang = detectedLang;
 						unitsBatch.push(unit);
-						
+						extractedCount++;
+
 						if (unitsBatch.length >= 50) {
 							globalEngine.addUnits(unitsBatch);
 							unitsBatch = [];
@@ -15295,7 +24502,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (unitsBatch.length > 0 && globalEngine) {
 						globalEngine.addUnits(unitsBatch);
 					}
+
+					if (extractedCount === 0) {
+						container.dataset.translationState = 'translated';
+						return;
+					}
+
 					container.dataset.translationState = 'queued';
+					promoteContainerIfDone(container);
 				} catch (e) {
 					Logger.error('Translation', '提取翻译单元失败', e);
 					container.dataset.translationState = 'error';
@@ -15304,6 +24518,21 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		};
 
 		// 4. 内部辅助方法
+
+		/**
+		 * 容器状态收敛：当容器仍为 queued 且其子树内已无排队/翻译中的单元时，置为 translated
+		 */
+		const hasPendingDescendant = (el) => el.querySelector('[data-translation-state="queued"], [data-translation-state="translating"]');
+
+		const promoteContainerIfDone = (container) => {
+			let current = container;
+			while (current && current.dataset && current.dataset.translationState === 'queued') {
+				if (hasPendingDescendant(current)) return;
+				current.dataset.translationState = 'translated';
+				current = current.parentElement ? current.parentElement.closest('[data-translation-state="queued"]') : null;
+			}
+		};
+
 		const scanAndObserveContainers = (rootNode = document) => {
 			if (!stateManager.isActive) return;
 
@@ -15358,6 +24587,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				isCancelled: () => !stateManager.isActive,
 				onComplete: (hasErrors) => {
 					taskManager.endRetry(ENGINE_RETRY_ID);
+					if (stateManager.isActive) {
+						document.querySelectorAll('[data-translation-rule][data-translation-state="queued"]').forEach(el => {
+							promoteContainerIfDone(el);
+						});
+					}
 				},
 				onError: (err) => {
 					taskManager.addError(ENGINE_TASK_ID);
@@ -15373,6 +24607,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							globalEngine.scheduleProcessing(true);
 						}
 					}
+				},
+				onUnitSettled: (unit) => {
+					if (!stateManager.isActive) return;
+					if (unit.classList && unit.classList.contains('ao3-title-translatable-temp')) return;
+					promoteContainerIfDone(unit.closest ? unit.closest('[data-translation-state="queued"]') : null);
 				},
 				onActiveStateChange: (isActive) => {
 					if (isActive) {
@@ -15483,16 +24722,76 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	const POST_REPLACE_RULES_KEY = 'ao3_post_replace_rules';
 	const POST_REPLACE_SELECTED_ID_KEY = 'ao3_post_replace_selected_id';
 	const POST_REPLACE_EDIT_MODE_KEY = 'ao3_post_replace_edit_mode';
+	const LOCAL_GLOSSARY_SELECTED_ID_KEY = 'ao3_local_glossary_selected_id';
+	const LOCAL_GLOSSARY_EDIT_MODE_KEY = 'ao3_local_glossary_edit_mode';
 	const LAST_SELECTED_GLOSSARY_KEY = 'ao3_last_selected_glossary_url';
 	const GLOSSARY_RULES_CACHE_KEY = 'ao3_glossary_rules_cache';
 	const GLOSSARY_STATE_VERSION_KEY = 'ao3_glossary_state_version';
 	const GLOSSARY_RAW_TEXT_CACHE_KEY = 'ao3_glossary_raw_text_cache';
+	const GLOSSARY_INDEX_CACHE_KEY = 'ao3_online_library_cache_data';
+	const GLOSSARY_INDEX_CACHE_TIME_KEY = 'ao3_online_library_cache_time';
+	const GLOSSARY_RAW_TEXT_CACHE_MAX = 30;
+
+	/**
+	 * 词表原文缓存（GLOSSARY_RAW_TEXT_CACHE_KEY）的有界读写封装
+	 */
+	function getCachedRawText(url) {
+		const cache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
+		const entry = cache[url];
+		if (entry === undefined) return null;
+		if (typeof entry === 'string') {
+			cache[url] = { text: entry, ts: Date.now() };
+		} else {
+			entry.ts = Date.now();
+		}
+		GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, cache);
+		return typeof entry === 'string' ? entry : entry.text;
+	}
+
+	function setCachedRawText(url, text) {
+		const cache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
+		cache[url] = { text, ts: Date.now() };
+		const entries = Object.entries(cache);
+		if (entries.length > GLOSSARY_RAW_TEXT_CACHE_MAX) {
+			entries.sort((a, b) => (a[1].ts || 0) - (b[1].ts || 0));
+			for (let i = 0; i < entries.length - GLOSSARY_RAW_TEXT_CACHE_MAX; i++) delete cache[entries[i][0]];
+		}
+		GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, cache);
+	}
+
+	function removeCachedRawText(url) {
+		const cache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
+		if (cache[url]) { delete cache[url]; GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, cache); }
+	}
+
+
 
 	/**
 	 * 术语表引擎版本号
 	 * 仅在修改了术语表底层解析逻辑（如分词算法、正则生成规则等）时，才手动递增此常量
 	 */
-	const GLOSSARY_ENGINE_VERSION = 3;
+	const GLOSSARY_ENGINE_VERSION = 4;
+
+	const RESIDUAL_SEP_RE = /[=＝:：]/;
+	const BRACKET_DEPTH_MAP = { '(': 1, ')': -1, '[': 1, ']': -1, '{': 1, '}': -1, '（': 1, '）': -1, '【': 1, '】': -1, '「': 1, '」': -1 };
+	function hasTopLevelResidualSeparator(value) {
+		if (!value) return false;
+		let depth = 0;
+		let inQuote = null;
+		const quotePairs = { '"': '"', "'": "'", '“': '”', '‘': '’' };
+		for (let i = 0; i < value.length; i++) {
+			const ch = value[i];
+			if (inQuote) {
+				if (ch === inQuote) inQuote = null;
+				continue;
+			}
+			if (quotePairs[ch]) { inQuote = quotePairs[ch]; continue; }
+			const delta = BRACKET_DEPTH_MAP[ch];
+			if (delta) { depth += delta; continue; }
+			if (depth <= 0 && RESIDUAL_SEP_RE.test(ch)) return true;
+		}
+		return false;
+	}
 
 	/**
 	 * 解析自定义的、非 JSON 格式的术语表文本
@@ -15505,7 +24804,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			multiPartTerms: {},
 			multiPartGeneralTerms: {},
 			forbiddenTerms: [],
-			regexTerms:[]
+			regexTerms:[],
+			warnings: [],
+			dropped: 0
 		};
 		const lines = text.split('\n');
 
@@ -15556,23 +24857,31 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 		}
 
-		const processLine = (line, target, multiPartTarget) => {
+		const processLine = (line, target, multiPartTarget, lineNo) => {
 			const trimmedLine = line.trim();
 			if (!trimmedLine || trimmedLine.startsWith('//')) return;
 
-			const multiPartParts = trimmedLine.split(/[=＝]/, 2);
-			if (multiPartParts.length === 2) {
-				const key = multiPartParts[0].trim();
-				const value = multiPartParts[1].trim().replace(/[,，]$/, '');
-				if (key && value) multiPartTarget[key] = value;
+			const parsed = parseGlossaryKeyValuePair(trimmedLine);
+			if (!parsed) {
+				result.dropped++;
+				const wholeLineQuoted = isWholeLineQuotedWithSeparator(trimmedLine);
+				if (wholeLineQuoted) {
+					result.warnings.push(`第 ${lineNo} 行词条 "${trimmedLine}" 写法有误：引号包裹了整条规则，而非只包裹词条。请改为「引号只包词条、分隔符放引号外」，如 ${wholeLineQuoted.key}：${wholeLineQuoted.value}。`);
+				} else {
+					result.warnings.push(`第 ${lineNo} 行词条 "${trimmedLine}" 无法定位分隔符，已跳过。词条含撇号/冒号/等号等标点时，请使用引号包裹；无标点词条请用「词条: 译文」或「词条 = 译文」。如需该词保持原文不翻译，请放入『禁翻词条』区。`);
+				}
 				return;
 			}
 
-			const singleParts = trimmedLine.split(/[:：]/, 2);
-			if (singleParts.length === 2) {
-				const key = singleParts[0].trim();
-				const value = singleParts[1].trim().replace(/[,，]$/, '');
-				if (key && value) target[key] = value;
+			const value = parsed.value.replace(/[,，]$/, '');
+			if (parsed.separator === '=') {
+				if (parsed.key && value) multiPartTarget[parsed.key] = value;
+			} else {
+				if (parsed.key && value) target[parsed.key] = value;
+			}
+
+			if (value && !/^https?:\/\//.test(value) && hasTopLevelResidualSeparator(value)) {
+				result.warnings.push(`第 ${lineNo} 行词条 "${parsed.key}" 的译文值 "${value}" 内含额外分隔符，请确认是否为误输入（多个译文建议拆行或用 "=" 关联）。如需在原文或译文内保留冒号/等号等标点，请用引号包裹。`);
 			}
 		};
 
@@ -15581,29 +24890,37 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			const end = (i + 1 < sections.length) ? sections[i + 1].start - 1 : lines.length;
 			const sectionLines = lines.slice(section.start, end);
 
-			for (const line of sectionLines) {
+			for (let j = 0; j < sectionLines.length; j++) {
+				const line = sectionLines[j];
+				const lineNo = section.start + j + 1;
 				const trimmedLine = line.trim();
 				if (!trimmedLine || trimmedLine.startsWith('//')) continue;
 
 				switch (section.type) {
 					case 'TERMS':
-						processLine(line, result.terms, result.multiPartTerms);
+						processLine(line, result.terms, result.multiPartTerms, lineNo);
 						break;
 					case 'GENERAL_TERMS':
-						processLine(line, result.generalTerms, result.multiPartGeneralTerms);
+						processLine(line, result.generalTerms, result.multiPartGeneralTerms, lineNo);
 						break;
 					case 'FORBIDDEN_TERMS':
 						const term = trimmedLine.replace(/[,，]$/, '');
 						if (term) result.forbiddenTerms.push(term);
 						break;
 					case 'REGEX_TERMS':
-						const match = trimmedLine.match(/^(.+?)\s*[:：]\s*(.*)$/s);
+						const match = trimmedLine.match(/^(.+)\s*[:：]\s*(.*)$/s);
 						if (match) {
 							const pattern = match[1].trim();
 							const replacement = match[2].trim().replace(/[,，]$/, '');
 							if (pattern) {
-								result.regexTerms.push({ pattern, replacement });
+								let valid = false;
+								let compileError = null;
+								try { new RegExp(pattern); valid = true; } catch (e) { compileError = e.message; }
+								result.regexTerms.push({ pattern, replacement, line: lineNo, valid, error: compileError });
 							}
+						} else {
+							result.dropped++;
+							result.warnings.push(`第 ${lineNo} 行正则 "${trimmedLine}" 缺少冒号分隔符，已跳过。正则区格式应为「正则表达式: 替换后的文本」。`);
 						}
 						break;
 				}
@@ -15638,7 +24955,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		}
 		
 		if (owner && repo && branch && filePath) {
-			const glossaryName = decodeURIComponent(filePath.split('/').pop().replace(/\.[^/.]+$/, ''));
+			let glossaryName;
+			try {
+				glossaryName = decodeURIComponent(filePath.split('/').pop().replace(/\.[^/.]+$/, ''));
+			} catch (e) {
+				glossaryName = filePath.split('/').pop().replace(/\.[^/.]+$/, '');
+			}
 			return {
 				owner, repo, glossaryName,
 				visitUrl: `https://github.com/${owner}/${repo}/blob/${branch}/${filePath}`,
@@ -15713,22 +25035,134 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		});
 	}
 
+	// 插件更新检查
+	const UPDATE_SOURCE_URL = 'https://raw.githubusercontent.com/V-Lipset/ao3-chinese/main/local.user.js';
+	const UPDATE_INTERVAL_MS = { daily: 86400e3, weekly: 7 * 86400e3, monthly: 30 * 86400e3 };
+
+	/**
+	 * 版本归一化
+	 */
+	function normalizeVersion(v) {
+		return String(v || '').trim().replace(/^v/i, '').split('-')[0].trim();
+	}
+
+	/**
+	 * 数值化比较
+	 */
+	function compareVersions(a, b) {
+		const pa = a.split('.').map(Number);
+		const pb = b.split('.').map(Number);
+		for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+			const da = pa[i] || 0, db = pb[i] || 0;
+			if (da > db) return 1;
+			if (da < db) return -1;
+		}
+		return 0;
+	}
+
+	/**
+	 * 拉取 main/local.user.js 解析 @version
+	 */
+	async function fetchLatestVersion() {
+		const { responseText } = await fetchWithFallback(UPDATE_SOURCE_URL, { timeout: 10000 });
+		const m = responseText.match(/@version\s+(\S+)/);
+		return m ? normalizeVersion(m[1]) : null;
+	}
+
+	/**
+	 * 更新检查主流程：开关开 + 间隔节流 → 拉取最新版 → 比较 → 有新版且未提示过则弹窗
+	 */
+	async function checkForUpdates() {
+		const interval = GM_getValue('ao3_update_check_interval', 'weekly');
+		if (interval === 'never') return;
+		const now = Date.now();
+		if (now - GM_getValue('ao3_update_last_check', 0) < UPDATE_INTERVAL_MS[interval]) return;
+		GM_setValue('ao3_update_last_check', now);
+		try {
+			const latest = await fetchLatestVersion();
+			if (!latest) return;
+			const current = normalizeVersion(GM_info.script.version);
+			const hasUpdate = compareVersions(latest, current) > 0;
+			if (hasUpdate && latest !== GM_getValue('ao3_update_last_notified_version', '')) {
+				GM_setValue('ao3_update_last_notified_version', latest);
+				showUpdateModal({ current, latest });
+			}
+			// 埋点：更新检查结果（每日一次）
+			Analytics.featureUsed('update_check', 'system', {
+				outcome: hasUpdate ? 'update_available' : 'up_to_date'
+			});
+		} catch (e) {
+			Logger.warn('System', `更新检查失败: ${e.message}`);
+			// 埋点：更新检查失败（每日一次）
+			Analytics.featureUsed('update_check', 'system', { outcome: 'failure' });
+		}
+	}
+
 	/**
 	 * GitHub 议题状态管理器
 	 */
 	const GitHubStatusManager = {
 		CACHE_KEY: 'ao3_github_status_cache',
 		EXPIRATION: 24 * 60 * 60 * 1000,
+		NEGATIVE_EXPIRATION: 1 * 60 * 60 * 1000,
 		pendingChecks: new Map(),
 
+		_readCache() { return GM_getValue(this.CACHE_KEY, {}); },
+		_writeCache(cache) { GM_setValue(this.CACHE_KEY, cache); },
+		_ttlFor(entry) { return entry.canUseIssues ? this.EXPIRATION : this.NEGATIVE_EXPIRATION; },
+		_cacheResult(key, canUseIssues) {
+			const cache = this._readCache();
+			cache[key] = { canUseIssues, timestamp: Date.now() };
+			this._writeCache(cache);
+		},
+
+		// 轻量 API：读 has_issues（不检测登录，登录由 GitHub 在打开 issues 页时自行引导）
+		_checkViaApi(owner, repo) {
+			return new Promise((resolve) => {
+				GM_xmlhttpRequest({
+					method: 'GET',
+					url: `https://api.github.com/repos/${owner}/${repo}`,
+					timeout: 8000,
+					onload: (res) => {
+						try {
+							const data = JSON.parse(res.responseText);
+							if (typeof data.has_issues === 'boolean') resolve(data.has_issues);
+							else resolve(null);
+						} catch (e) { resolve(null); }
+					},
+					onerror: () => resolve(null),
+					ontimeout: () => resolve(null)
+				});
+			});
+		},
+
+		// 旧启发式兜底（API 失败时）：拉 /issues/new，200 且未被重定向到登录页即视为可用
+		_checkViaHtml(owner, repo) {
+			return new Promise((resolve) => {
+				GM_xmlhttpRequest({
+					method: 'GET',
+					url: `https://github.com/${owner}/${repo}/issues/new`,
+					timeout: 8000,
+					onload: (res) => {
+						const redirectedToLogin = res.finalUrl && res.finalUrl.includes('/login');
+						resolve(res.status === 200 && !redirectedToLogin);
+					},
+					onerror: () => resolve(false),
+					ontimeout: () => resolve(false)
+				});
+			});
+		},
+
 		async check(owner, repo, force = false) {
-			const cache = GM_getValue(this.CACHE_KEY, {});
 			const key = `${owner}/${repo}`;
 			const now = Date.now();
 
-			// 缓存有效且不强制刷新时，直接返回
-			if (!force && cache[key] && (now - cache[key].timestamp < this.EXPIRATION)) {
-				return cache[key].canUseIssues;
+			// 缓存有效且不强制刷新时，直接返回（正负结果采用不同 TTL）
+			if (!force) {
+				const entry = this._readCache()[key];
+				if (entry && (now - entry.timestamp < this._ttlFor(entry))) {
+					return entry.canUseIssues;
+				}
 			}
 
 			// 防止同一仓库并发发起多个请求
@@ -15736,38 +25170,23 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				return this.pendingChecks.get(key);
 			}
 
-			const checkPromise = new Promise((resolve) => {
-				GM_xmlhttpRequest({
-					method: 'GET',
-					url: `https://github.com/${owner}/${repo}/issues/new`,
-					onload: (res) => {
-						let canUse = false;
-						// 状态 200 且未被重定向到登录页，说明已登录且启用了议题
-						if (res.status === 200 && !(res.finalUrl && res.finalUrl.includes('/login'))) {
-							canUse = true;
-						}
-						cache[key] = { canUseIssues: canUse, timestamp: Date.now() };
-						GM_setValue(this.CACHE_KEY, cache);
-						resolve(canUse);
-					},
-					onerror: () => resolve(false),
-					ontimeout: () => resolve(false)
-				});
-			});
+			const checkPromise = (async () => {
+				const apiResult = await this._checkViaApi(owner, repo);
+				if (apiResult !== null) {
+					this._cacheResult(key, apiResult);
+					return apiResult;
+				}
+				const htmlResult = await this._checkViaHtml(owner, repo);
+				this._cacheResult(key, htmlResult);
+				return htmlResult;
+			})();
 
 			this.pendingChecks.set(key, checkPromise);
-			const result = await checkPromise;
-			this.pendingChecks.delete(key);
-			return result;
-		},
-
-		getSync(owner, repo) {
-			const cache = GM_getValue(this.CACHE_KEY, {});
-			const key = `${owner}/${repo}`;
-			if (cache[key] && (Date.now() - cache[key].timestamp < this.EXPIRATION)) {
-				return cache[key].canUseIssues;
+			try {
+				return await checkPromise;
+			} finally {
+				this.pendingChecks.delete(key);
 			}
-			return null;
 		}
 	};
 
@@ -15775,71 +25194,59 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 * 从 GitHub 或 jsDelivr 导入在线术语表文件
 	 */
 	function importOnlineGlossary(url, options = {}) {
-		const { silent = false } = options;
+		const { silent = false, keepLastSelected = false, metaOverrides = {} } = options;
 
 		return new Promise((resolve) => {
 			if (!url || !url.trim()) {
 				return resolve({ success: false, name: '未知', message: 'URL 不能为空。' });
 			}
 
-			const glossaryUrlRegex = /^(https:\/\/(raw\.githubusercontent\.com\/[^\/]+\/[^\/]+\/(?:refs\/heads\/)?[^\/]+|cdn\.jsdelivr\.net\/gh\/[^\/]+\/[^\/]+@[^\/]+)\/.+)$/;
-			if (!glossaryUrlRegex.test(url)) {
+			if (!parseGlossaryUrl(url)) {
 				const message = "链接格式不正确。请输入一个有效的 GitHub Raw 或 jsDelivr 链接。";
-				if (!silent) alert(message);
+				if (!silent) notifyAndLog(message, '导入失败', 'error');
 				return resolve({ success: false, name: url, message });
 			}
 
 			const filename = url.split('/').pop();
 			const lastDotIndex = filename.lastIndexOf('.');
 			const baseName = (lastDotIndex > 0) ? filename.substring(0, lastDotIndex) : filename;
-			const glossaryName = decodeURIComponent(baseName);
+			let glossaryName = baseName;
+			try { glossaryName = decodeURIComponent(baseName); } catch (e) { /* 保留 baseName */ }
 
 			fetchWithFallback(url, { timeout: 5000 })
 				.then(({ responseText, isFallback }) => {
 					try {
-						const onlineData = parseCustomGlossaryFormat(responseText);
+							const onlineData = parseCustomGlossaryFormat(responseText);
 
-						const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-						allImportedGlossaries[url] = {
-							terms: onlineData.terms,
-							generalTerms: onlineData.generalTerms,
-							multiPartTerms: onlineData.multiPartTerms,
-							multiPartGeneralTerms: onlineData.multiPartGeneralTerms,
-							forbiddenTerms: onlineData.forbiddenTerms,
-							regexTerms: onlineData.regexTerms
-						};
-						GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
+							(onlineData.warnings || []).forEach(w => {
+								const msg = `术语表 "${glossaryName}" ${w}`;
+								if (reportGlossaryDiagnostic(msg, 'warn')) Logger.warn('Data', msg);
+							});
 
-						const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
-						rawTextCache[url] = responseText;
-						GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, rawTextCache);
+							saveImportedGlossary(url, onlineData, responseText, 'last_imported', metaOverrides);
 
-						const parsedUrls = parseGlossaryUrl(url);
-						if (parsedUrls) {
-							GitHubStatusManager.check(parsedUrls.owner, parsedUrls.repo);
-						}
+							const parsedUrls = parseGlossaryUrl(url);
+							if (parsedUrls) {
+								GitHubStatusManager.check(parsedUrls.owner, parsedUrls.repo);
+							}
 
-						const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-						const existingMetadata = metadata[url] || {};
-						metadata[url] = { ...existingMetadata, ...onlineData.metadata, last_imported: getShanghaiTimeString() };
-						if (typeof metadata[url].enabled !== 'boolean') {
-							metadata[url].enabled = true;
-						}
-						GM_setValue(GLOSSARY_METADATA_KEY, metadata);
-						invalidateGlossaryCache();
+							const regexValid = onlineData.regexTerms.filter(t => t.valid).length;
+							const regexInvalid = onlineData.regexTerms.length - regexValid;
+							const importedCount = Object.keys(onlineData.terms).length + Object.keys(onlineData.generalTerms).length +
+								Object.keys(onlineData.multiPartTerms).length + Object.keys(onlineData.multiPartGeneralTerms).length +
+								onlineData.forbiddenTerms.length + regexValid;
 
-						const importedCount = Object.keys(onlineData.terms).length + Object.keys(onlineData.generalTerms).length +
-							Object.keys(onlineData.multiPartTerms).length + Object.keys(onlineData.multiPartGeneralTerms).length +
-							onlineData.regexTerms.length;
-						
-						let message = `已成功导入 ${glossaryName} 术语表，共 ${importedCount} 个词条。版本号：v${onlineData.metadata.version || '未知'}，维护者：${onlineData.metadata.maintainer || '未知'}。`;
-						if (isFallback) message += ' (通过备用链接下载)';
+							let message = `已成功导入 ${glossaryName} 术语表，共 ${importedCount} 个有效词条`;
+							if (regexInvalid > 0) message += `（另有 ${regexInvalid} 条正则编译失败，已跳过）`;
+							if (onlineData.dropped > 0) message += `（另有 ${onlineData.dropped} 行无法解析，已跳过）`;
+							message += `。版本号：v${onlineData.metadata.version || '未知'}，维护者：${onlineData.metadata.maintainer || '未知'}。`;
+							if (isFallback) message += ' (通过备用链接下载)';
 
-						if (!silent) {
-							notifyAndLog(message, '导入成功');
-						}
+							if (!silent) {
+								Logger.info('Data', message);
+							}
 
-						GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
+						if (!keepLastSelected) GM_setValue(LAST_SELECTED_GLOSSARY_KEY, url);
 						document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.GLOSSARY_IMPORTED));
 
 						resolve({ success: true, name: glossaryName, message });
@@ -15847,15 +25254,56 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					} catch (e) {
 						const message = `导入 ${glossaryName} 术语表失败：${e.message}`;
 						if (!silent) notifyAndLog(message, '处理错误', 'error');
+						try {
+							document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.GLOSSARY_IMPORT_FAILED));
+						} catch (evErr) { /* 埋点失败不影响导入主流程 */ }
 						resolve({ success: false, name: glossaryName, message });
 					}
 				})
 				.catch((err) => {
-					const message = `下载 ${glossaryName} 术语表失败！请检查网络连接或链接。(${err.message})`;
+					const message = `下载 ${glossaryName} 术语表失败，请检查网络连接或链接。(${err.message})`;
 					if (!silent) notifyAndLog(message, '网络错误', 'error');
 					resolve({ success: false, name: glossaryName, message });
 				});
 		});
+	}
+
+	/**
+	 * 保存一份已下载/解析完成的在线术语表数据
+	 * @param {string} url 术语表 URL
+	 * @param {object} onlineData parseCustomGlossaryFormat 的解析结果
+	 * @param {string} responseText 原始文件文本（写入 GLOSSARY_RAW_TEXT_CACHE_KEY）
+	 * @param {string} metadataTag 时间戳字段：导入用 'last_imported'，自动更新用 'last_updated'
+	 */
+	function saveImportedGlossary(url, onlineData, responseText, metadataTag, metadataOverrides = {}) {
+		const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
+		allImportedGlossaries[url] = {
+			terms: onlineData.terms,
+			generalTerms: onlineData.generalTerms,
+			multiPartTerms: onlineData.multiPartTerms,
+			multiPartGeneralTerms: onlineData.multiPartGeneralTerms,
+			forbiddenTerms: onlineData.forbiddenTerms,
+			regexTerms: onlineData.regexTerms
+		};
+		GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
+
+		setCachedRawText(url, responseText);
+
+		// 保留本地字段（enabled、上次时间戳等），再合并在线元数据并打时间戳
+		const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+		const existing = metadata[url] || {};
+		const merged = { ...existing, ...onlineData.metadata };
+		for (const [k, v] of Object.entries(metadataOverrides)) {
+			if (v !== undefined && merged[k] === undefined) merged[k] = v;
+		}
+		merged[metadataTag] = getShanghaiTimeString();
+		metadata[url] = merged;
+		if (typeof metadata[url].enabled !== 'boolean') {
+			metadata[url].enabled = true;
+		}
+		GM_setValue(GLOSSARY_METADATA_KEY, metadata);
+
+		invalidateGlossaryCache(true);
 	}
 
 	/**
@@ -15880,59 +25328,102 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	/**
 	 * 检查术语表更新
 	 */
-	async function checkForGlossaryUpdates() {
-		const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-		const urls = Object.keys(metadata);
-
-		if (urls.length === 0) {
-			return;
-		}
-
-		const updatePromises = urls.map(async (url) => {
-			try {
-				const separator = url.includes('?') ? '&' : '?';
-				const urlWithCacheBust = url + separator + 't=' + Date.now();
-
-				const { responseText } = await fetchWithFallback(urlWithCacheBust, { timeout: 5000 });
-
-				const onlineData = parseCustomGlossaryFormat(responseText);
-				const currentMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-				const localVersion = currentMetadata[url]?.version;
-				const onlineVersion = onlineData.metadata.version;
-				const glossaryName = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
-
-				if (!localVersion || compareVersions(onlineVersion, localVersion) > 0) {
-					const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
-					allImportedGlossaries[url] = {
-						terms: onlineData.terms,
-						generalTerms: onlineData.generalTerms,
-						multiPartTerms: onlineData.multiPartTerms,
-						multiPartGeneralTerms: onlineData.multiPartGeneralTerms,
-						forbiddenTerms: onlineData.forbiddenTerms,
-						regexTerms: onlineData.regexTerms
-					};
-					
-					const rawTextCache = GM_getValue(GLOSSARY_RAW_TEXT_CACHE_KEY, {});
-					rawTextCache[url] = responseText;
-					GM_setValue(GLOSSARY_RAW_TEXT_CACHE_KEY, rawTextCache);
-
-					currentMetadata[url] = { ...onlineData.metadata, last_updated: getShanghaiTimeString() };
-
-					GM_setValue(IMPORTED_GLOSSARY_KEY, allImportedGlossaries);
-					GM_setValue(GLOSSARY_METADATA_KEY, currentMetadata);
-					invalidateGlossaryCache();
-
-					Logger.info('Data', `术语表 ${glossaryName} 更新成功: v${localVersion} -> v${onlineVersion}`);
-					GM_notification(`检测到术语表 ${glossaryName} 新版本，已自动更新至 v${onlineVersion} 。`, 'AO3 Translator');
-				} else {
-					Logger.info('Data', `术语表 ${glossaryName} 已是最新版本 (v${localVersion})`);
-				}
-			} catch (e) {
-				Logger.warn('Data', `检查术语表更新失败 (${url})`, e.message);
+	let _glossaryRefreshTimer = null;
+	let _glossaryRefreshUrls = new Set();
+	function scheduleSilentGlossaryRefresh(urls) {
+		(urls || []).forEach(u => _glossaryRefreshUrls.add(u));
+		if (_glossaryRefreshTimer) return;
+		_glossaryRefreshTimer = setTimeout(async () => {
+			_glossaryRefreshTimer = null;
+			const batch = Array.from(_glossaryRefreshUrls);
+			_glossaryRefreshUrls = new Set();
+			let successCount = 0;
+			for (const url of batch) {
+				try {
+					const res = await importOnlineGlossary(url, { silent: true, keepLastSelected: true });
+					if (res && res.success) successCount++;
+				} catch (e) { /* 单个失败不阻断后续 */ }
+				await sleep(500);
 			}
-		});
+			if (successCount > 0) Logger.debug('Data', `后台同步了 ${successCount} 个在线术语表`);
+		}, 1000);
+	}
 
-		await Promise.allSettled(updatePromises);
+	async function checkForGlossaryUpdates() {
+		const runCheck = async () => {
+			const failKey = 'ao3_glossary_check_fail_count';
+			let failCount = GM_getValue(failKey, 0);
+			const now = Date.now();
+			const lastFailAt = GM_getValue('ao3_glossary_check_fail_at', 0);
+			if (failCount >= 3 && now - lastFailAt < 3 * 24 * 60 * 60 * 1000) {
+				return;
+			}
+	
+			const metadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+			const urls = Object.keys(metadata);
+	
+			if (urls.length === 0) {
+				return;
+			}
+	
+			let successCount = 0;
+			const updatedGlossaries = [];
+	
+			const updatePromises = urls.map(async (url) => {
+				try {
+					const separator = url.includes('?') ? '&' : '?';
+					const urlWithCacheBust = url + separator + 't=' + Date.now();
+	
+					const { responseText } = await fetchWithFallback(urlWithCacheBust, { timeout: 5000 });
+	
+					const onlineData = parseCustomGlossaryFormat(responseText);
+					const currentMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
+					const localVersion = currentMetadata[url]?.version;
+					const onlineVersion = onlineData.metadata.version;
+					const glossaryName = decodeURIComponent(url.split('/').pop().replace(/\.[^/.]+$/, ''));
+	
+					if (!localVersion || compareVersions(onlineVersion, localVersion) > 0) {
+						saveImportedGlossary(url, onlineData, responseText, 'last_updated');
+	
+						Logger.info('Data', `术语表 ${glossaryName} 更新成功: v${localVersion} -> v${onlineVersion}`);
+						updatedGlossaries.push({ name: glossaryName, from: localVersion, to: onlineVersion });
+						successCount++;
+					} else {
+						Logger.debug('Data', `术语表 ${glossaryName} 已是最新版本 (v${localVersion})`);
+						successCount++;
+					}
+				} catch (e) {
+					Logger.warn('Data', `检查术语表更新失败 (${url})`, e.message);
+				}
+			});
+	
+			await Promise.allSettled(updatePromises);
+
+			if (updatedGlossaries.length > 0) {
+				const summary = updatedGlossaries.map(g => `${g.name} → v${g.to}`).join('、');
+				GM_notification(`检测到术语表新版本，已自动更新：${summary}。`, 'AO3 Translator');
+			}
+
+			if (successCount === urls.length && urls.length > 0) {
+				GM_deleteValue(failKey);
+				GM_deleteValue('ao3_glossary_check_fail_at');
+			} else if (successCount === 0 && urls.length > 0) {
+				failCount = (failCount || 0) + 1;
+				GM_setValue(failKey, failCount);
+				GM_setValue('ao3_glossary_check_fail_at', Date.now());
+			}
+		};
+
+	if (navigator.locks && navigator.locks.request) {
+		return navigator.locks.request('ao3_glossary_update_lock', { mode: 'exclusive', ifAvailable: true }, async (lock) => {
+			if (lock) await runCheck();
+		});
+	}
+	const lockKey = 'ao3_glossary_update_fallback_lock';
+	const now = Date.now();
+	if (now - GM_getValue(lockKey, 0) < 60 * 60 * 1000) return;
+	GM_setValue(lockKey, now);
+	await runCheck();
 	}
 
 	/**
@@ -15959,7 +25450,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}).filter(Boolean);
 		}
 
-		Logger.info('Data', '缓存未命中、已失效或术语表引擎已更新，正在重建规则');
+		Logger.debug('Data', '缓存未命中、已失效或术语表引擎已更新，正在重建规则');
 		return buildPrioritizedGlossaryMaps();
 	}
 
@@ -15971,10 +25462,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		if (runtimePreparedGlossaryCache && runtimePreparedGlossaryCache.version === currentStateVersion) {
 			return runtimePreparedGlossaryCache.preparedRules;
 		}
-		Logger.info('Data', '二级缓存未命中，正在构建术语匹配策略');
+		Logger.debug('Data', '二级缓存未命中，正在构建术语匹配策略');
 		const rules = getGlossaryRules();
 		currentStateVersion = GM_getValue(GLOSSARY_STATE_VERSION_KEY, 0);
-		const domRules = rules.filter(r => r.matchStrategy === 'dom');
+		const domRules = rules
+			.filter(r => r.matchStrategy === 'dom')
+			.map(rule => ({
+				...rule,
+				parts: rule.parts.map(part => Array.from(part).sort((a, b) => b.length - a.length))
+			}));
 		const regexStrategyRules = rules.filter(r => r.matchStrategy === 'regex');
 		const executionPlan = [];
 		let currentBatch = {
@@ -16039,12 +25535,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let splitIndex = -1;
 		let separator = '';
 
-		const quotePairs = {
-			'"': '"',
-			"'": "'",
-			'“': '”',
-			'‘': '’'
-		};
+		const quotePairs = QUOTE_PAIRS;
 
 		const rawChars = entry.split('');
 
@@ -16100,16 +25591,265 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
-	 * 构建并排序所有术语表规则
+	 * 检测「整行被成对引号包裹且内含分隔符」的写法
 	 */
+	function isWholeLineQuotedWithSeparator(entry) {
+		if (!entry) return null;
+		const first = entry[0];
+		const last = entry[entry.length - 1];
+		if (typeof QUOTE_PAIRS[first] !== 'string') return null;
+		if (QUOTE_PAIRS[first] !== last) return null;
+		const inner = entry.slice(1, -1);
+		const parsed = parseGlossaryKeyValuePair(inner);
+		if (!parsed) return null;
+		return { key: first + parsed.key + last, value: parsed.value };
+	}
+
+	/**
+	 * 引号匹配集与分隔符
+	 */
+	const TERM_SEPARATOR_RE = /[\s-－﹣—–]+/;
+	const TRANSLATION_SEPARATOR_RE = /[\s·・]+/;
+	const QUOTE_RE = /["“‘'”’]/;
+	const QUOTE_PAIRS = { '"': '"', "'": "'", '“': '”', '‘': '’' };
+
+	/**
+	 * 引号感知分词
+	 */
+	function smartSplit(str, regex) {
+		if (!QUOTE_RE.test(str)) return str.split(regex);
+		const parts = [];
+		let current = '';
+		let inQuote = false;
+		let currentQuote = '';
+		for (let i = 0; i < str.length; i++) {
+			const char = str[i];
+			if (QUOTE_RE.test(char)) {
+				if (!inQuote) {
+					inQuote = true;
+					currentQuote = char;
+				} else if (char === currentQuote || (currentQuote === '“' && char === '”') || (currentQuote === '‘' && char === '’')) {
+					inQuote = false;
+				}
+				current += char;
+			} else if (!inQuote && regex.test(char)) {
+				if (current.trim()) parts.push(current.trim());
+				current = '';
+			} else {
+				current += char;
+			}
+		}
+		if (current.trim()) parts.push(current.trim());
+		return parts;
+	}
+
+	/**
+	 * 译文去首尾引号
+	 */
+	function sanitizeTranslation(trans) {
+		if (!trans) return trans;
+		const match = trans.match(/^["“‘'](.*)["”’']$/);
+		if (match && match[1]) return match[1].trim();
+		return trans;
+	}
+
+	/**
+	 * 单条词条 → 规则对象
+	 */
+	let _reportedGlossaryDiagnostics = new Set();
+	function reportGlossaryDiagnostic(message, kind) {
+		const key = `${kind}::${message}`;
+		if (_reportedGlossaryDiagnostics.has(key)) return false;
+		_reportedGlossaryDiagnostics.add(key);
+		return true;
+	}
+
+	function tryAddRule(term, translation, ctx, glossaryIndex, sourceName, isSensitive, isForbidden, isRegex = false, isUnordered = false, line) {
+		if (typeof term !== 'string' || (translation != null && typeof translation !== 'string')) {
+			const shown = typeof term === 'string' ? term : String(term || '');
+			const msg = `术语表 "${sourceName}" 中的词条 "${shown}" 数据格式非法（期望字符串），已跳过。`;
+			if (reportGlossaryDiagnostic(msg, 'error')) {
+				Logger.error('Data', msg);
+				ctx.glossaryErrors.push(msg);
+			}
+			return;
+		}
+		let normalizedTerm = term.trim();
+		if (!normalizedTerm) return;
+
+		let isLiteral = false;
+
+		const unquoted = smartUnquote(normalizedTerm);
+
+		if (unquoted !== normalizedTerm) {
+			isLiteral = true;
+			normalizedTerm = unquoted.trim();
+		}
+
+		if (!isLiteral && !isRegex && !isUnordered) {
+			const parts = smartSplit(normalizedTerm, TERM_SEPARATOR_RE);
+			if (parts.length > 1) {
+				isLiteral = true;
+			}
+		}
+
+		const sanitizedTrans = sanitizeTranslation(translation);
+
+		const lowerTerm = normalizedTerm.toLowerCase();
+		if (ctx.processedInsensitiveTerms.has(lowerTerm)) {
+			return;
+		}
+		if (isSensitive) {
+			if (ctx.processedSensitiveTerms.has(normalizedTerm)) {
+				return;
+			}
+			ctx.processedSensitiveTerms.add(normalizedTerm);
+		} else {
+			ctx.processedInsensitiveTerms.add(lowerTerm);
+		}
+		let ruleObject;
+		const lengthBonus = normalizedTerm.length;
+		if (isRegex) {
+			const loc = line ? ` 第 ${line} 行（正则表达式分区）` : '';
+			try {
+				const testRegex = new RegExp(normalizedTerm);
+				if (testRegex.test("")) {
+					const msg = `术语表 "${sourceName}"${loc}中的正则 "${normalizedTerm}" 匹配空字符串，已跳过以防止死循环。`;
+					if (reportGlossaryDiagnostic(msg, 'error')) {
+						Logger.error('Data', msg);
+						ctx.glossaryErrors.push(msg);
+					}
+					return;
+				}
+				if (/[\(][^()]*[*+{][^()]*[\)][*+]/.test(normalizedTerm)) {
+					const msg = `术语表 "${sourceName}"${loc}中的正则 "${normalizedTerm}" 含嵌套量词，存在灾难性回溯风险，建议重构为不含嵌套量词的写法。`;
+					if (reportGlossaryDiagnostic(msg, 'warn')) Logger.warn('Data', msg);
+				}
+			} catch (e) {
+				const msg = `术语表 "${sourceName}"${loc}中的正则 "${normalizedTerm}" 非法: ${e.message}`;
+				if (reportGlossaryDiagnostic(msg, 'error')) {
+					Logger.error('Data', msg);
+					ctx.glossaryErrors.push(msg);
+				}
+				return;
+			}
+			try {
+				new RegExp(normalizedTerm, 'u');
+			} catch (e2) {
+				const msg = `术语表 "${sourceName}"${loc}中的正则 "${normalizedTerm}" 依赖宽松(非 u)语义，严格模式下会报错: ${e2.message}。建议补全括号/量词/转义。`;
+				if (reportGlossaryDiagnostic(msg, 'warn')) {
+					Logger.warn('Data', msg);
+					ctx.glossaryWarnings.push(msg);
+				}
+			}
+		ruleObject = {
+			type: 'regex', matchStrategy: 'regex',
+			regex: new RegExp(normalizedTerm, 'g'),
+			replacement: translation,
+			glossaryIndex, source: sourceName, originalTerm: `${normalizedTerm}:${translation}`,
+			sortLength: lengthBonus, isSensitive,
+			id: djb2(`r:${glossaryIndex}:${isSensitive ? 's' : 'i'}:${lengthBonus}:${normalizedTerm}`)
+		};
+		} else if (isLiteral) {
+			const escaped = normalizedTerm.replace(/([.*+?^${}()|[\]\\])/g, '\\$&');
+			const prefix = /^[a-zA-Z0-9]/.test(normalizedTerm) ? '\\b' : '';
+			const suffix = /[a-zA-Z0-9]$/.test(normalizedTerm) ? '\\b' : '';
+			const pattern = prefix + escaped + suffix;
+			const flags = isSensitive ? 'g' : 'gi';
+			ruleObject = {
+				type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'regex',
+				regex: new RegExp(pattern, flags),
+				replacement: isForbidden ? normalizedTerm : sanitizedTrans,
+				glossaryIndex, source: sourceName, originalTerm: normalizedTerm,
+				sortLength: lengthBonus, isSensitive,
+				id: djb2(`t:${glossaryIndex}:${isSensitive ? 's' : 'i'}:${lengthBonus}:${normalizedTerm}`)
+			};
+		} else {
+			const termParts = smartSplit(normalizedTerm, TERM_SEPARATOR_RE);
+
+			const termForms = termParts.map(part => {
+				const partLiteralMatch = part.match(/^["“‘'](.*)["”’']$/);
+				if (partLiteralMatch) {
+					return [partLiteralMatch[1].trim()];
+				}
+				return Array.from(generateWordForms(part, { preserveCase: isForbidden, forceLowerCase: !isSensitive }));
+			});
+
+			ruleObject = {
+				type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'dom',
+				parts: termForms,
+				replacement: isForbidden ? termForms.map(partForms => Array.from(partForms)[0]).join(' ') : sanitizedTrans,
+				glossaryIndex, isGeneral: !isSensitive, source: sourceName, originalTerm: normalizedTerm,
+				isUnordered: isUnordered,
+				sortLength: lengthBonus, isSensitive,
+				id: djb2(`d:${glossaryIndex}:${isSensitive ? 's' : 'i'}:${lengthBonus}:${normalizedTerm}`)
+			};
+		}
+		ctx.validRules.push(ruleObject);
+	}
+
+	/**
+	 * 多词 `=` 关联定义
+	 */
+	function processEqualsSyntax(term, translation, ctx, glossaryIndex, sourceName, isSensitive) {
+		tryAddRule(term, translation, ctx, glossaryIndex, sourceName, isSensitive, false, false, true);
+		if (term.match(/^["“‘'](.*)["”’']$/)) return;
+		const termParts = smartSplit(term, TERM_SEPARATOR_RE);
+		const transParts = smartSplit(translation, TRANSLATION_SEPARATOR_RE);
+		if (termParts.length > 1 && termParts.length === transParts.length) {
+			for (let i = 0; i < termParts.length; i++) {
+				tryAddRule(termParts[i], transParts[i], ctx, glossaryIndex, sourceName, isSensitive, false, false, false);
+			}
+		}
+	}
+
+	/**
+	 * 逗号分隔字符串规则逐条加入
+	 */
+	function processStringRules(rawString, ctx, glossaryIndex, sourceName, isSensitive, isForbidden) {
+		if (!rawString) return;
+		const tokens = tokenizeQuoteAware(rawString, [',', '，']);
+
+		tokens.forEach(token => {
+			const entry = token.value.trim();
+			if (!entry) return;
+
+			if (isForbidden) {
+				tryAddRule(entry, null, ctx, glossaryIndex, sourceName, isSensitive, true);
+				return;
+			}
+
+			const parsed = parseGlossaryKeyValuePair(entry);
+			if (parsed) {
+				if (parsed.separator === '=') {
+					processEqualsSyntax(parsed.key, parsed.value, ctx, glossaryIndex, sourceName, isSensitive);
+				} else {
+					tryAddRule(parsed.key, parsed.value, ctx, glossaryIndex, sourceName, isSensitive, false);
+				}
+				if (parsed.value && !/^https?:\/\//.test(parsed.value) && hasTopLevelResidualSeparator(parsed.value)) {
+					const msg = `术语表 "${sourceName}" 中的词条 "${entry}" 的译文值 "${parsed.value}" 内含额外分隔符，请确认是否为误输入（多个译文建议拆行或用 "=" 关联）。如需在原文或译文内保留冒号/等号等标点，请使用引号包裹。`;
+					if (reportGlossaryDiagnostic(msg, 'warn')) {
+						Logger.warn('Data', msg);
+						ctx.glossaryWarnings.push(msg);
+					}
+				}
+			} else {
+				const msg = `术语表 "${sourceName}" 中发现无法解析的词条: "${entry}"。词条含撇号/冒号/等号等标点时，请使用引号包裹；无标点词条请用「词条: 译文」或「词条 = 译文」。`;
+				if (reportGlossaryDiagnostic(msg, 'error')) {
+					Logger.warn('Data', msg);
+					ctx.glossaryErrors.push(msg);
+				}
+			}
+		});
+	}
+
+
 	function buildPrioritizedGlossaryMaps() {
 		const allImportedGlossaries = GM_getValue(IMPORTED_GLOSSARY_KEY, {});
 		const glossaryMetadata = GM_getValue(GLOSSARY_METADATA_KEY, {});
-		const glossaryErrors = [];
 		const localGlossaries = GM_getValue(CUSTOM_GLOSSARIES_KEY, []);
 		const onlineOrder = GM_getValue(ONLINE_GLOSSARY_ORDER_KEY, []);
 		const orderedGlossaries = [];
-
 		localGlossaries.forEach(g => {
 			if (g.enabled !== false) {
 				orderedGlossaries.push({ ...g, type: 'LOCAL', sourceName: g.name });
@@ -16129,210 +25869,40 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				orderedGlossaries.push({ ...allImportedGlossaries[url], type: 'ONLINE', sourceName: decodeURIComponent(url.split('/').pop()) });
 			}
 		});
-
-		const validRules = [];
-		const processedInsensitiveTerms = new Set();
-		const processedSensitiveTerms = new Set();
-		const termSeparatorRegex = /[\s-－﹣—–]+/;
-		const translationSeparatorRegex = /[\s·・]+/;
-		const quoteRegex = /["“‘'”’]/;
-
-		const smartSplit = (str, regex) => {
-			if (!quoteRegex.test(str)) return str.split(regex);
-			const parts = [];
-			let current = '';
-			let inQuote = false;
-			let currentQuote = '';
-			for (let i = 0; i < str.length; i++) {
-				const char = str[i];
-				if (quoteRegex.test(char)) {
-					if (!inQuote) {
-						inQuote = true;
-						currentQuote = char;
-					} else if (char === currentQuote || (currentQuote === '“' && char === '”') || (currentQuote === '‘' && char === '’')) {
-						inQuote = false;
-					}
-					current += char;
-				} else if (!inQuote && regex.test(char)) {
-					if (current.trim()) parts.push(current.trim());
-					current = '';
-				} else {
-					current += char;
-				}
-			}
-			if (current.trim()) parts.push(current.trim());
-			return parts;
+		const ctx = {
+			validRules: [],
+			processedInsensitiveTerms: new Set(),
+			processedSensitiveTerms: new Set(),
+			glossaryErrors: [],
+			glossaryWarnings: []
 		};
-
-		const sanitizeTranslation = (term, trans) => {
-			if (!trans || !quoteRegex.test(term)) return trans;
-			const match = trans.match(/^["“‘'](.*)["”’']$/);
-			if (match) return match[1].trim();
-			return trans;
-		};
-
-		const tryAddRule = (term, translation, glossaryIndex, sourceName, isSensitive, isForbidden, isRegex = false, isUnordered = false) => {
-			let normalizedTerm = term.trim();
-			if (!normalizedTerm) return;
-
-			let isLiteral = false;
-
-			const unquoted = smartUnquote(normalizedTerm);
-
-			if (unquoted !== normalizedTerm) {
-				isLiteral = true;
-				normalizedTerm = unquoted.trim();
-			}
-
-			if (!isLiteral && !isRegex && !isUnordered) {
-				const parts = smartSplit(normalizedTerm, termSeparatorRegex);
-				if (parts.length > 1) {
-					isLiteral = true;
-				}
-			}
-
-			const sanitizedTrans = sanitizeTranslation(normalizedTerm, translation);
-
-			const lowerTerm = normalizedTerm.toLowerCase();
-			if (processedInsensitiveTerms.has(lowerTerm)) {
-				return;
-			}
-			if (isSensitive) {
-				if (processedSensitiveTerms.has(normalizedTerm)) {
-					return;
-				}
-				processedSensitiveTerms.add(normalizedTerm);
-			} else {
-				processedInsensitiveTerms.add(lowerTerm);
-			}
-			let ruleObject;
-			const lengthBonus = normalizedTerm.length;
-			if (isRegex) {
-				try {
-					const testRegex = new RegExp(normalizedTerm);
-					if (testRegex.test("")) {
-						const msg = `术语表 "${sourceName}" 中的正则 "${normalizedTerm}" 匹配空字符串，已跳过以防止死循环。`;
-						Logger.error('Data', msg);
-						glossaryErrors.push(msg);
-						return;
-					}
-				} catch (e) {
-					const msg = `术语表 "${sourceName}" 中的正则 "${normalizedTerm}" 非法: ${e.message}`;
-					Logger.error('Data', msg);
-					glossaryErrors.push(msg);
-					return;
-				}
-				ruleObject = {
-					type: 'regex', matchStrategy: 'regex',
-					regex: new RegExp(normalizedTerm, 'g'),
-					replacement: translation,
-					glossaryIndex, source: sourceName, originalTerm: `${normalizedTerm}:${translation}`,
-					sortLength: lengthBonus, isSensitive
-				};
-			} else if (isLiteral) {
-				const escaped = normalizedTerm.replace(/([.*+?^${}()|[\]\\])/g, '\\$&');
-				const prefix = /^[a-zA-Z0-9]/.test(normalizedTerm) ? '\\b' : '';
-				const suffix = /[a-zA-Z0-9]$/.test(normalizedTerm) ? '\\b' : '';
-				const pattern = prefix + escaped + suffix;
-				const flags = isSensitive ? 'g' : 'gi';
-				ruleObject = {
-					type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'regex',
-					regex: new RegExp(pattern, flags),
-					replacement: isForbidden ? normalizedTerm : sanitizedTrans,
-					glossaryIndex, source: sourceName, originalTerm: normalizedTerm,
-					sortLength: lengthBonus, isSensitive
-				};
-			} else {
-				const termParts = smartSplit(normalizedTerm, termSeparatorRegex);
-
-				const termForms = termParts.map(part => {
-					const partLiteralMatch = part.match(/^["“‘'](.*)["”’']$/);
-					if (partLiteralMatch) {
-						return new Set([partLiteralMatch[1].trim()]);
-					}
-					return Array.from(generateWordForms(part, { preserveCase: isForbidden, forceLowerCase: !isSensitive }));
-				});
-
-				ruleObject = {
-					type: isForbidden ? 'forbidden' : 'term', matchStrategy: 'dom',
-					parts: termForms,
-					replacement: isForbidden ? termForms.map(partForms => Array.from(partForms)[0]).join(' ') : sanitizedTrans,
-					glossaryIndex, isGeneral: !isSensitive, source: sourceName, originalTerm: normalizedTerm,
-					isUnordered: isUnordered,
-					sortLength: lengthBonus, isSensitive
-				};
-			}
-			validRules.push(ruleObject);
-		};
-
-		const processEqualsSyntax = (term, translation, glossaryIndex, sourceName, isSensitive) => {
-			tryAddRule(term, translation, glossaryIndex, sourceName, isSensitive, false, false, true);
-			if (term.match(/^["“‘'](.*)["”’']$/)) return;
-			const termParts = smartSplit(term, termSeparatorRegex);
-			const transParts = smartSplit(translation, translationSeparatorRegex);
-			if (termParts.length > 1 && termParts.length === transParts.length) {
-				for (let i = 0; i < termParts.length; i++) {
-					tryAddRule(termParts[i], transParts[i], glossaryIndex, sourceName, isSensitive, false, false, false);
-				}
-			}
-		};
-
-		const processStringRules = (rawString, glossaryIndex, sourceName, isSensitive, isForbidden) => {
-			if (!rawString) return;
-			const tokens = tokenizeQuoteAware(rawString, [',', '，']);
-
-			tokens.forEach(token => {
-				const entry = token.value.trim();
-				if (!entry) return;
-
-				if (isForbidden) {
-					tryAddRule(entry, null, glossaryIndex, sourceName, isSensitive, true);
-					return;
-				}
-
-				const parsed = parseGlossaryKeyValuePair(entry);
-				if (parsed) {
-					if (parsed.separator === '=') {
-						processEqualsSyntax(parsed.key, parsed.value, glossaryIndex, sourceName, isSensitive);
-					} else {
-						tryAddRule(parsed.key, parsed.value, glossaryIndex, sourceName, isSensitive, false);
-					}
-				} else {
-					const msg = `术语表 "${sourceName}" 中发现格式错误的词条: "${entry}"，请检查是否缺少冒号或等号。`;
-					Logger.warn('Data', msg);
-					glossaryErrors.push(msg);
-				}
-			});
-		};
-
 		orderedGlossaries.forEach((glossary, index) => {
 			const sourceName = glossary.sourceName;
 
 			if (glossary.forbidden) {
-				processStringRules(glossary.forbidden, index, sourceName, true, true);
+				processStringRules(glossary.forbidden, ctx, index, sourceName, true, true);
 			}
 			(glossary.forbiddenTerms || []).forEach(term => {
-				tryAddRule(term, null, index, sourceName, true, true);
+				tryAddRule(term, null, ctx, index, sourceName, true, true);
 			});
 
 			if (glossary.sensitive) {
-				processStringRules(glossary.sensitive, index, sourceName, true, false);
+				processStringRules(glossary.sensitive, ctx, index, sourceName, true, false);
 			}
-			Object.entries(glossary.terms || {}).forEach(([k, v]) => tryAddRule(k, v, index, sourceName, true, false));
-			Object.entries(glossary.multiPartTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, index, sourceName, true));
+			Object.entries(glossary.terms || {}).forEach(([k, v]) => tryAddRule(k, v, ctx, index, sourceName, true, false));
+			Object.entries(glossary.multiPartTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, ctx, index, sourceName, true));
 
 			if (glossary.insensitive) {
-				processStringRules(glossary.insensitive, index, sourceName, false, false);
+				processStringRules(glossary.insensitive, ctx, index, sourceName, false, false);
 			}
-			Object.entries(glossary.generalTerms || {}).forEach(([k, v]) => tryAddRule(k, v, index, sourceName, false, false));
-			Object.entries(glossary.multiPartGeneralTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, index, sourceName, false));
+			Object.entries(glossary.generalTerms || {}).forEach(([k, v]) => tryAddRule(k, v, ctx, index, sourceName, false, false));
+			Object.entries(glossary.multiPartGeneralTerms || {}).forEach(([k, v]) => processEqualsSyntax(k, v, ctx, index, sourceName, false));
 
-			(glossary.regexTerms || []).forEach(({ pattern, replacement }) => {
-				tryAddRule(pattern, replacement, index, sourceName, true, false, true);
-			});
+		(glossary.regexTerms || []).forEach(({ pattern, replacement, line }) => {
+			tryAddRule(pattern, replacement, ctx, index, sourceName, true, false, true, false, line);
 		});
-
-		validRules.sort((a, b) => {
+		});
+		ctx.validRules.sort((a, b) => {
 			if (a.glossaryIndex !== b.glossaryIndex) {
 				return a.glossaryIndex - b.glossaryIndex;
 			}
@@ -16347,9 +25917,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 			return (b.isSensitive ? 1 : 0) - (a.isSensitive ? 1 : 0);
 		});
-
 		const currentStateVersion = generateGlossaryStateVersion();
-		const serializedRules = validRules.map(rule => {
+		const serializedRules = ctx.validRules.map(rule => {
 			if (rule.regex instanceof RegExp) {
 				return { ...rule, regex: { source: rule.regex.source, flags: rule.regex.flags } };
 			}
@@ -16360,17 +25929,30 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			engineVersion: GLOSSARY_ENGINE_VERSION,
 			rules: serializedRules
 		});
-		Logger.info('Data', `术语表规则重建完成，当前版本: v${currentStateVersion}`);
+		Logger.debug('Data', `术语表规则重建完成，当前版本: v${currentStateVersion}`);
 
-		if (glossaryErrors.length > 0) {
-			const summaryMsg = `术语表解析完成，发现 ${glossaryErrors.length} 处错误，请前往“调试模式与日志”查看详情。`;
-			GM_notification({
-				text: summaryMsg,
-				title: 'AO3 Translator'
-			});
+		if (_glossaryDiagNotifyArmed) {
+			_glossaryDiagNotifyArmed = false;
+			const errCount = ctx.glossaryErrors.length;
+			const warnCount = ctx.glossaryWarnings.length;
+			const signature = [...ctx.glossaryErrors, ...ctx.glossaryWarnings].join('\x02');
+			if (errCount > 0 || warnCount > 0) {
+				if (GM_getValue('ao3_glossary_diag_notified', null) !== signature) {
+					let summaryMsg;
+					if (errCount > 0 && warnCount > 0) summaryMsg = `术语表解析完成，发现 ${errCount} 处错误、${warnCount} 处提醒，请前往“调试模式与日志”功能查看详情。`;
+					else if (errCount > 0) summaryMsg = `术语表解析完成，发现 ${errCount} 处错误，请前往“调试模式与日志”功能查看详情。`;
+					else summaryMsg = `术语表解析完成，发现 ${warnCount} 处提醒，请前往“调试模式与日志”功能查看详情。`;
+					GM_notification({
+						text: summaryMsg,
+						title: 'AO3 Translator'
+					});
+					GM_setValue('ao3_glossary_diag_notified', signature);
+				}
+			} else {
+				GM_deleteValue('ao3_glossary_diag_notified');
+			}
 		}
-
-		return validRules;
+		return ctx.validRules;
 	}
 
 	/**
@@ -16481,6 +26063,45 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
+	 * 译文后处理规则预编译缓存
+	 */
+	const _PostReplaceCompileCache = {
+		signature: null,
+		compiled: null
+	};
+
+	/**
+	 * 把启用的后处理规则列表编译为可复用的 { regex, finalReplacementMap } 数组
+	 */
+	function compilePostReplaceRules(rulesList) {
+		return rulesList
+			.filter(ruleConfig => ruleConfig.enabled)
+			.map(ruleConfig => {
+				const rulesData = parsePostReplaceString(ruleConfig.content);
+				const { singleRules = {}, multiPartRules = [] } = rulesData;
+				const finalReplacementMap = {};
+
+				multiPartRules.forEach(rule => {
+					Object.assign(finalReplacementMap, rule.subRules);
+				});
+
+				Object.assign(finalReplacementMap, singleRules);
+
+				multiPartRules.forEach(rule => {
+					finalReplacementMap[rule.source] = rule.target;
+				});
+
+				const keys = Object.keys(finalReplacementMap);
+				if (keys.length === 0) return null;
+
+				const sortedKeys = keys.sort((a, b) => b.length - a.length);
+				const regex = new RegExp(sortedKeys.map(key => key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|'), 'g');
+				return { regex, finalReplacementMap };
+			})
+			.filter(Boolean);
+	}
+
+	/**
 	 * 译文后处理替换
 	 */
 	function applyPostTranslationReplacements(text) {
@@ -16490,35 +26111,22 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			return text;
 		}
 
-		let processedText = text;
+		const signature = rulesList
+			.filter(ruleConfig => ruleConfig.enabled)
+			.map(ruleConfig => `${ruleConfig.id}\u0001${ruleConfig.content}`)
+			.join('\u0002');
 
-		for (const ruleConfig of rulesList) {
-			if (!ruleConfig.enabled) continue;
-
-			const rulesData = parsePostReplaceString(ruleConfig.content);
-			const { singleRules = {}, multiPartRules = [] } = rulesData;
-			const finalReplacementMap = {};
-
-			multiPartRules.forEach(rule => {
-				Object.assign(finalReplacementMap, rule.subRules);
-			});
-
-			Object.assign(finalReplacementMap, singleRules);
-
-			multiPartRules.forEach(rule => {
-				finalReplacementMap[rule.source] = rule.target;
-			});
-
-			const keys = Object.keys(finalReplacementMap);
-			if (keys.length === 0) {
-				continue;
-			}
-
-			const sortedKeys = keys.sort((a, b) => b.length - a.length);
-			const regex = new RegExp(sortedKeys.map(key => key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|'), 'g');
-
-			processedText = processedText.replace(regex, (matched) => finalReplacementMap[matched]);
+		if (_PostReplaceCompileCache.signature !== signature) {
+			_PostReplaceCompileCache.signature = signature;
+			_PostReplaceCompileCache.compiled = compilePostReplaceRules(rulesList);
 		}
+
+		let processedText = text;
+		let postReplaceMatchCount = 0;
+		for (const { regex, finalReplacementMap } of _PostReplaceCompileCache.compiled) {
+			processedText = processedText.replace(regex, (matched) => { postReplaceMatchCount++; return finalReplacementMap[matched]; });
+		}
+		if (postReplaceMatchCount) bumpUsageCounter(ANALYTICS_KEY_USAGE_POST_REPLACE_HITS, postReplaceMatchCount);
 
 		return processedText;
 	}
@@ -16590,11 +26198,30 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	/**
 	 * 使术语表规则缓存失效
 	 */
-	function invalidateGlossaryCache() {
+	let _glossaryRebuildScheduled = false;
+	let _glossaryDiagNotifyArmed = false;
+	function invalidateGlossaryCache(armDiagNotify = false) {
+		if (armDiagNotify) _glossaryDiagNotifyArmed = true;
 		GM_deleteValue(GLOSSARY_RULES_CACHE_KEY);
 		generateGlossaryStateVersion();
 		runtimePreparedGlossaryCache = null;
-		Logger.info('Data', '术语表规则缓存已失效');
+		if (!_glossaryRebuildScheduled) {
+			_glossaryRebuildScheduled = true;
+			const scheduleRebuild = () => {
+				_glossaryRebuildScheduled = false;
+				try {
+					buildPrioritizedGlossaryMaps();
+				} catch (e) {
+					Logger.error('Data', '空闲预重建术语表规则失败', e.message);
+				}
+			};
+			if (window.requestIdleCallback) {
+				window.requestIdleCallback(scheduleRebuild, { timeout: 5000 });
+			} else {
+				setTimeout(scheduleRebuild, 1000);
+			}
+		}
+		Logger.debug('Data', '术语表规则缓存已失效');
 	}
 
 	/**
@@ -16622,6 +26249,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 */
 	const AdvancedTranslationCleaner = new (class {
 		constructor() {
+			this.CLEANER_VERSION = 1;
 			this.metaKeywords = [
 				'原文', '输出', '说明', '润色', '语境', '遵守', '指令',
 				'Original text', 'Output', 'Note', 'Stage', 'Strategy', 'Polish', 'Retain', 'Glossary', 'Adherence'
@@ -16836,13 +26464,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	 * 采用线性任务队列模式，确保迁移的顺序性、容错性和可扩展性
 	 */
 	function runDataMigration() {
-		const CURRENT_MIGRATION_VERSION = 4;
 		let savedVersion = GM_getValue('ao3_migration_version', 0);
-
-		if (savedVersion >= CURRENT_MIGRATION_VERSION) {
-			routineCleanup();
-			return;
-		}
 
 		// 定义各版本的迁移任务
 		const migrations =[
@@ -16965,14 +26587,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					// 2. 占位符规则迁移 (ph_ -> vtr_)
 					const migratePrompt = (prompt) => {
 						if (!prompt) return prompt;
-						const numWord = PlaceholderConfig.length === 5 ? 'five' : (PlaceholderConfig.length === 6 ? 'six' : PlaceholderConfig.length);
 						return prompt
-							.replace(/ph_/g, PlaceholderConfig.prefix)
-							.replace(/Ph_/g, PlaceholderConfig.prefix.charAt(0).toUpperCase() + PlaceholderConfig.prefix.slice(1))
-							.replace(/P_/g, PlaceholderConfig.prefix.toUpperCase())
-							.replace(/six digits/gi, `${numWord} digits`)
-							.replace(/6 digits/gi, `${PlaceholderConfig.length} digits`)
-							.replace(/123456/g, PlaceholderConfig.exampleString.replace(PlaceholderConfig.prefix, ''));
+							.replace(/ph_[0-9]+/gi, PlaceholderConfig.exampleString)
+							.replace(/Ph_[0-9]+/gi, PlaceholderConfig.exampleString)
+							.replace(/P_[0-9]+/gi, PlaceholderConfig.exampleString)
+							.replace(/followed by (five|six) digits/gi, 'a short letter followed by a number')
+							.replace(/five digits|six digits|6 digits/gi, 'a number');
 					};
 
 					profiles = GM_getValue(AI_PROFILES_KEY);
@@ -17037,9 +26657,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 									profilesChanged = true;
 								}
 
-								// 补齐 reasoning_effort
-								if (p.params.reasoning_effort === undefined) {
-									p.params.reasoning_effort = 'default';
+								// 统一推理档位：缺失或旧 default → none（关闭思考）
+								if (p.params.reasoning_effort === undefined || p.params.reasoning_effort === 'default') {
+									p.params.reasoning_effort = 'none';
 									profilesChanged = true;
 								}
 							}
@@ -17118,15 +26738,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 							}
 						});
 						
-						// 2. 注入传统翻译引擎专属配置
+						// 2. 注入传统翻译引擎专属配置（免费简单引擎：谷歌/微软/腾讯批量服务共享高效档位）
 						const hasTraditional = profiles.some(p => p.isTraditional || p.id === 'profile_traditional_init');
 						if (!hasTraditional) {
 							const traditionalProfile = {
 								id: 'profile_traditional_init',
-								name: '谷歌、微软',
+								name: '谷歌、微软、腾讯',
 								isProtected: true,
 								isTraditional: true,
-								services: ['google_translate', 'bing_translator'],
+								services: ['google_translate', 'bing_translator', 'tencent_translator'],
 								params: {
 									...BASE_AI_PARAMS,
 									chunk_size: 3000,
@@ -17172,8 +26792,81 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						if (changed) GM_setValue(FORMATTING_PROFILES_KEY, profiles);
 					}
 				}
+			},
+			{
+				version: 6,
+				name: 'V6 存量配置与占位符提示词迁移',
+				migrate: () => {
+					const oldDefaultPrompt = `You are a professional translator fluent in {toLangName}, with particular expertise in translating web novels and online fanfiction from {fromLangName}.
+
+Your task is to translate multiple text segments provided by the user. For each segment, you will follow an internal three-stage strategy to produce the final, polished translation.
+
+### Internal Translation Strategy (for each item):
+1.  **Stage 1 (Internal Thought Process):** Produce a literal, word-for-word translation of the original content.
+2.  **Stage 2 (Internal Thought Process):** Based on the literal translation, identify any phrasing that is unnatural or does not flow well in the target language.
+3.  **Stage 3 (Final Output):** Produce a polished, idiomatic translation that fully preserves the original meaning, tone, cultural nuances, and any specialized fandom terminology. The final translation must be natural-sounding, readable, and conform to standard usage in {toLangName}.
+
+{systemDirectives}`;
+					const newDefaultPrompt = getSharedSystemPrompt();
+
+					const migratePlaceholderPrompt = (prompt) => {
+						if (typeof prompt !== 'string' || !prompt) return prompt;
+						return prompt
+							.replace(/`vtr_`/g, '`z1`')
+							.replace(/vtr_[0-9]+/gi, PlaceholderConfig.exampleString)
+							.replace(/followed by (five|six) digits/gi, 'a short lowercase letter followed by a number')
+							.replace(/five digits|six digits|6 digits/gi, 'a number');
+					};
+
+					let profiles = GM_getValue(AI_PROFILES_KEY);
+					if (Array.isArray(profiles)) {
+						let changed = false;
+						profiles.forEach(p => {
+							if (!p) return;
+							// 6.1 推理档位统一
+							if (p.params && (p.params.reasoning_effort === undefined || p.params.reasoning_effort === 'default')) {
+								p.params.reasoning_effort = 'none';
+								changed = true;
+							}
+							// 6.2 提示词默认模板精简
+							if (p.params && p.params.system_prompt === oldDefaultPrompt) {
+								p.params.system_prompt = newDefaultPrompt;
+								changed = true;
+							}
+							// 6.3 传统 profile 并入腾讯翻译并更名
+							if (p.isTraditional || p.id === 'profile_traditional_init') {
+								if (p.name !== '谷歌、微软、腾讯') {
+									p.name = '谷歌、微软、腾讯';
+									changed = true;
+								}
+								if (!Array.isArray(p.services)) p.services = [];
+								if (!p.services.includes('tencent_translator')) {
+									p.services.push('tencent_translator');
+									changed = true;
+								}
+							}
+							// 6.4 占位符提示词迁移（system & user prompt）
+							if (p.params) {
+								if (p.params.system_prompt) { const v = migratePlaceholderPrompt(p.params.system_prompt); if (v !== p.params.system_prompt) { p.params.system_prompt = v; changed = true; } }
+								if (p.params.user_prompt)   { const v = migratePlaceholderPrompt(p.params.user_prompt);   if (v !== p.params.user_prompt)   { p.params.user_prompt = v;   changed = true; } }
+							}
+						});
+						if (changed) {
+							GM_setValue(AI_PROFILES_KEY, profiles);
+							invalidateConfigFingerprint();
+						}
+					}
+				}
 			}
 		];
+
+		// 当前迁移版本号：始终取最后一个迁移任务版本
+		const CURRENT_MIGRATION_VERSION = migrations[migrations.length - 1].version;
+
+		if (savedVersion >= CURRENT_MIGRATION_VERSION) {
+			routineCleanup();
+			return;
+		}
 
 		// 线性执行迁移任务
 		for (const task of migrations) {
@@ -17209,6 +26902,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			{ key: 'from_lang', default: DEFAULT_CONFIG.GENERAL.from_lang },
 			{ key: 'to_lang', default: DEFAULT_CONFIG.GENERAL.to_lang },
 			{ key: 'lang_detector', default: DEFAULT_CONFIG.GENERAL.lang_detector },
+			{ key: 'lang_detector_fallback', default: DEFAULT_CONFIG.GENERAL.lang_detector_fallback },
 			{ key: 'transEngine', default: DEFAULT_CONFIG.ENGINE.current },
 			{ key: 'custom_url_first_save_done', default: DEFAULT_CONFIG.GENERAL.custom_url_first_save_done },
 			{ key: 'ao3_fab_actions', default: DEFAULT_CONFIG.GENERAL.fab_actions },
@@ -17253,7 +26947,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				--ao3-selected-bg: #e3f2fd;
 				--ao3-shadow: 0 8px 24px rgba(0,0,0,0.12);
 				--ao3-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+				--ao3-letter-spacing: 0.01em;
 			}
+			:host * { letter-spacing: var(--ao3-letter-spacing); }
+
+			/* 0. 移除所有交互元素的 WebKit 点击高亮 */
+			:host, :host * { -webkit-tap-highlight-color: transparent !important; }
 			
 			/* 1. 统一滚动条 */
 			.ao3-custom-scrollbar::-webkit-scrollbar,
@@ -17289,7 +26988,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 			
 			/* 确认提示框 */
-			#ao3-custom-confirm-modal {
+			#ao3-custom-confirm-modal,
+			#ao3-key-retry-modal,
+			#ao3-update-modal,
+			#ao3-sync-direction-modal {
 				max-width: 360px !important;
 			}
 			#ao3-custom-confirm-modal.whitelist-auth-modal {
@@ -17300,15 +27002,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				z-index: 5; background-color: var(--ao3-bg); display: flex; justify-content: center; align-items: center;
 				position: relative; height: 42px; box-sizing: border-box; flex-shrink: 0;
 			}
-			.ao3-modal-header h3 { 
-				margin: 0; font-size: 16px; font-weight: 600; color: var(--ao3-text); 
-				font-family: Georgia, serif; 
+			.ao3-modal-header h3 {
+				margin: 0; font-size: 16px; font-weight: 400; color: var(--ao3-text);
+				font-family: Georgia, "Times New Roman", "Songti SC", "Noto Serif CJK SC", serif;
 			}
 			.ao3-modal-body { padding: 8px 0; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
 			
 			/* 全局 footer 的阴影 */
 			.ao3-modal-footer {
-				padding: 0 16px; border-top: none !important; 
+				padding: 0 16px; border-top: none !important;
 				box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
 				z-index: 5; background-color: var(--ao3-bg); display: flex; flex-direction: row; justify-content: space-between; align-items: center;
 				gap: 8px; height: 42px; box-sizing: border-box; flex-shrink: 0;
@@ -17326,7 +27028,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			.ao3-modal-btn:hover { opacity: 0.7; }
 
 			/* 为“确认模态框”移除底栏阴影 */
-			#ao3-custom-confirm-modal .ao3-modal-footer {
+			#ao3-custom-confirm-modal .ao3-modal-footer,
+			#ao3-key-retry-modal .ao3-modal-footer {
 				box-shadow: none !important;
 			}
 
@@ -17398,6 +27101,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			.settings-group.settings-group-select.dropdown-active::after { transform: translateY(-50%) rotate(180deg); }
 			.input-wrapper { position: relative; }
 			.input-wrapper .settings-input { padding-right: 52px; }
+			.input-wrapper .settings-input.expandable-input { padding-right: 12px; }
+			#ai-param-input-area { display: flex; flex-direction: column; gap: 16px; }
 			#ai-param-input-area .input-wrapper textarea.settings-input { padding-right: 12px; }
 			input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 			input[type=number] { -moz-appearance: textfield; }
@@ -17432,15 +27137,15 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			.custom-dropdown-menu { position: fixed; border-radius: 8px; border: none; z-index: 2001; overflow: hidden; opacity: 0; transform: scale(0.95) translateY(-10px); transform-origin: top center; transition: opacity 0.15s ease-out, transform 0.15s ease-out; box-sizing: border-box; background-color: var(--ao3-bg); color: var(--ao3-text); box-shadow: var(--ao3-shadow); }
 			.custom-dropdown-menu.visible { opacity: 1; transform: scale(1) translateY(0); }
 			.custom-dropdown-menu ul { list-style: none; margin: 0; padding: 8px 0; max-height: 250px; overflow-y: auto; }
-			.custom-dropdown-menu li { padding: 8px 16px; margin: 10px 0; border-radius: 4px; min-height: 34px; height: 34px; box-sizing: border-box; cursor: pointer; font-size: 15px; transition: background-color 0.2s ease; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: transparent; color: var(--ao3-text); border: none; }
+			.custom-dropdown-menu li { padding: 8px 16px; margin: 10px 0; border-radius: 0; min-height: 34px; height: 34px; box-sizing: border-box; cursor: pointer; font-size: 15px; transition: background-color 0.2s ease; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: transparent; color: var(--ao3-text); border: none; }
 			.custom-dropdown-menu li:hover { background-color: var(--ao3-hover-bg); }
 			.custom-dropdown-menu li.selected { background-color: var(--ao3-selected-bg); }
-			.custom-dropdown-menu li .item-text { white-space: nowrap; overflow: hidden; text-overflow: clip; flex-grow: 1; line-height: 1; }
+			.custom-dropdown-menu li .item-text { white-space: nowrap; overflow: hidden; text-overflow: clip; flex-grow: 1; line-height: 1.4; }
 			.custom-dropdown-menu li .item-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
 			.item-action-btn { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; background: transparent !important; border: none !important; padding: 0; cursor: pointer; outline: none !important; box-shadow: none !important; -webkit-tap-highlight-color: transparent; }
 			.item-action-btn svg { width: 22px !important; height: 22px !important; fill: var(--ao3-primary) !important; opacity: 0.8; transition: all 0.2s ease; display: block; }
 			.item-action-btn.is-disabled svg { fill: var(--ao3-text-placeholder) !important; opacity: 0.5; }
-			.item-action-btn.delete[data-confirming="true"] svg { fill: var(--ao3-danger) !important; opacity: 1; }
+			.item-action-btn.delete-btn[data-confirming="true"] svg { fill: var(--ao3-danger) !important; opacity: 1; }
 			.custom-dropdown-menu li.drag-placeholder { opacity: 0.3 !important; background: var(--ao3-border) !important; border: 1px dashed var(--ao3-text-secondary) !important; color: transparent !important; }
 			.custom-dropdown-menu li.drag-placeholder * { visibility: hidden !important; }
 			.custom-dropdown-menu.small-menu ul { padding: 0; }
@@ -17459,6 +27164,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			.online-glossary-details { width: 100%; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ao3-text); padding: 4px 12px; min-height: 32px; overflow: hidden; box-sizing: border-box; }
 			#online-glossary-details-container, #cache-manage-details-container { margin-top: -10px; margin-bottom: -10px; }
 			#online-glossary-info { flex-grow: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 8px; min-width: 0; }
+			#cache-count-display { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 			.online-glossary-delete-btn { flex-shrink: 0; background: none; border: none; color: var(--ao3-primary); font-size: 13px; font-weight: 500; cursor: pointer; padding: 2px 4px; text-align: right; outline: none; -webkit-tap-highlight-color: transparent; }
 			.online-glossary-delete-btn[data-confirming="true"] { color: var(--ao3-danger) !important; }
 
@@ -17535,8 +27241,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				.ao3-modal-header { 
 					box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) !important; 
 				}
-				.ao3-modal-footer { 
-					box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.05) !important; 
+				.ao3-modal-footer {
+					box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.05) !important;
 				}
 				.ao3-modal-btn { 
 					color: #ffffff; 
@@ -17636,10 +27342,22 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	}
 
 	/**
+	 * 穿透 Shadow DOM 获取真正聚焦的元素（document.activeElement 在 shadow 聚焦时只返回 host）
+	 */
+	function getDeepActiveElement() {
+		let el = document.activeElement;
+		while (el && el.shadowRoot && el.shadowRoot.activeElement) {
+			el = el.shadowRoot.activeElement;
+		}
+		return el;
+	}
+
+	/**
 	 * 注入全局样式
 	 */
 	function initGlobalStyles() {
 		const styles = `
+            body.ao3-dragging-active { cursor: grabbing !important; user-select: none !important; }
             .autocomplete.dropdown p.notice { margin-bottom: 0; }
             .ao3-text-block, .ao3-original-content { display: inline; }
             .ao3-translated-content { display: block; color: inherit; margin-top: 1.5em; margin-bottom: 0; }
@@ -17689,6 +27407,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
                 cursor: pointer !important; display: flex !important; align-items: center !important;
                 justify-content: center !important; user-select: none !important; flex-shrink: 0 !important;
                 outline: none !important;
+                -webkit-tap-highlight-color: transparent !important;
             }
             .ao3-blocker-toggle svg { width: 20px; height: 20px; fill: currentColor; cursor: pointer; }
             .ao3-blocker-cut { display: none !important; }
@@ -17753,6 +27472,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			// 1. 监听核心键值
 			const coreKeys = [
 				CUSTOM_GLOSSARIES_KEY,
+				IMPORTED_GLOSSARY_KEY,
+				GLOSSARY_METADATA_KEY,
+				ONLINE_GLOSSARY_ORDER_KEY,
 				POST_REPLACE_RULES_KEY,
 				'transEngine',
 				'ao3_translation_mode',
@@ -17784,12 +27506,12 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		},
 
 		handleRemoteChange(key, newValue) {
-			Logger.info('System', `检测到跨标签页配置更改: ${key}`);
+			Logger.debug('System', `检测到跨标签页配置更改: ${key}`);
 			this.refreshMemoryAndUI(key, newValue);
 		},
 
 		handleWakeUp() {
-			Logger.info('System', '页面从 BFCache 唤醒，执行全局状态同步');
+			Logger.debug('System', '页面从 BFCache 唤醒，执行全局状态同步');
 			this.refreshMemoryAndUI('all');
 		},
 
@@ -17857,17 +27579,27 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				colno: event.colno,
 				stack: event.error ? event.error.stack : null
 			});
+			// 埋点：全局异常（每类每天一次）
+			Analytics.error('uncaught_error', 'system');
 		});
 
 		window.addEventListener('unhandledrejection', (event) => {
 			Logger.error('System', '未处理的 Promise 拒绝', {
 				reason: event.reason ? (event.reason.stack || event.reason.message || event.reason) : 'Unknown'
 			});
+			// 埋点：未处理 Promise 拒绝（每类每天一次）
+			Analytics.error('unhandled_rejection', 'system');
 		});
 
 		// 基础数据与样式初始化
-		Logger.init(); 
-		Logger.info('System', `插件初始化开始，版本：v${GM_info.script.version}`);
+		Logger.init();
+		// 埋点：生命周期兜底监听位置不变；init 推迟到 updatePageConfig('初始载入') 之后
+		Analytics.bindLifecycle();
+		Logger.info('System', `插件初始化开始，版本：v${GM_info.script.version}`, {
+			scriptHandler: (typeof GM_info !== 'undefined' && GM_info && GM_info.scriptHandler) || 'unknown',
+			hasGM_xmlhttpRequest: typeof GM_xmlhttpRequest === 'function',
+			userAgent: (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent.slice(0, 160) : 'unknown'
+		});
 		normalizeAllApiKeys();
 		// 初始化 Shadow DOM
 		initShadowDOM();
@@ -17876,10 +27608,16 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		// 初始化翻译缓存数据库，并在后台触发自动清理
 		TranslationCacheDB.init().then(() => {
 			TranslationCacheDB.autoCleanup();
+			document.dispatchEvent(new CustomEvent(CUSTOM_EVENTS.CACHE_UPDATED));
 		});
+		// 本地数据自动备份
+		LocalBackupScheduler.init();
 		runDataMigration();
 		updateBlockerCache();
 		checkForGlossaryUpdates();
+		setInterval(() => {
+			checkForGlossaryUpdates();
+		}, 24 * 60 * 60 * 1000);
 		initGlobalStyles();
 		applyFormatting();
 
@@ -17902,6 +27640,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		// 翻译业务调度
 		updatePageConfig('初始载入');
+		// 埋点初始化：install / daily_heartbeat。M2 起移到 updatePageConfig 之后 → 首日 heartbeat 的 page_type 不再恒 unknown
+		Analytics.init();
 		if (pageConfig.currentPageType) {
 			if (FeatureSet.enable_ui_trans) {
 				transTitle();
@@ -17932,6 +27672,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			FeatureSet.enable_transDesc = GM_getValue('enable_transDesc', DEFAULT_CONFIG.GENERAL.enable_transDesc);
 			fullPageController.clearAllTranslations();
 
+			Analytics.featureUsed(newMode === 'full_page' ? 'full_page_mode' : 'unit_mode', 'settings');
+
 			if (newMode === 'full_page') {
 				fullPageController.checkAutoTranslate();
 			} else {
@@ -17943,6 +27685,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 
 		document.addEventListener(CUSTOM_EVENTS.AUTO_TRANSLATE_CHANGED, (e) => {
 			const isEnabled = e.detail.enabled;
+			Analytics.featureUsed(isEnabled ? 'auto_translate_on' : 'auto_translate_off', 'settings');
 			if (isEnabled) {
 				fullPageController.checkAutoTranslate();
 			} else {
@@ -17955,6 +27698,30 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				fullPageController.handleFabClick();
 			}
 		});
+
+		document.addEventListener(CUSTOM_EVENTS.GLOSSARY_IMPORTED, () => {
+			Analytics.featureUsed('glossary_import', 'glossary');
+		});
+
+		// 术语表导入失败（补 outcome=failure，成功/失败每日合计一条）
+		document.addEventListener(CUSTOM_EVENTS.GLOSSARY_IMPORT_FAILED, () => {
+			Analytics.featureUsed('glossary_import', 'glossary', { outcome: 'failure' });
+		});
+
+		document.addEventListener(CUSTOM_EVENTS.WEBDAV_SYNC_COMPLETED, () => {
+			const provider = GM_getValue('webdav_detected_provider', 'generic');
+			Analytics.featureUsed('webdav_sync', 'webdav', { outcome: 'success', webdav_provider: provider });
+		});
+
+		// WebDAV 同步失败（归因 auth/timeout/network/other，带 webdav_provider）
+		document.addEventListener(CUSTOM_EVENTS.WEBDAV_SYNC_FAILED, (e) => {
+			const category = (e && e.detail && e.detail.category) || 'other';
+			const provider = GM_getValue('webdav_detected_provider', 'generic');
+			Analytics.featureUsed('webdav_sync', 'webdav', { outcome: 'failure', error_type: category, webdav_provider: provider });
+		});
+
+		// 插件更新检查（延迟启动，错开页面初始化高峰）
+		setTimeout(() => checkForUpdates(), 5000);
 	}
 
 	/**
