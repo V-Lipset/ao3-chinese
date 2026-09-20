@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
-// @version      1.10.1-2026-09-21
+// @version      1.10.1-2026-09-20
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
