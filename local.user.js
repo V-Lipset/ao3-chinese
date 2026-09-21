@@ -2,7 +2,7 @@
 // @name         AO3 Translator
 // @namespace    https://github.com/V-Lipset/ao3-chinese
 // @description  为 AO3 打造的中文阅读体验增强工具，支持 UI 界面汉化与多种翻译服务的实时内容翻译。
-// @version      1.10.1-2026-09-21
+// @version      1.10.2-2026-09-22
 // @author       V-Lipset
 // @license      GPL-3.0
 // @include      http*://archiveofourown.org/*
@@ -2967,7 +2967,7 @@ For each input segment, translate in three internal steps:
 		// 功能/导出
 		'layout_mode', 'export_format', 'webdav_provider', 'detected_source_lang',
 		// 错误诊断
-		'http_status',
+		'http_status', 'error_message', 'error_source', 'error_line',
 		// usage 会话精确总量
 		'chars_count', 'batch_size', 'error_count', 'cache_saved_chars', 'cache_hit_count', 'cache_total_count',
 		// 规则组件命中
@@ -2984,7 +2984,8 @@ For each input segment, translate in three internal steps:
 		provider: 32, engine: 16, page_type: 32,
 		layout_mode: 32, export_format: 16, webdav_provider: 32,
 		detected_source_lang: 16, model_name: 64,
-		format_mods: 512, param_mods: 512, latency_hist: 256
+		format_mods: 512, param_mods: 512, latency_hist: 256,
+		error_message: 120, error_source: 16
 	};
 	const ANALYTICS_NUMERIC_RULES = {
 		latency_ms: [0, 3600000],
@@ -2995,8 +2996,51 @@ For each input segment, translate in three internal steps:
 		batch_size: [0, 1000000],
 		error_count: [0, 1000000], http_status: [0, 999],
 		glossary_hits: [0, 10000000], post_replace_hits: [0, 10000000], block_hits: [0, 1000000],
-		active_hours: [0, 16777215]
+		active_hours: [0, 16777215], error_line: [0, 1000000]
 	};
+	const ANALYTICS_ERROR_SOURCE_EXT = /^(chrome|moz|safari|ms-browser|opera)-extension:\/\//;
+
+	function normalizeErrorMessage(raw) {
+		let s = String(raw == null ? '' : raw);
+		if (!s) return '';
+		try {
+			s = s.replace(/[a-z][a-z0-9+.-]*:\/\/[^\s)'"]+/gi, '<url>');
+			s = s.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '<id>');
+			s = s.replace(/\b[0-9a-f]{12,}\b/gi, '<id>');
+			s = s.replace(/"[^"]{0,200}"|'[^']{0,200}'|`[^`]{0,200}`/g, '<s>');
+			s = s.replace(/\d+/g, '<n>');
+			s = s.replace(/[^\x20-\x7e]/g, '<x>');
+			s = s.replace(/[^A-Za-z0-9 <>=.,:;()_\-[\]{}!?/\\|@#$%^&*+~]/g, '?');
+			s = s.replace(/(<x>)(?:\s*<x>)+/g, '<x>').replace(/(<n>)(?:\s*<n>)+/g, '<n>');
+			s = s.replace(/\s+/g, ' ').trim();
+		} catch (e) {
+			return '';
+		}
+		return s.slice(0, 120);
+	}
+
+	function classifyErrorSource(filename) {
+		const f = String(filename || '').trim();
+		if (!f || /^script error\.?$/i.test(f)) return 'crossorigin';
+		const lower = f.toLowerCase();
+		if (lower.includes('userscript')) return 'userscript';
+		if (ANALYTICS_ERROR_SOURCE_EXT.test(lower)) return 'extension';
+		try {
+			if (lower.startsWith(String(location.origin).toLowerCase())) return 'page';
+		} catch (e) { /* noop */ }
+		return 'other';
+	}
+
+	function scriptFrameLine(stack) {
+		for (const frame of String(stack || '').split('\n')) {
+			if (!/userscript|(?:chrome|moz|safari|ms-browser)-extension:\/\//i.test(frame)) continue;
+			const hit = /:(\d+):\d+(?:\s*\)?\s*$)/.exec(frame.trim()) || /:(\d+):\d+/.exec(frame);
+			if (!hit) continue;
+			const line = Number(hit[1]);
+			if (Number.isFinite(line) && line >= 0 && line <= 1000000) return Math.round(line);
+		}
+		return 0;
+	}
 	const ANALYTICS_BOOL_PROPS = new Set([]);
 
 	// 规则组件命中辅助：给会话内的命中计数键自增
@@ -3105,6 +3149,13 @@ For each input segment, translate in three internal steps:
 		// 轮换匿名 ID
 		rotateInstallId() {
 			GM_setValue(ANALYTICS_KEY_INSTALL_ID, this._uuidV4());
+			GM_deleteValue(ANALYTICS_KEY_INSTALL_REPORTED);
+			GM_deleteValue(ANALYTICS_KEY_HEARTBEAT_DAY);
+			GM_deleteValue(ANALYTICS_KEY_HOURS_DAY);
+			GM_deleteValue(ANALYTICS_KEY_HOURS_MASK);
+			GM_deleteValue(ANALYTICS_KEY_RATE_LIMITED_DAY);
+			this._pendingInstall = true;
+			this._pendingHeartbeat = null;
 		},
 
 		// 验证密钥
@@ -3311,8 +3362,10 @@ For each input segment, translate in three internal steps:
 			const now = Date.now();
 			const cooldownKey = ANALYTICS_COOLDOWN_PREFIX + provider;
 			const last = parseInt(GM_getValue(cooldownKey, 0), 10) || 0;
-			if (now - last < this.trackTranslationCooldownMs) return;
-			GM_setValue(cooldownKey, now);
+			if (extra.outcome !== 'failure') {
+				if (now - last < this.trackTranslationCooldownMs) return;
+				GM_setValue(cooldownKey, now);
+			}
 			const displayMode = GM_getValue('translation_display_mode', 'bilingual');
 			const model_name = (getProviderById(getValidEngineName()) || {}).selectedModel;
 
@@ -3331,7 +3384,8 @@ For each input segment, translate in three internal steps:
 			GM_setValue(ANALYTICS_KEY_ERROR_FULL, (Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) || 0) + 1);
 			if (Number(GM_getValue(ANALYTICS_KEY_ERROR_FULL, 0)) >= 100000) this.flushUsage();
 			const today = this.day();
-			const key = ANALYTICS_FEATURE_DAY_PREFIX + 'error:' + errorType;
+			const errorMessage = String(extra.error_message || '').slice(0, 120);
+			const key = ANALYTICS_FEATURE_DAY_PREFIX + 'error:' + errorType + (errorMessage ? ':' + errorMessage : '');
 			if (GM_getValue(key, '') === today || this.pendingDedupeKeys.has(key)) return;
 			this.pendingDedupeKeys.add(key);
 			this.push('error', 'error', this.sanitizeProps({
@@ -3427,7 +3481,8 @@ For each input segment, translate in three internal steps:
 			this._finishBatch(events);
 		},
 		_onRejected(events) {
-			this._onAcked(events);
+			this._releaseDedupe(events);
+			this._finishBatch(events);
 		},
 		_finishBatch(events) {
 			this.inFlightBatches.delete(events);
@@ -8064,6 +8119,7 @@ function translateStatsChart() {
 			this._timestamps = GM_getValue(this.KEY, { local: {} });
 			if (!this._timestamps.local) this._timestamps.local = {};
 			if (this._listening) return;
+			if (typeof GM_addValueChangeListener !== 'function') return;
 
 			// 建立底层 GM Key 到逻辑分类的映射表
 			const KEY_TO_CATEGORY = {
@@ -8097,6 +8153,7 @@ function translateStatsChart() {
 
 			// 动态获取分类的辅助函数
 			const getCategory = (key) => {
+				if (typeof key !== 'string') return null;
 				if (KEY_TO_CATEGORY[key]) return KEY_TO_CATEGORY[key];
 				if (key.startsWith('service_collapsed_')) return 'uiState';
 				if (key.startsWith('custom_service_last_action_')) return 'customServices';
@@ -8111,14 +8168,18 @@ function translateStatsChart() {
 
 			keysToWatch.forEach(key => {
 				GM_addValueChangeListener(key, (name, oldVal, newVal, remote) => {
-					if (this._paused) return;
-					if (remote) return;
-					if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
+					try {
+						if (this._paused) return;
+						if (remote) return;
+						if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
 
-					const category = getCategory(name);
-					if (category) {
-						this._timestamps.local[category] = Date.now();
-						this._saveDebounced();
+						const category = getCategory(key);
+						if (category) {
+							this._timestamps.local[category] = Date.now();
+							this._saveDebounced();
+						}
+					} catch (e) {
+						Logger.warn('System', '同步时间戳记录失败', e);
 					}
 				});
 			});
@@ -8131,15 +8192,19 @@ function translateStatsChart() {
 		 * 监听动态键名（自定义服务 / 引擎配置）
 		 */
 		_listenDynamicKeys(getCategory) {
-			const listener = (name, oldVal, newVal, remote) => {
-				if (this._paused) return;
-				if (remote) return;
-				if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
+			const listener = (key, oldVal, newVal, remote) => {
+				try {
+					if (this._paused) return;
+					if (remote) return;
+					if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
 
-				const category = getCategory(name);
-				if (category) {
-					this._timestamps.local[category] = Date.now();
-					this._saveDebounced();
+					const category = getCategory(key);
+					if (category) {
+						this._timestamps.local[category] = Date.now();
+						this._saveDebounced();
+					}
+				} catch (e) {
+					Logger.warn('System', '同步时间戳记录失败', e);
 				}
 			};
 
@@ -8161,7 +8226,7 @@ function translateStatsChart() {
 			}
 			this._dynamicListeners = new Map();
 			uniqueKeys.forEach(key => {
-				const listenerId = GM_addValueChangeListener(key, listener);
+				const listenerId = GM_addValueChangeListener(key, (name, oldVal, newVal, remote) => listener(key, oldVal, newVal, remote));
 				this._dynamicListeners.set(key, listenerId);
 			});
 		},
@@ -8173,6 +8238,7 @@ function translateStatsChart() {
 			if (!this._listening) return;
 			this._listenDynamicKeys((key) => {
 				// 复用与 init 相同的分类推导逻辑
+				if (typeof key !== 'string') return null;
 				if (key.startsWith('service_collapsed_')) return 'uiState';
 				if (key.startsWith('custom_service_last_action_')) return 'customServices';
 				if (key.startsWith('active_model_for_')) return 'customServices';
@@ -19738,6 +19804,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 
@@ -19807,11 +19874,11 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 						},
 						onerror: () => {
 							Logger.error('Network', '网络请求发生底层错误', null, reqId);
-							reject({ type: 'network', message: '网络请求错误', usedKey: this.usedApiKey });
+							reject({ type: 'network', message: '网络请求错误', usedKey: this.usedApiKey, requestAttempted: true });
 						},
 						ontimeout: () => {
 							Logger.error('Network', '请求超时', null, reqId);
-							reject({ type: 'timeout', message: '请求超时', usedKey: this.usedApiKey });
+							reject({ type: 'timeout', message: '请求超时', usedKey: this.usedApiKey, requestAttempted: true });
 						}
 					}, reqId);
 				} catch (error) {
@@ -19977,6 +20044,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 	}
@@ -20090,6 +20158,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 	}
@@ -20179,6 +20248,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 			}
 
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 
@@ -20253,8 +20323,8 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 								reject(err);
 							}
 						},
-						onerror: () => reject({ type: 'network', message: '网络请求错误', usedKey: this.usedApiKey }),
-						ontimeout: () => reject({ type: 'timeout', message: '请求超时', usedKey: this.usedApiKey })
+						onerror: () => reject({ type: 'network', message: '网络请求错误', usedKey: this.usedApiKey, requestAttempted: true }),
+						ontimeout: () => reject({ type: 'timeout', message: '请求超时', usedKey: this.usedApiKey, requestAttempted: true })
 					}, reqId);
 				} catch (error) {
 					reject(error);
@@ -20300,6 +20370,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				return super._normalizeError(res, responseData);
 			}
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 	}
@@ -20333,6 +20404,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					return super._normalizeError(res, responseData);
 			}
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 	}
@@ -20372,6 +20444,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					error.type = 'bad_request'; break;
 			}
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 	}
@@ -20398,6 +20471,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				default: userFriendlyError = `发生未知 API 错误 (代码: ${res.status})。`; error.type = 'bad_request'; break;
 			}
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 	}
@@ -20429,6 +20503,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					break;
 			}
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 	}
@@ -20474,6 +20549,7 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					return super._normalizeError(res, responseData);
 			}
 			error.message = userFriendlyError + `\n\n原始错误信息：\n${apiErrorMessage}`;
+			error.requestAttempted = true;
 			return error;
 		}
 	}
@@ -20856,11 +20932,20 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 	/**
 	 * 统一重试管理器：指数退避、Jitter 抖动、错误上报与中断
 	 */
+	const RETRY_BUDGET_MS = 90000;
 	const RetryManager = {
 		async execute(taskFn, options) {
 			const { maxRetries = 3, isCancelled, onRetryFailure, engineName, reqId } = options;
 			let attempt = 0;
 			let keySwitchCount = 0;
+			let deadline = 0;
+			const remaining = () => (deadline ? deadline - Date.now() : Infinity);
+			const budgetError = () => {
+				const err = new Error('重试预算已耗尽。');
+				err.type = 'retry_budget_exhausted';
+				err.requestAttempted = true;
+				return err;
+			};
 
 			while (true) {
 				if (isCancelled && isCancelled()) {
@@ -20868,10 +20953,14 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					err.type = 'user_cancelled';
 					throw err;
 				}
-				
+
+				if (deadline && remaining() <= 0) throw budgetError();
+
 				try {
-					return await taskFn(attempt);
+					return await taskFn(attempt, remaining());
 				} catch (error) {
+					if (!deadline) deadline = Date.now() + RETRY_BUDGET_MS;
+
 					// 1. 处理 Key 状态黑名单
 					if (error.usedKey) {
 						if ((error.type === 'auth_error' || error.originalType === 'auth_error') && (error.status === 401 || error.status === 403)) {
@@ -20899,8 +20988,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					if (error.type === 'all_keys_cooling') {
 						attempt++;
 						if (attempt >= maxRetries) throw new Error(`所有 API Key 均频繁触发限流，重试 ${maxRetries} 次后放弃。`);
+						const coolingWait = Math.min(error.retryAfterMs + 500, remaining());
+						if (!(coolingWait > 0)) throw budgetError();
 						Logger.warn('Translation', `[${engineName}] 所有 Key 均在冷却，等待 ${error.retryAfterMs}ms`, null, reqId);
-						await cancellableSleep(error.retryAfterMs + 500, isCancelled);
+						await cancellableSleep(coolingWait, isCancelled);
 						continue; 
 					}
 
@@ -20922,8 +21013,10 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 					}
 
 					Logger.warn('Translation', `[${engineName}] 请求失败，准备重试 (Attempt: ${attempt}/${maxRetries})`, { reason: error.message, delayMs: finalDelay }, reqId);
-					
-					await cancellableSleep(finalDelay, isCancelled);
+
+					const retryWait = Math.min(finalDelay, remaining());
+					if (!(retryWait > 0)) throw budgetError();
+					await cancellableSleep(retryWait, isCancelled);
 				}
 			}
 		}
@@ -20950,13 +21043,26 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		let reasoningDegrade = 0;
 
 		// 包装成单次请求任务
-		const singleRequestTask = async (attempt) => {
+		const singleRequestTask = async (attempt, budgetLeft = Infinity) => {
 			if (attempt > 0 || !skipRateLimit) {
+				const waitDeadline = Number.isFinite(budgetLeft) ? Date.now() + budgetLeft : Infinity;
 				while (true) {
 					if (isCancelled()) throw createCancellationError();
+					const left = waitDeadline - Date.now();
+					if (!(left > 0)) {
+						const err = new Error('限流等待已超出重试预算。');
+						err.type = 'retry_budget_exhausted';
+						throw err;
+					}
 					const result = await resourceManager.acquireToken();
 					if (result.success) break;
-					await cancellableSleep(result.waitTime + Math.random() * 50, isCancelled);
+					const tokenWait = Math.min(result.waitTime + Math.random() * 50, waitDeadline - Date.now());
+					if (!(tokenWait > 0)) {
+						const err = new Error('限流等待已超出重试预算。');
+						err.type = 'retry_budget_exhausted';
+						throw err;
+					}
+					await cancellableSleep(tokenWait, isCancelled);
 				}
 			}
 
@@ -23271,11 +23377,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 				if (this.isCancelled() || e.type === 'user_cancelled') return;
 				// 埋点：批次翻译失败
 				if (tpStart > 0) {
-					Analytics.trackTranslation('page_translation', {
-						outcome: 'failure',
-						latency_ms: Date.now() - tpStart,
-						error_type: e.type || 'unknown'
-					});
+					const failureTelemetry = { outcome: 'failure', error_type: e.type || 'unknown' };
+					if (e.requestAttempted) failureTelemetry.latency_ms = Date.now() - tpStart;
+					Analytics.trackTranslation('page_translation', failureTelemetry);
 				}
 
 				// 二分降级策略
@@ -24212,11 +24316,9 @@ h1, h2, h3, h4, h5, h6, .meta-heading { page-break-after: avoid; }
 		} catch (error) {
 			if (isCancelled() || error.type === 'user_cancelled') return null;
 			// 埋点：标签翻译失败
-			Analytics.trackTranslation('tag_translation', {
-				outcome: 'failure',
-				latency_ms: Date.now() - tpStart,
-				error_type: error.type || 'unknown'
-			});
+			const tagFailureTelemetry = { outcome: 'failure', error_type: error.type || 'unknown' };
+			if (error.requestAttempted) tagFailureTelemetry.latency_ms = Date.now() - tpStart;
+			Analytics.trackTranslation('tag_translation', tagFailureTelemetry);
 			tagElements.forEach(el => el.dataset.translationState = 'error');
 			throw error;
 		}
@@ -27494,7 +27596,7 @@ Your task is to translate multiple text segments provided by the user. For each 
 				GM_addValueChangeListener(key, (name, old_value, new_value, remote) => {
 					if (remote) {
 						setTimeout(() => {
-							this.handleRemoteChange(name, new_value);
+							this.handleRemoteChange(key, new_value);
 						}, 50);
 					}
 				});
@@ -27582,7 +27684,12 @@ Your task is to translate multiple text segments provided by the user. For each 
 				stack: event.error ? event.error.stack : null
 			});
 			// 埋点：全局异常（每类每天一次）
-			Analytics.error('uncaught_error', 'system');
+			const errorSource = classifyErrorSource(event.filename);
+			Analytics.error('uncaught_error', 'system', {
+				error_message: normalizeErrorMessage(event.message),
+				error_source: errorSource,
+				error_line: errorSource === 'userscript' ? Math.max(0, Math.round(Number(event.lineno) || 0)) : 0
+			});
 		});
 
 		window.addEventListener('unhandledrejection', (event) => {
@@ -27590,7 +27697,14 @@ Your task is to translate multiple text segments provided by the user. For each 
 				reason: event.reason ? (event.reason.stack || event.reason.message || event.reason) : 'Unknown'
 			});
 			// 埋点：未处理 Promise 拒绝（每类每天一次）
-			Analytics.error('unhandled_rejection', 'system');
+			const reason = event.reason || {};
+			const errorMessage = normalizeErrorMessage(reason.message || reason);
+			const errorSource = errorMessage ? classifyErrorSource(String(reason.stack || '').split('\n')[1] || '') : 'crossorigin';
+			Analytics.error('unhandled_rejection', 'system', {
+				error_message: errorMessage,
+				error_source: errorSource,
+				error_line: errorSource === 'userscript' ? scriptFrameLine(reason.stack) : 0
+			});
 		});
 
 		// 基础数据与样式初始化
