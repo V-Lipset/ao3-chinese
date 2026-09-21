@@ -14,6 +14,7 @@ temp/
 .wrangler
 
 # 独立项目与归档目录
+analytics
 analytics-dashboard
 analytics-worker
 Update
