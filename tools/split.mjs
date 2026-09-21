@@ -36,10 +36,7 @@ function parseArgs(argv) {
     source: path.join(ROOT, 'local.user.js'),
     out: null,
     requireBase: DEFAULT_REQUIRE_BASE,
-    bump: true,
     dryRun: false,
-    backup: false,
-    keep: 5,
   }
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i]
@@ -51,21 +48,16 @@ function parseArgs(argv) {
     if (a === '--source') o.source = path.resolve(val())
     else if (a === '--out') o.out = path.resolve(val())
     else if (a === '--require-base') o.requireBase = val()
-    else if (a === '--no-bump') o.bump = false
-    else if (a === '--dry-run') { o.dryRun = true; o.bump = false }
-    else if (a === '--backup') o.backup = true
-    else if (a === '--keep') o.keep = Number(val())
+    else if (a === '--dry-run') o.dryRun = true
     else if (a === '-h' || a === '--help') {
       console.log(`用法: node tools/${SELF} [选项]
 
   --source <path>       源文件，默认 <repo>/local.user.js
   --out <dir>           输出目录，默认源文件所在目录
   --require-base <url>  @require 的 URL 前缀
-  --no-bump             不修改源文件的 @version
   --dry-run             只校验，不写任何文件
-  --backup              额外留一份 <源文件>.bak-<时间戳>（默认不留；
-                        源文件在 git 里，回滚用 git checkout -- local.user.js）
-  --keep <n>            配合 --backup，保留最近 n 份，默认 5
+
+@version 由源文件原样带出，本脚本不修改任何 @version。
 `)
       process.exit(0)
     } else die(`未知选项: ${a}`, `用 --help 查看用法`)
@@ -76,24 +68,12 @@ function parseArgs(argv) {
   return o
 }
 
-function today() {
-  const d = new Date()
-  const p = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
-
 function readVersion(lines) {
   for (const l of lines) {
     const m = l.match(/^\/\/\s*@version\s+(\S+)/)
     if (m) return m[1]
   }
   die('源文件头部找不到 // @version 行')
-}
-
-function bumpVersion(old, date) {
-  const base = String(old).replace(/-.*$/, '')
-  if (!/^\d+\.\d+\.\d+$/.test(base)) die(`无法从 @version "${old}" 解析出 主.次.修订 版本号`)
-  return `${base}-${date}`
 }
 
 function locate(lines) {
@@ -128,7 +108,7 @@ function locate(lines) {
   return regions
 }
 
-function buildOutputs(lines, regions, newVersion, requireBase) {
+function buildOutputs(lines, regions, version, requireBase) {
   const drop = new Set()
   for (const r of regions) for (let i = r.begin; i <= r.end; i += 1) drop.add(i)
   const mainLines = lines.filter((_, i) => !drop.has(i))
@@ -146,7 +126,7 @@ function buildOutputs(lines, regions, newVersion, requireBase) {
 
   const newHeader = []
   for (const l of header) {
-    if (/^\/\/\s*@version\s+/.test(l)) { newHeader.push(`// @version      ${newVersion}`); continue }
+    if (/^\/\/\s*@version\s+/.test(l)) { newHeader.push(`// @version      ${version}`); continue }
     if (/^\/\/\s*@(downloadURL|updateURL)\s+/.test(l)) {
       newHeader.push(l.replace(/local\.user\.js(?![\w-])/g, 'main.user.js'))
       continue
@@ -171,7 +151,7 @@ function buildOutputs(lines, regions, newVersion, requireBase) {
       '/**',
       ` name         ${name} - ${r.id}`,
       ` namespace    ${meta('namespace')}`,
-      ` version      ${newVersion}`,
+      ` version      ${version}`,
       ` description  ${desc}`,
       ` author       ${meta('author')}`,
       ` license      ${meta('license')}`,
@@ -203,21 +183,6 @@ function versionOf(file) {
   return m ? m[1] : ''
 }
 
-function backupFiles(source) {
-  const dir = path.dirname(source)
-  const base = path.basename(source).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const re = new RegExp(`^${base}\\.bak-\\d{8}-\\d{6}$`)
-  return fs.readdirSync(dir).filter((f) => re.test(f)).sort()
-}
-
-function pruneBackups(source, keep) {
-  const dir = path.dirname(source)
-  const baks = backupFiles(source)
-  const doomed = baks.slice(0, Math.max(0, baks.length - keep))
-  for (const f of doomed) fs.rmSync(path.join(dir, f), { force: true })
-  return doomed
-}
-
 const opt = parseArgs(process.argv.slice(2))
 
 say(c.bold('AO3 Translator 拆分'))
@@ -242,12 +207,10 @@ const outside = lines.length - regions.reduce((s, r) => s + (r.end - r.begin - 1
 ok(`main 侧保留 ${outside} 行`)
 
 head('版本号')
-const oldVersion = readVersion(lines)
-const newVersion = bumpVersion(oldVersion, today())
-if (oldVersion === newVersion) ok(`@version 已是 ${newVersion}（今天）`)
-else ok(`@version ${oldVersion} → ${newVersion}`)
+const version = readVersion(lines)
+ok(`@version ${version}（原样带出，源文件不改动）`)
 
-const built = buildOutputs(lines, regions, newVersion, opt.requireBase)
+const built = buildOutputs(lines, regions, version, opt.requireBase)
 
 const workDir = fs.mkdtempSync(path.join(fs.realpathSync(process.env.TMPDIR || '/tmp'), 'aot-split-'))
 try {
@@ -281,10 +244,10 @@ try {
   let bad = 0
   for (const o of outputs) {
     const v = versionOf(path.join(outDir, o.file))
-    if (v !== newVersion) { console.error(`    ${c.red('✗')} ${o.file} 的 @version 是 ${v}，期望 ${newVersion}`); bad += 1 }
+    if (v !== version) { console.error(`    ${c.red('✗')} ${o.file} 的 @version 是 ${v}，期望 ${version}`); bad += 1 }
   }
   if (bad) die('产物版本号不一致')
-  ok(`三份产物的 @version 均为 ${newVersion}`)
+  ok(`三份产物的 @version 均为 ${version}`)
   const mainText = fs.readFileSync(path.join(outDir, 'main.user.js'), 'utf8')
   for (const m of mainText.matchAll(/^\/\/\s*@require\s+(\S+)/gm)) ok(`@require ${m[1]}`)
   for (const m of mainText.matchAll(/^\/\/\s*@(?:download|update)URL\s+(\S+)/gm)) ok(`URL ${m[1]}`)
@@ -300,28 +263,6 @@ try {
       fs.renameSync(`${dest}.tmp-${process.pid}`, dest)
       ok(`写入 ${path.relative(ROOT, dest) || dest}`)
     }
-
-    if (opt.bump) {
-      head('写回源文件 @version')
-      if (opt.backup) {
-        const stamp = `${today().replace(/-/g, '')}-${new Date().toTimeString().slice(0, 8).replace(/:/g, '')}`
-        const bak = `${opt.source}.bak-${stamp}`
-        fs.copyFileSync(opt.source, bak)
-        ok(`备份 ${path.basename(bak)}`)
-        for (const f of pruneBackups(opt.source, opt.keep)) warn(`清理旧备份 ${f}`)
-      } else {
-        for (const f of pruneBackups(opt.source, 0)) ok(`清理旧备份 ${f}`)
-      }
-      const idx = lines.findIndex((l) => /^\/\/\s*@version\s+/.test(l))
-      const patched = [...lines]
-      patched[idx] = `// @version      ${newVersion}`
-      atomicWrite(opt.source, patched.join('\n'))
-      ok(`${path.relative(ROOT, opt.source) || opt.source} → ${newVersion}`)
-    } else {
-      head('写回源文件 @version')
-      warn('--no-bump，源文件未改动')
-    }
-
     say(`\n${c.green('✓ 拆分完成')}：${outputs.map((o) => o.file).join(' + ')} → ${path.relative(ROOT, opt.out) || opt.out}`)
   }
 } finally {
