@@ -32,7 +32,7 @@ jobs:
         run: node tools/scope-check.mjs
 
       - name: 试拆分到临时目录（不写回源文件）
-        run: bash tools/split.sh --out "$RUNNER_TEMP/split" --no-bump
+        run: bash tools/split.sh --out "$RUNNER_TEMP/split"
 
       - name: 确认产物可以解析
         run: |
@@ -52,42 +52,38 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 拆分到仓库根目录（不改动 local.user.js）
-        run: bash tools/split.sh --out . --no-bump
+      - name: 拆分到仓库根目录
+        run: bash tools/split.sh --out .
 
-      - name: 各自单独提交
+      - name: 提交 main.user.js
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-
-          committed=0
-
           git add -- main.user.js
           if git diff --cached --quiet; then
             echo 'main.user.js 无变化'
-          else
-            git commit -m 'Update main.user.js'
-            committed=1
+            exit 0
           fi
+          git commit -m 'Update main.user.js'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
+      - name: 提交 zh-cn.js
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -- zh-cn.js
           if git diff --cached --quiet; then
             echo 'zh-cn.js 无变化'
-          else
-            git commit -m 'Update zh-cn.js'
-            committed=1
+            exit 0
           fi
-
-          if [ "$committed" = "1" ]; then
-            git push origin "HEAD:${GITHUB_REF_NAME}"
-          else
-            echo '产物无变化，跳过提交'
-          fi
+          git commit -m 'Update zh-cn.js'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: 刷新 jsDelivr 缓存
         continue-on-error: true
         run: |
-          curl -sS -o /dev/null -w '%{http_code} main.user.js\n' \
-            'https://purge.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/main.user.js'
-          curl -sS -o /dev/null -w '%{http_code} zh-cn.js\n' \
-            'https://purge.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/zh-cn.js'
+          for f in main.user.js zh-cn.js local.user.js; do
+            printf '%s ' "$f"
+            curl -sS -o /dev/null -w '%{http_code}\n' \
+              "https://purge.jsdelivr.net/gh/V-Lipset/ao3-chinese@main/$f"
+          done
