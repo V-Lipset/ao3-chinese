@@ -482,5 +482,15 @@
     "maintainer": "innocentsnow",
     "visibility": true,
     "feedback": "https://github.com/alinayen-coder"
+  },
+  {
+    "name": "The Magnus Archives",
+    "tags": [
+      "马格努斯档案馆"
+    ],
+    "url": "https://raw.githubusercontent.com/hafgola465637-creator/ao3-chinese/refs/heads/main/glossaries/The%20Magnus%20Archives.txt",
+    "maintainer": "hafgola_42@foxmail.com",
+    "visibility": true,
+    "feedback": "hafgola_42@foxmail.com"
   }
 ]
