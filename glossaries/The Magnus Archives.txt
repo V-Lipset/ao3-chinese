@@ -31,7 +31,7 @@ Barnabas Bennett = 巴纳巴斯·贝内特
 Mordechai Lukas = 莫迪凯·卢卡斯
 Simon Fairchild = 西蒙·费尔切尔德
 Jurgen Leitner = 于尔根·莱特纳
-"Michael "Mike" Crew" = 麦克尔·‘麦克’·克鲁
+"Michael "Mike" Crew" = 麦克尔·麦克·克鲁
 Nikola Orsinov = 尼可拉·奥辛诺夫
 Michael：迈克尔
 
