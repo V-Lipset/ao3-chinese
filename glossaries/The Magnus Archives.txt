@@ -77,7 +77,7 @@ The Extinction：灭绝
 avatar：化身
 institute：档案馆，
 leitners：莱特纳魔书
-hilltop：丘顶路
+hilltop road：丘顶路
 the magnus archives：马格努斯档案馆
 
 
