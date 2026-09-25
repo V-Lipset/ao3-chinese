@@ -1,0 +1,87 @@
+版本号：1.10.0
+维护者：Sclaushter
+更新时间：2026-09-26
+//部分翻译参考B站烤肉1：https://www.bilibili.com/video/BV1BD4y197qj/?spm_id_from=333.1387.favlist.content.click&vd_source=591fb82993171a8cf02bd02a6e5b754e
+//部分翻译参考B站烤肉2：https://www.bilibili.com/video/BV19qq2Y9ET8/?spm_id_from=333.1387.favlist.content.click&vd_source=591fb82993171a8cf02bd02a6e5b754e
+//此术语表主要用于纠正TMA中被谷歌翻译高频错翻的术语，因此未囊括所有专有名词。且由于受限于本人涉猎范围有限，术语表难免不全，请见谅。非常欢迎各位老师补充
+//如有希望补充的术语/指正/修改反馈/催更（？）等等请联系：hafgola_42@foxmail.com
+
+词条
+//人名
+"Jonathan "Jon" Sims" =乔纳森·乔·西姆斯
+Jon：乔
+Martin Blackwood = 马丁·布莱克伍德
+Tim Stoker = 提姆·斯托克
+Timothy：提莫西
+Sasha James = 萨沙·詹姆斯
+Basira Hussain = 巴希拉·侯赛因，
+"Alice "Daisy" Tonner" = 艾丽斯·黛西·托纳
+Melanie King = 梅兰妮·金
+Georgie Barker = 乔吉·巴克，
+Elias Bouchard = 伊莱亚斯·布沙德
+Jonah Magnus = 乔纳·马格努斯
+Peter Lukas = 彼得·卢卡斯
+Gertrude Robinson = 格特鲁德·罗宾森
+Agnes Montague = 艾格尼斯·蒙塔古
+Gerard Keay = 杰拉德·凯伊
+Mary Keay = 玛丽·凯伊
+Julia Montauk = 朱莉亚·蒙托克
+Trevor Herbert = 崔佛·赫博特
+Barnabas Bennett = 巴纳巴斯·贝内特
+Mordechai Lukas = 莫迪凯·卢卡斯
+Simon Fairchild = 西蒙·费尔切尔德
+Jurgen Leitner = 于尔根·莱特纳
+"Michael "Mike" Crew" = 麦克尔·‘麦克’·克鲁
+Nikola Orsinov = 尼可拉·奥辛诺夫
+Michael：迈克尔
+
+//fear power相关
+Buried：埋
+Desolation：荒
+End：终
+Hunt：猎
+Slaughter：戮
+Stranger：伪
+Web：网
+Eye：目
+Flesh：躯
+Corruption：腐
+Dark：暗
+Vast：旷
+Spiral：幻
+Lonely：孤
+Extinction：灭绝
+
+//其它
+Tundra：苔原号
+
+通用词条
+//fear power相关（the end和the dark容易误伤因此不做归纳）
+The Buried：埋，
+The Desolation：荒
+The Hunt：猎
+The Slaughter：戮
+The Stranger：伪
+//The End：终
+The Web：网
+The Eye：目
+The Flesh：躯
+The Corruption：腐
+//The Dark：暗
+The Vast：旷
+The Spiral：幻
+The Lonely：孤
+The Extinction：灭绝
+
+//专有名词
+avatar：化身
+institute：档案馆，
+leitners：莱特纳魔书
+hilltop：丘顶路
+the magnus archives：马格努斯档案馆
+
+
+禁翻词条
+
+
+正则表达式
