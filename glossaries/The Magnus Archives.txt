@@ -8,16 +8,16 @@
 
 词条
 //人名
-"Jonathan "Jon" Sims" =乔纳森·乔·西姆斯
+"Jonathan "Jon" Sims" = 乔纳森·乔·西姆斯
 Jon：乔
 Martin Blackwood = 马丁·布莱克伍德
 Tim Stoker = 提姆·斯托克
 Timothy：提莫西
 Sasha James = 萨沙·詹姆斯
-Basira Hussain = 巴希拉·侯赛因，
+Basira Hussain = 巴希拉·侯赛因
 "Alice "Daisy" Tonner" = 艾丽斯·黛西·托纳
 Melanie King = 梅兰妮·金
-Georgie Barker = 乔吉·巴克，
+Georgie Barker = 乔吉·巴克
 Elias Bouchard = 伊莱亚斯·布沙德
 Jonah Magnus = 乔纳·马格努斯
 Peter Lukas = 彼得·卢卡斯
@@ -57,7 +57,7 @@ Tundra：苔原号
 
 通用词条
 //fear power相关（the end和the dark容易误伤因此不做归纳）
-The Buried：埋，
+The Buried：埋
 The Desolation：荒
 The Hunt：猎
 The Slaughter：戮
@@ -75,7 +75,7 @@ The Extinction：灭绝
 
 //专有名词
 avatar：化身
-institute：档案馆，
+institute：档案馆
 leitners：莱特纳魔书
 hilltop road：丘顶路
 the magnus archives：马格努斯档案馆
