@@ -492,5 +492,15 @@
     "maintainer": "hafgola_42@foxmail.com",
     "visibility": true,
     "feedback": "hafgola_42@foxmail.com"
+  },
+  {
+    "name": "One Piece",
+    "tags": [
+      "海贼王"
+    ],
+    "url": "https://raw.githubusercontent.com/Lyralyell/ao3-chinese/refs/heads/main/glossaries/ONE%20PIECE.txt",
+    "maintainer": "Lyralyell",
+    "visibility": true,
+    "feedback": "https://github.com/Lyralyell"
   }
 ]
