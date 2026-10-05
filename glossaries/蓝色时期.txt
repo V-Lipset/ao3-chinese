@@ -1,0 +1,247 @@
+版本号：1.0.0
+维护者：10xcaffeine
+更新时间：2026-10-05
+
+// 《蓝色时期 / Blue Period》AO3 Translator 简体中文术语表
+
+词条
+
+// ==================== 核心人物 ====================
+Yaguchi Yatora = 矢口 八虎
+Ayukawa Ryuji = 鲇川 龙二
+Yuka：龙二
+Yuka-chan：小川川
+Yuka chan：小川川
+Takahashi Yotasuke = 高桥 世田介
+Hashida Haruka = 桥田 悠
+Kuwana Maki = 桑名 真希
+Mori Maru = 森 丸
+Saeki Masako = 佐伯 昌子
+Ooba Mayu = 大叶 真由
+
+// ==================== 八虎高中朋友 / 美术部 ====================
+Koigakubo：恋洼
+Utashima：歌岛
+Sumida：纯田
+Umino：海野
+Shirai：白井
+Shirota：城田
+Yamamoto：山本
+
+// ==================== 东京美术学院 / 预备校 ====================
+Okada Sae = 冈田 纱枝
+Sakuraba Hanako = 樱庭 华子
+Ishii Takurou = 石井 啄郎
+
+// ==================== 东京艺术大学：学生 ====================
+Murai Yakumo = 村井 八云
+Miki Kinemi = 三木 贵音美
+Aizawa Ayano = 蓝泽 彩乃
+Hachiro Kenji = 钵吕 健二
+Kakinokizaka Momoyo = 柿之木坂 桃代
+Okamoto Hiroshi = 冈本 广志
+Kuwana Yuki = 桑名 由纪
+Tanashi：田无
+Suzuki：铃木
+Kumai：熊井
+Edogawa：江户川
+Tachibana：橘
+
+// ==================== 东京艺术大学：教师 ====================
+Nekoyashiki Amo = 猫屋敷 安茂
+Tsukinoki：月木
+Rosei：露世
+Inukai：犬饲
+Choya：蝶矢
+Yumesaki：梦崎
+Hanakage Maria = 花影 玛利亚
+Sakurai：樱井
+Shibata：柴田
+Arimura：有村
+
+// ==================== 其他人物 ====================
+Yaguchi Marie = 矢口 真理惠
+Baba：马场
+Fujii：藤井
+Kamiyama Fumi = 神山 史
+Fuji Kirio = 藤 桐生
+Sanada Machiko = 真田 真知子
+Meguro：目黑
+Tabata：田端
+Takada：高田
+
+// ==================== 常见昵称 / AO3 称呼 ====================
+// 昵称只在有明确、稳定用法时加入，避免把普通英文名误锁。
+Yuka：龙二
+Yuka-chan：小川川
+Yukachan：小川川
+Yatora：八虎
+Yotasuke：世田介
+Yakumo：八云
+Kinemi：贵音美
+Maki：真希
+Haruka：悠
+
+// ==================== 学校 / 机构 ====================
+Tokyo University of the Arts：东京艺术大学
+Tokyo University of Arts：东京艺术大学
+Tokyo University of the Arts (TUA)：东京艺术大学
+TUA：东京艺术大学
+Geidai：艺大
+Tokyo Art Institute：东京美术学院
+Art Club：美术部
+Prep School：美术预备校
+Art Prep School：美术预备校
+Cram School：补习班
+
+// ==================== 专业 / 科系 ====================
+Oil Painting Department：油画科
+Oil Painting Major：油画专业
+Oil Painting Course：油画科
+Japanese Painting Department：日本画科
+Japanese Painting Major：日本画专业
+Japanese Painting Course：日本画科
+Sculpture Department：雕刻科
+Sculpture Major：雕刻专业
+Design Department：设计科
+Design Major：设计专业
+Fine Arts：美术
+Faculty of Fine Arts：美术学部
+
+// ==================== 艺考体系 ====================
+Entrance Exam：入学考试
+Art School Entrance Exam：美术大学入学考试
+First Exam：第一次考试
+First Stage Exam：第一次考试
+Second Exam：第二次考试
+Second Stage Exam：第二次考试
+Practical Exam：实技考试
+Practical Test：实技考试
+Portfolio：作品集
+Mock Exam：模拟考试
+Examinee：考生
+Ronin：复读生
+Art Ronin：美术复读生
+
+// ==================== 绘画 / 美术术语 ====================
+Oil Painting：油画
+Japanese Painting：日本画
+Still Life：静物画
+Self-Portrait：自画像
+Portrait Painting：肖像画
+Figure Drawing：人物素描
+Life Drawing：人体写生
+Croquis：速写
+Sketching：写生
+Rough Sketch：草图
+Composition：构图
+Perspective：透视
+Color Theory：色彩理论
+Complementary Colors：互补色
+Primary Colors：原色
+Secondary Colors：间色
+Warm Colors：暖色
+Cool Colors：冷色
+Value Study：明度练习
+Color Study：色彩练习
+Negative Space：负空间
+Positive Space：正空间
+Vanishing Point：消失点
+Horizon Line：地平线
+One-Point Perspective：一点透视
+Two-Point Perspective：两点透视
+Three-Point Perspective：三点透视
+Thumbnail Sketch：缩略草图
+Underpainting：底层画
+Impasto：厚涂
+Glazing：罩染
+Blending：混色
+Shading：明暗塑造
+Cross-Hatching：交叉排线
+Hatching：排线
+Gesture Drawing：动态速写
+Observational Drawing：观察写生
+
+// ==================== 材料 / 工具：使用较完整短语防止误伤 ====================
+Oil Paint：油画颜料
+Oil Paints：油画颜料
+Acrylic Paint：丙烯颜料
+Watercolor Paint：水彩颜料
+Watercolor Painting：水彩画
+Charcoal Drawing：炭笔画
+Charcoal Pencil：炭笔
+Kneaded Eraser：可塑橡皮
+Palette Knife：调色刀
+Painting Knife：画刀
+Paint Brush：画笔
+Paintbrush：画笔
+Sketchbook：速写本
+Drawing Board：画板
+Wooden Panel：木板
+Canvas Board：画布板
+Stretched Canvas：绷框画布
+Gesso Primer：石膏底料
+Linseed Oil：亚麻仁油
+Turpentine：松节油
+
+// ==================== 艺术创作 / 评价 ====================
+Art Piece：艺术作品
+Artwork：作品
+Finished Piece：完成作品
+Art Critique：作品讲评
+Critique Session：讲评课
+Critique：讲评
+Instructor：讲师
+Art Instructor：美术讲师
+Art Teacher：美术老师
+Art Student：美术生
+Artist：艺术家
+Model：模特
+Motif：主题
+Subject Matter：题材
+Concept：创作概念
+Expression：表现
+Observation：观察
+Technique：技法
+Individuality：个性
+Originality：原创性
+Creativity：创造力
+
+// ==================== 艺大祭 / 校园 ====================
+Geidai Festival：艺大祭
+University Festival：大学祭
+Mikoshi：神轿
+Happi：法被
+Happi Team：法被组
+Mikoshi Team：神轿组
+
+// ==================== AO3 安全短语 ====================
+// 以下比单独锁定 art / paint / oil / canvas / color / model 更安全。
+Art School：美术大学
+Art University：美术大学
+Art Student：美术生
+Oil Painter：油画家
+Japanese Painter：日本画家
+Art Exhibition：美术展
+Solo Exhibition：个展
+Group Exhibition：联展
+Entrance Examination：入学考试
+
+通用词条
+blue period：蓝色时期
+geidai：艺大
+tokyo university of the arts：东京艺术大学
+tokyo art institute：东京美术学院
+oil painting：油画
+japanese painting：日本画
+art club：美术部
+art prep school：美术预备校
+self-portrait：自画像
+still life：静物画
+art critique：作品讲评
+
+禁翻词条
+// 暂无
+
+正则表达式
+// 暂无
