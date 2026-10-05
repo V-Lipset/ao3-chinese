@@ -1,0 +1,360 @@
+版本号：1.0.0
+维护者：10xcaffeine
+更新时间：2026-10-04
+
+// 《蓝色监狱 / BLUE LOCK》AO3 Translator 简体中文术语表
+
+词条
+
+// ==================== Blue Lock 核心 ====================
+Isagi Yoichi = 洁 世一
+Bachira Meguru = 蜂乐 廻
+Kunigami Rensuke = 国神 炼介
+Chigiri Hyoma = 千切 豹马
+Gagamaru Gin = 我牙丸 吟
+Raichi Jingo = 雷市 阵吾
+Igarashi Gurimu = 五十岚 栗梦
+Naruhaya Asahi = 成早 朝日
+Kuon Wataru = 久远 涉
+Imamura Yudai = 今村 游大
+Iemon Okuhito = 伊右卫门 送人
+Kira Ryosuke = 吉良 凉介
+
+// ==================== Team V / X / Y / W ====================
+Nagi Seishiro = 凪 诚士郎
+Mikage Reo = 御影 玲王
+Tsurugi Zantetsu = 剑城 斩铁
+Barou Shoei = 马狼 照英
+Niko Ikki = 二子 一挥
+Okawa Hibiki = 大川 响鬼
+Wanima Junichi = 鳄间 淳一
+Wanima Keisuke = 鳄间 计助
+
+// ==================== 二次选拔 / 三次选拔 ====================
+Itoshi Rin = 糸师 凛
+Aryu Jyubei = 蚁生 十兵卫
+Tokimitsu Aoshi = 时光 青志
+Shidou Ryusei = 士道 龙圣
+Karasu Tabito = 乌 旅人
+Otoya Eita = 乙夜 影汰
+Yukimiya Kenyu = 雪宫 剑优
+Hiori Yo = 冰织 羊
+Nanase Nijiro = 七星 虹郎
+Kiyora Jin = 清罗 刃
+Hiiragi Reiji = 柊 零次
+Himizu Aiki = 日不见 爱基
+Saramadara Kairu = 皿斑 海琉
+Ishikari Yukio = 石狩 幸雄
+Nishioka Hajime = 西冈 初
+Shiguma Kyohei = 志熊 恭平
+Tanaka Shingen = 田中 信玄
+Tsunzaki Taiga = 津崎 大河
+Endoji Akira = 猿堂寺 晃
+Yuzu Haruhiko = 柚 春彦
+Sokura Tetsu = 曾仓 哲
+Haiji Shizuka = 灰地 静
+Cho Kento = 超 健人
+Wakatsuki Itsuki = 若月 树
+Kitsunezato Teru = 狐里 辉
+
+// ==================== Blue Lock 计划相关 ====================
+Ego Jinpachi = 绘心 甚八
+Teieri Anri = 帝襟 杏里
+Buratsuta Hirotoshi = 不乱蔦 宏俊
+
+// ==================== 日本 U-20 ====================
+Itoshi Sae = 糸师 冴
+Aiku Oliver = 奥利弗 爱空
+Sendou Shuto = 闪堂 秋人
+Darai Miroku = 蛇来 弥勒
+Neru Teppei = 音留 彻平
+Nio Kazuma = 仁王 和真
+Hayate Haru = 颯 波留
+Fukaku Gen = 不角 源
+
+// ==================== World Five ====================
+Loki Julian = 洛基·朱利安
+Luna Leonardo = 卢纳·莱昂纳多
+Blake Adam = 布莱克·亚当
+Cavasoz Pablo = 卡瓦索斯·帕布罗
+Silva Dada = 席尔瓦·达达
+
+// ==================== Neo Egoist League：Bastard München ====================
+Noa Noel = 诺亚·诺埃尔
+Kaiser Michael = 凯撒·米歇尔
+Ness Alexis = 内斯·亚历克西斯
+Grim Benedict = 格林·本尼迪克特
+Gesner Erik = 格斯纳·埃里克
+Schneider Igor = 施奈德·伊戈尔
+Sachs Theo = 萨克斯·西奥
+Birkenstock：比尔肯施托克
+Mensah：门萨
+Ali：阿里
+Bachman：巴赫曼
+Ndiaye：恩迪亚耶
+
+// ==================== FC Barcha ====================
+Lavinho：拉维尼奥
+Lara Ignacio = 拉拉·伊格纳西奥
+Ruiz：鲁伊斯
+Picasso：毕加索
+Espesso：埃斯佩索
+Bos：博斯
+Gomez：戈麦斯
+Urzaiz：乌尔赛斯
+Moro：莫罗
+So：索
+
+// ==================== Manshine City ====================
+Prince Chris = 普林斯·克里斯
+Agi：阿吉
+Driver：德莱弗
+Swift：斯威夫特
+Busby：巴斯比
+Young：杨
+Arthur：亚瑟
+Damon：达蒙
+Rook：鲁克
+
+// ==================== Ubers ====================
+Snuffy Marc = 斯纳菲·马克
+Lorenzo Don = 洛伦佐·多恩
+Drago：德拉戈
+Peron：佩隆
+Abdi：阿卜迪
+Rico：里科
+Canali：卡纳利
+
+// ==================== Paris X Gen ====================
+Chevalier Charles = 舍瓦利耶·夏尔
+Chapa：查帕
+Renoir：雷诺阿
+Gabon：加蓬
+Michelin：米其林
+
+// ==================== 家属 / 其他 ====================
+Isagi Iyo = 洁 伊世
+Isagi Issei = 洁 一生
+Bachira Yuu = 蜂乐 优
+
+// ==================== 项目 / 选拔 / 队伍 ====================
+Blue Lock：蓝色监狱
+Blue Lock Project：蓝色监狱计划
+Blue Lock Eleven：蓝色监狱十一杰
+First Selection：第一次选拔
+Second Selection：第二次选拔
+Third Selection：第三次选拔
+Final Selection：最终选拔
+Neo Egoist League：新英雄大战
+Wild Card：败者复活
+Team Z：Z队
+Team V：V队
+Team X：X队
+Team Y：Y队
+Team W：W队
+Team Red：红队
+Team White：白队
+Team A：A队
+Team B：B队
+Team C：C队
+World Five：世界五杰
+Japan U-20：日本U-20
+U-20 Japan：日本U-20
+
+// ==================== 新英雄大战球队 ====================
+Bastard München：巴斯塔·慕尼黑
+Bastard Munchen：巴斯塔·慕尼黑
+FC Barcha：FC巴洽
+Manshine City：曼城
+Ubers：尤伯斯
+Paris X Gen：巴黎X战队
+PXG：巴黎X战队
+
+// ==================== 足球位置 ====================
+Forward：前锋
+Striker：前锋
+Goalkeeper：守门员
+Center Forward：中锋
+Right Wing：右边锋
+Left Wing：左边锋
+Attacking Midfielder：进攻型中场
+Defensive Midfielder：防守型中场
+Center Back：中后卫
+Right Back：右后卫
+Left Back：左后卫
+
+// ==================== Blue Lock 核心概念 ====================
+Egoist：利己主义者
+Egoism：利己主义
+Chemical Reaction：化学反应
+Flow State：心流状态
+Flow：心流
+// Weapon：武器 // 不单独匹配：普通英文词，避免误伤正文
+Golden Zone：黄金区域
+Goal Formula：进球方程式
+Goal Scent：进球的气味
+Spatial Awareness：空间认知能力
+Spatial Awareness Ability：空间认知能力
+Off-the-Ball Movements：无球跑动
+Off-the-Ball Movement：无球跑动
+// Reflex：反射 // 不单独匹配：普通英文词，避免误伤正文
+// Luck：运气 // 不单独匹配：普通英文词，避免误伤正文
+Trance：心流
+Metavision：超越视界
+Meta Vision：超越视界
+Predator Eye：掠食者之眼
+Puppet Control：傀儡操纵
+Protagonism：主角感
+Egocentrism：自我中心
+Ego Type：自我类型
+World-Type Ego：世界型自我
+Self-Type Ego：自我型自我
+Freedom-Type：自由型
+Restriction-Type：限制型
+Top Performance：最佳表现
+Best Performance：最佳表现
+// Evolution：进化 // 不单独匹配：普通英文词，避免误伤正文
+// Awakening：觉醒 // 不单独匹配：普通英文词，避免误伤正文
+
+// ==================== 洁 世一：武器 / 招式 ====================
+Direct Shot：直击射门
+Lefty Direct Shot：左脚直击射门
+Back Heel Direct Shot：反转直击背身脚后跟射门
+Two-Gun Volley：二枪式直击弹
+Two Gun Volley：二枪式直击弹
+Two-Gun Direct Volley：二枪式直击弹
+Metavision x Protagonism：超越视界×主角感
+
+// ==================== 蜂乐 廻 ====================
+// Monster：怪物 // 不单独匹配：普通英文词，避免误伤正文
+The Monster：怪物
+Monster Dribble：怪物盘带
+Ginga：Ginga
+Bee Shot：蜂击
+
+// ==================== 千切 豹马 ====================
+// Speed：速度 // 不单独匹配：普通英文词，避免误伤正文
+Mach Cut-In：马赫切入
+44 Panther Snipe：44度赤豹狙击
+44° Panther Snipe：44度赤豹狙击
+Golden Formula：黄金公式
+
+// ==================== 国神 炼介 ====================
+Lefty Shot：左脚射门
+Middle Shot：中距离射门
+Knuckleball：无旋球
+Ambidexterity：双脚能力
+
+// ==================== 凪 诚士郎 ====================
+// Trapping：停球 // 不单独匹配：普通英文词，避免误伤正文
+Black Hole Trap：黑洞停球
+Two-Stage Fake Volley：二段式假动作凌空抽射
+Five-Shot Revolver Fake Volley：五连式左轮手枪假动作凌空抽射
+Five Stage Revolver Fake Volley：五连式左轮手枪假动作凌空抽射
+
+// ==================== 御影 玲王 ====================
+// Copy：复制 // 不单独匹配：普通英文词，避免误伤正文
+Chameleon：变色龙
+Chameleon Style：变色龙模式
+
+// ==================== 马狼 照英 ====================
+King Barou：国王马狼
+// King：国王 // 不单独匹配：普通英文词，避免误伤正文
+// Villain：反派 // 不单独匹配：普通英文词，避免误伤正文
+Chop Dribble：切球盘带
+Middle Shot：中距离射门
+Predator Eye：掠食者之眼
+
+// ==================== 糸师 凛 ====================
+Puppet Control：傀儡操纵
+Destroyer Mode：破坏者模式
+Destructive Impulse：破坏冲动
+Trivela：外脚背弧线球
+
+// ==================== 糸师 冴 ====================
+Beautiful Destruction：美丽的破坏
+Counter Dribble：反击盘带
+
+// ==================== 士道 龙圣 ====================
+Dragon Drive：龙驱
+Big Bang Drive：大爆炸驱动
+Extreme Spatial Awareness：极致空间认知
+
+// ==================== 雪宫 剑优 ====================
+Gyro Shot：陀螺射门
+Sword Screw：剑刃螺旋
+Street Dribbling：街头盘带
+
+// ==================== 乙夜 / 乌 / 冰织 ====================
+Stealthy Steps：隐密步伐
+Shadow Movement：影子移动
+Ball Keeping：控球
+Ball Control：控球
+Karasu’s Analysis：乌的分析
+Ultra-Sadistic Pass：超虐传球
+
+// ==================== 我牙丸 / 蚁生 / 时光 ====================
+// Spring：弹跳力 // 不单独匹配：普通英文词，避免误伤正文
+Reflexive Saves：反射扑救
+// Reach：臂展 // 不单独匹配：普通英文词，避免误伤正文
+Jumping Power：跳跃力
+// Stamina：耐力 // 不单独匹配：普通英文词，避免误伤正文
+// Physical Strength：身体能力 // 不单独匹配：普通英文词，避免误伤正文
+
+// ==================== 凯撒 ====================
+Kaiser Impact：凯撒冲击
+Kaiser Impact: Beinschuss：凯撒冲击·穿裆
+Kaiser Impact: Magnus：凯撒冲击·马格努斯
+Kaiser Impact Magnus：凯撒冲击·马格努斯
+
+// ==================== 内斯 / 洛伦佐 / 大师前锋 ====================
+// Magic：魔法 // 不单独匹配：普通英文词，避免误伤正文
+Zombie Dribbling：僵尸盘带
+Perfect Body Revolution：完美肉体革命
+Godspeed：神速
+Machine Dribble：机械盘带
+
+// ==================== 安全外号 / 称号 ====================
+Blue Lock’s Ace：蓝色监狱的王牌
+The King：国王
+The Emperor：皇帝
+The Magician：魔术师
+The Prodigy：天才
+God’s Chosen Emperor：神选皇帝
+Ace Eater：王牌吞噬者
+Zombie：僵尸
+World’s Best Striker：世界第一前锋
+Master Striker：大师前锋
+
+通用词条
+// 仅放大小写变化不影响含义、且在 Blue Lock 语境中高度稳定的术语。
+// 不将 king / monster / weapon / speed 等普通单词放在这里，避免误伤 AO3 正文。
+
+blue lock：蓝色监狱
+egoist：利己主义者
+egoism：利己主义
+chemical reaction：化学反应
+metavision：超越视界
+meta vision：超越视界
+predator eye：掠食者之眼
+spatial awareness：空间认知能力
+direct shot：直击射门
+neo egoist league：新英雄大战
+wild card：败者复活
+world five：世界五杰
+
+禁翻词条
+VAR
+FIFA
+
+正则表达式
+// 队伍字母的常见写法
+Z Z队
+V V队
+X X队
+Y Y队
+*W W队
+
+// U-20 的常见标点写法
+U[-]20 日本U-20
+*20[]+Japan 日本U-20
