@@ -502,5 +502,16 @@
     "maintainer": "Lyralyell",
     "visibility": true,
     "feedback": "https://github.com/Lyralyell"
+  },
+  {
+    "name": "Kaiju No. 8",
+    "tags": [
+      "怪兽8号",
+      "かいじゅうはちごう"
+    ],
+    "url": "https://raw.githubusercontent.com/10xcaffeine/ao3-chinese/refs/heads/main/glossaries/怪兽8号.txt",
+    "maintainer": "10xcaffeine",
+    "visibility": true,
+    "feedback": "https://github.com/10xcaffeine"
   }
 ]
