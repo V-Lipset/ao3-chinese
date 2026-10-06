@@ -1,6 +1,6 @@
-版本号：1.0.3
+版本号：1.0.4
 维护者：10xcaffeine
-更新时间：2026-10-05
+更新时间：2026-10-06
 
 // 《怪兽8号 / 怪獣8号 / KAIJU NO. 8》
 // AO3 Translator 专用术语表
@@ -186,6 +186,12 @@ Operations Leader：操作队长
 Platoon Leader：小队长
 Captain：队长
 Cap'n：队长
+Cap'n：队长
+Cap’n：队长
+Capʼn：队长
+Vice Cap'n：副队长
+Vice Cap’n：副队长
+Vice Capʼn：副队长
 Vice-Captain：副队长
 Vice Cap'n：副队长
 Vice-Captain：副队长
