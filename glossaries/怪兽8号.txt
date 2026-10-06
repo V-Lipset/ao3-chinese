@@ -1,4 +1,4 @@
-版本号：1.0.5
+版本号：1.0.6
 维护者：10xcaffeine
 更新时间：2026-10-06
 
@@ -257,4 +257,277 @@ JAKDF
 \bCap['’‘ʼ]n\b: 队长
 
 // 编号怪兽不同英文标点/空格写法
+\bKaiju\s+No\.?\s*(1[0-5]|[1-9])\b: 怪兽$1号
+
+// ==================================================
+// 主角 / 核心人物
+// ==================================================
+Hibino Kafka = 日比野 卡夫卡
+Ashiro Mina = 亚白 米娜
+Ichikawa Reno = 市川 莱诺
+Shinomiya Kikoru = 四之宫 奇可露
+Hoshina Soshiro = 保科 宗四郎
+Hoshina Soushirou = 保科 宗四郎 
+Hoshina Soshirou = 保科 宗四郎
+Hoshina Soushiro = 保科 宗四郎 
+//AO3里对宗四郎的翻译与公式书略不同
+
+// ==================================================
+// 同期 / 第三部队主要队员
+// ==================================================
+Furuhashi Iharu = 古桥 伊春
+Izumo Haruichi = 出云 春一
+Kaguragi Aoi = 神乐木 葵
+Minase Akari = 水无濑 明里
+Igarashi Hakua = 五十岚 白亚
+Takanashi Toma = 高梨 冬马
+
+// ==================================================
+// 第三部队干部 / 小队长 / 操作员
+// ==================================================
+“Okonogi Konomi”：小此木
+“Konomi Okonogi”：小此木
+Ikaruga Ryo = 斑鸠 亮
+Nakanoshima Tae = 中之岛 多惠
+Ebina：海老名
+Itakura：板仓
+Takao：鹰尾
+Agatsuma：我妻
+Matsura：松浦
+Takaragi：宝木
+
+// ==================================================
+// 第一部队
+// ==================================================
+Narumi Gen = 鸣海 弦
+Hasegawa Eiji = 长谷川 英二
+Shinonome Rin = 东云 凛
+Tachibana Kota = 立花 刚太
+Kurusu Akira = 来栖 明
+Kinashi：木梨
+Miyake：三宅
+Tabuchi：田渊
+Ichinokura：一之仓
+Makijima：真木岛
+
+// ==================================================
+// 第二 / 四 / 六部队
+// ==================================================
+Igarashi Jura = 五十岚 树良
+Ogata Jugo = 绪方 十五
+Kirimori Toko = 雾森 托科
+Hoshina Soichiro = 保科 宗一郎
+
+// ==================================================
+// 防卫队总部 / 历任干部
+// ==================================================
+Shinomiya Isao = 四之宫 功
+Shinomiya Hikari = 四之宫 光
+Itami Keiji = 伊丹 启司
+Nogizaka：乃木坂
+
+// ==================================================
+// Monster Sweeper / 其他人物
+// ==================================================
+Tokuda Masahide = 德田 正英
+Mitsuike Ichitaka = 三池 一高
+Mori Hiroto = 森 弘人
+Mizoguchi：沟口
+Sebasu：濑羽须
+Bakko：伐虎
+
+// ==================================================
+// 编号怪兽
+// ==================================================
+“Kaiju No. 1”：怪兽1号
+“Kaiju No. 2”：怪兽2号
+“Kaiju No. 3”：怪兽3号
+“Kaiju No. 4”：怪兽4号
+“Kaiju No. 5”：怪兽5号
+“Kaiju No. 6”：怪兽6号
+“Kaiju No. 7”：怪兽7号
+“Kaiju No. 8”：怪兽8号
+“Kaiju No. 9”：怪兽9号
+“Kaiju No. 10”：怪兽10号
+“Kaiju No. 11”：怪兽11号
+“Kaiju No. 12”：怪兽12号
+“Kaiju No. 13”：怪兽13号
+“Kaiju No. 14”：怪兽14号
+“Kaiju No. 15”：怪兽15号
+
+// ==================================================
+// 组织 / 师团 / 部队 / 企业
+// ==================================================
+Japan Defense Force：日本防卫队
+Japanese Defense Force：日本防卫队
+Defense Force：防卫队
+Eastern Division：东方师团
+Western Division：西方师团
+Northern Division：北方师团
+Southern Division：南方师团
+First Division：第一部队
+Second Division：第二部队
+Third Division：第三部队
+Fourth Division：第四部队
+Fifth Division：第五部队
+Sixth Division：第六部队
+Seventh Division：第七部队
+Eighth Division：第八部队
+Ninth Division：第九部队
+Tenth Division：第十部队
+Eleventh Division：第十一部队
+Twelfth Division：第十二部队
+Thirteenth Division：第十三部队
+Fourteenth Division：第十四部队
+Fifteenth Division：第十五部队
+Sixteenth Division：第十六部队
+Monster Sweeper：怪兽清洁公司
+Monster Sweeper Inc.：怪兽清洁公司
+Izumo Tech：出云科技
+
+// ==================================================
+// 基地 / 地点
+// ==================================================
+Tachikawa Base：立川基地
+Ariake Maritime Base：有明临海基地
+Matsumoto Base：松本基地
+Kanazawa Base：金泽基地
+
+// ==================================================
+// 怪兽分类 / 等级
+// ==================================================
+Kaiju：怪兽
+Honju：本兽
+Yoju：余兽
+Fortitude：兽级
+Identified Kaiju：识别怪兽
+Identified Monster：识别怪兽
+Humanoid Kaiju：人型怪兽
+Giant-Class Kaiju：大型怪兽
+Daikaiju：大怪兽
+
+// ==================================================
+// 防卫队 / 战斗系统
+// ==================================================
+Unleashed Combat Power：解放战力
+Combat Power：战斗力
+Combat Suit：战斗服
+Defense Force Suit：防卫队战斗服
+Specialized Weapon：专用武器
+Personalized Weapon：专用武器
+Compatible User：适合者
+Operations Leader：操作队长
+Platoon Leader：小队长
+Captain：队长
+Vice Captain：副队长
+Vice-Captain：副队长
+
+Director General：长官
+Vice Director General：副长官
+Officer：队员
+Candidate Officer：候补队员
+
+// ==================== 军衔 + 人名固定称呼 ====================
+Captain Narumi：鸣海队长
+Captain Gen：鸣海队长
+Narumi Captain：鸣海队长
+Gen Captain：鸣海队长
+
+Vice Captain Hoshina：保科副队长
+Vice-Captain Hoshina：保科副队长
+Vice Captain Soshiro：保科副队长
+Vice-Captain Soshiro：保科副队长
+Hoshina Vice Captain：保科副队长
+Hoshina Vice-Captain：保科副队长
+Soshiro Vice Captain：保科副队长
+Soshiro Vice-Captain：保科副队长
+
+// ==================================================
+// 军衔 + 人名固定称呼
+// ==================================================
+Captain Narumi：鸣海队长
+Captain Gen：鸣海队长
+Narumi Captain：鸣海队长
+Gen Captain：鸣海队长
+Vice Captain Hoshina：保科副队长
+Vice-Captain Hoshina：保科副队长
+Vice Captain Soshiro：保科副队长
+Vice-Captain Soshiro：保科副队长
+Hoshina Vice Captain：保科副队长
+Hoshina Vice-Captain：保科副队长
+Soshiro Vice Captain：保科副队长
+Soshiro Vice-Captain：保科副队长
+
+// ==================================================
+// 识别怪兽兵器 / Numbers
+// ==================================================
+Numbers Weapon：识别怪兽兵器
+Numbers Weapon No. 1：识别怪兽兵器1号
+Numbers Weapon No. 2：识别怪兽兵器2号
+Numbers Weapon No. 4：识别怪兽兵器4号
+Numbers Weapon No. 6：识别怪兽兵器6号
+Numbers Weapon No. 10：识别怪兽兵器10号
+Numbers 1：识别怪兽兵器1号
+Numbers 2：识别怪兽兵器2号
+Numbers 4：识别怪兽兵器4号
+Numbers 6：识别怪兽兵器6号
+Numbers 10：识别怪兽兵器10号
+
+// ==================================================
+// 个人武器 / 装备编号
+// ==================================================
+GS-3305：GS-3305
+AX-0113：AX-0113
+LC-0039：LC-0039
+T-25101985：T-25101985
+SW-2033：SW-2033
+SW-1023：SW-1023
+AW-0027：AW-0027
+Anti-Giant-Class Kaiju Rail Gun：对大型怪兽轨道炮
+
+// ==================================================
+// 保科流 / 战斗术语
+// ==================================================
+Hoshina Style：保科流
+Hoshina-Style：保科流
+Hoshina-Style Sword-Slay Technique：保科流刀伐术
+Hoshina Style Sword-Slay Technique：保科流刀伐术
+
+通用词条
+kaiju：怪兽
+honju：本兽
+yoju：余兽
+fortitude：兽级
+defense force：防卫队
+combat suit：战斗服
+unleashed combat power：解放战力
+identified kaiju：识别怪兽
+numbers weapon：识别怪兽兵器
+
+禁翻词条
+GS-3305
+AX-0113
+LC-0039
+T-25101985
+SW-2033
+SW-1023
+AW-0027
+JAKDF
+
+正则表达式
+// Cap'n / Cap’n / Cap‘n / Capʼn → 队长
+\bCap['’‘ʼ]n\b: 队长
+
+// Vice Cap'n 各种撇号 → 副队长
+\bVice[\s-]+Cap['’‘ʼ]n\b: 副队长
+
+// Cap'n + 鸣海（姓/名）
+\bCap['’‘ʼ]n\s+(Narumi|Gen)\b: 鸣海队长
+\b(Narumi|Gen)\s+Cap['’‘ʼ]n\b: 鸣海队长
+
+// Vice Cap'n + 保科（姓/名及常见罗马字）
+\bVice[\s-]+Cap['’‘ʼ]n\s+(Hoshina|Soshiro|Soushirou|Soshirou|Soushiro)\b: 保科副队长
+\b(Hoshina|Soshiro|Soushirou|Soshirou|Soushiro)\s+Vice[\s-]+Cap['’‘ʼ]n\b: 保科副队长
+
+// 编号怪兽不同英文标点/空格写法统一处理
 \bKaiju\s+No\.?\s*(1[0-5]|[1-9])\b: 怪兽$1号
