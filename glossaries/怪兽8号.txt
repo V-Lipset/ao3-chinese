@@ -16,6 +16,8 @@ Ichikawa Reno = 市川 莱诺
 Shinomiya Kikoru = 四之宫 奇可露
 Hoshina Soshiro = 保科 宗四郎
 Hoshina Soushirou = 保科 宗四郎 
+Hoshina Soshirou = 保科 宗四郎
+Hoshina Soushiro = 保科 宗四郎 
 //AO3里对宗四郎的翻译与公式书略不同
 
 // ==================================================
@@ -183,11 +185,36 @@ Compatible User：适合者
 Operations Leader：操作队长
 Platoon Leader：小队长
 Captain：队长
+Cap'n：队长
 Vice-Captain：副队长
+Vice Cap'n：副队长
+Vice-Captain：副队长
+Vice Cap'n：副队长
+
 Director General：长官
 Vice Director General：副长官
 Officer：队员
 Candidate Officer：候补队员
+
+// ==================== 军衔 + 人名固定称呼 ====================
+Captain Narumi：鸣海队长
+Captain Gen：鸣海队长
+Narumi Captain：鸣海队长
+Gen Captain：鸣海队长
+
+Cap‘n Narumi：鸣海队长
+Cap‘n Gen：鸣海队长
+Narumi Cap‘n：鸣海队长
+Gen Cap‘n：鸣海队长
+
+Vice Captain Hoshina：保科副队长
+Vice-Captain Hoshina：保科副队长
+Vice Captain Soshiro：保科副队长
+Vice-Captain Soshiro：保科副队长
+Hoshina Vice Captain：保科副队长
+Hoshina Vice-Captain：保科副队长
+Soshiro Vice Captain：保科副队长
+Soshiro Vice-Captain：保科副队长
 
 // ==================================================
 // 识别怪兽兵器 / Numbers
