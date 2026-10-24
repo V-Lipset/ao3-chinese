@@ -1,0 +1,127 @@
+版本号: 1.0.0
+维护者: 黎邪/莫言
+更新时间: 2026-10-24
+
+// ==========================================
+// 词条 (区分大小写)
+// 用于翻译人名、地名、特定专有名词
+// ==========================================
+词条
+Amphoreus: 翁法罗斯
+Okhema: 奥赫玛
+Janusopolis: 雅努萨波利斯
+Castrum Kremnos: 悬锋城
+Grove of Epiphany: 神悟树庭
+Styxia: 斯缇科西亚
+Aidonia: 哀地里亚
+Aedes Elysiae: 哀丽秘榭
+Mydei: 万敌
+Mydeimos: 迈德漠斯
+Phainon: 白厄
+Khaslana: 卡厄斯兰那
+Aglaea: 阿格莱雅
+Tribbie: 缇宝
+Anaxa: 那刻夏
+Anaxagoras: 阿那克萨戈拉斯
+Hyacine: 风堇
+Cipher: 赛飞儿
+Cifera: 赛法利娅
+Castorice: 遐蝶
+Hysilens: 海瑟音
+Cerydra: 刻律德菈
+Hephaestion: 赫菲斯辛
+Leon: 莱昂
+Cyrene: 昔涟
+Kephale: 刻法勒
+Oronyx: 欧洛尼斯
+Cerces: 瑟希斯
+Thabatos: 塞纳托斯
+Aquila: 艾格勒
+Nikador: 尼卡多利
+Janus: 雅努斯
+Mnestia: 墨涅塔
+Krateros: 克拉特鲁斯
+Caelus: 穹
+Dan Heng: 丹恒
+Gorgo: 歌耳戈
+Cassie: 小蝶
+Tribby: 缇宝
+Trianne: 缇安
+Trinnon: 缇宁
+Perdikkas: 帕狄卡斯
+Peucesta: 朴塞塔
+Leonnius: 莱昂
+Eurypon: 欧利庞
+Stelle: 星
+Tribios: 缇里西庇俄丝
+Vigethos: 比格椰
+Dawnmaker: 侵晨
+Lygus: 来古士
+Irontomb: 铁墓
+Audata: 奥妲塔
+Hieronymus: 希罗尼穆斯
+Ahatopia: 哈托彼亚
+Kiana: 琪亚娜
+Penacony: 匹诺康尼
+Belobog: 贝洛伯格
+Jarilo-VI: 雅利洛-Ⅵ
+Herta Space Station: 黑塔空间站
+Nanook: 纳努克
+Fig Stew: 蜜果羹
+Snowy: 小白
+Agy: 阿雅
+Deliverer: 救世主
+Sea of Souls: 冥海
+Lance of Fury's Constellation: 天谴之矛
+Marmoreal Palace: 云石市集
+Marmoreal Market: 云石天宫
+
+// ==========================================
+// 通用词条 (不区分大小写)
+// 用于翻译通用概念、组织、种族等
+// ==========================================
+通用词条
+Titan: 泰坦
+Coreflame: 火种
+Coreflame Trials: 原火试炼
+Chrysos Heir: 黄金裔
+Golden Ichor: 黄金灵血
+Flame-Chase: 逐火
+Oracle of the Flame-Chase: 逐火神谕
+Black Tide: 黑潮
+Theoros: 神礼观众
+Transmutation Arcanum: 转秘玄术
+Rain of Sensation: 感觉之雨
+Galaxy Rangers: 巡海游侠
+The Nameless: 无名客
+Xianzhou: 仙舟
+Trailblaze: 开拓
+Destruction: 毁灭
+Flame Reaver: 盗火行者
+Flame-Thief: 盗火者
+Chimera: 奇美拉
+As I've Written: 如我所书
+Kremnoan: 悬锋
+Grove: 树庭
+
+// ==========================================
+// 禁翻词条 (区分大小写)
+// 用于保持原文，不进行翻译的词汇
+// ==========================================
+禁翻词条
+HKS
+Neikos
+Polemos
+Kremnos
+Kremno
+
+// ==========================================
+// 正则表达式 (用于处理复杂匹配)
+// ==========================================
+正则表达式
+// 匹配 Chimera 的单数和复数形式
+\bChimera(s)?\b: 奇美拉
+// 匹配 Chrysos Heir 的复数形式
+\bChrysos Heirs\b: 黄金裔
+// 匹配 Titan 的复数形式
+\bTitans\b: 泰坦
