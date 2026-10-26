@@ -1,0 +1,74 @@
+name: 功能建议
+description: 提出 AO3 Translator 的新功能或改进建议
+title: "[功能建议] "
+labels:
+  - "功能建议"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提出建议。请尽量说明当前遇到的困难，以及这个改进能如何帮助你。
+
+        请先搜索现有的功能建议，避免重复提交。请勿在描述或附件中公开 API 密钥、密码或个人信息。
+  - type: dropdown
+    id: feature
+    attributes:
+      label: 建议所属功能
+      description: 请选择最接近的功能；如果不确定，请选择“其它”。
+      options:
+        - 界面汉化
+        - 作品内容翻译
+        - AI 翻译服务或自定义服务
+        - 语言检测
+        - 术语表与替换规则
+        - 作品屏蔽
+        - 阅读排版与格式
+        - 作品导出
+        - 配置导入与导出
+        - 翻译缓存管理
+        - WebDAV 同步
+        - 悬浮按钮与设置面板
+        - 安装、更新或兼容性
+        - 其它
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你目前遇到什么问题？
+      description: 请描述现有功能的不足，或你希望解决的实际困难。
+      placeholder: 例如：阅读长篇作品时，需要反复手动调整某项设置。
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: 你希望增加或改进什么？
+      description: 请尽量具体地描述期望的功能或行为，不必提供技术实现方案。
+      placeholder: 例如：希望增加一个选项，让插件能……
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: 使用场景或示例（选填）
+      description: 说明你会在什么情况下使用它；如果有示例，可以一并提供。
+      placeholder: 例如：当我……时，希望能够……
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 目前的替代方法（选填）
+      description: 你现在如何解决这个问题？现有方法有什么不足？
+      placeholder: 可以填写目前的操作步骤，或说明没有合适的替代方法。
+    validations:
+      required: false
+  - type: textarea
+    id: references
+    attributes:
+      label: 截图或参考链接（选填）
+      description: 如果有参考界面、相关讨论或其它项目的实现，可以在这里提供。
+      placeholder: 粘贴链接或补充说明；请勿提供含有密钥或个人隐私的内容。
+    validations:
+      required: false

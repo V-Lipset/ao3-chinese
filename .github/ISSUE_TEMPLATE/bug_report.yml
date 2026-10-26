@@ -1,0 +1,227 @@
+name: Bug 反馈
+description: 报告 AO3 Translator 中的故障或异常
+title: "[Bug] "
+labels:
+  - "Bug 反馈"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈 Bug。请尽量填写已知信息，帮助维护者复现和定位 Bug。
+
+        **隐私提醒：** 提交前请检查截图、日志和配置内容，删除 API 密钥、访问令牌、密码、个人信息，以及不希望公开的作品内容。请勿直接上传包含密钥的完整配置文件。
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Bug 所属功能
+      description: 请选择最接近的功能；如果不确定，请选择“其它”。
+      options:
+        - 界面汉化
+        - 作品内容翻译
+        - AI 翻译服务或自定义服务
+        - 语言检测
+        - 术语表与替换规则
+        - 作品屏蔽
+        - 阅读排版与格式
+        - 作品导出
+        - 配置导入与导出
+        - 翻译缓存管理
+        - WebDAV 同步
+        - 悬浮按钮与设置面板
+        - 安装、更新或兼容性
+        - 其它
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Bug 现象
+      description: 请描述具体发生了什么。若有报错提示，请尽量原样填写。
+      placeholder: 例如：进入作品页面后，点击翻译按钮翻译作品正文，但翻译按钮长时间处于“翻译中…”状态，未按预期出现译文。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请尽可能详细地按顺序写出触发 Bug 的操作；如果 Bug 偶尔发生，也请描述当时的操作。
+      placeholder: |
+        1. 打开……
+        2. 进入……
+        3. 点击……
+        4. 出现……
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+      description: 你原本希望插件出现什么表现？
+      placeholder: 例如：点击翻译后，原英文作品正文应翻译为中文。
+    validations:
+      required: true
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Bug 出现频率
+      options:
+        - 每次都能复现
+        - 偶尔出现
+        - 只出现过一次
+        - 暂时无法确定
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: 出现 Bug 的网站
+      description: 请填写网址或域名；无需提供账号、个人页面或其它隐私信息。
+      placeholder: 例如 archiveofourown.org 或具体镜像站域名
+    validations:
+      required: true
+  - type: input
+    id: script_version
+    attributes:
+      label: 插件版本
+      description: 可在脚本管理器的脚本详情中查看版本号。
+      placeholder: 例如：1.10.0
+    validations:
+      required: true
+  - type: dropdown
+    id: install_source
+    attributes:
+      label: 插件安装来源
+      options:
+        - 主用-远程版
+        - 主用-本地版
+        - 备用-远程版
+        - 备用-本地版
+        - 其它来源
+        - 不清楚
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Android
+        - iOS / iPadOS
+        - ChromeOS
+        - 其它
+    validations:
+      required: true
+  - type: input
+    id: os_version
+    attributes:
+      label: 操作系统版本
+      description: 例如 Windows 11、macOS 15、Android 15；不清楚可留空。
+      placeholder: 操作系统名称及版本
+    validations:
+      required: false
+  - type: dropdown
+    id: browser
+    attributes:
+      label: 浏览器
+      options:
+        - Chrome
+        - Microsoft Edge
+        - Firefox
+        - Safari
+        - Via
+        - Focus
+        - 其它 Chromium 内核浏览器
+        - 其它
+    validations:
+      required: true
+  - type: input
+    id: browser_version
+    attributes:
+      label: 浏览器版本
+      description: 可在浏览器的“关于”页面查看；不清楚可留空。
+      placeholder: 浏览器版本号
+    validations:
+      required: false
+  - type: dropdown
+    id: manager
+    attributes:
+      label: 用户脚本管理器
+      options:
+        - Tampermonkey
+        - Violentmonkey
+        - Greasemonkey
+        - Userscripts
+        - Stay
+        - Via
+        - Foucs
+        - 其它
+        - 不清楚
+    validations:
+      required: true
+  - type: input
+    id: manager_version
+    attributes:
+      label: 用户脚本管理器版本
+      description: 可在扩展程序详情或脚本管理器设置中查看；不清楚可留空。
+      placeholder: 版本号
+    validations:
+      required: false
+  - type: dropdown
+    id: translation_provider
+    attributes:
+      label: 是否涉及翻译服务
+      description: 如果 Bug 与翻译结果、翻译失败或速度有关，请选择对应选项。
+      options:
+        - 不涉及翻译服务
+        - 谷歌翻译
+        - 微软翻译
+        - 腾讯翻译
+        - Anthropic
+        - Cerebras
+        - DeepSeek
+        - Google AI
+        - Groq AI
+        - ModelScope
+        - OpenAI
+        - SiliconFlow
+        - Together AI
+        - Zhipu AI
+        - 自定义
+        - 不清楚
+    validations:
+      required: false
+  - type: input
+    id: model
+    attributes:
+      label: 翻译模型（选填）
+      description: 仅在涉及 AI 翻译服务时填写。
+      placeholder: 例如：deepseek-flash
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: 错误信息或日志（选填）
+      description: 请在插件更多功能中的「调试模式与日志」中复制相关错误信息粘贴到此处。
+      placeholder: 将相关错误信息粘贴在这里；没有日志可留空。
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: attachments
+    attributes:
+      label: 截图、录屏或补充信息（选填）
+      description: 可将图片或录屏拖入此处，也可补充其它有助于定位 Bug 的信息。请遮盖账号、个人信息和敏感内容。
+      placeholder: 请勿上传包含密钥或隐私信息的截图、配置文件。
+    validations:
+      required: false
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隐私确认
+      options:
+        - label: 我已检查本次提交的文字、日志和附件，并尽可能移除了密钥、密码、个人信息及不希望公开的内容。
+          required: true
