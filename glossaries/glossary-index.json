@@ -548,5 +548,15 @@
     "maintainer": "10xcaffeine",
     "visibility": true,
     "feedback": "https://github.com/10xcaffeine"
+  },
+  {
+    "name": "Heated Rivalry",
+    "tags": [
+      "巅峰对决"
+    ],
+    "url": "https://raw.githubusercontent.com/CoffeHolic-330/ao3-chinese/refs/heads/patch-4/glossaries/Heated_Rivalry.txt",
+    "maintainer": "CoffeHolic-330",
+    "visibility": true,
+    "feedback": "https://github.com/CoffeHolic-330"
   }
 ]
