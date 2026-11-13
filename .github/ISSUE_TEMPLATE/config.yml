@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 使用说明与常见问题
+    url: https://github.com/V-Lipset/ao3-chinese
+    about: 提交问题前，请先查看项目说明和使用方法。
+  - name: 搜索已有问题
+    url: https://github.com/V-Lipset/ao3-chinese/issues
+    about: 查看是否已有相同问题或解决方案。
+  - name: 社区讨论与使用求助
+    url: https://github.com/V-Lipset/ao3-chinese/discussions
+    about: 配置咨询、使用问题或一般讨论可优先在这里提出。

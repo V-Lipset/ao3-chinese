@@ -145,7 +145,7 @@
     "tags": [
       "钢之炼金术师"
     ],
-    "url": "https://raw.githubusercontent.com/Senka-owl/ao3-chinese-senka/refs/heads/main/glossaries/ullmetal%20Alchemist.txt",
+    "url": "https://raw.githubusercontent.com/Senka-owl/ao3-chinese-senka/refs/heads/main/glossaries/Fullmetal%20Alchemist.txt",
     "maintainer": "Senka-owl",
     "visibility": true,
     "feedback": "https://github.com/Senka-owl"
@@ -362,5 +362,201 @@
     "maintainer": "Lylia-0617",
     "visibility": true,
     "feedback": "https://github.com/Lylia-0617"
+  },
+  {
+    "name": "House of the Dragon",
+    "tags": [
+      "龙之家族"
+    ],
+    "url": "https://raw.githubusercontent.com/Vryndor/ao3-chinese/refs/heads/main/glossaries/House%20of%20the%20Dragon.txt",
+    "maintainer": "momori",
+    "visibility": true,
+    "feedback": "https://github.com/Vryndor"
+  },
+  {
+    "name": "Final Fantasy VII",
+    "tags": [
+      "最终幻想 VII"
+    ],
+    "url": "https://raw.githubusercontent.com/V-Lipset/ao3-chinese/refs/heads/main/glossaries/最终幻想Ⅶ.txt",
+    "maintainer": "tsunaX14",
+    "visibility": true,
+    "feedback": "https://github.com/tsunaX14"
+  },
+  {
+    "name": "Star Wars",
+    "tags": [
+      "星球大战"
+    ],
+    "url": "https://raw.githubusercontent.com/minkey-02/ao3-chinese/refs/heads/main/glossaries/Star_Wars.txt",
+    "maintainer": "minkey",
+    "visibility": true,
+    "feedback": "https://https://github.com/minkey-02"
+  },
+  {
+    "name": "The Lord of the Rings & The Hobbit",
+    "tags": [
+      "指环王 & 霍比特人"
+    ],
+    "url": "https://raw.githubusercontent.com/panverus/ao3-chinese/refs/heads/main/glossaries/LOTR%20%7C%20%E4%B8%AD%E6%B4%B2%E7%9B%B8%E5%85%B3.txt",
+    "maintainer": "panverus",
+    "visibility": true,
+    "feedback": "https://github.com/panverus"
+  },
+  {
+    "name": "A Song of Ice and Fire",
+    "tags": [
+      "冰与火之歌"
+    ],
+    "url": "https://raw.githubusercontent.com/Valyria336/ao3-chinese/refs/heads/A-Song-of-Ice-and-Fire/glossaries/%E5%86%B0%E4%B8%8E%E7%81%AB%E4%B9%8B%E6%AD%8C",
+    "maintainer": "拉葛莎",
+    "visibility": true,
+    "feedback": "https://github.com/Valyria336"
+  },
+  {
+    "name": "Honkai: Star Rail",
+    "tags": [
+      "崩坏：星穹铁道"
+    ],
+    "url": "https://raw.githubusercontent.com/suiyuan948/ao3-chinese/7e0ad65aa060376fa4d422047b7d287f757f0d90/glossaries/Honkai%EF%BC%9AStar%20Rail.txt",
+    "maintainer": "suiyuan",
+    "visibility": true,
+    "feedback": "https://github.com/suiyuan948"
+  },
+  {
+    "name": "Spider-Man",
+    "tags": [
+      "蜘蛛侠"
+    ],
+    "url": "https://raw.githubusercontent.com/diorverity/ao3-chinese/refs/heads/patch-1/glossaries/Spiderman.txt",
+    "maintainer": "spidey",
+    "visibility": true,
+    "feedback": "https://github.com/diorverity"
+  },
+  {
+    "name": "Disco Elysium",
+    "tags": [
+      "极乐迪斯科"
+    ],
+    "url": "https://raw.githubusercontent.com/dcc000/ao3-chinese/refs/heads/main/glossaries/Disco%20Elysium.txt",
+    "maintainer": "dcc000",
+    "visibility": true,
+    "feedback": "https://github.com/dcc000"
+  },
+  {
+    "name": "Genshin Impact",
+    "tags": [
+      "原神"
+    ],
+    "url": "https://raw.githubusercontent.com/BigRibosomal/ao3-chinese/refs/heads/main/glossaries/Genshin%20Impact.txt",
+    "maintainer": "喜欢记录的月灵",
+    "visibility": true,
+    "feedback": "https://github.com/BigRibosomal"
+  },
+  {
+    "name": "Cyberpunk 2077",
+    "tags": [
+      "赛博朋克 2077"
+    ],
+    "url": "https://raw.githubusercontent.com/Sameenwoof/ao3-chinese/refs/heads/main/glossaries/Cyberpunk%202077.txt",
+    "maintainer": "riddikulusknowsnothing",
+    "visibility": true,
+    "feedback": "https://github.com/Sameenwoof"
+  },
+  {
+    "name": "LCK",
+    "tags": [
+      "26lck+部分lpl韩援+部分退役选手罗马音对照"
+    ],
+    "url": "https://raw.githubusercontent.com/lemonadening7-debug/ao3-chinese/refs/heads/main/glossaries/LCK.txt",
+    "maintainer": "Lemon",
+    "visibility": true,
+    "feedback": "https://github.com/lemonadening7-debug"
+  },
+  {
+    "name": "Re:Zero",
+    "tags": [
+      "Re:从零开始的异世界生活"
+    ],
+    "url": "https://raw.githubusercontent.com/alinayen-coder/ao3-chinese/refs/heads/main/glossaries/Re%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E7%9A%84%E5%BC%82%E4%B8%96%E7%95%8C%E7%94%9F%E6%B4%BB.txt",
+    "maintainer": "innocentsnow",
+    "visibility": true,
+    "feedback": "https://github.com/alinayen-coder"
+  },
+  {
+    "name": "The Magnus Archives",
+    "tags": [
+      "马格努斯档案馆"
+    ],
+    "url": "https://raw.githubusercontent.com/hafgola465637-creator/ao3-chinese/refs/heads/main/glossaries/The%20Magnus%20Archives.txt",
+    "maintainer": "hafgola_42@foxmail.com",
+    "visibility": true,
+    "feedback": "hafgola_42@foxmail.com"
+  },
+  {
+    "name": "One Piece",
+    "tags": [
+      "海贼王"
+    ],
+    "url": "https://raw.githubusercontent.com/Lyralyell/ao3-chinese/refs/heads/main/glossaries/One%20Piece.txt",
+    "maintainer": "Lyralyell",
+    "visibility": true,
+    "feedback": "https://github.com/Lyralyell"
+  },
+  {
+    "name": "Kaiju No. 8",
+    "tags": [
+      "怪兽8号",
+      "かいじゅうはちごう"
+    ],
+    "url": "https://raw.githubusercontent.com/10xcaffeine/ao3-chinese/refs/heads/main/glossaries/怪兽8号.txt",
+    "maintainer": "10xcaffeine",
+    "visibility": true,
+    "feedback": "https://github.com/10xcaffeine"
+  },
+  {
+    "name": "Demon Slayer: Kimetsu no Yaiba",
+    "tags": [
+      "鬼灭之刃",
+      "鬼滅の刃"
+    ],
+    "url": "https://raw.githubusercontent.com/10xcaffeine/ao3-chinese/d2e84149a1c2b0afa2b661913f8039383707fadf/glossaries/%E9%AC%BC%E7%81%AD%E4%B9%8B%E5%88%83.txt",
+    "maintainer": "10xcaffeine",
+    "visibility": true,
+    "feedback": "https://github.com/10xcaffeine"
+  },
+  {
+    "name": "Blue Lock",
+    "tags": [
+      "蓝色禁区",
+      "藍色監獄",
+      "ブルーロック",
+      "青い監獄"
+    ],
+    "url": "https://raw.githubusercontent.com/10xcaffeine/ao3-chinese/8c08739da0297a96a0e71e9072bc9a7fc6618e93/glossaries/BLUELOCK.txt",
+    "maintainer": "10xcaffeine",
+    "visibility": true,
+    "feedback": "https://github.com/10xcaffeine"
+  },
+  {
+    "name": "Blue Period",
+    "tags": [
+      "蓝色时期",
+      "ブルーピリオド"
+    ],
+    "url": "https://raw.githubusercontent.com/10xcaffeine/ao3-chinese/eaafdc3eafd5f6e9f7f3ca68b7810fd5fb179250/glossaries/%E8%93%9D%E8%89%B2%E6%97%B6%E6%9C%9F.txt",
+    "maintainer": "10xcaffeine",
+    "visibility": true,
+    "feedback": "https://github.com/10xcaffeine"
+  },
+  {
+    "name": "Heated Rivalry",
+    "tags": [
+      "巅峰对决"
+    ],
+    "url": "https://raw.githubusercontent.com/CoffeHolic-330/ao3-chinese/refs/heads/patch-4/glossaries/Heated_Rivalry.txt",
+    "maintainer": "CoffeHolic-330",
+    "visibility": true,
+    "feedback": "https://github.com/CoffeHolic-330"
   }
 ]

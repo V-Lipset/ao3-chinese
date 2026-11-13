@@ -1,0 +1,687 @@
+版本号：1.0.0
+维护者：10xcaffeine
+更新时间：2026-10-04
+
+// 《鬼灭之刃 / Demon Slayer: Kimetsu no Yaiba》
+// AO3 Translator 专用｜简体中文
+
+词条
+
+// ==================== 灶门家 ====================
+Kamado Tanjiro = 灶门 炭治郎
+Kamado Nezuko = 灶门 祢豆子
+Kamado Tanjuro = 灶门 炭十郎
+Kamado Kie = 灶门 葵枝
+Kamado Takeo = 灶门 竹雄
+Kamado Hanako = 灶门 花子
+Kamado Shigeru = 灶门 茂
+Kamado Rokuta = 灶门 六太
+Kamado Sumiyoshi = 灶门 炭吉
+Kamado Suyako = 灶门 朱弥子
+Kamado Sumire = 灶门 堇
+
+// ==================== 主角同期 / 鬼杀队 ====================
+Agatsuma Zenitsu = 我妻 善逸
+Hashibira Inosuke = 嘴平 伊之助
+Tsuyuri Kanao = 栗花落 香奈乎
+Shinazugawa Genya = 不死川 玄弥
+Kanzaki Aoi = 神崎 葵
+Murata：村田
+Ozaki：尾崎
+Goto：后藤
+
+// ==================== 柱 ====================
+Tomioka Giyu = 富冈 义勇
+Kocho Shinobu = 胡蝶 忍
+Rengoku Kyojuro = 炼狱 杏寿郎
+Uzui Tengen = 宇髓 天元
+Tokito Muichiro = 时透 无一郎
+Kanroji Mitsuri = 甘露寺 蜜璃
+Iguro Obanai = 伊黑 小芭内
+Shinazugawa Sanemi = 不死川 实弥
+Himejima Gyomei = 悲鸣屿 行冥
+Kocho Kanae = 胡蝶 香奈惠
+
+// ==================== 培育师 / 前柱 / 剑士 ====================
+Urokodaki Sakonji = 鳞泷 左近次
+Kuwajima Jigoro = 桑岛 慈悟郎
+Rengoku Shinjuro = 炼狱 槙寿郎
+Sabito：锖兔
+Makomo：真菰
+Kumeno Masachika = 粂野 匡近
+
+// ==================== 产屋敷家 ====================
+Ubuyashiki Kagaya = 产屋敷 耀哉
+Ubuyashiki Amane = 产屋敷 天音
+Ubuyashiki Kiriya = 产屋敷 辉利哉
+Ubuyashiki Kanata = 产屋敷 彼方
+Ubuyashiki Kuina = 产屋敷 杭奈
+Ubuyashiki Hinaki = 产屋敷 雏衣
+Ubuyashiki Nichika = 产屋敷 日香
+
+// ==================== 蝶屋敷 ====================
+Nakahara Sumi = 中原 澄
+Terauchi Kiyo = 寺内 清
+Takada Naho = 高田 菜穗
+
+// ==================== 炼狱家 ====================
+Rengoku Senjuro = 炼狱 千寿郎
+Rengoku Ruka = 炼狱 瑠火
+
+// ==================== 时透 / 不死川 / 富冈家 ====================
+Tokito Yuichiro = 时透 有一郎
+Tomioka Tsutako = 富冈 茑子
+Shinazugawa Kyogo = 不死川 恭梧
+Shinazugawa Shizu = 不死川 志津
+Shinazugawa Sumi = 不死川 寿美
+Shinazugawa Teiko = 不死川 贞子
+Shinazugawa Hiroshi = 不死川 弘
+Shinazugawa Koto = 不死川 琴
+Shinazugawa Shuya = 不死川 就也
+
+// ==================== 宇髓家 / 妻子 ====================
+Makio：槙于
+Suma：须磨
+Hinatsuru：雏鹤
+
+// ==================== 刀匠村 ====================
+Haganezuka Hotaru = 钢铁冢 萤
+Kanamori Kozo = 铁穴森 钢藏
+Tecchikawahara Tecchin = 铁地河原 铁珍
+Kotetsu：小铁
+Tetsuido：铁井户
+
+// ==================== 继国家 / 战国剑士 ====================
+Tsugikuni Yoriichi = 继国 缘壹
+Tsugikuni Michikatsu = 继国 岩胜
+Tsugikuni Uta = 继国 歌
+Tsugikuni Akeno = 继国 朱乃
+
+// ==================== 伊之助相关 ====================
+Hashibira Kotoha = 嘴平 琴叶
+Takaharu：孝治
+
+// ==================== 猗窝座人类时期 ====================
+Hakuji：狛治
+Keizo：庆藏
+Koyuki：恋雪
+
+// ==================== 其他人物 ====================
+Saburo：三郎
+Kazumi：和己
+Tokie：时江
+Toyo：丰
+Sayo：沙代
+Kaburamaru：镝丸
+Chuntaro：啾太郎
+
+// ==================== 鬼王 / 十二鬼月 ====================
+Kibutsuji Muzan = 鬼舞辻 无惨
+Kokushibo：黑死牟
+Doma：童磨
+Akaza：猗窝座
+Hantengu：半天狗
+Gyokko：玉壶
+Gyutaro：妓夫太郎
+Daki：堕姬
+Nakime：鸣女
+Kaigaku：狯岳
+Enmu：魇梦
+Rokuro：辘轳
+Wakuraba：病叶
+Mukago：零余子
+Rui：累
+Kamanue：釜鵺
+Kyogai：响凯
+
+// ==================== 半天狗分身 ====================
+Sekido：积怒
+Karaku：可乐
+Aizetsu：哀绝
+Urogi：空喜
+Zohakuten：憎珀天
+Urami：恨
+Hantengu's clones：半天狗分身
+
+// ==================== 珠世一方 / 其他有名鬼 ====================
+Tamayo：珠世
+Yushiro：愈史郎
+Susamaru：朱纱丸
+Yahaba：矢琶羽
+Temple Demon：佛堂鬼
+Hand Demon：手鬼
+Swamp Demon：沼鬼
+Tongue Demon：舌鬼
+Horned Demon：角鬼
+Spider Demon Father：蜘蛛鬼·父
+Spider Demon Mother：蜘蛛鬼·母
+Spider Demon Son：蜘蛛鬼·兄
+Spider Demon Daughter：蜘蛛鬼·姐
+
+// ==================== 现代后代 / 转世 ====================
+Kamado Kanata = 灶门 彼方
+Kamado Sumihiko = 灶门 炭彦
+Agatsuma Toko = 我妻 灯子
+Agatsuma Yoshiteru = 我妻 善照
+Hashibira Aoba = 嘴平 青叶
+Tomioka Giichi = 富冈 义一
+Shinazugawa Sanehiro = 不死川 实弘
+Uzui Tenma = 宇髓 天满
+Rengoku Tojuro = 炼狱 桃寿郎
+
+// ==================== 组织 / 身份 / 阶级 ====================
+Demon Slayer Corps：鬼杀队
+Demon Slayer：鬼杀队士
+Hashira：柱
+Water Hashira：水柱
+Flame Hashira：炎柱
+Insect Hashira：虫柱
+Sound Hashira：音柱
+Mist Hashira：霞柱
+Love Hashira：恋柱
+Serpent Hashira：蛇柱
+Wind Hashira：风柱
+Stone Hashira：岩柱
+Flower Hashira：花柱
+Twelve Kizuki：十二鬼月
+Upper Rank：上弦
+Lower Rank：下弦
+Upper Rank One：上弦之壹
+Upper Rank Two：上弦之贰
+Upper Rank Three：上弦之叁
+Upper Rank Four：上弦之肆
+Upper Rank Five：上弦之伍
+Upper Rank Six：上弦之陆
+Lower Rank One：下弦之壹
+Lower Rank Two：下弦之贰
+Lower Rank Three：下弦之叁
+Lower Rank Four：下弦之肆
+Lower Rank Five：下弦之伍
+Lower Rank Six：下弦之陆
+Kakushi：隐
+Tsuguko：继子
+Cultivator：培育师
+Swordsmith：刀匠
+Final Selection：最终选拔
+
+// 鬼杀队阶级
+Mizunoto：癸
+Mizunoe：壬
+Kanoto：辛
+Kanoe：庚
+Tsuchinoto：己
+Tsuchinoe：戊
+Hinoto：丁
+Hinoe：丙
+Kinoto：乙
+Kinoe：甲
+
+// ==================== 核心能力 / 装备 ====================
+Breathing Style：呼吸法
+Total Concentration Breathing：全集中呼吸
+Total Concentration Constant：全集中·常中
+Demon Slayer Mark：斑纹
+Transparent World：通透世界
+Selfless State：无我境界
+Bright Red Nichirin Sword：赫刀
+Nichirin Sword：日轮刀
+Nichirin Blade：日轮刀
+Blood Demon Art：血鬼术
+Regeneration：再生
+Wisteria Poison：紫藤花毒
+Marechi：稀血
+
+// ==================== 呼吸法 ====================
+Sun Breathing：日之呼吸
+Water Breathing：水之呼吸
+Flame Breathing：炎之呼吸
+Thunder Breathing：雷之呼吸
+Wind Breathing：风之呼吸
+Stone Breathing：岩之呼吸
+Moon Breathing：月之呼吸
+Flower Breathing：花之呼吸
+Insect Breathing：虫之呼吸
+Serpent Breathing：蛇之呼吸
+Love Breathing：恋之呼吸
+Sound Breathing：音之呼吸
+Mist Breathing：霞之呼吸
+Beast Breathing：兽之呼吸
+Hinokami Kagura：火之神神乐
+
+// ==================== 水之呼吸 ====================
+"Water Breathing, First Form: Water Surface Slash"：水之呼吸·壹之型 水面斩
+"Water Breathing, Second Form: Water Wheel"：水之呼吸·贰之型 水车
+"Water Breathing, Third Form: Flowing Dance"：水之呼吸·叁之型 流流舞
+"Water Breathing, Fourth Form: Striking Tide"：水之呼吸·肆之型 击打潮
+"Water Breathing, Fifth Form: Blessed Rain After the Drought"：水之呼吸·伍之型 干天的慈雨
+"Water Breathing, Sixth Form: Whirlpool"：水之呼吸·陆之型 扭转漩涡
+"Water Breathing, Seventh Form: Drop Ripple Thrust"：水之呼吸·柒之型 雫波纹突
+"Water Breathing, Eighth Form: Waterfall Basin"：水之呼吸·捌之型 泷壶
+"Water Breathing, Ninth Form: Splashing Water Flow, Turbulent"：水之呼吸·玖之型 水流飞沫·乱
+"Water Breathing, Tenth Form: Constant Flux"：水之呼吸·拾之型 生生流转
+"Water Breathing, Eleventh Form: Dead Calm"：水之呼吸·拾壹之型 凪
+
+// ==================== 雷之呼吸 ====================
+"Thunder Breathing, First Form: Thunderclap and Flash"：雷之呼吸·壹之型 霹雳一闪
+"Thunderclap and Flash: Sixfold"：霹雳一闪·六连
+"Thunderclap and Flash: Eightfold"：霹雳一闪·八连
+"Thunderclap and Flash: Godlike Speed"：霹雳一闪·神速
+"Thunder Breathing, Second Form: Rice Spirit"：雷之呼吸·贰之型 稻魂
+"Thunder Breathing, Third Form: Thunder Swarm"：雷之呼吸·叁之型 聚蚊成雷
+"Thunder Breathing, Fourth Form: Distant Thunder"：雷之呼吸·肆之型 远雷
+"Thunder Breathing, Fifth Form: Heat Lightning"：雷之呼吸·伍之型 热界雷
+"Thunder Breathing, Sixth Form: Rumble and Flash"：雷之呼吸·陆之型 电轰雷轰
+"Thunder Breathing, Seventh Form: Honoikazuchi no Kami"：雷之呼吸·柒之型 火雷神
+
+// ==================== 炎之呼吸 ====================
+"Flame Breathing, First Form: Unknowing Fire"：炎之呼吸·壹之型 不知火
+"Flame Breathing, Second Form: Rising Scorching Sun"：炎之呼吸·贰之型 炎天升腾
+"Flame Breathing, Third Form: Blazing Universe"：炎之呼吸·叁之型 气炎万象
+"Flame Breathing, Fourth Form: Blooming Flame Undulation"：炎之呼吸·肆之型 盛炎的蜿蜒
+"Flame Breathing, Fifth Form: Flame Tiger"：炎之呼吸·伍之型 炎虎
+"Flame Breathing, Ninth Form: Rengoku"：炎之呼吸·奥义 玖之型 炼狱
+
+// ==================== 兽之呼吸 ====================
+"Beast Breathing, First Fang: Pierce"：兽之呼吸·壹之牙 穿透刺射
+"Beast Breathing, Second Fang: Slice"：兽之呼吸·贰之牙 利刃对劈
+"Beast Breathing, Third Fang: Devour"：兽之呼吸·叁之牙 獠牙撕扯
+"Beast Breathing, Fourth Fang: Slice 'n' Dice"：兽之呼吸·肆之牙 碎刃霏霏
+"Beast Breathing, Fifth Fang: Crazy Cutting"：兽之呼吸·伍之牙 狂乱撕扯
+"Beast Breathing, Sixth Fang: Palisade Bite"：兽之呼吸·陆之牙 乱桩咬
+"Beast Breathing, Seventh Form: Spatial Awareness"：兽之呼吸·柒之型 空间感知
+"Beast Breathing, Eighth Form: Explosive Rush"：兽之呼吸·捌之型 爆裂猛进
+"Beast Breathing, Ninth Fang: Extending Bendy Slash"：兽之呼吸·玖之牙 伸·蜿蜒撕裂
+"Beast Breathing, Tenth Fang: Whirling Fangs"：兽之呼吸·拾之牙 圆转旋牙
+"Beast Breathing, Eleventh Fang: Sudden Throwing Strike"：兽之呼吸·拾壹之牙 猛进突刺
+
+// ==================== 虫之呼吸 ====================
+"Insect Breathing, Butterfly Dance: Caprice"：虫之呼吸·蝶之舞 戏弄
+"Insect Breathing, Dance of the Bee Sting: True Flutter"：虫之呼吸·蜂牙之舞 真曳
+"Insect Breathing, Dance of the Dragonfly: Compound Eye Hexagon"：虫之呼吸·蜻蛉之舞 复眼六角
+"Insect Breathing, Dance of the Centipede: Hundred-Legged Zigzag"：虫之呼吸·蜈蚣之舞 百足蛇腹
+
+// ==================== 花之呼吸 ====================
+"Flower Breathing, Second Form: Honorable Shadow Plum"：花之呼吸·贰之型 御影梅
+"Flower Breathing, Fourth Form: Crimson Hanagoromo"：花之呼吸·肆之型 红花衣
+"Flower Breathing, Fifth Form: Peonies of Futility"：花之呼吸·伍之型 无果芍药
+"Flower Breathing, Sixth Form: Whirling Peach"：花之呼吸·陆之型 涡桃
+"Flower Breathing, Final Form: Equinoctial Vermilion Eye"：花之呼吸·终之型 彼岸朱眼
+
+// ==================== 音之呼吸 ====================
+"Sound Breathing, First Form: Roar"：音之呼吸·壹之型 轰
+"Sound Breathing, Fourth Form: Constant Resounding Slashes"：音之呼吸·肆之型 响斩无间
+"Sound Breathing, Fifth Form: String Performance"：音之呼吸·伍之型 鸣弦奏奏
+
+// ==================== 霞之呼吸 ====================
+"Mist Breathing, First Form: Low Clouds, Distant Haze"：霞之呼吸·壹之型 垂天远霞
+"Mist Breathing, Second Form: Eight-Layered Mist"：霞之呼吸·贰之型 八重霞
+"Mist Breathing, Third Form: Scattering Mist Splash"：霞之呼吸·叁之型 霞散的飞沫
+"Mist Breathing, Fourth Form: Shifting Flow Slash"：霞之呼吸·肆之型 移流斩
+"Mist Breathing, Fifth Form: Sea of Clouds and Haze"：霞之呼吸·伍之型 霞云之海
+"Mist Breathing, Sixth Form: Lunar Dispersing Mist"：霞之呼吸·陆之型 月之霞消
+"Mist Breathing, Seventh Form: Obscuring Clouds"：霞之呼吸·柒之型 朦胧
+
+// ==================== 恋之呼吸 ====================
+"Love Breathing, First Form: Shivers of First Love"：恋之呼吸·壹之型 初恋的战栗
+"Love Breathing, Second Form: Love Pangs"：恋之呼吸·贰之型 懊恼逡巡之恋
+"Love Breathing, Third Form: Catlove Shower"：恋之呼吸·叁之型 恋猫时雨
+"Love Breathing, Fifth Form: Swaying Love, Wildclaw"：恋之呼吸·伍之型 摇摆不定的恋情·乱爪
+"Love Breathing, Sixth Form: Cat-Legged Winds of Love"：恋之呼吸·陆之型 猫足恋风
+
+// ==================== 蛇之呼吸 ====================
+"Serpent Breathing, First Form: Winding Serpent Slash"：蛇之呼吸·壹之型 委蛇斩
+"Serpent Breathing, Second Form: Venom Fangs of the Narrow Head"：蛇之呼吸·贰之型 狭头之毒牙
+"Serpent Breathing, Third Form: Coil Choke"：蛇之呼吸·叁之型 巢绞
+"Serpent Breathing, Fourth Form: Twin-Headed Reptile"：蛇之呼吸·肆之型 颈蛇双生
+"Serpent Breathing, Fifth Form: Slithering Serpent"：蛇之呼吸·伍之型 蜿蜿长蛇
+
+// ==================== 风之呼吸 ====================
+"Wind Breathing, First Form: Dust Whirlwind Cutter"：风之呼吸·壹之型 尘旋风·削斩
+"Wind Breathing, Second Form: Claws-Purifying Wind"：风之呼吸·贰之型 爪爪·科户风
+"Wind Breathing, Third Form: Clean Storm Wind Tree"：风之呼吸·叁之型 晴岚风树
+"Wind Breathing, Fourth Form: Rising Dust Storm"：风之呼吸·肆之型 升上沙尘岚
+"Wind Breathing, Fifth Form: Cold Mountain Wind"：风之呼吸·伍之型 寒秋落山风
+"Wind Breathing, Sixth Form: Black Wind Mountain Mist"：风之呼吸·陆之型 黑风烟岚
+"Wind Breathing, Seventh Form: Gale, Sudden Gusts"：风之呼吸·柒之型 劲风·天狗风
+"Wind Breathing, Eighth Form: Primary Gale Slash"：风之呼吸·捌之型 初烈风斩
+"Wind Breathing, Ninth Form: Idaten Typhoon"：风之呼吸·玖之型 韦驮天台风
+
+// ==================== 岩之呼吸 ====================
+"Stone Breathing, First Form: Serpentinite Bipolar"：岩之呼吸·壹之型 蛇纹岩·双极
+"Stone Breathing, Second Form: Upper Smash"：岩之呼吸·贰之型 天面碎
+"Stone Breathing, Third Form: Stone Skin"：岩之呼吸·叁之型 岩躯之肤
+"Stone Breathing, Fourth Form: Volcanic Rock, Rapid Conquest"：岩之呼吸·肆之型 流纹岩·速征
+"Stone Breathing, Fifth Form: Arcs of Justice"：岩之呼吸·伍之型 瓦轮刑部
+
+// ==================== 火之神神乐 / 日之呼吸 ====================
+"Dance"：圆舞
+"Clear Blue Sky"：碧罗天
+"Raging Sun"：烈日红镜
+"Burning Bones, Summer Sun"：灼骨炎阳
+"Setting Sun Transformation"：斜阳转身
+"Solar Heat Haze"：飞轮阳炎
+"Beneficent Radiance"：辉辉恩光
+"Sunflower Thrust"：阳华突
+"Dragon Sun Halo Head Dance"：日晕之龙·头舞
+"Fire Wheel"：火车
+"Fake Rainbow"：幻日虹
+"Flame Dance"：炎舞
+"Thirteenth Form"：拾叁之型
+
+// ==================== 月之呼吸 ====================
+"Moon Breathing, First Form: Dark Moon, Evening Palace"：月之呼吸·壹之型 暗月·宵之宫
+"Moon Breathing, Second Form: Pearl Flower Moongazing"：月之呼吸·贰之型 珠华弄月
+"Moon Breathing, Third Form: Loathsome Moon, Chains"：月之呼吸·叁之型 厌忌月·销蚀
+"Moon Breathing, Fifth Form: Moon Spirit Calamitous Eddy"：月之呼吸·伍之型 月魄灾涡
+"Moon Breathing, Sixth Form: Perpetual Night, Lonely Moon — Incessant"：月之呼吸·陆之型 长夜孤月·无间
+"Moon Breathing, Seventh Form: Mirror of Misfortune, Moonlit"：月之呼吸·柒之型 厄镜·月映
+"Moon Breathing, Eighth Form: Moon-Dragon Ringtail"：月之呼吸·捌之型 月龙轮尾
+"Moon Breathing, Ninth Form: Waning Moonswaths"：月之呼吸·玖之型 降月·连面
+"Moon Breathing, Tenth Form: Drilling Slashes, Moon Through Bamboo Leaves"：月之呼吸·拾之型 穿面斩·萝月
+"Moon Breathing, Fourteenth Form: Catastrophe, Tenman Crescent Moon"：月之呼吸·拾肆之型 凶变·天满纤月
+"Moon Breathing, Sixteenth Form: Moonbow, Half Moon"：月之呼吸·拾陆之型 月虹·片割月
+
+// ==================== 血鬼术：通用 ====================
+Blood Demon Art：血鬼术
+
+// 祢豆子
+Exploding Blood：爆血
+
+// 珠世
+Blood Bewitchment：惑血
+Scent of Illusory Blood, Visual Dream：惑血·视觉梦幻之香
+Magical Aroma of Daylight：白日的魔香
+
+// 愈史郎
+Blindfold：目隐
+Mind Control：视界操控
+
+// 朱纱丸 / 矢琶羽 / 响凯 / 累
+Hiasobi Temari：红洁之箭
+Koketsu Arrow：红洁之箭
+Drum Spells：鼓之血鬼术
+Thread Manipulation：刻丝牢
+Cutting Thread Rotation：刻丝轮转
+
+// 魇梦
+Sleep Manipulation：强制昏睡催眠
+Whispers of Forced Unconscious Hypnosis：强制昏睡催眠的低语
+Eyes of Forced Unconscious Sleep：强制昏睡睡眠·眼
+
+// 猗窝座
+Destructive Death：破坏杀
+Compass Needle：罗针
+Air Type：空式
+Disorder：乱式
+Annihilation Type：灭式
+Leg Type: Crown Splitter：脚式·冠先割
+Leg Type: Explosive Flurry：脚式·流闪群光
+Eight-Layered Demon Core：鬼芯八重芯
+Crushing Type: Ten Thousand Leaves Flashing Willow：碎式·万叶闪柳
+Final Form: Blue Silver Chaotic Afterglow：终式·青银乱残光
+
+// 堕姬 / 妓夫太郎
+Obi Sash Manipulation：缎带操纵
+Eight-Layered Obi Slash：八重带斩
+Haemokinesis：血镰
+Flying Blood Sickles：飞血镰
+
+// 玉壶
+Thousand Needle Fish Kill：千本针·鱼杀
+Water Prison Pot：水狱钵
+Octopus Vase Hell：蛸壶地狱
+Ten Thousand Gliding Slime-Fish：万叶滑粘鱼
+Killer Fish Scales：阵杀鱼鳞
+
+// 半天狗
+Emotion Manifestation：情感具现化
+Blood Demon Art Lightning：血鬼术·雷电
+Blood Demon Art Wind：血鬼术·狂风
+Blood Demon Art Spear Projection：血鬼术·激泪刺突
+Blood Demon Art Sonic Scream：血鬼术·狂鸣
+Wood Dragons：木龙
+Countless Striking Trees：无间业树
+
+// 童磨
+Frozen Lotus：莲叶冰
+Barren Hanging Garden：枯园垂雪
+Freezing Clouds：冻云
+Lotus Vines：蔓莲华
+Cold White Princesses：寒烈的白姬
+Wintry Icicles：冬之冰柱
+Scattering Lotuses：散莲华
+Crystalline Divine Child：结晶之御子
+Rime — Water Lily Bodhisattva：雾冰·睡莲菩萨
+
+// 鸣女
+Infinity Castle Manipulation：无限城操纵
+
+// 黑死牟
+Crescent Moon Blades：月之刃
+
+// 狯岳
+Electrokinesis：雷电血鬼术
+
+// ==================== 地点 ====================
+Mount Sagiri：狭雾山
+Mount Fujikasane：藤袭山
+Asakusa：浅草
+Natagumo Mountain：那田蜘蛛山
+Butterfly Mansion：蝶屋敷
+Mugen Train：无限列车
+Entertainment District：吉原游郭
+Yoshiwara：吉原
+Swordsmith Village：刀匠村
+Infinity Castle：无限城
+
+
+// ==================== 招式简称 ====================
+// 以下词条用于作者省略“X Breathing, X Form:”只写招式名称的情况。
+// 仅收录足够独特的短语；普通英文高频词不单独翻译。
+
+// 水之呼吸
+"Water Surface Slash"：水面斩
+"Water Wheel"：水车
+"Flowing Dance"：流流舞
+"Striking Tide"：击打潮
+"Blessed Rain After the Drought"：干天的慈雨
+"Drop Ripple Thrust"：雫波纹突
+"Waterfall Basin"：泷壶
+"Splashing Water Flow, Turbulent"：水流飞沫·乱
+"Constant Flux"：生生流转
+"Dead Calm"：凪
+
+// 雷之呼吸
+"Thunderclap and Flash"：霹雳一闪
+"Thunderclap and Flash: Sixfold"：霹雳一闪·六连
+"Thunderclap and Flash: Eightfold"：霹雳一闪·八连
+"Thunderclap and Flash: Godlike Speed"：霹雳一闪·神速
+"Rice Spirit"：稻魂
+"Thunder Swarm"：聚蚊成雷
+"Distant Thunder"：远雷
+"Heat Lightning"：热界雷
+"Rumble and Flash"：电轰雷轰
+"Honoikazuchi no Kami"：火雷神
+
+// 炎之呼吸
+"Unknowing Fire"：不知火
+"Rising Scorching Sun"：炎天升腾
+"Blazing Universe"：气炎万象
+"Blooming Flame Undulation"：盛炎的蜿蜒
+"Flame Tiger"：炎虎
+// Rengoku 不单独加入：既是招式“炼狱”，也是炼狱家姓氏，独立替换会破坏人名。
+
+// 兽之呼吸
+"Spatial Awareness"：空间感知
+"Explosive Rush"：爆裂猛进
+"Extending Bendy Slash"：伸·蜿蜒撕裂
+"Whirling Fangs"：圆转旋牙
+"Sudden Throwing Strike"：猛进突刺
+"Palisade Bite"：乱桩咬
+"Crazy Cutting"：狂乱撕扯
+"Slice 'n' Dice"：碎刃霏霏
+
+// 虫之呼吸
+"Butterfly Dance: Caprice"：蝶之舞 戏弄
+"Dance of the Bee Sting: True Flutter"：蜂牙之舞 真曳
+"Dance of the Dragonfly: Compound Eye Hexagon"：蜻蛉之舞 复眼六角
+"Dance of the Centipede: Hundred-Legged Zigzag"：蜈蚣之舞 百足蛇腹
+// Caprice / True Flutter 等过短或普通表达不单独建立规则。
+
+// 花之呼吸
+"Honorable Shadow Plum"：御影梅
+"Crimson Hanagoromo"：红花衣
+"Peonies of Futility"：无果芍药
+"Whirling Peach"：涡桃
+"Equinoctial Vermilion Eye"：彼岸朱眼
+
+// 音之呼吸
+"Constant Resounding Slashes"：响斩无间
+"String Performance"：鸣弦奏奏
+// Roar 不单独建立规则。
+
+// 霞之呼吸
+"Low Clouds, Distant Haze"：垂天远霞
+"Eight-Layered Mist"：八重霞
+"Scattering Mist Splash"：霞散的飞沫
+"Shifting Flow Slash"：移流斩
+"Sea of Clouds and Haze"：霞云之海
+"Lunar Dispersing Mist"：月之霞消
+"Obscuring Clouds"：朦胧
+
+// 恋之呼吸
+"Shivers of First Love"：初恋的战栗
+"Love Pangs"：懊恼逡巡之恋
+"Catlove Shower"：恋猫时雨
+"Swaying Love, Wildclaw"：摇摆不定的恋情·乱爪
+"Cat-Legged Winds of Love"：猫足恋风
+
+// 蛇之呼吸
+"Winding Serpent Slash"：委蛇斩
+"Venom Fangs of the Narrow Head"：狭头之毒牙
+"Coil Choke"：巢绞
+"Twin-Headed Reptile"：颈蛇双生
+"Slithering Serpent"：蜿蜿长蛇
+
+// 风之呼吸
+"Dust Whirlwind Cutter"：尘旋风·削斩
+"Claws-Purifying Wind"：爪爪·科户风
+"Clean Storm Wind Tree"：晴岚风树
+"Rising Dust Storm"：升上沙尘岚
+"Cold Mountain Wind"：寒秋落山风
+"Black Wind Mountain Mist"：黑风烟岚
+"Gale, Sudden Gusts"：劲风·天狗风
+"Primary Gale Slash"：初烈风斩
+"Idaten Typhoon"：韦驮天台风
+
+// 岩之呼吸
+"Serpentinite Bipolar"：蛇纹岩·双极
+"Upper Smash"：天面碎
+"Stone Skin"：岩躯之肤
+"Volcanic Rock, Rapid Conquest"：流纹岩·速征
+"Arcs of Justice"：瓦轮刑部
+
+// 火之神神乐 / 日之呼吸
+// Dance 不单独建立规则。
+"Clear Blue Sky"：碧罗天
+"Raging Sun"：烈日红镜
+"Burning Bones, Summer Sun"：灼骨炎阳
+"Setting Sun Transformation"：斜阳转身
+"Solar Heat Haze"：飞轮阳炎
+"Beneficent Radiance"：辉辉恩光
+"Sunflower Thrust"：阳华突
+"Dragon Sun Halo Head Dance"：日晕之龙·头舞
+"Fire Wheel"：火车
+"Fake Rainbow"：幻日虹
+"Flame Dance"：炎舞
+// Thirteenth Form 单独出现时缺少呼吸法上下文，避免全局误翻。
+
+// 月之呼吸
+"Dark Moon, Evening Palace"：暗月·宵之宫
+"Pearl Flower Moongazing"：珠华弄月
+"Loathsome Moon, Chains"：厌忌月·销蚀
+"Moon Spirit Calamitous Eddy"：月魄灾涡
+"Perpetual Night, Lonely Moon — Incessant"：长夜孤月·无间
+"Mirror of Misfortune, Moonlit"：厄镜·月映
+"Moon-Dragon Ringtail"：月龙轮尾
+"Waning Moonswaths"：降月·连面
+"Drilling Slashes, Moon Through Bamboo Leaves"：穿面斩·萝月
+"Catastrophe, Tenman Crescent Moon"：凶变·天满纤月
+"Moonbow, Half Moon"：月虹·片割月
+
+// ==================== 血鬼术简称 ====================
+// 作者只写具体血鬼术名称时也可直接匹配。
+
+"Exploding Blood"：爆血
+"Blood Bewitchment"：惑血
+"Scent of Illusory Blood, Visual Dream"：惑血·视觉梦幻之香
+"Magical Aroma of Daylight"：白日的魔香
+"Forced Unconscious Hypnosis"：强制昏睡催眠
+"Whispers of Forced Unconscious Hypnosis"：强制昏睡催眠的低语
+"Eyes of Forced Unconscious Sleep"：强制昏睡睡眠·眼
+"Destructive Death"：破坏杀
+"Compass Needle"：罗针
+"Annihilation Type"：灭式
+"Eight-Layered Demon Core"：鬼芯八重芯
+"Crushing Type: Ten Thousand Leaves Flashing Willow"：碎式·万叶闪柳
+"Final Form: Blue Silver Chaotic Afterglow"：终式·青银乱残光
+"Obi Sash Manipulation"：缎带操纵
+"Eight-Layered Obi Slash"：八重带斩
+"Flying Blood Sickles"：飞血镰
+"Thousand Needle Fish Kill"：千本针·鱼杀
+"Water Prison Pot"：水狱钵
+"Octopus Vase Hell"：蛸壶地狱
+"Ten Thousand Gliding Slime-Fish"：万叶滑粘鱼
+"Killer Fish Scales"：阵杀鱼鳞
+"Emotion Manifestation"：情感具现化
+"Wood Dragons"：木龙
+"Countless Striking Trees"：无间业树
+"Frozen Lotus"：莲叶冰
+"Barren Hanging Garden"：枯园垂雪
+"Freezing Clouds"：冻云
+"Lotus Vines"：蔓莲华
+"Cold White Princesses"：寒烈的白姬
+"Wintry Icicles"：冬之冰柱
+"Scattering Lotuses"：散莲华
+"Crystalline Divine Child"：结晶之御子
+"Rime — Water Lily Bodhisattva"：雾冰·睡莲菩萨
+"Infinity Castle Manipulation"：无限城操纵
+"Crescent Moon Blades"：月之刃
+// Air Type / Disorder / Blindfold / Mind Control / Thread Manipulation / Haemokinesis 等
+// 属于普通英文表达或通用概念，不建立独立短词条，避免误伤同人正文。
+
+通用词条
+demon slayer corps：鬼杀队
+demon slayer：鬼杀队士
+hashira：柱
+demon：鬼
+blood demon art：血鬼术
+breathing style：呼吸法
+total concentration breathing：全集中呼吸
+nichirin sword：日轮刀
+nichirin blade：日轮刀
+upper rank：上弦
+lower rank：下弦
+twelve kizuki：十二鬼月
+kakushi：隐
+tsuguko：继子
+wisteria：紫藤
+marechi：稀血
+
+禁翻词条
+// 无需翻译的拟声/专名可在本地继续追加
+
+正则表达式
+// 兼容 Upper Rank 1 / Upper Rank One 等常见英文同人写法
+\bUpper Rank (?:1|One)\b: 上弦之壹
+\bUpper Rank (?:2|Two)\b: 上弦之贰
+\bUpper Rank (?:3|Three)\b: 上弦之叁
+\bUpper Rank (?:4|Four)\b: 上弦之肆
+\bUpper Rank (?:5|Five)\b: 上弦之伍
+\bUpper Rank (?:6|Six)\b: 上弦之陆
+\bLower Rank (?:1|One)\b: 下弦之壹
+\bLower Rank (?:2|Two)\b: 下弦之贰
+\bLower Rank (?:3|Three)\b: 下弦之叁
+\bLower Rank (?:4|Four)\b: 下弦之肆
+\bLower Rank (?:5|Five)\b: 下弦之伍
+\bLower Rank (?:6|Six)\b: 下弦之陆

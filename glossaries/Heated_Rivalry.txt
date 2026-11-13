@@ -1,0 +1,103 @@
+版本号：1.0.4
+维护者：CoffeHolic-330
+更新时间：2026-10-29
+
+词条
+//人名相关（使用 = 自动生成全名、单名、单姓的多重匹配）
+Shane Hollander = 谢恩·霍兰德
+Ilya Rozanov = 伊利亚·罗扎诺夫
+Scott Hunter = 斯科特·亨特
+Kip Grady = 基普·格雷迪
+Ryan Price = 瑞恩·普莱斯
+Fabian Salah = 法比安·萨拉赫
+Eric Bennett = 埃里克·贝内特
+Kyle Swift = 凯尔·斯威夫特
+Troy Barrett = 特洛伊·巴雷特
+Harris Drover = 哈里斯 德罗弗
+Hayden Pike = 海登·派克
+JJ Dagenais = JJ·达热奈
+Cliff Marleau = 克利夫·马尔罗
+Zane Boodram = 赞·布德拉姆
+Luca Haas = 卢卡·哈斯
+Wyatt Hayes = 怀亚特·海斯
+Rose Landry = 萝丝·兰德里
+Svetlana Vetrova = 斯韦特兰娜·韦特罗娃
+Yuna Hollander = 尤娜·霍兰德
+David Hollander = 大卫·霍兰德
+Jacki Pike = 杰基·派克
+Sasha：萨沙
+Marcus：马库斯
+Thomas：托马斯
+Dmitri：德米特里
+
+//球队全称与常用简称
+Montreal Metros：蒙特利尔地铁队
+Metros：地铁队
+Boston Raiders：波士顿突袭者队
+Raiders：突袭者队
+New York Admirals：纽约海军上将队
+Admirals：海军上将队
+Ottawa Centaurs：渥太华半人马队
+Centaurs：半人马队
+Toronto Guardians：多伦多守护者队
+Guardians：守护者队
+
+通用词条
+//此区域不区分大小写，用于翻译通用概念
+Rookie：新秀
+Draft：选秀
+All-Star Game：全明星赛
+All-Star：全明星赛
+Most Valuable Player：最有价值球员
+MVP：最有价值球员
+Trade：转会
+Transfer：转会
+Stanley Cup：斯坦利杯
+Center：中锋
+Winger：边锋
+Defenseman：后卫
+Goalie：守门员
+Goaltender：守门员
+The Cottage：林间小屋
+Cabin：林间小屋
+Exclusivity：专属关系
+Power Play：多打少
+Penalty Kill：少打多
+Hat Trick：帽子戏法
+Offside：越位
+Icing：死球违例
+Slashing：挥杆犯规
+Tripping：绊人犯规
+High-sticking：高杆犯规
+Boarding：撞板犯规
+Roughing：粗暴冲撞
+Penalty Box：受罚席
+Face-off：争球
+Body Check：身体对抗
+Assist：助攻
+Media Day：媒体日
+Deke：假动作
+Deking：假动作
+Deeking：假动作
+Slap Shot：大力击射
+Wrist Shot：腕射
+Shutout：零封
+Captain：队长
+Capitaine：队长
+Alternate Captain：助理队长
+Overtime：加时赛
+Shootout：点球大战
+Dark Horse：黑马
+Free Agent：自由球员
+Chirping：垃圾话
+Breakaway：单刀球
+Enforcer：冰球打手
+Snipe：死角破门
+Puck：冰球
+Rink：冰球场
+Goal Line：球门线
+Empty Net Goal：空网进球
+Clapper：大力击射
+Tic-Tac-Toe：连续传递破门
+Shift：轮换
+Zamboni：扫冰车
