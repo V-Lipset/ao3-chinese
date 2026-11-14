@@ -1,10 +1,14 @@
-name: 在线术语表审查与 Wiki 同步
+name: 在线术语表审查与收录
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'glossaries/**'
   pull_request_target:
+    branches:
+      - main
     types: [opened, synchronize, reopened, closed]
     paths:
       - 'glossaries/**'
@@ -100,10 +104,11 @@ jobs:
             const files = JSON.parse(process.env.FILES_JSON || "[]");
             let fixed = [];
             for (const f of files) {
-              if (f.startsWith(".") || f.endsWith(".json") || f.endsWith(".txt")) continue;
-              if (fs.existsSync(f) && fs.statSync(f).isFile()) {
-                fs.renameSync(f, f + ".txt");
-                fixed.push(f);
+              if (f.startsWith(".") || f.endsWith(".json")) continue;
+              const actual = fs.existsSync(f) ? f : (f.endsWith(".txt") && fs.existsSync(f.slice(0, -4)) ? f.slice(0, -4) : null);
+              if (actual && !actual.endsWith(".txt") && fs.statSync(actual).isFile()) {
+                fs.renameSync(actual, actual + ".txt");
+                fixed.push(actual);
               }
             }
             if (fixed.length > 0) {
@@ -123,28 +128,24 @@ jobs:
         if: steps.get_changed.outputs.files_json != '[]'
         run: |
           mkdir -p /tmp/aria-engine
-          LINTER_FETCHED=false
-          UPSTREAM_CANDIDATES=("V-Lipset/ao3-chinese" "Oarcr/ao3-chinese")
-          for repo in "${UPSTREAM_CANDIDATES[@]}"; do
-            echo "尝试从 $repo 获取最新 glossary-linter.mjs..."
-            if curl -sSfL "https://raw.githubusercontent.com/$repo/main/tools/glossary-linter.mjs" -o /tmp/aria-engine/glossary-linter.mjs; then
-              if [ -s /tmp/aria-engine/glossary-linter.mjs ]; then
-                echo "✅ 成功从 $repo 获取最新质检引擎！"
-                LINTER_FETCHED=true
-                break
+          if [ -f base_repo/tools/glossary-linter.mjs ]; then
+            echo "✅ 优先使用当前基准分支的 base_repo/tools/glossary-linter.mjs 作为质检引擎！"
+            cp base_repo/tools/glossary-linter.mjs /tmp/aria-engine/glossary-linter.mjs
+          else
+            UPSTREAM_CANDIDATES=("Oarcr/ao3-chinese" "V-Lipset/ao3-chinese")
+            for repo in "${UPSTREAM_CANDIDATES[@]}"; do
+              echo "尝试从 $repo 获取最新 glossary-linter.mjs..."
+              if curl -sSfL "https://raw.githubusercontent.com/$repo/main/tools/glossary-linter.mjs" -o /tmp/aria-engine/glossary-linter.mjs; then
+                if [ -s /tmp/aria-engine/glossary-linter.mjs ]; then
+                  echo "✅ 成功从 $repo 获取最新质检引擎！"
+                  break
+                fi
               fi
-            fi
-          done
-
-          if [ "$LINTER_FETCHED" != "true" ]; then
-            echo "⚠️ 动态拉取失败，尝试使用 base_repo 内置的 tools/glossary-linter.mjs 兜底..."
-            if [ -f base_repo/tools/glossary-linter.mjs ]; then
-              cp base_repo/tools/glossary-linter.mjs /tmp/aria-engine/glossary-linter.mjs
-              echo "✅ 已使用 base_repo/tools/glossary-linter.mjs"
-            else
-              echo "❌ 未找到可用质检引擎！"
-              exit 1
-            fi
+            done
+          fi
+          if [ ! -s /tmp/aria-engine/glossary-linter.mjs ]; then
+            echo "❌ 未找到可用质检引擎！"
+            exit 1
           fi
 
       - name: 运行术语表质检脚本
@@ -164,8 +165,14 @@ jobs:
             for (const f of files) {
               if (fs.existsSync(f)) targets.push(f);
               else if (fs.existsSync(f + ".txt")) targets.push(f + ".txt");
+              else if (f.endsWith(".txt") && fs.existsSync(f.slice(0, -4))) targets.push(f.slice(0, -4));
             }
             console.log("质检目标文件:", targets);
+            if (targets.length === 0) {
+              console.log("没有找到具体的术语表变动文件，跳过质检");
+              fs.writeFileSync("linter_report.md", "");
+              process.exit(0);
+            }
             const args = ["/tmp/aria-engine/glossary-linter.mjs", "--head-branch", "${{ github.event.pull_request.head.ref }}", ...targets];
             const proc = spawnSync("node", args, { encoding: "utf-8" });
             fs.writeFileSync("linter_report.md", proc.stdout || "");
@@ -248,28 +255,24 @@ jobs:
         id: fetch_engine
         run: |
           mkdir -p /tmp/aria-engine
-          LINTER_FETCHED=false
-          UPSTREAM_CANDIDATES=("V-Lipset/ao3-chinese" "Oarcr/ao3-chinese")
-          for repo in "${UPSTREAM_CANDIDATES[@]}"; do
-            echo "尝试从 $repo 获取最新 glossary-linter.mjs..."
-            if curl -sSfL "https://raw.githubusercontent.com/$repo/main/tools/glossary-linter.mjs" -o /tmp/aria-engine/glossary-linter.mjs; then
-              if [ -s /tmp/aria-engine/glossary-linter.mjs ]; then
-                echo "✅ 成功从 $repo 获取最新质检引擎！"
-                LINTER_FETCHED=true
-                break
+          if [ -f tools/glossary-linter.mjs ]; then
+            echo "✅ 优先使用本地 tools/glossary-linter.mjs 作为质检引擎！"
+            cp tools/glossary-linter.mjs /tmp/aria-engine/glossary-linter.mjs
+          else
+            UPSTREAM_CANDIDATES=("Oarcr/ao3-chinese" "V-Lipset/ao3-chinese")
+            for repo in "${UPSTREAM_CANDIDATES[@]}"; do
+              echo "尝试从 $repo 获取最新 glossary-linter.mjs..."
+              if curl -sSfL "https://raw.githubusercontent.com/$repo/main/tools/glossary-linter.mjs" -o /tmp/aria-engine/glossary-linter.mjs; then
+                if [ -s /tmp/aria-engine/glossary-linter.mjs ]; then
+                  echo "✅ 成功从 $repo 获取最新质检引擎！"
+                  break
+                fi
               fi
-            fi
-          done
-
-          if [ "$LINTER_FETCHED" != "true" ]; then
-            echo "⚠️ 动态拉取失败，尝试使用本地内置的 tools/glossary-linter.mjs 兜底..."
-            if [ -f tools/glossary-linter.mjs ]; then
-              cp tools/glossary-linter.mjs /tmp/aria-engine/glossary-linter.mjs
-              echo "✅ 已使用本地 tools/glossary-linter.mjs"
-            else
-              echo "❌ 未找到可用质检引擎！"
-              exit 1
-            fi
+            done
+          fi
+          if [ ! -s /tmp/aria-engine/glossary-linter.mjs ]; then
+            echo "❌ 未找到可用质检引擎！"
+            exit 1
           fi
 
       - name: 获取变动的术语表文件
@@ -438,6 +441,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.ref || 'main' }}
           path: main_repo
+          fetch-depth: 2
 
       - name: 检出 Wiki 仓库
         if: env.HAS_WIKI_PAT == 'true'
@@ -456,8 +460,10 @@ jobs:
           node -e '
             import fs from "node:fs";
             import path from "node:path";
+            import { execSync } from "node:child_process";
 
             const prBody = process.env.PR_BODY || "";
+            const prAuthor = process.env.PR_AUTHOR || "";
             const prNumber = process.env.PR_NUMBER;
             const repoFullName = process.env.GITHUB_REPOSITORY;
             const wikiFile = path.resolve("../wiki_repo/在线术语库.md");
@@ -475,83 +481,145 @@ jobs:
               process.exit(0);
             }
 
+            // 获取仅本次 PR 变更的 glossaries/*.txt 文件列表，彻底杜绝扫描全目录导致的幽灵条目爆发
+            let changedFiles = [];
+            try {
+              const ghOutput = execSync(`gh pr view ${prNumber} --repo ${repoFullName} --json files --jq ".files[].path"`).toString();
+              changedFiles = ghOutput.split("\n").map(f => f.trim()).filter(f => f.startsWith("glossaries/") && f.endsWith(".txt"));
+            } catch (e) {
+              console.log("通过 gh pr view 获取变更文件失败，尝试从 git diff 获取: " + e.message);
+              try {
+                const gitOutput = execSync("git diff --name-only HEAD^ HEAD").toString();
+                changedFiles = gitOutput.split("\n").map(f => f.trim()).filter(f => f.startsWith("glossaries/") && f.endsWith(".txt"));
+              } catch (e2) {
+                console.log("获取变更文件失败: " + e2.message);
+              }
+            }
+
+            if (changedFiles.length === 0) {
+              console.log("本次 PR 未涉及 glossaries/*.txt 文件新增或修改，跳过 Wiki 同步。");
+              process.exit(0);
+            }
+
+            // 行式智能容错字段提取器
+            function extractPrField(body, keyword) {
+              const lines = body.split("\n");
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.includes(keyword) && (line.includes("：") || line.includes(":"))) {
+                  const sepIdx = line.indexOf("：") !== -1 ? line.indexOf("：") : line.indexOf(":");
+                  let after = line.substring(sepIdx + 1).trim();
+                  if (after) {
+                    let val = after.replace(/^[`*_{<"“]+|[`*_{}>"”]+$/g, "").trim();
+                    if (!/^(例如|eg|e\.g\.)[:：]?/i.test(val) && !val.includes("梦想协奏曲") && !val.includes("BanG Dream")) {
+                      return val;
+                    }
+                  }
+                  for (let j = i + 1; j < lines.length; j++) {
+                    const nextLine = lines[j].trim();
+                    if (!nextLine) continue;
+                    if (nextLine.startsWith("-") || nextLine.startsWith("*") || nextLine.startsWith("#")) break;
+                    let val = nextLine.replace(/^[`*_{<"“]+|[`*_{}>"”]+$/g, "").trim();
+                    if (!/^(例如|eg|e\.g\.)[:：]?/i.test(val) && !val.includes("梦想协奏曲") && !val.includes("BanG Dream")) {
+                      return val;
+                    }
+                  }
+                }
+              }
+              return "";
+            }
+
             let wikiContent = fs.readFileSync(wikiFile, "utf-8");
+            let hasNewEntries = false;
 
-            // 提取 PR 模板字段
-            const matchName = prBody.match(/作品原名[^\n]*\n+([^\n#\-]+)/i);
-            const matchAlias = prBody.match(/译名[^\n]*\n+([^\n#\-]+)/i);
-            const matchNick = prBody.match(/维护者昵称[^\n]*\n+([^\n#\-]+)/i);
-            const matchUrl = prBody.match(/主页链接或反馈联系方式[^\n]*\n+([^\n#\-]+)/i);
-            const matchRaw = prBody.match(/在线术语表文件 Raw 链接[^\n]*\n+([^\n#\-]+)/i);
+            const parsedTitle = extractPrField(prBody, "作品原名");
+            const aliases = extractPrField(prBody, "译名");
+            const rawNick = extractPrField(prBody, "维护者昵称");
+            const nick = rawNick || prAuthor || "社区贡献者";
+            const contact = extractPrField(prBody, "反馈联系方式");
 
-            // 获取本次合并的新增术语表文件
-            const glossariesDir = path.resolve("glossaries");
-            const files = fs.readdirSync(glossariesDir).filter(f => f.endsWith(".txt"));
+            let contactUrl = "";
+            if (contact) {
+              if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
+                contactUrl = `mailto:${contact}`;
+              } else if (contact.startsWith("@")) {
+                contactUrl = `https://github.com/${contact.slice(1)}`;
+              } else if (contact.startsWith("http")) {
+                contactUrl = contact;
+              }
+            }
+            if (!contactUrl) {
+              contactUrl = `https://github.com/${nick}`;
+            }
 
-            for (const f of files) {
-              const baseName = f.replace(/\.txt$/, "");
-              let rawUrl = (matchRaw && matchRaw[1] && matchRaw[1].startsWith("http"))
-                ? matchRaw[1].trim()
-                : `https://raw.githubusercontent.com/${repoFullName}/main/glossaries/${encodeURIComponent(f)}`;
+            const rawSection = extractPrField(prBody, "Raw 链接");
+            const rawUrlMatch = rawSection ? rawSection.match(/https?:\/\/[^\s`<>""\x27)\]}]+/) : null;
+
+            const addedNames = [];
+
+            for (const filePath of changedFiles) {
+              const fileName = path.basename(filePath);
+              const baseName = fileName.replace(/\.txt$/, "");
               
-              // 检查 Wiki 是否已收录（通过文件名或作品原名）
-              const alreadyExists = wikiContent.includes(`/${encodeURIComponent(f)}`) || 
-                                   wikiContent.includes(`/${f}`) ||
-                                   (matchName && matchName[1] && wikiContent.includes(`### ${matchName[1].trim()}`));
+              const alreadyExists = wikiContent.includes(`/${encodeURIComponent(fileName)}`) || 
+                                   wikiContent.includes(`/${fileName}`) ||
+                                   (parsedTitle && wikiContent.includes(`### ${parsedTitle}`));
 
               if (alreadyExists) {
-                console.log(`术语表 "${f}" 已在 Wiki 中收录，保持 Wiki 不动。`);
+                console.log(`术语表 "${fileName}" 已在 Wiki 中收录，保持不变。`);
                 continue;
               }
 
-              console.log(`检测到新增术语表 "${f}"，准备写入 Wiki...`);
+              console.log(`检测到新增术语表 "${fileName}"，准备写入 Wiki...`);
 
-              const workTitle = (matchName && matchName[1].trim() && !matchName[1].includes("{例如："))
-                ? matchName[1].trim()
-                : baseName;
-              const aliases = (matchAlias && matchAlias[1].trim() && !matchAlias[1].includes("{例如："))
-                ? matchAlias[1].trim()
-                : "";
-              const nick = (matchNick && matchNick[1].trim() && !matchNick[1].includes("{例如："))
-                ? matchNick[1].trim()
-                : "社区贡献者";
-              const contact = (matchUrl && matchUrl[1].trim() && !matchUrl[1].includes("{例如："))
-                ? matchUrl[1].trim()
-                : "";
-              
-              // 构造标准 Wiki 条目
-              let newEntry = `\n### ${workTitle}\n`;
-              if (aliases) {
-                newEntry += `* 译名：${aliases}\n`;
-              }
-              if (contact) {
-                newEntry += `* 维护者：[${nick}](${contact})\n`;
-              } else {
-                newEntry += `* 维护者：[${nick}](https://github.com/${nick})\n`;
-              }
-              newEntry += `* 链接：${rawUrl}\n`;
+              const workTitle = parsedTitle || baseName;
+              let rawUrl = rawUrlMatch ? rawUrlMatch[0] : `https://raw.githubusercontent.com/${repoFullName}/main/glossaries/${encodeURIComponent(fileName)}`;
 
-              wikiContent += newEntry;
-              fs.writeFileSync(wikiFile, wikiContent, "utf-8");
+              const entryLines = [
+                `### ${workTitle}`,
+                aliases ? `* 译名：${aliases}` : null,
+                `* 链接：[${rawUrl}](${rawUrl})`,
+                `* 维护者：[${nick}](${contactUrl})`
+              ].filter(Boolean).join("\n");
+
+              const baseWiki = wikiContent.trimEnd();
+              wikiContent = `${baseWiki}\n\n${entryLines}\n`;
+              hasNewEntries = true;
+              addedNames.push(workTitle);
               console.log(`已将 "${workTitle}" 写入 Wiki。`);
+            }
+
+            if (hasNewEntries) {
+              fs.writeFileSync(wikiFile, wikiContent, "utf-8");
+              const commitMsg = `新增 ${addedNames.join("、")} 术语表`;
+              fs.writeFileSync("/tmp/wiki_commit_msg.txt", commitMsg, "utf-8");
             }
           '
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 提交并推送到 Wiki 仓库
         if: steps.checkout_wiki.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd wiki_repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "Aria"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add 在线术语库.md
           if git diff --staged --quiet; then
             echo "Wiki 内容无变动，无需推送。"
           else
-            git commit -m "docs: 自动收录来自 PR #${{ github.event.pull_request.number }} 的新增在线术语表"
+            COMMIT_MSG="新增在线术语表"
+            if [ -f /tmp/wiki_commit_msg.txt ]; then
+              COMMIT_MSG=$(cat /tmp/wiki_commit_msg.txt)
+            fi
+            git commit -m "$COMMIT_MSG"
             git push origin master || git push origin main
-            echo "Wiki 更新推送成功，将自动触发 sync_wiki_to_json 工作流。"
+            echo "Wiki 更新推送成功，正在触发 sync_wiki_to_json 工作流..."
+            gh workflow run sync_wiki_to_json.yml --repo ${{ github.repository }} || true
           fi

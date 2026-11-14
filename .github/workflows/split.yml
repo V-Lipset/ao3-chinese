@@ -1,4 +1,4 @@
-name: 拆分
+name: 客户端拆分与构建
 
 on:
   push:
@@ -30,6 +30,9 @@ jobs:
 
       - name: 作用域校验（region 不得依赖 main 侧 IIFE 内部声明）
         run: node tools/scope-check.mjs
+
+      - name: 埋点逻辑单测（配置画像 / 按引擎归因 / 多日活跃位图 / usage 待确认快照）
+        run: node tools/analytics-client-test.mjs
 
       - name: 试拆分到临时目录（不写回源文件）
         run: bash tools/split.sh --out "$RUNNER_TEMP/split"

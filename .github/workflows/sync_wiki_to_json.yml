@@ -1,7 +1,8 @@
 name: Sync Wiki to Glossary JSON
 
 on:
-  gollum
+  gollum:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -82,12 +83,12 @@ jobs:
       - name: Commit and Push
         run: |
           cd main_repo
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "Aria"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add glossaries/glossary-index.json
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "docs: auto-update glossary-index.json"
+            git commit -m "Auto-update glossary-index.json"
             git push origin main
           fi
