@@ -558,5 +558,15 @@
     "maintainer": "CoffeHolic-330",
     "visibility": true,
     "feedback": "https://github.com/CoffeHolic-330"
+  },
+  {
+    "name": "Formula 1 RPF",
+    "tags": [
+      "一级方程式"
+    ],
+    "url": "https://raw.githubusercontent.com/ms46vmpff7-oss/ao3-chinese/refs/heads/main/glossaries/Formula%201%20RPF.txt",
+    "maintainer": "Amyli",
+    "visibility": true,
+    "feedback": "amylish19@foxmail.com"
   }
 ]
