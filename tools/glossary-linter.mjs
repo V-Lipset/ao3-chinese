@@ -742,12 +742,12 @@ export function lintGlossaryFile(filePath, baseBranchContent = null) {
           addIssue(fileReport.warningGroups, fileReport.warnings, 'unnecessary_equals_quotes', '`=` 关联语法规则包裹了外层引号，会导致词条无法拆分匹配。建议去除外层引号。', rawLine.trim());
         }
       } else {
-        // 使用冒号但原文多词且译文多词（可能为姓名或其它复合专有名词）
+        // 复合专有名词使用冒号但分段数对齐，建议升级为等号以支持拆分匹配
         if (section.type === 'TERMS') {
           const cleanVal = val.replace(/\/\/.*$/, '').trim();
           const parts = smartSplit(unquotedKey, TERM_SEPARATOR_RE);
           const valParts = smartSplit(smartUnquote(cleanVal), TRANSLATION_SEPARATOR_RE);
-          if (parts.length > 1 && valParts.length > 1) {
+          if (parts.length > 1 && parts.length === valParts.length) {
             addIssue(fileReport.warningGroups, fileReport.warnings, 'person_colon', '复合专有名词使用了 `:` 语法。建议改用 `=` 语法以支持拆分自动匹配。', rawLine.trim());
           }
         }
