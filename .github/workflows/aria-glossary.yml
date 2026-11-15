@@ -281,7 +281,26 @@ jobs:
         with:
           script: |
             const commitMsg = context.payload.head_commit?.message || '';
-            if (commitMsg.startsWith('Merge pull request') || commitMsg.startsWith('Merge branch') || commitMsg.startsWith('chore: 自动为在线术语表文件补充 .txt 后缀')) {
+            let isPrMerge =
+              commitMsg.startsWith('Merge pull request') ||
+              commitMsg.startsWith('Merge branch') ||
+              commitMsg.startsWith('chore: 自动为在线术语表文件补充 .txt 后缀') ||
+              /\(#\d+\)(?:\n|$)/m.test(commitMsg);
+
+            if (!isPrMerge) {
+              try {
+                const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  commit_sha: context.sha,
+                });
+                if (prs && prs.some(pr => pr.merged_at)) {
+                  isPrMerge = true;
+                }
+              } catch (e) {}
+            }
+
+            if (isPrMerge) {
               console.log('检测到合并或自动维护提交，无需触发独立 Push 审查。');
               core.setOutput('skip', 'true');
               core.setOutput('files_json', '[]');
