@@ -1,38 +1,36 @@
-版本号：1.1.0
+版本号：1.1.1
 维护者：CoffeHolic-330
-更新时间：2026-11-02
+更新时间：2026-11-16
 
 词条
 //人名相关
-Shane Hollander = 谢恩 霍兰德
-Shane：谢恩
-Ilya Rozanov = 伊利亚 罗扎诺夫
-Ilya：伊利亚
-Scott Hunter = 斯科特 亨特
-Kip Grady = 基普 格雷迪
-Ryan Price = 瑞安 普莱斯
-Fabian Salah = 法比安 萨拉赫
-Eric Bennett = 埃里克 贝内特
-Kyle Swift = 凯尔 斯威夫特
-Troy Barrett = 特洛伊 巴雷特
-Harris Drover = 哈里斯 德罗弗
-Hayden Pike = 海登 派克
-Jean-Jacques Boiziau：让-雅克 博伊佐
-J.J. Boiziau = J.J. 博伊佐
+Shane Hollander = 谢恩·霍兰德
+Ilya Rozanov = 伊利亚·罗扎诺夫
+Scott Hunter = 斯科特·亨特
+Kip Grady = 基普·格雷迪
+Ryan Price = 瑞安·普莱斯
+Fabian Salah = 法比安·萨拉赫
+Eric Bennett = 埃里克·贝内特
+Kyle Swift = 凯尔·斯威夫特
+Troy Barrett = 特洛伊·巴雷特
+Harris Drover = 哈里斯·德罗弗
+Hayden Pike = 海登·派克
+Jean-Jacques Boiziau：让-雅克·博伊佐
+J.J. Boiziau = J.J.博伊佐
 J.J. Dagenais：J.J.达格奈斯
-Cliff Marlow = 克利夫 马洛
-Victor St-Simon：维克托 圣西蒙
-Zane Boodram = 赞 布德拉姆
-Luca Haas = 卢卡 哈斯
-Wyatt Hayes = 怀亚特 海斯
-Rose Landry = 萝丝 兰德里
-Svetlana Vetrova = 斯韦特兰娜 韦特罗娃
-Yuna Hollander = 尤娜 霍兰德
-David Hollander = 大卫 霍兰德
+Cliff Marlow = 克利夫·马洛
+Victor St-Simon：维克托·圣西蒙
+Zane Boodram = 赞·布德拉姆
+Luca Haas = 卢卡·哈斯
+Wyatt Hayes = 怀亚特·海斯
+Rose Landry = 萝丝·兰德里
+Svetlana Vetrova = 斯韦特兰娜·韦特罗娃
+Yuna Hollander = 尤娜·霍兰德
+David Hollander = 大卫·霍兰德
 Sasha：萨沙
-Jacki Pike = 杰基 派克
+Jacki Pike = 杰基·派克
 LeClaire：勒克莱尔
-Gilbert Comeau = 吉尔伯特 科莫
+Gilbert Comeau = 吉尔伯特·科莫
 
 //球队名字
 Montreal Voyageurs：蒙特利尔 航海家队
@@ -101,3 +99,5 @@ Tic-Tac-Toe：完美配合进球
 Shift：换班
 Zamboni：冰面清理车
 Lady Byng：莱迪·宾纪念奖
+Bag Skate：罚滑
+xGF：预期进球数
