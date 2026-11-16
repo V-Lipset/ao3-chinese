@@ -57,9 +57,24 @@ jobs:
             const isUpdate = prBody.includes('- [x] 更新已有在线术语表') || prBody.includes('- [X] 更新已有在线术语表');
 
             const matchName = prBody.match(/作品原名[^\n]*\n+([^\n#\-]+)/i);
-            const workTitle = (matchName && matchName[1] && !matchName[1].includes('{例如：'))
+            let workTitle = (matchName && matchName[1] && !matchName[1].includes('{例如：'))
               ? matchName[1].trim()
               : '';
+
+            if (!workTitle) {
+              try {
+                const { data: files } = await github.rest.pulls.listFiles({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: context.issue.number,
+                });
+                const gFile = files.find(f => f.filename.startsWith('glossaries/') && !f.endsWith('.json'));
+                if (gFile) {
+                  const base = gFile.filename.split('/').pop().replace(/\.txt$/, '');
+                  workTitle = base.replace(/_/g, ' ');
+                }
+              } catch (e) {}
+            }
 
             if (workTitle && (isAdd || isUpdate)) {
               const prefix = isAdd ? '新增' : '更新';
@@ -530,7 +545,7 @@ jobs:
                   let after = line.substring(sepIdx + 1).trim();
                   if (after) {
                     let val = after.replace(/^[`*_{<"“]+|[`*_{}>"”]+$/g, "").trim();
-                    if (!/^(例如|eg|e\.g\.)[:：]?/i.test(val) && !val.includes("梦想协奏曲") && !val.includes("BanG Dream")) {
+                    if (!/^(例如|eg|e\.g\.)[:：]?/i.test(val) && !val.includes("梦想协奏曲") && !val.includes("BanG Dream") && !val.includes("无期迷途")) {
                       return val;
                     }
                   }
@@ -539,7 +554,7 @@ jobs:
                     if (!nextLine) continue;
                     if (nextLine.startsWith("-") || nextLine.startsWith("*") || nextLine.startsWith("#")) break;
                     let val = nextLine.replace(/^[`*_{<"“]+|[`*_{}>"”]+$/g, "").trim();
-                    if (!/^(例如|eg|e\.g\.)[:：]?/i.test(val) && !val.includes("梦想协奏曲") && !val.includes("BanG Dream")) {
+                    if (!/^(例如|eg|e\.g\.)[:：]?/i.test(val) && !val.includes("梦想协奏曲") && !val.includes("BanG Dream") && !val.includes("无期迷途")) {
                       return val;
                     }
                   }
@@ -554,22 +569,7 @@ jobs:
             const parsedTitle = extractPrField(prBody, "作品原名");
             const aliases = extractPrField(prBody, "译名");
             const rawNick = extractPrField(prBody, "维护者昵称");
-            const nick = rawNick || prAuthor || "社区贡献者";
             const contact = extractPrField(prBody, "反馈联系方式");
-
-            let contactUrl = "";
-            if (contact) {
-              if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) {
-                contactUrl = `mailto:${contact}`;
-              } else if (contact.startsWith("@")) {
-                contactUrl = `https://github.com/${contact.slice(1)}`;
-              } else if (contact.startsWith("http")) {
-                contactUrl = contact;
-              }
-            }
-            if (!contactUrl) {
-              contactUrl = `https://github.com/${nick}`;
-            }
 
             const rawSection = extractPrField(prBody, "Raw 链接");
             const rawUrlMatch = rawSection ? rawSection.match(/https?:\/\/[^\s`<>""\x27)\]}]+/) : null;
@@ -591,6 +591,34 @@ jobs:
 
               console.log(`检测到新增术语表 "${fileName}"，准备写入 Wiki...`);
 
+              let authorInFile = "";
+              let feedbackInFile = "";
+              try {
+                if (fs.existsSync(filePath)) {
+                  const fc = fs.readFileSync(filePath, "utf-8");
+                  const mMatch = fc.match(/^\s*(?:\/\/)?\s*(?:维护者|maintainer)\s*[:：]\s*([^\r\n,，]+)/im);
+                  if (mMatch) authorInFile = mMatch[1].trim();
+                  const fMatch = fc.match(/^\s*(?:\/\/)?\s*(?:反馈方式|联系方式|feedback|contact)\s*[:：]\s*([^\r\n,，]+)/im);
+                  if (fMatch) feedbackInFile = fMatch[1].trim();
+                }
+              } catch (e) {}
+
+              const finalNick = rawNick || authorInFile || prAuthor || "社区贡献者";
+              let contactUrl = "";
+              const effectiveContact = contact || feedbackInFile;
+              if (effectiveContact) {
+                if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(effectiveContact)) {
+                  contactUrl = `mailto:${effectiveContact}`;
+                } else if (effectiveContact.startsWith("@")) {
+                  contactUrl = `https://github.com/${effectiveContact.slice(1)}`;
+                } else if (effectiveContact.startsWith("http")) {
+                  contactUrl = effectiveContact;
+                }
+              }
+              if (!contactUrl) {
+                contactUrl = `https://github.com/${finalNick}`;
+              }
+
               const workTitle = parsedTitle || baseName;
               let rawUrl = rawUrlMatch ? rawUrlMatch[0] : `https://raw.githubusercontent.com/${repoFullName}/main/glossaries/${encodeURIComponent(fileName)}`;
 
@@ -598,7 +626,7 @@ jobs:
                 `### ${workTitle}`,
                 aliases ? `* 译名：${aliases}` : null,
                 `* 链接：[${rawUrl}](${rawUrl})`,
-                `* 维护者：[${nick}](${contactUrl})`
+                `* 维护者：[${finalNick}](${contactUrl})`
               ].filter(Boolean).join("\n");
 
               const baseWiki = wikiContent.trimEnd();
